@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About Us | TechStar Business Solution – Pune's Trusted DSA</title>
+  <meta name="description" content="Learn about TechStar Business Solution — Pune's leading financial DSA helping customers get loans from 50+ banks with zero paperwork hassle.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .team-card { text-align:center; padding:32px 24px; }
+    .team-avatar { width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--primary),#4f8ef7);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:1.8rem;font-weight:800;color:white;font-family:'Outfit',sans-serif; }
+    .value-card { display:flex;gap:20px;align-items:flex-start;padding:24px;border-radius:var(--radius-md);border:1px solid var(--border);background:white;transition:var(--transition-slow); }
+    .value-card:hover { transform:translateY(-4px);box-shadow:var(--shadow-medium);border-color:var(--primary); }
+    .value-icon { width:48px;height:48px;border-radius:var(--radius-sm);background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:var(--transition); }
+    .value-card:hover .value-icon { background:var(--primary);color:white; }
+    .timeline { position:relative;padding-left:32px; }
+    .timeline::before { content:'';position:absolute;left:8px;top:0;bottom:0;width:2px;background:linear-gradient(180deg,var(--primary),var(--accent)); }
+    .timeline-item { position:relative;margin-bottom:36px; }
+    .timeline-dot { position:absolute;left:-28px;top:4px;width:14px;height:14px;border-radius:50%;background:var(--primary);border:3px solid white;box-shadow:0 0 0 3px var(--primary); }
+    .timeline-item h4 { font-size:1rem;margin-bottom:4px; }
+    .timeline-item p { font-size:.9rem;color:var(--text-muted); }
+    .process-step { text-align:center;position:relative; }
+    .process-step::after { content:'→';position:absolute;right:-24px;top:28px;font-size:1.5rem;color:var(--border); }
+    .process-step:last-child::after { display:none; }
+    .process-num { width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--primary),#0066ff);color:white;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:800;font-family:'Outfit',sans-serif;margin:0 auto 16px;box-shadow:var(--shadow-primary); }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <header id="mainHeader">
+    <div class="container nav-container">
+      <a href="index.html" class="logo"><i data-lucide="shield-check"></i><span>TechStar</span></a>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="personal-loan.html">Personal Loan</a>
+        <a href="home-loan.html">Home Loan</a>
+        <a href="credit-cards.html">Credit Cards</a>
+        <a href="about-us.html" class="active">About</a>
+        <a href="index.html#contact" class="btn btn-primary btn-sm">Apply Now</a>
+      </nav>
+      <button class="mobile-menu-btn" id="menuToggle"><i data-lucide="menu"></i></button>
+    </div>
+    <nav class="mobile-nav" id="mobileNav">
+      <a href="index.html">Home</a>
+      <a href="personal-loan.html">Personal Loan</a>
+      <a href="home-loan.html">Home Loan</a>
+      <a href="credit-cards.html">Credit Cards</a>
+      <a href="about-us.html">About Us</a>
+      <a href="contact-us.html">Contact Us</a>
+      <a href="index.html#contact" class="btn btn-primary">Apply Now</a>
+    </nav>
+  </header>
+
+  <!-- Page Hero -->
+  <section class="page-hero">
+    <div class="container">
+      <div class="breadcrumb"><a href="index.html">Home</a> <i data-lucide="chevron-right" style="width:13px;"></i> About Us</div>
+      <h1>We Started With an Inspiration,<br>and Now We Inspire.</h1>
+      <p>TechStar Business Solution is Pune's trusted DSA — simplifying the complex world of loans and financial products for thousands of customers.</p>
+    </div>
+  </section>
+
+  <!-- Who We Are -->
+  <section class="section-padding">
+    <div class="container">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;">
+        <div class="reveal-left">
+          <span class="section-label">Who We Are</span>
+          <h2 style="font-size:clamp(1.8rem,3vw,2.4rem);margin-bottom:20px;">Pune's Leading Financial Advisory &amp; DSA Partner</h2>
+          <div class="divider"></div>
+          <p style="color:var(--text-muted);margin-bottom:16px;line-height:1.8;">TechStar Business Solution is a leading DSA (Direct Selling Agent) and financial advisory firm based in Pune, Maharashtra. We have helped thousands of customers achieve their financial goals — be it a dream home, a new car, business expansion, or personal needs.</p>
+          <p style="color:var(--text-muted);margin-bottom:28px;line-height:1.8;">Since our inception, we have brought about a revolution in the DSA industry by offering custom-fit loan products from a range of 50+ banks and NBFCs. We specialize in providing end-to-end support in the lending lifecycle — from product selection and hassle-free documentation to legal consulting and disbursal.</p>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;">
+            <a href="index.html#contact" class="btn btn-primary">Get Free Consultation</a>
+            <a href="contact-us.html" class="btn btn-outline">Contact Us</a>
+          </div>
+        </div>
+        <div class="reveal-right">
+          <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=700" alt="TechStar Team" style="width:100%;border-radius:var(--radius-lg);box-shadow:var(--shadow-large);">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats -->
+  <section style="background:var(--bg-light);padding:64px 0;">
+    <div class="container">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:24px;">
+        <div class="stat-card reveal">
+          <div class="stat-icon"><i data-lucide="users"></i></div>
+          <h3>10,000+</h3><p>Happy Customers</p>
+        </div>
+        <div class="stat-card reveal">
+          <div class="stat-icon"><i data-lucide="building-2"></i></div>
+          <h3>50+</h3><p>Partner Banks &amp; NBFCs</p>
+        </div>
+        <div class="stat-card reveal">
+          <div class="stat-icon"><i data-lucide="indian-rupee"></i></div>
+          <h3>₹500 Cr+</h3><p>Loans Disbursed</p>
+        </div>
+        <div class="stat-card reveal">
+          <div class="stat-icon"><i data-lucide="award"></i></div>
+          <h3>8+ Yrs</h3><p>Industry Experience</p>
+        </div>
+        <div class="stat-card reveal">
+          <div class="stat-icon"><i data-lucide="shield-check"></i></div>
+          <h3>100%</h3><p>Paperless Process</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Mission & Vision -->
+  <section class="section-padding">
+    <div class="container">
+      <div class="section-title reveal">
+        <span class="section-label">Our Purpose</span>
+        <h2>Mission &amp; Vision</h2>
+        <p>Everything we do is guided by a single belief — financial access should be simple, transparent, and available to everyone.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:32px;">
+        <div class="card reveal" style="border-top:4px solid var(--primary);">
+          <div style="width:52px;height:52px;background:var(--primary-light);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--primary);margin-bottom:20px;"><i data-lucide="target"></i></div>
+          <h3 style="margin-bottom:12px;">Our Mission</h3>
+          <p style="color:var(--text-muted);line-height:1.8;">To provide transparent, technology-driven financial solutions that help individuals and businesses achieve their goals without the hassle of traditional banking paperwork. We manage the entire borrowing process — from choosing the right product to post-disbursal compliance.</p>
+        </div>
+        <div class="card reveal" style="border-top:4px solid var(--accent);">
+          <div style="width:52px;height:52px;background:var(--accent-light);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:#92610a;margin-bottom:20px;"><i data-lucide="eye"></i></div>
+          <h3 style="margin-bottom:12px;">Our Vision</h3>
+          <p style="color:var(--text-muted);line-height:1.8;">To be Maharashtra's most trusted financial marketplace — leveraging AI, expert human advisory, and a deep network of banking partnerships to deliver personalized financial solutions to every individual and business.</p>
+        </div>
+        <div class="card reveal" style="border-top:4px solid var(--success);">
+          <div style="width:52px;height:52px;background:rgba(22,163,74,.08);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--success);margin-bottom:20px;"><i data-lucide="heart"></i></div>
+          <h3 style="margin-bottom:12px;">Our Promise</h3>
+          <p style="color:var(--text-muted);line-height:1.8;">Zero hidden charges. Complete transparency. Every customer gets a dedicated relationship manager and end-to-end support — from application to disbursement and beyond. We are with you at every step.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Why Different -->
+  <section style="background:var(--bg-light);" class="section-padding">
+    <div class="container">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;">
+        <div class="reveal-left">
+          <span class="section-label">Why Choose Us</span>
+          <h2 style="font-size:clamp(1.8rem,3vw,2.3rem);margin-bottom:20px;">Why We Are Different</h2>
+          <div class="divider"></div>
+          <p style="color:var(--text-muted);margin-bottom:32px;">Unlike traditional aggregators, TechStar Business Solution provides end-to-end support from choosing the right product to post-disbursal compliance. We bring together banking expertise, technology, and personalized service.</p>
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div class="value-card">
+              <div class="value-icon"><i data-lucide="zap"></i></div>
+              <div><h4 style="margin-bottom:4px;">100% Digital Workflow</h4><p style="color:var(--text-muted);font-size:.92rem;">From application to disbursement — all online, paperless, and fast.</p></div>
+            </div>
+            <div class="value-card">
+              <div class="value-icon"><i data-lucide="shield"></i></div>
+              <div><h4 style="margin-bottom:4px;">Transparent Pricing</h4><p style="color:var(--text-muted);font-size:.92rem;">No hidden charges. We show you the full cost upfront, every time.</p></div>
+            </div>
+            <div class="value-card">
+              <div class="value-icon"><i data-lucide="users"></i></div>
+              <div><h4 style="margin-bottom:4px;">Dedicated Relationship Manager</h4><p style="color:var(--text-muted);font-size:.92rem;">Every customer gets a personal advisor — from day one till disbursement.</p></div>
+            </div>
+            <div class="value-card">
+              <div class="value-icon"><i data-lucide="map-pin"></i></div>
+              <div><h4 style="margin-bottom:4px;">Pune-Based, Pan-India Service</h4><p style="color:var(--text-muted);font-size:.92rem;">Rooted in Pune, serving customers across Maharashtra and India.</p></div>
+            </div>
+          </div>
+        </div>
+        <div class="reveal-right">
+          <div style="background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%);border-radius:var(--radius-xl);padding:48px 40px;color:white;">
+            <h3 style="color:white;margin-bottom:32px;font-size:1.5rem;">Our Process</h3>
+            <div class="timeline" style="padding-left:40px;">
+              <div class="timeline-item">
+                <div class="timeline-dot"></div>
+                <h4 style="color:white;">Understand Your Needs</h4>
+                <p style="color:rgba(255,255,255,.7);">We listen first. A dedicated advisor understands your financial goal, income, and eligibility.</p>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-dot"></div>
+                <h4 style="color:white;">Compare Best Options</h4>
+                <p style="color:rgba(255,255,255,.7);">We compare rates across 50+ banks &amp; NBFCs and recommend the best-fit product for you.</p>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-dot"></div>
+                <h4 style="color:white;">Handle Documentation</h4>
+                <p style="color:rgba(255,255,255,.7);">We manage all paperwork — KYC, income proof, bank statements — digitally.</p>
+              </div>
+              <div class="timeline-item" style="margin-bottom:0;">
+                <div class="timeline-dot"></div>
+                <h4 style="color:white;">Fast Disbursement</h4>
+                <p style="color:rgba(255,255,255,.7);">Loan amount credited to your account, often within 24–72 hours of approval.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Services We Offer -->
+  <section class="section-padding">
+    <div class="container">
+      <div class="section-title reveal">
+        <span class="section-label">Our Services</span>
+        <h2>Complete Financial Solutions</h2>
+        <p>From personal loans to business financing — we connect you with the right lender, every time.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px;">
+        <div class="card reveal" style="text-align:center;">
+          <i data-lucide="home" style="color:var(--primary);width:36px;height:36px;margin:0 auto 16px;display:block;"></i>
+          <h4 style="margin-bottom:8px;">Home Loan</h4>
+          <p style="color:var(--text-muted);font-size:.9rem;">From 8.40% p.a. — new purchase, construction, resale &amp; top-up loans.</p>
+          <a href="home-loan.html" style="color:var(--primary);font-weight:600;font-size:.9rem;display:block;margin-top:16px;">Explore →</a>
+        </div>
+        <div class="card reveal" style="text-align:center;">
+          <i data-lucide="user" style="color:var(--primary);width:36px;height:36px;margin:0 auto 16px;display:block;"></i>
+          <h4 style="margin-bottom:8px;">Personal Loan</h4>
+          <p style="color:var(--text-muted);font-size:.9rem;">Instant approval, minimal documents, amounts up to ₹40 lakhs.</p>
+          <a href="personal-loan.html" style="color:var(--primary);font-weight:600;font-size:.9rem;display:block;margin-top:16px;">Explore →</a>
+        </div>
+        <div class="card reveal" style="text-align:center;">
+          <i data-lucide="briefcase" style="color:var(--primary);width:36px;height:36px;margin:0 auto 16px;display:block;"></i>
+          <h4 style="margin-bottom:8px;">Business Loan</h4>
+          <p style="color:var(--text-muted);font-size:.9rem;">Collateral-free working capital and term loans for SMEs and startups.</p>
+          <a href="business-loan.html" style="color:var(--primary);font-weight:600;font-size:.9rem;display:block;margin-top:16px;">Explore →</a>
+        </div>
+        <div class="card reveal" style="text-align:center;">
+          <i data-lucide="car" style="color:var(--primary);width:36px;height:36px;margin:0 auto 16px;display:block;"></i>
+          <h4 style="margin-bottom:8px;">Car &amp; Vehicle Loan</h4>
+          <p style="color:var(--text-muted);font-size:.9rem;">New car, used car, and two-wheeler loans at competitive rates.</p>
+          <a href="car-loan.html" style="color:var(--primary);font-weight:600;font-size:.9rem;display:block;margin-top:16px;">Explore →</a>
+        </div>
+        <div class="card reveal" style="text-align:center;">
+          <i data-lucide="credit-card" style="color:var(--primary);width:36px;height:36px;margin:0 auto 16px;display:block;"></i>
+          <h4 style="margin-bottom:8px;">Credit Cards</h4>
+          <p style="color:var(--text-muted);font-size:.9rem;">HDFC, ICICI, SBI, Axis &amp; more — we match the best card for your profile.</p>
+          <a href="credit-cards.html" style="color:var(--primary);font-weight:600;font-size:.9rem;display:block;margin-top:16px;">Explore →</a>
+        </div>
+        <div class="card reveal" style="text-align:center;">
+          <i data-lucide="bar-chart-2" style="color:var(--primary);width:36px;height:36px;margin:0 auto 16px;display:block;"></i>
+          <h4 style="margin-bottom:8px;">CIBIL &amp; Credit Score</h4>
+          <p style="color:var(--text-muted);font-size:.9rem;">Free CIBIL check and expert advice to improve your credit health.</p>
+          <a href="cibil-score.html" style="color:var(--primary);font-weight:600;font-size:.9rem;display:block;margin-top:16px;">Explore →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section style="background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%);padding:72px 0;">
+    <div class="container" style="text-align:center;">
+      <span class="badge badge-white" style="margin-bottom:20px;"><i data-lucide="phone-call" style="width:13px;"></i> Free Consultation</span>
+      <h2 style="color:white;font-size:clamp(1.8rem,3vw,2.5rem);margin-bottom:16px;">Ready to Start Your Financial Journey?</h2>
+      <p style="color:rgba(255,255,255,.8);font-size:1.1rem;margin-bottom:36px;max-width:560px;margin-left:auto;margin-right:auto;">Our advisors are ready to help you find the best loan at the lowest rate — completely free of charge.</p>
+      <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
+        <a href="index.html#contact" class="btn btn-accent btn-lg">Apply for Loan</a>
+        <a href="tel:+919579005645" class="btn btn-white btn-lg"><i data-lucide="phone" style="width:18px;"></i> Call Now</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-disclaimer">
+        <strong>Disclaimer:</strong> TechStar Business Solution is a DSA (Direct Selling Agent) and financial advisory firm. We do not lend directly. All loan products are offered by our partner banks and NBFCs. Information on this website is for general guidance only. Users are advised to independently verify all terms and conditions with the respective lenders before making any financial decision.
+      </div>
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="index.html" class="logo" style="color:white;"><i data-lucide="shield-check"></i><span>TechStar</span></a>
+          <p>India's trusted financial DSA — connecting customers with 50+ banks for the best loan deals. A TechStar Business Solution.</p>
+          <div class="footer-social">
+            <a href="#" title="Facebook"><i data-lucide="facebook" style="width:16px;"></i></a>
+            <a href="#" title="Instagram"><i data-lucide="instagram" style="width:16px;"></i></a>
+            <a href="#" title="LinkedIn"><i data-lucide="linkedin" style="width:16px;"></i></a>
+            <a href="#" title="WhatsApp"><i data-lucide="message-circle" style="width:16px;"></i></a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h5>Loans</h5>
+          <ul>
+            <li><a href="home-loan.html">Home Loan</a></li>
+            <li><a href="personal-loan.html">Personal Loan</a></li>
+            <li><a href="business-loan.html">Business Loan</a></li>
+            <li><a href="loan-against-property.html">Loan Against Property</a></li>
+            <li><a href="car-loan.html">Car Loan</a></li>
+            <li><a href="used-car-loan.html">Used Car Loan</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Tools</h5>
+          <ul>
+            <li><a href="sip-calculator.html">SIP Calculator</a></li>
+            <li><a href="fd-calculator.html">FD Calculator</a></li>
+            <li><a href="cibil-score.html">CIBIL Score Check</a></li>
+            <li><a href="credit-cards.html">Credit Cards</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Company</h5>
+          <ul>
+            <li><a href="about-us.html">About Us</a></li>
+            <li><a href="contact-us.html">Contact Us</a></li>
+            <li><a href="privacy-policy.html">Privacy Policy</a></li>
+            <li><a href="terms-conditions.html">Terms &amp; Conditions</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Contact</h5>
+          <ul>
+            <li><a href="tel:+919579005645">+91 9579005645</a></li>
+            <li><a href="mailto:official@swapnilaher.in">official@swapnilaher.in</a></li>
+            <li>Sadashiv Peth, Pune 411030</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 TechStar Business Solution. All rights reserved.</p>
+        <div class="footer-bottom-links">
+          <a href="privacy-policy.html">Privacy Policy</a>
+          <a href="terms-conditions.html">Terms &amp; Conditions</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+  <script>
+    lucide.createIcons();
+    document.getElementById('menuToggle').addEventListener('click', () => {
+      document.getElementById('mobileNav').classList.toggle('open');
+    });
+    window.addEventListener('scroll', () => {
+      document.getElementById('mainHeader').classList.toggle('scrolled', window.scrollY > 20);
+    });
+    const reveals = document.querySelectorAll('.reveal, .reveal-left, .reveal-right');
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); });
+    }, { threshold: 0.12 });
+    reveals.forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>

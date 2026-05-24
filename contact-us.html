@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Us | TechStar Business Solution – Pune</title>
+  <meta name="description" content="Contact TechStar Business Solution in Pune. Get expert financial advice, apply for loans, or reach our grievance officer. Call +91 9579005645.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .contact-info-card {
+      display:flex;gap:18px;align-items:flex-start;
+      padding:24px;border-radius:var(--radius-md);
+      border:1px solid var(--border);background:white;
+      transition:var(--transition-slow);margin-bottom:16px;
+    }
+    .contact-info-card:hover { transform:translateY(-3px);box-shadow:var(--shadow-medium);border-color:var(--primary); }
+    .contact-info-card .cic-icon {
+      width:50px;height:50px;border-radius:var(--radius-sm);
+      background:var(--primary-light);color:var(--primary);
+      display:flex;align-items:center;justify-content:center;flex-shrink:0;
+      transition:var(--transition);
+    }
+    .contact-info-card:hover .cic-icon { background:var(--primary);color:white; }
+    .faq-item { border-bottom:1px solid var(--border);padding:20px 0; }
+    .faq-q {
+      display:flex;justify-content:space-between;align-items:center;
+      cursor:pointer;font-weight:600;font-size:.97rem;gap:12px;
+    }
+    .faq-q i { flex-shrink:0;color:var(--primary);transition:var(--transition); }
+    .faq-a { color:var(--text-muted);font-size:.93rem;line-height:1.75;padding-top:12px;display:none; }
+    .faq-item.open .faq-a { display:block; }
+    .faq-item.open .faq-q i { transform:rotate(45deg); }
+    .map-placeholder {
+      width:100%;height:420px;border-radius:var(--radius-lg);overflow:hidden;
+      background:linear-gradient(135deg,#e8eeff 0%,#f0f5ff 100%);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      border:1px solid var(--border);gap:12px;
+    }
+    .map-placeholder i { color:var(--primary);width:48px;height:48px; }
+    .map-placeholder p { color:var(--text-muted);font-size:.95rem; }
+    .grievance-card {
+      background:linear-gradient(135deg,#fff8e1 0%,#fffde7 100%);
+      border:1px solid #f9e79f;border-radius:var(--radius-md);padding:28px;
+    }
+    .grievance-card h4 { color:#7d5a00;margin-bottom:8px; }
+    .grievance-card p { color:#8a6500;font-size:.92rem; }
+  </style>
+</head>
+<body>
+
+  <header id="mainHeader">
+    <div class="container nav-container">
+      <a href="index.html" class="logo"><i data-lucide="shield-check"></i><span>TechStar</span></a>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="personal-loan.html">Personal Loan</a>
+        <a href="home-loan.html">Home Loan</a>
+        <a href="credit-cards.html">Credit Cards</a>
+        <a href="about-us.html">About</a>
+        <a href="contact-us.html" class="active">Contact</a>
+        <a href="index.html#contact" class="btn btn-primary btn-sm">Apply Now</a>
+      </nav>
+      <button class="mobile-menu-btn" id="menuToggle"><i data-lucide="menu"></i></button>
+    </div>
+    <nav class="mobile-nav" id="mobileNav">
+      <a href="index.html">Home</a>
+      <a href="personal-loan.html">Personal Loan</a>
+      <a href="home-loan.html">Home Loan</a>
+      <a href="credit-cards.html">Credit Cards</a>
+      <a href="about-us.html">About Us</a>
+      <a href="contact-us.html">Contact Us</a>
+      <a href="index.html#contact" class="btn btn-primary">Apply Now</a>
+    </nav>
+  </header>
+
+  <!-- Page Hero -->
+  <section class="page-hero">
+    <div class="container">
+      <div class="breadcrumb"><a href="index.html">Home</a><i data-lucide="chevron-right" style="width:13px;"></i> Contact Us</div>
+      <h1>We'd Love to Hear From You</h1>
+      <p>Have questions about your loan or credit card application? Our team of financial advisors is here to help — call, email, or fill the form.</p>
+    </div>
+  </section>
+
+  <!-- Main Contact Section -->
+  <section class="section-padding">
+    <div class="container">
+      <div style="display:grid;grid-template-columns:1fr 1.2fr;gap:56px;align-items:start;">
+
+        <!-- Left: Info -->
+        <div class="reveal-left">
+          <span class="section-label">Get in Touch</span>
+          <h2 style="font-size:clamp(1.6rem,2.5vw,2.1rem);margin-bottom:10px;">Contact Details</h2>
+          <div class="divider"></div>
+          <p style="color:var(--text-muted);margin-bottom:32px;line-height:1.75;">Reach out to our Pune office for personalized loan advisory, document assistance, or any queries related to your existing application.</p>
+
+          <div class="contact-info-card">
+            <div class="cic-icon"><i data-lucide="map-pin"></i></div>
+            <div>
+              <h4 style="margin-bottom:4px;">Office Address</h4>
+              <p style="color:var(--text-muted);font-size:.92rem;line-height:1.6;">Office No 203, Suyash Chambers, Perugate,<br>Sadashiv Peth, Pune, Maharashtra 411030</p>
+              <a href="https://maps.google.com/?q=Sadashiv+Peth+Pune" target="_blank" style="font-size:.85rem;color:var(--primary);margin-top:8px;display:inline-block;">View on Google Maps →</a>
+            </div>
+          </div>
+
+          <div class="contact-info-card">
+            <div class="cic-icon"><i data-lucide="phone"></i></div>
+            <div>
+              <h4 style="margin-bottom:4px;">Call / WhatsApp</h4>
+              <a href="tel:+919579005645" style="color:var(--primary);font-size:1.1rem;font-weight:600;">+91 9579005645</a>
+              <p style="color:var(--text-muted);font-size:.85rem;margin-top:4px;">Mon–Sat, 10 AM – 7 PM</p>
+            </div>
+          </div>
+
+          <div class="contact-info-card">
+            <div class="cic-icon"><i data-lucide="mail"></i></div>
+            <div>
+              <h4 style="margin-bottom:4px;">Email Us</h4>
+              <a href="mailto:official@swapnilaher.in" style="color:var(--primary);font-weight:600;">official@swapnilaher.in</a>
+              <p style="color:var(--text-muted);font-size:.85rem;margin-top:4px;">We respond within 24 business hours</p>
+            </div>
+          </div>
+
+          <div class="contact-info-card">
+            <div class="cic-icon"><i data-lucide="clock"></i></div>
+            <div>
+              <h4 style="margin-bottom:4px;">Business Hours</h4>
+              <p style="color:var(--text-muted);font-size:.92rem;">Monday – Saturday: 10:00 AM – 7:00 PM</p>
+              <p style="color:var(--text-muted);font-size:.92rem;">Sunday: Closed</p>
+            </div>
+          </div>
+
+          <!-- Grievance Officer -->
+          <div class="grievance-card" style="margin-top:8px;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+              <i data-lucide="alert-circle" style="color:#d97706;width:22px;"></i>
+              <h4>Grievance / Escalation Officer</h4>
+            </div>
+            <p>If your concern is not resolved within 7 days, you may escalate to our Nodal Grievance Officer:</p>
+            <p style="margin-top:10px;"><strong>Name:</strong> Swapnil Aher<br>
+            <strong>Email:</strong> <a href="mailto:official@swapnilaher.in" style="color:#7d5a00;">official@swapnilaher.in</a><br>
+            <strong>Phone:</strong> <a href="tel:+919579005645" style="color:#7d5a00;">+91 9579005645</a></p>
+            <p style="margin-top:10px;">For unresolved banking complaints, you may also contact the <a href="https://cms.rbi.org.in" target="_blank" style="color:#7d5a00;text-decoration:underline;">RBI CMS Portal</a>.</p>
+          </div>
+        </div>
+
+        <!-- Right: Form -->
+        <div class="reveal-right">
+          <div class="card" style="box-shadow:var(--shadow-large);border:none;padding:40px;">
+            <h3 style="margin-bottom:6px;">Send us a Message</h3>
+            <p style="color:var(--text-muted);font-size:.92rem;margin-bottom:28px;">Fill the form below and our advisor will call you back within 24 hours.</p>
+            <form id="contactForm">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div class="form-group">
+                  <label for="fname">Full Name *</label>
+                  <input type="text" id="fname" class="form-control" placeholder="Your full name" required>
+                </div>
+                <div class="form-group">
+                  <label for="phone">Phone Number *</label>
+                  <input type="tel" id="phone" class="form-control" placeholder="+91 XXXXX XXXXX" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" class="form-control" placeholder="your@email.com">
+              </div>
+              <div class="form-group">
+                <label for="loanType">Loan / Service Type</label>
+                <select id="loanType" class="form-control">
+                  <option value="">-- Select a service --</option>
+                  <option>Home Loan</option>
+                  <option>Personal Loan</option>
+                  <option>Business Loan</option>
+                  <option>Car Loan</option>
+                  <option>Used Car Loan</option>
+                  <option>Loan Against Property</option>
+                  <option>Education Loan</option>
+                  <option>Credit Card</option>
+                  <option>CIBIL Score Check</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="loanAmt">Loan Amount Required</label>
+                <input type="text" id="loanAmt" class="form-control" placeholder="e.g., ₹15,00,000">
+              </div>
+              <div class="form-group">
+                <label for="message">Message / Query</label>
+                <textarea id="message" class="form-control" placeholder="Tell us about your requirements..." rows="4"></textarea>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;">
+                <input type="checkbox" id="whatsapp" style="width:16px;height:16px;accent-color:var(--primary);">
+                <label for="whatsapp" style="font-size:.88rem;color:var(--text-muted);cursor:pointer;">I agree to receive updates via WhatsApp &amp; SMS</label>
+              </div>
+              <button type="submit" class="btn btn-primary" id="submitBtn" style="width:100%;justify-content:center;font-size:1rem;padding:14px;">
+                <i data-lucide="send" style="width:18px;"></i> Send Message
+              </button>
+              <div id="formSuccess" style="display:none;margin-top:16px;padding:14px 18px;background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);border-radius:var(--radius-sm);color:var(--success);font-weight:500;text-align:center;">
+                ✅ Your message has been sent! We'll contact you within 24 hours.
+              </div>
+            </form>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Map -->
+  <section style="padding-bottom:80px;">
+    <div class="container">
+      <div class="map-placeholder">
+        <i data-lucide="map-pin"></i>
+        <p><strong>TechStar Business Solution</strong></p>
+        <p style="text-align:center;">Office No 203, Suyash Chambers, Perugate, Sadashiv Peth, Pune 411030</p>
+        <a href="https://maps.google.com/?q=Sadashiv+Peth+Pune+411030" target="_blank" rel="noopener" class="btn btn-primary btn-sm" style="margin-top:8px;"><i data-lucide="external-link" style="width:15px;"></i> Open in Google Maps</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section-padding" style="background:var(--bg-light);">
+    <div class="container">
+      <div class="section-title reveal">
+        <span class="section-label">FAQ</span>
+        <h2>Frequently Asked Questions</h2>
+        <p>Quick answers to the most common questions from our customers.</p>
+      </div>
+      <div style="max-width:800px;margin:0 auto;" class="reveal">
+        <div class="faq-item">
+          <div class="faq-q"><span>What documents are required for a personal loan?</span><i data-lucide="plus"></i></div>
+          <div class="faq-a">Typically you need: Aadhar card, PAN card, last 3-month salary slips, 6-month bank statement, and address proof. Self-employed individuals need ITR for the last 2 years and business proof.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q"><span>How long does it take for loan approval and disbursement?</span><i data-lucide="plus"></i></div>
+          <div class="faq-a">For pre-approved personal loans, disbursement can happen within 24 hours. Standard home loans take 7–14 business days for full processing. Business loans typically take 3–7 days.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q"><span>Do you charge any fee for loan advisory services?</span><i data-lucide="plus"></i></div>
+          <div class="faq-a">Our advisory consultation is completely free. We are compensated by our partner banks and NBFCs. There are absolutely no hidden charges from our side.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q"><span>Can I apply for a loan if my CIBIL score is below 700?</span><i data-lucide="plus"></i></div>
+          <div class="faq-a">Yes, we work with several lenders who offer products for customers with CIBIL scores between 650–700. We also provide credit improvement guidance to help you qualify for better rates.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q"><span>How do I track my loan application status?</span><i data-lucide="plus"></i></div>
+          <div class="faq-a">Once your application is submitted, your dedicated relationship manager will keep you updated at every step via phone, SMS, or WhatsApp. You can also call us anytime at +91 9579005645.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q"><span>Can I prepay or foreclose my loan early?</span><i data-lucide="plus"></i></div>
+          <div class="faq-a">Yes, most banks allow prepayment after 6–12 EMIs. Floating rate loans generally have no prepayment penalty. Fixed rate loans may have a 1–4% closure charge depending on the lender.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-disclaimer">
+        <strong>Disclaimer:</strong> TechStar Business Solution is a DSA (Direct Selling Agent) and does not lend directly. All loan products are sourced from partner banks and NBFCs. Interest rates and eligibility criteria are subject to change at the lender's discretion.
+      </div>
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="index.html" class="logo" style="color:white;"><i data-lucide="shield-check"></i><span>TechStar</span></a>
+          <p>India's trusted financial DSA — connecting customers with 50+ banks for the best loan deals.</p>
+          <div class="footer-social">
+            <a href="#" title="Facebook"><i data-lucide="facebook" style="width:16px;"></i></a>
+            <a href="#" title="Instagram"><i data-lucide="instagram" style="width:16px;"></i></a>
+            <a href="#" title="LinkedIn"><i data-lucide="linkedin" style="width:16px;"></i></a>
+            <a href="#" title="WhatsApp"><i data-lucide="message-circle" style="width:16px;"></i></a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h5>Loans</h5>
+          <ul>
+            <li><a href="home-loan.html">Home Loan</a></li>
+            <li><a href="personal-loan.html">Personal Loan</a></li>
+            <li><a href="business-loan.html">Business Loan</a></li>
+            <li><a href="loan-against-property.html">Loan Against Property</a></li>
+            <li><a href="car-loan.html">Car Loan</a></li>
+            <li><a href="used-car-loan.html">Used Car Loan</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Tools</h5>
+          <ul>
+            <li><a href="sip-calculator.html">SIP Calculator</a></li>
+            <li><a href="fd-calculator.html">FD Calculator</a></li>
+            <li><a href="cibil-score.html">CIBIL Score Check</a></li>
+            <li><a href="credit-cards.html">Credit Cards</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Company</h5>
+          <ul>
+            <li><a href="about-us.html">About Us</a></li>
+            <li><a href="contact-us.html">Contact Us</a></li>
+            <li><a href="privacy-policy.html">Privacy Policy</a></li>
+            <li><a href="terms-conditions.html">Terms &amp; Conditions</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Contact</h5>
+          <ul>
+            <li><a href="tel:+919579005645">+91 9579005645</a></li>
+            <li><a href="mailto:official@swapnilaher.in">official@swapnilaher.in</a></li>
+            <li>Sadashiv Peth, Pune 411030</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 TechStar Business Solution. All rights reserved.</p>
+        <div class="footer-bottom-links">
+          <a href="privacy-policy.html">Privacy Policy</a>
+          <a href="terms-conditions.html">Terms &amp; Conditions</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+  <script>
+    lucide.createIcons();
+    document.getElementById('menuToggle').addEventListener('click', () => {
+      document.getElementById('mobileNav').classList.toggle('open');
+    });
+    window.addEventListener('scroll', () => {
+      document.getElementById('mainHeader').classList.toggle('scrolled', window.scrollY > 20);
+    });
+    // FAQ Accordion
+    document.querySelectorAll('.faq-q').forEach(q => {
+      q.addEventListener('click', () => {
+        const item = q.closest('.faq-item');
+        const isOpen = item.classList.contains('open');
+        document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+        if (!isOpen) item.classList.add('open');
+      });
+    });
+    // Contact Form
+    document.getElementById('contactForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      btn.textContent = 'Sending...'; btn.disabled = true;
+      setTimeout(() => {
+        btn.innerHTML = '<span>✓ Message Sent</span>';
+        document.getElementById('formSuccess').style.display = 'block';
+      }, 1200);
+    });
+    // Reveal
+    const reveals = document.querySelectorAll('.reveal, .reveal-left, .reveal-right');
+    const obs = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); }), { threshold: 0.1 });
+    reveals.forEach(el => obs.observe(el));
+  </script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIP Calculator | Plan Your Wealth | TechStar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <i data-lucide="shield-check"></i>
+                <span>TechStar</span>
+            </a>
+            <nav class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="personal-loan.html">Personal Loan</a>
+                <a href="home-loan.html">Home Loan</a>
+                <a href="credit-cards.html">Credit Cards</a>
+                <a href="#contact" class="btn btn-primary">Apply Now</a>
+            </nav>
+            <button class="mobile-menu-btn" id="menuToggle">
+                <i data-lucide="menu"></i>
+            </button>
+        </div>
+    </header>
+
+    <section class="section-padding" style="background: var(--bg-light);">
+        <div class="container">
+            <div class="section-title">
+                <h2>SIP Calculator</h2>
+                <p>Calculate how much wealth you can create by investing small amounts regularly.</p>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 40px; align-items: start;">
+                <div class="card">
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px;">Monthly Investment (₹)</label>
+                        <input type="range" id="sipAmount" min="500" max="100000" step="500" value="5000" style="width: 100%;">
+                        <span id="sipAmountVal" style="display: block; margin-top: 5px; font-weight: 600;">₹ 5,000</span>
+                    </div>
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px;">Expected Return Rate (% p.a)</label>
+                        <input type="range" id="sipRate" min="1" max="30" step="0.5" value="12" style="width: 100%;">
+                        <span id="sipRateVal" style="display: block; margin-top: 5px; font-weight: 600;">12%</span>
+                    </div>
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px;">Time Period (Years)</label>
+                        <input type="range" id="sipTenure" min="1" max="40" step="1" value="10" style="width: 100%;">
+                        <span id="sipTenureVal" style="display: block; margin-top: 5px; font-weight: 600;">10 Years</span>
+                    </div>
+                </div>
+                
+                <div class="card" style="background: var(--secondary); color: white; border: none;">
+                    <div style="display: flex; flex-direction: column; gap: 24px;">
+                        <div>
+                            <p style="opacity: 0.8; font-size: 0.9rem; margin-bottom: 5px;">Invested Amount</p>
+                            <h3 id="investedAmount">₹ 0</h3>
+                        </div>
+                        <div>
+                            <p style="opacity: 0.8; font-size: 0.9rem; margin-bottom: 5px;">Estimated Returns</p>
+                            <h3 id="estimatedReturns">₹ 0</h3>
+                        </div>
+                        <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 24px;">
+                            <p style="opacity: 0.8; font-size: 0.9rem; margin-bottom: 5px;">Total Value</p>
+                            <h2 style="font-size: 2.5rem; color: var(--accent);">₹ <span id="totalValue">0</span></h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="section-padding" style="background: var(--bg-white); border-top: 1px solid var(--border);">
+        <div class="container" style="text-align: center;">
+            <p style="color: var(--text-muted); font-size: 0.9rem;">© 2026 TechStar Business Solution. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        lucide.createIcons();
+        
+        // SIP Logic
+        const sipAmountInput = document.getElementById('sipAmount');
+        const sipRateInput = document.getElementById('sipRate');
+        const sipTenureInput = document.getElementById('sipTenure');
+        
+        const sipAmountVal = document.getElementById('sipAmountVal');
+        const sipRateVal = document.getElementById('sipRateVal');
+        const sipTenureVal = document.getElementById('sipTenureVal');
+        
+        const investedAmountDisplay = document.getElementById('investedAmount');
+        const estimatedReturnsDisplay = document.getElementById('estimatedReturns');
+        const totalValueDisplay = document.getElementById('totalValue');
+        
+        function calculateSIP() {
+            let p = parseFloat(sipAmountInput.value);
+            let r = parseFloat(sipRateInput.value) / 12 / 100;
+            let n = parseFloat(sipTenureInput.value) * 12;
+            
+            // SIP Formula: FV = P × ({[1 + i]^n – 1} / i) × (1 + i)
+            let totalValue = p * ((Math.pow(1 + r, n) - 1) / r) * (1 + r);
+            let investedAmount = p * n;
+            let returns = totalValue - investedAmount;
+            
+            sipAmountVal.innerText = `₹ ${p.toLocaleString('en-IN')}`;
+            sipRateVal.innerText = `${sipRateInput.value}%`;
+            sipTenureVal.innerText = `${sipTenureInput.value} Years`;
+            
+            investedAmountDisplay.innerText = `₹ ${Math.round(investedAmount).toLocaleString('en-IN')}`;
+            estimatedReturnsDisplay.innerText = `₹ ${Math.round(returns).toLocaleString('en-IN')}`;
+            totalValueDisplay.innerText = Math.round(totalValue).toLocaleString('en-IN');
+        }
+        
+        [sipAmountInput, sipRateInput, sipTenureInput].forEach(input => {
+            input.addEventListener('input', calculateSIP);
+        });
+        
+        calculateSIP();
+    </script>
+</body>
+</html>
+
+

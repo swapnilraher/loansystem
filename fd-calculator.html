@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FD Calculator | TechStar Business Solution</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <i data-lucide="shield-check"></i>
+                <span>TechStar</span>
+            </a>
+            <nav class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="personal-loan.html">Personal Loan</a>
+                <a href="home-loan.html">Home Loan</a>
+                <a href="credit-cards.html">Credit Cards</a>
+                <a href="#contact" class="btn btn-primary">Apply Now</a>
+            </nav>
+            <button class="mobile-menu-btn" id="menuToggle">
+                <i data-lucide="menu"></i>
+            </button>
+        </div>
+    </header>
+
+    <section class="section-padding" style="background: var(--bg-light);">
+        <div class="container">
+            <div class="section-title">
+                <h2>Fixed Deposit Calculator</h2>
+                <p>Calculate the maturity value of your fixed deposit based on the interest rate and tenure.</p>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 40px; align-items: start;">
+                <div class="card">
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px;">Investment Amount (₹)</label>
+                        <input type="range" id="fdAmount" min="5000" max="10000000" step="5000" value="100000" style="width: 100%;">
+                        <span id="fdAmountVal" style="display: block; margin-top: 5px; font-weight: 600;">₹ 1,00,000</span>
+                    </div>
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px;">Rate of Interest (% p.a)</label>
+                        <input type="range" id="fdRate" min="1" max="15" step="0.1" value="7.5" style="width: 100%;">
+                        <span id="fdRateVal" style="display: block; margin-top: 5px; font-weight: 600;">7.5%</span>
+                    </div>
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px;">Time Period (Years)</label>
+                        <input type="range" id="fdTenure" min="1" max="10" step="1" value="5" style="width: 100%;">
+                        <span id="fdTenureVal" style="display: block; margin-top: 5px; font-weight: 600;">5 Years</span>
+                    </div>
+                </div>
+                
+                <div class="card" style="background: var(--secondary); color: white; border: none;">
+                    <div style="display: flex; flex-direction: column; gap: 24px;">
+                        <div>
+                            <p style="opacity: 0.8; font-size: 0.9rem; margin-bottom: 5px;">Invested Amount</p>
+                            <h3 id="fdInvestedAmountDisplay">₹ 1,00,000</h3>
+                        </div>
+                        <div>
+                            <p style="opacity: 0.8; font-size: 0.9rem; margin-bottom: 5px;">Estimated Returns</p>
+                            <h3 id="fdReturnsDisplay">₹ 44,995</h3>
+                        </div>
+                        <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 24px;">
+                            <p style="opacity: 0.8; font-size: 0.9rem; margin-bottom: 5px;">Maturity Value</p>
+                            <h2 style="font-size: 2.5rem; color: var(--accent);">₹ <span id="fdMaturityValueDisplay">1,44,995</span></h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="section-padding" style="background: var(--bg-white); border-top: 1px solid var(--border);">
+        <div class="container" style="text-align: center;">
+            <p style="color: var(--text-muted); font-size: 0.9rem;">© 2026 TechStar Business Solution. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        lucide.createIcons();
+        
+        // FD Logic
+        const fdAmountInput = document.getElementById('fdAmount');
+        const fdRateInput = document.getElementById('fdRate');
+        const fdTenureInput = document.getElementById('fdTenure');
+        
+        const fdAmountVal = document.getElementById('fdAmountVal');
+        const fdRateVal = document.getElementById('fdRateVal');
+        const fdTenureVal = document.getElementById('fdTenureVal');
+        
+        const fdInvestedAmountDisplay = document.getElementById('fdInvestedAmountDisplay');
+        const fdReturnsDisplay = document.getElementById('fdReturnsDisplay');
+        const fdMaturityValueDisplay = document.getElementById('fdMaturityValueDisplay');
+        
+        function calculateFD() {
+            let p = parseFloat(fdAmountInput.value);
+            let r = parseFloat(fdRateInput.value);
+            let t = parseFloat(fdTenureInput.value);
+            
+            // FD Formula (Quarterly compounding): A = P * (1 + r/400)^(4*t)
+            let maturityValue = p * Math.pow((1 + r/400), (4 * t));
+            let returns = maturityValue - p;
+            
+            fdAmountVal.innerText = `₹ ${p.toLocaleString('en-IN')}`;
+            fdRateVal.innerText = `${fdRateInput.value}%`;
+            fdTenureVal.innerText = `${fdTenureInput.value} Years`;
+            
+            fdInvestedAmountDisplay.innerText = `₹ ${Math.round(p).toLocaleString('en-IN')}`;
+            fdReturnsDisplay.innerText = `₹ ${Math.round(returns).toLocaleString('en-IN')}`;
+            fdMaturityValueDisplay.innerText = Math.round(maturityValue).toLocaleString('en-IN');
+        }
+        
+        if (fdAmountInput) {
+            [fdAmountInput, fdRateInput, fdTenureInput].forEach(input => {
+                input.addEventListener('input', calculateFD);
+            });
+            calculateFD();
+        }
+    </script>
+</body>
+</html>
+

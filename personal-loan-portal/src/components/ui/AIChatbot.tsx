@@ -1,0 +1,314 @@
+"use client"
+import React, { useState, useEffect, useRef } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Bot, X, Send, Sparkles, Phone, MessageCircle } from "lucide-react"
+import { usePathname } from "next/navigation"
+
+type ChatState = 'idle' | 'awaiting_name' | 'awaiting_mobile' | 'completed';
+
+export function AIChatbot() {
+  const pathname = usePathname()
+  const [isOpen, setIsOpen] = useState(false)
+  const [showTooltip, setShowTooltip] = useState(true)
+  const [messages, setMessages] = useState([
+    { id: 1, text: "नमस्कार! मी TechStar AI आहे. मी तुम्हाला कर्जाबद्दल कशी मदत करू शकेन?", sender: 'ai' }
+  ])
+  const [input, setInput] = useState("")
+  const [isTyping, setIsTyping] = useState(false)
+  const chatAreaRef = useRef<HTMLDivElement>(null)
+
+  // Lead Collection State
+  const [chatState, setChatState] = useState<ChatState>('idle')
+  const [leadData, setLeadData] = useState({ name: '', mobile: '' })
+
+  const quickReplies = [
+    "💰 वैयक्तिक कर्ज",
+    "🏠 गृह कर्ज",
+    "💼 बिझनेस लोन",
+    "📄 कोणती कागदपत्रे?",
+    "⏱️ किती वेळ लागतो?",
+    "💯 पात्रता काय आहे?"
+  ]
+
+  // Hide on admin routes
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
+
+  useEffect(() => {
+    // Auto scroll to bottom
+    if (chatAreaRef.current) {
+      chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight;
+    }
+  }, [messages, isTyping])
+
+  useEffect(() => {
+    // Hide tooltip after 10 seconds
+    const timer = setTimeout(() => setShowTooltip(false), 10000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  const handleSend = async (text: string) => {
+    if (!text.trim()) return
+
+    const userText = text;
+    const userMessage = { id: Date.now(), text: userText, sender: 'user' }
+    setMessages(prev => [...prev, userMessage])
+    setInput("")
+    setIsTyping(true)
+
+    setTimeout(async () => {
+      let aiResponse = "";
+      const lowerInput = userText.toLowerCase();
+
+      // Lead Collection Flow
+      if (chatState === 'awaiting_name') {
+        setLeadData(prev => ({ ...prev, name: userText }));
+        aiResponse = `धन्यवाद, ${userText}. आता कृपया तुमचा १० अंकी मोबाईल नंबर सांगा, जेणेकरून आमचे अधिकारी तुम्हाला संपर्क करतील.`;
+        setChatState('awaiting_mobile');
+      }
+      else if (chatState === 'awaiting_mobile') {
+        const digits = userText.replace(/\D/g, '');
+        if (digits.length >= 10) {
+          setLeadData(prev => ({ ...prev, mobile: userText }));
+          aiResponse = "धन्यवाद! तुमची माहिती सुरक्षितपणे नोंदवली गेली आहे. आमचे तज्ञ लवकरच तुम्हाला कॉल करतील. तुम्हाला आणखी काही माहिती हवी असल्यास विचारू शकता.";
+          setChatState('completed');
+
+          try {
+            await fetch('/api/leads', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                fullName: leadData.name || 'Chatbot User',
+                mobileNumber: userText,
+                source: 'AI Chatbot',
+                category: 'Chatbot',
+                type: 'Loan Inquiry'
+              })
+            });
+          } catch (e) {
+            console.error("Failed to save lead from chat", e);
+          }
+        } else {
+          aiResponse = "हा मोबाईल नंबर योग्य वाटत नाही. कृपया तुमचा १० अंकी चालू मोबाईल नंबर पुन्हा सांगा.";
+        }
+      }
+      // General Inquiry Flow (idle or completed)
+      else {
+        if (lowerInput.includes("hi") || lowerInput.includes("hello") || lowerInput.includes("namaskar") || lowerInput.includes("नमस्कार") || lowerInput.includes("kase ahat") || lowerInput.includes("कसे आहात")) {
+          aiResponse = "नमस्कार! TechStar मध्ये आपले स्वागत आहे. मी तुम्हाला कर्ज मिळवण्यात कशी मदत करू?";
+        }
+        else if (lowerInput.includes("personal") || lowerInput.includes("vyaktigat") || lowerInput.includes("loan") || lowerInput.includes("karj") || lowerInput.includes("कर्ज")) {
+          aiResponse = "आम्ही ₹५० लाखांपर्यंतचे वैयक्तिक कर्ज (Personal Loan) देतो, ज्याचा व्याजदर १०.४९% पासून सुरू होतो. यासाठी कोणतीही कागदपत्रे प्रत्यक्ष द्यावी लागत नाहीत (Paperless)! कर्ज प्रक्रियेसाठी कृपया आधी तुमचे पूर्ण नाव सांगा.";
+          setChatState('awaiting_name');
+        }
+        else if (lowerInput.includes("home") || lowerInput.includes("ghar") || lowerInput.includes("घर")) {
+          aiResponse = "आमचे गृह कर्ज (Home Loan) ८.५०% व्याजदराने सुरू होते आणि ३० वर्षांपर्यंतची मुदत मिळते. प्रक्रियेला सुरुवात करण्यासाठी कृपया तुमचे पूर्ण नाव सांगा.";
+          setChatState('awaiting_name');
+        }
+        else if (lowerInput.includes("business") || lowerInput.includes("बिझनेस") || lowerInput.includes("व्यवसाय")) {
+          aiResponse = "आम्ही नवीन व्यवसायासाठी आणि व्यवसाय वाढवण्यासाठी ₹१ कोटी पर्यंत 'बिझनेस लोन' देतो. अधिक माहितीसाठी कृपया तुमचे पूर्ण नाव सांगा.";
+          setChatState('awaiting_name');
+        }
+        else if (lowerInput.includes("cibil") || lowerInput.includes("score") || lowerInput.includes("सिबिल")) {
+          aiResponse = "कर्ज मिळवण्यासाठी साधारणपणे ७०० किंवा त्यापेक्षा जास्त CIBIL स्कोर चांगला मानला जातो. तुम्ही आमच्या वेबसाईटवर तुमचा स्कोर मोफत तपासू शकता!";
+        }
+        else if (lowerInput.includes("interest") || lowerInput.includes("rate") || lowerInput.includes("vyaj") || lowerInput.includes("व्याज")) {
+          aiResponse = "व्याजदर तुमच्या प्रोफाईलवर अवलंबून असतो. वैयक्तिक कर्ज (Personal Loan) १०.४९% आणि गृह कर्ज (Home Loan) ८.५०% पासून सुरू होते.";
+        }
+        else if (lowerInput.includes("document") || lowerInput.includes("kagadpatre") || lowerInput.includes("कागदपत्रे") || lowerInput.includes("proof")) {
+          aiResponse = "साधारणपणे तुम्हाला पॅन कार्ड, आधार कार्ड, शेवटच्या ३ महिन्यांची सॅलरी स्लिप आणि ६ महिन्यांचे बँक स्टेटमेंट लागेल.";
+        }
+        else if (lowerInput.includes("time") || lowerInput.includes("vel") || lowerInput.includes("वेळ") || lowerInput.includes("किती वेळ")) {
+          aiResponse = "तुमची सर्व कागदपत्रे बरोबर असल्यास, कर्ज फक्त २४ ते ४८ तासात मंजूर होऊन तुमच्या खात्यात जमा होते.";
+        }
+        else if (lowerInput.includes("fee") || lowerInput.includes("शुल्क") || lowerInput.includes("processing")) {
+          aiResponse = "प्रोसेसिंग फी साधारणपणे १% ते २% पर्यंत असते. काही बँका सणासुदीला झिरो (0%) प्रोसेसिंग फी ऑफर करतात.";
+        }
+        else if (lowerInput.includes("eligibility") || lowerInput.includes("patrata") || lowerInput.includes("पात्रता")) {
+          aiResponse = "तुम्ही भारताचे नागरिक असावे, वय २१-६० वर्षे असावे, आणि पगार किमान ₹१५,००० असावा. तुमचे क्रेडिट कार्डचे बिल वेळेवर भरलेले असावे.";
+        }
+        else if (lowerInput.includes("contact") || lowerInput.includes("call") || lowerInput.includes("संपर्क") || lowerInput.includes("बोलणे")) {
+          aiResponse = "तुम्ही थेट आमच्या तज्ञांशी बोलू शकता. कृपया खाली दिलेल्या 'Call Us' किंवा 'WhatsApp' बटणावर क्लिक करा!";
+        }
+        else {
+          aiResponse = "मला तुमचा प्रश्न नक्की समजला नाही. तुम्हाला वैयक्तिक कर्ज (Personal Loan) हवे आहे की गृह कर्ज (Home Loan)? कर्ज प्रक्रियेसाठी कृपया तुमचे पूर्ण नाव सांगा.";
+          setChatState('awaiting_name');
+        }
+      }
+
+      const aiMessage = {
+        id: Date.now() + 1,
+        text: aiResponse,
+        sender: 'ai'
+      }
+      setMessages(prev => [...prev, aiMessage])
+      setIsTyping(false)
+    }, 1200)
+  }
+
+  return (
+    <>
+      <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end">
+        {/* Welcome Tooltip */}
+        <AnimatePresence>
+          {!isOpen && showTooltip && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.9 }}
+              className="mb-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-premium p-3 rounded-2xl rounded-br-none relative max-w-[200px]"
+            >
+              <p className="text-sm font-bold text-secondary dark:text-white">नमस्कार! कर्ज हवे आहे का? 👋</p>
+              <button
+                onClick={() => setShowTooltip(false)}
+                className="absolute -top-2 -right-2 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-full p-1 hover:bg-slate-200"
+              >
+                <X size={12} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] shadow-premium w-[340px] sm:w-[400px] mb-4 overflow-hidden flex flex-col"
+              style={{ height: "600px", maxHeight: "85vh" }}
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-primary via-blue-500 to-primary p-4 flex justify-between items-center text-white relative overflow-hidden">
+                <div className="absolute inset-0 bg-white/10" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'20\' height=\'20\' viewBox=\'0 0 20 20\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.1\' fill-rule=\'evenodd\'%3E%3Ccircle cx=\'3\' cy=\'3\' r=\'3\'/%3E%3Cg/%3E%3C/svg%3E")' }} />
+                <div className="flex items-center gap-3 relative z-10">
+                  <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/30 shadow-inner">
+                    <Bot size={24} />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-lg leading-tight">TechStar AI</h3>
+                    <p className="text-xs text-blue-100 flex items-center gap-1 font-medium">
+                      <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.8)]" /> 24/7 Active
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 p-2 rounded-full transition-colors relative z-10">
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Chat Area */}
+              <div ref={chatAreaRef} className="flex-1 p-5 overflow-y-auto space-y-5 bg-slate-50 dark:bg-slate-950/50 flex flex-col scroll-smooth">
+                {messages.map((msg) => (
+                  <motion.div
+                    key={msg.id}
+                    initial={{ opacity: 0, scale: 0.9, originY: 1 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div className={`max-w-[85%] rounded-[1.5rem] p-4 text-[15px] shadow-sm ${msg.sender === 'user'
+                        ? 'bg-primary text-white rounded-br-sm'
+                        : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-secondary dark:text-slate-200 rounded-bl-sm font-medium leading-relaxed'
+                      }`}>
+                      {msg.text}
+                    </div>
+                  </motion.div>
+                ))}
+
+                {isTyping && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex justify-start"
+                  >
+                    <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-[1.5rem] rounded-bl-sm px-4 py-3 shadow-sm flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 bg-primary/60 rounded-full animate-bounce" />
+                      <span className="w-2.5 h-2.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                      <span className="w-2.5 h-2.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+                    </div>
+                  </motion.div>
+                )}
+
+                <div className="mt-auto pt-4 space-y-3">
+                  <div className="flex items-center gap-4">
+                    <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1" />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">थेट संपर्क</p>
+                    <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <a href="tel:9579005645" className="flex items-center justify-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-secondary dark:text-white py-2.5 rounded-xl text-sm font-bold hover:border-primary hover:text-primary transition-colors shadow-sm hover-lift">
+                      <Phone size={16} className="text-primary" /> Call Us
+                    </a>
+                    <a href="https://wa.me/919579005645" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-[#25D366] text-white py-2.5 rounded-xl text-sm font-bold hover:bg-[#1fad53] transition-colors shadow-sm hover-lift">
+                      <MessageCircle size={16} /> WhatsApp
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Replies & Input Area */}
+              <div className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex flex-col">
+                {/* Quick Reply Chips */}
+                {chatState === 'idle' && (
+                  <div className="flex gap-2 overflow-x-auto p-3 scrollbar-hide border-b border-slate-50 dark:border-slate-800/50">
+                    {quickReplies.map((reply, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleSend(reply)}
+                        className="whitespace-nowrap bg-primary/5 hover:bg-primary/10 border border-primary/20 text-primary dark:text-blue-400 px-3 py-1.5 rounded-full text-xs font-bold transition-colors"
+                      >
+                        {reply}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <div className="p-3">
+                  <form onSubmit={(e) => { e.preventDefault(); handleSend(input); }} className="relative flex items-center">
+                    <input
+                      type="text"
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      placeholder="येथे टाईप करा..."
+                      className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl py-3 pl-4 pr-12 text-sm focus:ring-2 focus:ring-primary dark:text-white outline-none font-medium placeholder:text-slate-400"
+                    />
+                    <button
+                      type="submit"
+                      className="absolute right-2 p-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition-colors hover:scale-105 active:scale-95"
+                    >
+                      <Send size={16} />
+                    </button>
+                  </form>
+                  <div className="text-center mt-2.5 text-[10px] text-slate-400 font-bold flex items-center justify-center gap-1 uppercase tracking-widest">
+                    <Sparkles size={10} className="text-amber-400" /> Powered by TechStar AI
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Floating Button */}
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => {
+            setIsOpen(!isOpen)
+            setShowTooltip(false)
+          }}
+          className="w-16 h-16 bg-primary text-white rounded-full shadow-premium flex items-center justify-center relative hover-lift group z-[100]"
+        >
+          <div className="absolute inset-0 bg-primary rounded-full animate-ping opacity-20" />
+          {isOpen ? <X size={28} /> : <Bot size={28} />}
+          {!isOpen && (
+            <span className="absolute -top-2 -right-2 bg-rose-500 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white dark:border-slate-950 shadow-sm">
+              1
+            </span>
+          )}
+        </motion.button>
+      </div>
+    </>
+  )
+}

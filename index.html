@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechStar | Premium Fintech Loan Marketplace</title>
+    <meta name="description"
+        content="Compare personal loans, home loans, and credit cards with TechStar Business Solution. High-speed, high-trust financial advisor.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Navbar -->
+    <header>
+        <div class="container nav-container">
+            <a href="#" class="logo">
+                <i data-lucide="shield-check"></i>
+                <span>TechStar</span>
+            </a>
+
+            <nav class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="personal-loan.html">Personal Loan</a>
+                <a href="home-loan.html">Home Loan</a>
+                <a href="credit-cards.html">Credit Cards</a>
+                <a href="#contact" class="btn btn-primary">Apply Now</a>
+            </nav>
+
+            <button class="mobile-menu-btn" id="menuToggle">
+                <i data-lucide="menu"></i>
+            </button>
+        </div>
+        <nav class="mobile-nav" id="mobileNav">
+            <a href="index.html">Home</a>
+            <a href="personal-loan.html">Personal Loan</a>
+            <a href="home-loan.html">Home Loan</a>
+            <a href="credit-cards.html">Credit Cards</a>
+            <a href="about-us.html">About Us</a>
+            <a href="contact-us.html">Contact Us</a>
+            <a href="#contact" class="btn btn-primary">Apply Now</a>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero section-padding">
+        <div class="container">
+            <div class="hero-content" style="text-align: center; max-width: 800px; margin: 0 auto;">
+                <h1 style="font-size: 3.5rem; line-height: 1.1; margin-bottom: 24px;">Smart Financing for <span
+                        class="text-gradient">Every Life Goal</span></h1>
+                <p style="font-size: 1.25rem; color: var(--text-muted); margin-bottom: 40px;">Compare over 50+ banks,
+                    calculate your EMI instantly, and get expert guidance for your loan journey.</p>
+
+                <div class="hero-actions" style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+                    <a href="cibil-score.html" class="btn btn-primary">Check Eligibility</a>
+                    <a href="#calculators" class="btn btn-outline">Calculate EMI</a>
+                </div>
+            </div>
+
+            <!-- Hero Illustration -->
+            <div style="margin-top: 60px; text-align: center;">
+                <img src="https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&q=80&w=1000"
+                    alt="Fintech Dashboard"
+                    style="width: 100%; max-width: 900px; border-radius: var(--radius-lg); box-shadow: var(--shadow-medium);">
+            </div>
+
+            <!-- Trust Stats -->
+            <div style="display: flex; justify-content: center; gap: 40px; margin-top: 60px; flex-wrap: wrap;">
+                <div style="text-align: center;">
+                    <h3 style="font-size: 2rem; color: var(--primary);">10K +</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-muted);">Happy Customers</p>
+                </div>
+                <div style="text-align: center;">
+                    <h3 style="font-size: 2rem; color: var(--primary);">50 +</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-muted);">Partner Banks</p>
+                </div>
+                <div style="text-align: center;">
+                    <h3 style="font-size: 2rem; color: var(--primary);">₹500 Cr+</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-muted);">Disbursed</p>
+                </div>
+                <div style="text-align: center;">
+                    <h3 style="font-size: 2rem; color: var(--primary);">100%</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-muted);">Paperless Process</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bank Partners -->
+    <section class="section-padding"
+        style="background: #ffffff; border-bottom: 1px solid var(--border); overflow: hidden;">
+        <div class="container">
+            <p
+                style="text-align: center; color: var(--text-muted); font-weight: 600; margin-bottom: 40px; letter-spacing: 1px; text-transform: uppercase; font-size: 0.8rem;">
+                Trusted by 50+ Financial Partners</p>
+
+            <div class="logo-carousel-container" style="display: flex; flex-direction: column; gap: 40px;">
+                <!-- First Row (Left to Right) -->
+                <div class="logo-track" style="display: flex; gap: 60px; animation: scroll-left 40s linear infinite;">
+                    <img src="https://logo.clearbit.com/hdfcbank.com" alt="HDFC" style="height: 50px; width: auto;">
+                    <img src="https://logo.clearbit.com/icicibank.com" alt="ICICI" style="height: 50px; width: auto;">
+                    <img src="https://logo.clearbit.com/sbi.co.in" alt="SBI" style="height: 50px; width: auto;">
+                    <img src="https://logo.clearbit.com/axisbank.com" alt="Axis" style="height: 50px; width: auto;">
+                    <img src="https://logo.clearbit.com/kotak.com" alt="Kotak" style="height: 50px; width: auto;">
+                    <img src="https://logo.clearbit.com/bankofbaroda.in" alt="BOB" style="height: 50px; width: auto;">
+                    <img src="https://logo.clearbit.com/pnbindia.in" alt="PNB" style="height: 50px; width: auto;">
+                    <img src="https://logo.clearbit.com/indusind.com" alt="IndusInd" style="height: 50px; width: auto;">
+                    <img src="https://logo.clearbit.com/idfcfirstbank.com" alt="IDFC"
+                        style="height: 50px; width: auto;">
+                    <img src="https://logo.clearbit.com/yesbank.in" alt="Yes Bank" style="height: 50px; width: auto;">
+                    <!-- Repeat for continuous loop -->
+                    <img src="https://logo.clearbit.com/hdfcbank.com" alt="HDFC" style="height: 50px; width: auto;">
+                    <img src="https://logo.clearbit.com/icicibank.com" alt="ICICI" style="height: 50px; width: auto;">
+                    <img src="https://logo.clearbit.com/sbi.co.in" alt="SBI" style="height: 50px; width: auto;">
+                    <img src="https://logo.clearbit.com/axisbank.com" alt="Axis" style="height: 50px; width: auto;">
+                    <img src="https://logo.clearbit.com/kotak.com" alt="Kotak" style="height: 50px; width: auto;">
+                </div>
+
+                <!-- Second Row (Right to Left) -->
+                <div class="logo-track" style="display: flex; gap: 60px; animation: scroll-right 45s linear infinite;">
+                    <img src="https://logo.clearbit.com/bajajfinserv.in" alt="Bajaj"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/tatacapital.com" alt="Tata"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/adityabirlacapital.com" alt="ABG"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/ltfs.com" alt="LT"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/muthootfinance.com" alt="Muthoot"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/federalbank.co.in" alt="Federal"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/piramalfinance.com" alt="Piramal"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/canarabank.com" alt="Canara"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/unionbankofindia.co.in" alt="Union"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/rblbank.com" alt="RBL"
+                        style="height: 50px; width: auto; display: block;">
+                    <!-- Repeat for continuous loop -->
+                    <img src="https://logo.clearbit.com/bajajfinserv.in" alt="Bajaj"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/tatacapital.com" alt="Tata"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/adityabirlacapital.com" alt="ABG"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/ltfs.com" alt="LT"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/muthootfinance.com" alt="Muthoot"
+                        style="height: 50px; width: auto; display: block;">
+                </div>
+
+                <!-- Third Row (Left to Right) -->
+                <div class="logo-track" style="display: flex; gap: 60px; animation: scroll-left 50s linear infinite;">
+                    <img src="https://logo.clearbit.com/mahindrafinance.com" alt="Mahindra"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/cholamandalam.com" alt="Chola"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/sundaramfinance.in" alt="Sundaram"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/shriramcity.in" alt="Shriram"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/iifl.com" alt="IIFL"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/herofincorp.com" alt="Hero"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/navi.com" alt="Navi"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/moneytap.com" alt="MoneyTap"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/fibe.in" alt="Fibe"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/southindianbank.com" alt="SIB"
+                        style="height: 50px; width: auto; display: block;">
+                    <!-- Repeat -->
+                    <img src="https://logo.clearbit.com/mahindrafinance.com" alt="Mahindra"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/cholamandalam.com" alt="Chola"
+                        style="height: 50px; width: auto; display: block;">
+                </div>
+
+                <!-- Fourth Row (Right to Left) -->
+                <div class="logo-track" style="display: flex; gap: 60px; animation: scroll-right 55s linear infinite;">
+                    <img src="https://logo.clearbit.com/lichousing.com" alt="LIC"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/bankofindia.co.in" alt="BOI"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/centralbankofindia.co.in" alt="CBI"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/indianbank.in" alt="Indian Bank"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/ucobank.com" alt="UCO"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/kvb.co.in" alt="KVB"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/bandhanbank.com" alt="Bandhan"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/aubank.in" alt="AU"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/equitasbank.com" alt="Equitas"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/ujjivansfb.in" alt="Ujjivan"
+                        style="height: 50px; width: auto; display: block;">
+                    <!-- Repeat -->
+                    <img src="https://logo.clearbit.com/lichousing.com" alt="LIC"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/bankofindia.co.in" alt="BOI"
+                        style="height: 50px; width: auto; display: block;">
+                </div>
+
+                <!-- Fifth Row (Left to Right) -->
+                <div class="logo-track" style="display: flex; gap: 60px; animation: scroll-left 60s linear infinite;">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/6/6f/Fibe_Logo.svg" alt="Fibe"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/lendingkart.com" alt="Lendingkart"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/homecredit.co.in" alt="Home Credit"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/2e/SBI-Logo.svg" alt="Partner3"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/1/1a/HDFC_Bank_Logo.svg" alt="Partner4"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/ba/ICICI_Bank_Logo.svg" alt="Partner5"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/c/c5/Bank_of_Baroda_logo.svg" alt="Partner6"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/rblbank.com" alt="Partner7"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/0/0b/IndusInd_Bank_Logo.svg" alt="Partner8"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/YES_BANK_Logo.svg" alt="Partner9"
+                        style="height: 50px; width: auto; display: block;">
+                    <!-- Repeat -->
+                    <img src="https://upload.wikimedia.org/wikipedia/en/6/6f/Fibe_Logo.svg" alt="Fibe"
+                        style="height: 50px; width: auto; display: block;">
+                    <img src="https://logo.clearbit.com/lendingkart.com" alt="Lendingkart"
+                        style="height: 50px; width: auto; display: block;">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <style>
+        .logo-track {
+            display: flex;
+            gap: 60px;
+            width: max-content;
+            align-items: center;
+        }
+
+        .logo-track img {
+            flex-shrink: 0;
+            object-fit: contain;
+            display: block;
+        }
+
+        @keyframes scroll-left {
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+
+        @keyframes scroll-right {
+            0% {
+                transform: translateX(-50%);
+            }
+
+            100% {
+                transform: translateX(0);
+            }
+        }
+
+        .logo-track:hover {
+            animation-play-state: paused;
+        }
+    </style>
+
+    <!-- EMI Calculator Section -->
+    <section id="calculators" class="section-padding" style="background-color: var(--bg-light);">
+        <div class="container">
+            <div class="section-title">
+                <h2>Plan Your Finances</h2>
+                <p>Use our smart EMI calculator to find the loan that fits your budget perfectly.</p>
+            </div>
+
+            <div class="calculator-grid"
+                style="display: grid; grid-template-columns: repeat(auto-fit, min-items(350px, 1fr)); gap: 40px; align-items: start;">
+                <div class="card emi-card">
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px;">Loan Amount (₹)</label>
+                        <input type="range" id="loanAmount" min="100000" max="50000000" step="100000" value="1000000"
+                            style="width: 100%;">
+                        <div style="display: flex; justify-content: space-between; margin-top: 8px;">
+                            <span id="loanAmountVal">₹ 10,00,000</span>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px;">Interest Rate (%
+                            p.a)</label>
+                        <input type="range" id="interestRate" min="5" max="25" step="0.1" value="8.5"
+                            style="width: 100%;">
+                        <div style="display: flex; justify-content: space-between; margin-top: 8px;">
+                            <span id="interestRateVal">8.5%</span>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px;">Loan Tenure (Years)</label>
+                        <input type="range" id="loanTenure" min="1" max="30" step="1" value="20" style="width: 100%;">
+                        <div style="display: flex; justify-content: space-between; margin-top: 8px;">
+                            <span id="loanTenureVal">20 Years</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card results-card" style="background: var(--secondary); color: white; border: none;">
+                    <h3 style="margin-bottom: 32px; font-size: 1.5rem;">Your Monthly EMI</h3>
+                    <div style="font-size: 3rem; font-weight: 800; margin-bottom: 40px; color: var(--accent);">
+                        ₹ <span id="monthlyEmi">0</span>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                        <div
+                            style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px;">
+                            <span>Total Interest</span>
+                            <span id="totalInterest" style="font-weight: 600;">₹ 0</span>
+                        </div>
+                        <div
+                            style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px;">
+                            <span>Total Payable</span>
+                            <span id="totalPayable" style="font-weight: 600;">₹ 0</span>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary"
+                        style="width: 100%; margin-top: 32px; background: white; color: var(--secondary);">Apply
+                        Now</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CIBIL Score Banner -->
+    <section class="section-padding" style="background: linear-gradient(to right, #0046be, #001a3d); color: white;">
+        <div class="container"
+            style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 40px;">
+            <div style="flex: 1; min-width: 300px;">
+                <h2 style="font-size: 2rem; margin-bottom: 12px; color: white;">Get your <span
+                        style="color: var(--accent);">Free CIBIL Score</span></h2>
+                <p style="opacity: 0.8;">Check your credit health instantly. Used by 5 Lac+ people to plan their loans
+                    better.</p>
+            </div>
+            <a href="#" class="btn btn-primary"
+                style="background: var(--accent); color: var(--secondary); border: none;">Check Now for Free</a>
+        </div>
+    </section>
+
+    <!-- How it Works -->
+    <section class="section-padding">
+        <div class="container">
+            <div class="section-title">
+                <h2>Simple. Fast. Digital.</h2>
+                <p>Get your loan sanctioned in 4 easy steps with our AI-powered matching system.</p>
+            </div>
+            <div
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px; text-align: center;">
+                <div class="reveal">
+                    <div
+                        style="width: 60px; height: 60px; background: rgba(0,70,190,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 1.5rem; font-weight: 800; color: var(--primary);">
+                        01</div>
+                    <h4>Eligibility</h4>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 12px;">Tell us your requirement
+                        in 2 minutes.</p>
+                </div>
+                <div class="reveal">
+                    <div
+                        style="width: 60px; height: 60px; background: rgba(0,70,190,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 1.5rem; font-weight: 800; color: var(--primary);">
+                        02</div>
+                    <h4>Compare</h4>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 12px;">AI matches the best 50+
+                        banks for your profile.</p>
+                </div>
+                <div class="reveal">
+                    <div
+                        style="width: 60px; height: 60px; background: rgba(0,70,190,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 1.5rem; font-weight: 800; color: var(--primary);">
+                        03</div>
+                    <h4>Apply</h4>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 12px;">Complete your digital
+                        application securely.</p>
+                </div>
+                <div class="reveal">
+                    <div
+                        style="width: 60px; height: 60px; background: rgba(0,70,190,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 1.5rem; font-weight: 800; color: var(--primary);">
+                        04</div>
+                    <h4>Disbursal</h4>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 12px;">Get funds in your bank
+                        account in minutes.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Loan Categories -->
+    <section id="loans" class="section-padding">
+        <div class="container">
+            <div class="section-title">
+                <h2>Loan Products Tailored For You</h2>
+                <p>Choose from a wide range of loan products with best-in-market interest rates.</p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+                <div class="card reveal">
+                    <i data-lucide="home" style="color: var(--primary); margin-bottom: 16px;"></i>
+                    <h3>Home Loan</h3>
+                    <p style="color: var(--text-muted); margin: 12px 0 24px;">Lowest interest rates starting at 8.40%
+                        p.a.</p>
+                    <a href="home-loan.html" style="color: var(--primary); font-weight: 600;">Learn More →</a>
+                </div>
+                <div class="card reveal">
+                    <i data-lucide="user" style="color: var(--primary); margin-bottom: 16px;"></i>
+                    <h3>Personal Loan</h3>
+                    <p style="color: var(--text-muted); margin: 12px 0 24px;">Instant approval and minimal
+                        documentation.</p>
+                    <a href="personal-loan.html" style="color: var(--primary); font-weight: 600;">Learn More →</a>
+                </div>
+                <div class="card reveal">
+                    <i data-lucide="briefcase" style="color: var(--primary); margin-bottom: 16px;"></i>
+                    <h3>Business Loan</h3>
+                    <p style="color: var(--text-muted); margin: 12px 0 24px;">Scale your business with collateral-free
+                        loans.</p>
+                    <a href="business-loan.html" style="color: var(--primary); font-weight: 600;">Learn More →</a>
+                </div>
+                <div class="card reveal">
+                    <i data-lucide="car" style="color: var(--primary); margin-bottom: 16px;"></i>
+                    <h3>Car Loan</h3>
+                    <p style="color: var(--text-muted); margin: 12px 0 24px;">Finance your dream car with 100% on-road
+                        funding.</p>
+                    <a href="car-loan.html" style="color: var(--primary); font-weight: 600;">Learn More →</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="section-padding" style="background: var(--bg-light);">
+        <div class="container">
+            <div class="section-title">
+                <h2>What Our Customers Say</h2>
+                <p>Join thousands of happy customers who achieved their financial goals with TechStar.</p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px;">
+                <div class="card reveal" style="padding: 40px;">
+                    <div style="display: flex; gap: 4px; color: var(--accent); margin-bottom: 20px;">
+                        <i data-lucide="star" style="width: 16px;"></i>
+                        <i data-lucide="star" style="width: 16px;"></i>
+                        <i data-lucide="star" style="width: 16px;"></i>
+                        <i data-lucide="star" style="width: 16px;"></i>
+                        <i data-lucide="star" style="width: 16px;"></i>
+                    </div>
+                    <p style="font-style: italic; color: var(--text-muted); margin-bottom: 24px;">"The EMI calculator
+                        helped me plan my home purchase perfectly. The application process was seamless and I got
+                        approved in 48 hours!"</p>
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 48px; height: 48px; border-radius: 50%; background: #ddd;"></div>
+                        <div>
+                            <h4 style="font-size: 1rem;">Rahul Sharma</h4>
+                            <p style="font-size: 0.8rem; color: var(--text-muted);">Home Loan Customer</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card reveal" style="padding: 40px;">
+                    <div style="display: flex; gap: 4px; color: var(--accent); margin-bottom: 20px;">
+                        <i data-lucide="star" style="width: 16px;"></i>
+                        <i data-lucide="star" style="width: 16px;"></i>
+                        <i data-lucide="star" style="width: 16px;"></i>
+                        <i data-lucide="star" style="width: 16px;"></i>
+                        <i data-lucide="star" style="width: 16px;"></i>
+                    </div>
+                    <p style="font-style: italic; color: var(--text-muted); margin-bottom: 24px;">"TechStar simplified
+                        the complex world of business loans for me. Their advisors were extremely professional and
+                        helpful."</p>
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 48px; height: 48px; border-radius: 50%; background: #ddd;"></div>
+                        <div>
+                            <h4 style="font-size: 1rem;">Priya Patel</h4>
+                            <p style="font-size: 0.8rem; color: var(--text-muted);">SME Business Owner</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact / Lead Form -->
+    <section id="contact" class="section-padding">
+        <div class="container">
+            <div
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 60px; align-items: center;">
+                <div>
+                    <h2 style="font-size: 2.5rem; margin-bottom: 24px;">Ready to get started?</h2>
+                    <p style="font-size: 1.1rem; color: var(--text-muted); margin-bottom: 32px;">Fill out the form and
+                        our financial advisor will get back to you within 24 hours.</p>
+
+                    <ul style="display: flex; flex-direction: column; gap: 20px;">
+                        <li style="display: flex; gap: 16px;">
+                            <div
+                                style="width: 40px; height: 50px; border-radius: 50%; background: rgba(0,70,190,0.1); color: var(--primary); display: flex; align-items: center; justify-content: center;">
+                                <i data-lucide="check" style="width: 20px;"></i>
+                            </div>
+                            <div>
+                                <h4 style="font-size: 1.1rem;">Instant Approval</h4>
+                                <p style="color: var(--text-muted);">Get pre-approved in minutes.</p>
+                            </div>
+                        </li>
+                        <li style="display: flex; gap: 16px;">
+                            <div
+                                style="width: 40px; height: 50px; border-radius: 50%; background: rgba(0,70,190,0.1); color: var(--primary); display: flex; align-items: center; justify-content: center;">
+                                <i data-lucide="clock" style="width: 20px;"></i>
+                            </div>
+                            <div>
+                                <h4 style="font-size: 1.1rem;">Zero Hidden Charges</h4>
+                                <p style="color: var(--text-muted);">Transparent process with no surprises.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="card" style="box-shadow: var(--shadow-medium); border: none;">
+                    <form id="leadForm">
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 8px;">Full Name</label>
+                            <input type="text" placeholder="Enter your name"
+                                style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);">
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 8px;">Phone Number</label>
+                            <input type="tel" placeholder="Enter 10 digit mobile"
+                                style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);">
+                        </div>
+                        <div style="margin-bottom: 24px;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 8px;">Loan Type</label>
+                            <select
+                                style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: white;">
+                                <option>Personal Loan</option>
+                                <option>Home Loan</option>
+                                <option>Business Loan</option>
+                                <option>Car Loan</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary"
+                            style="width: 100%; justify-content: center;">Apply for Loan</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="section-padding">
+        <div class="container">
+            <div class="section-title">
+                <h2>Frequently Asked Questions</h2>
+                <p>Got questions? We've got answers.</p>
+            </div>
+
+            <div style="max-width: 800px; margin: 0 auto;">
+                <div style="margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
+                    <h4 style="margin-bottom: 8px;">What documents are required for a personal loan?</h4>
+                    <p style="color: var(--text-muted);">Typically, you need identity proof (Aadhar, PAN), address
+                        proof, and bank statements for the last 6 months.</p>
+                </div>
+                <div style="margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
+                    <h4 style="margin-bottom: 8px;">How long does it take for loan approval?</h4>
+                    <p style="color: var(--text-muted);">For pre-approved offers, it can be instant. Standard processing
+                        takes 24-48 working hours.</p>
+                </div>
+                <div style="margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
+                    <h4 style="margin-bottom: 8px;">Can I prepay my loan?</h4>
+                    <p style="color: var(--text-muted);">Yes, most banks allow prepayment after 6-12 months. Some
+                        charges may apply depending on the lender.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-disclaimer">
+                <strong>Disclaimer:</strong> TechStar Business Solution is a DSA (Direct Selling Agent) and does not
+                lend directly. All loan products are sourced from partner banks and NBFCs. Information on this website
+                is for general guidance only. Interest rates are subject to change at the lender's discretion.
+            </div>
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="index.html" class="logo" style="color:white;"><i
+                            data-lucide="shield-check"></i><span>TechStar</span></a>
+                    <p>India's trusted financial DSA — connecting customers with 50+ banks for the best loan deals. A
+                        TechStar Business Solution.</p>
+                    <div class="footer-social">
+                        <a href="#" title="Facebook"><i data-lucide="facebook" style="width:16px;"></i></a>
+                        <a href="#" title="Instagram"><i data-lucide="instagram" style="width:16px;"></i></a>
+                        <a href="#" title="LinkedIn"><i data-lucide="linkedin" style="width:16px;"></i></a>
+                        <a href="#" title="WhatsApp"><i data-lucide="message-circle" style="width:16px;"></i></a>
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <h5>Loans</h5>
+                    <ul>
+                        <li><a href="home-loan.html">Home Loan</a></li>
+                        <li><a href="personal-loan.html">Personal Loan</a></li>
+                        <li><a href="business-loan.html">Business Loan</a></li>
+                        <li><a href="loan-against-property.html">Loan Against Property</a></li>
+                        <li><a href="car-loan.html">Car Loan</a></li>
+                        <li><a href="used-car-loan.html">Used Car Loan</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h5>Tools</h5>
+                    <ul>
+                        <li><a href="sip-calculator.html">SIP Calculator</a></li>
+                        <li><a href="fd-calculator.html">FD Calculator</a></li>
+                        <li><a href="cibil-score.html">CIBIL Score Check</a></li>
+                        <li><a href="credit-cards.html">Credit Cards</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h5>Company</h5>
+                    <ul>
+                        <li><a href="about-us.html">About Us</a></li>
+                        <li><a href="contact-us.html">Contact Us</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="terms-conditions.html">Terms &amp; Conditions</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h5>Contact</h5>
+                    <ul>
+                        <li><a href="tel:+919579005645">+91 9579005645</a></li>
+                        <li><a href="mailto:official@swapnilaher.in">official@swapnilaher.in</a></li>
+                        <li>Sadashiv Peth, Pune 411030</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>© 2026 TechStar Business Solution. All rights reserved.</p>
+                <div class="footer-bottom-links">
+                    <a href="privacy-policy.html">Privacy Policy</a>
+                    <a href="terms-conditions.html">Terms &amp; Conditions</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>lucide.createIcons();</script>
+</body>
+
+</html>
