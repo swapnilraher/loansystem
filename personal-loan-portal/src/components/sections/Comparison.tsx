@@ -8,28 +8,28 @@ import { Button } from "../ui/Button"
 // Premium comparison data matching the 6 top lenders
 const comparisonData = {
   personal: [
-    { bank: "HDFC Bank", logo: "https://logo.clearbit.com/hdfcbank.com", rate: "10.50% - 14.50%", fee: "0.5% - 2.0%", speed: "4 Hours", docs: "Minimal", disbursal: "24 Hours" },
-    { bank: "ICICI Bank", logo: "https://logo.clearbit.com/icicibank.com", rate: "10.75% - 16.00%", fee: "Up to 2.25%", speed: "2 Hours", docs: "Minimal", disbursal: "Same Day" },
-    { bank: "Axis Bank", logo: "https://logo.clearbit.com/axisbank.com", rate: "10.49% - 15.99%", fee: "1.0% - 2.0%", speed: "24 Hours", docs: "Standard", disbursal: "48 Hours" },
-    { bank: "SBI", logo: "https://logo.clearbit.com/sbi.co.in", rate: "11.00% - 13.50%", fee: "Up to 1.5%", speed: "3 Days", docs: "Standard", disbursal: "4 Days" },
-    { bank: "Tata Capital", logo: "https://logo.clearbit.com/tatacapital.com", rate: "10.99% - 18.00%", fee: "0.99% - 2.5%", speed: "12 Hours", docs: "Minimal", disbursal: "24 Hours" },
-    { bank: "Bajaj Finance", logo: "https://logo.clearbit.com/bajajfinserv.in", rate: "11.49% - 19.00%", fee: "1.0% - 3.0%", speed: "Instant", docs: "Minimal", disbursal: "Same Day" }
+    { bank: "HDFC Bank", logo: "https://upload.wikimedia.org/wikipedia/commons/2/2a/HDFC_Bank_Logo.svg", rate: "10.50% - 14.50%", fee: "0.5% - 2.0%", speed: "4 Hours", docs: "Minimal", disbursal: "24 Hours" },
+    { bank: "ICICI Bank", logo: "https://upload.wikimedia.org/wikipedia/commons/1/12/ICICI_Bank_Logo.svg", rate: "10.75% - 16.00%", fee: "Up to 2.25%", speed: "2 Hours", docs: "Minimal", disbursal: "Same Day" },
+    { bank: "Axis Bank", logo: "https://upload.wikimedia.org/wikipedia/commons/a/ae/Axis_Bank_logo.svg", rate: "10.49% - 15.99%", fee: "1.0% - 2.0%", speed: "24 Hours", docs: "Standard", disbursal: "48 Hours" },
+    { bank: "SBI", logo: "https://upload.wikimedia.org/wikipedia/commons/d/d4/State_Bank_of_India.svg", rate: "11.00% - 13.50%", fee: "Up to 1.5%", speed: "3 Days", docs: "Standard", disbursal: "4 Days" },
+    { bank: "Tata Capital", logo: "https://upload.wikimedia.org/wikipedia/commons/8/8e/Tata_logo.svg", rate: "10.99% - 18.00%", fee: "0.99% - 2.5%", speed: "12 Hours", docs: "Minimal", disbursal: "24 Hours" },
+    { bank: "Bajaj Finance", logo: "https://upload.wikimedia.org/wikipedia/commons/f/f7/Bajaj_Finserv_Logo.svg", rate: "11.49% - 19.00%", fee: "1.0% - 3.0%", speed: "Instant", docs: "Minimal", disbursal: "Same Day" }
   ],
   home: [
-    { bank: "HDFC Bank", logo: "https://logo.clearbit.com/hdfcbank.com", rate: "8.50% - 9.15%", fee: "0.5% or ₹3,000", speed: "4 Days", docs: "Standard", disbursal: "5 Days" },
-    { bank: "ICICI Bank", logo: "https://logo.clearbit.com/icicibank.com", rate: "8.65% - 9.35%", fee: "Up to 0.5%", speed: "3 Days", docs: "Standard", disbursal: "4 Days" },
-    { bank: "Axis Bank", logo: "https://logo.clearbit.com/axisbank.com", rate: "8.60% - 9.25%", fee: "Up to ₹10,000", speed: "4 Days", docs: "Detailed", disbursal: "6 Days" },
-    { bank: "SBI", logo: "https://logo.clearbit.com/sbi.co.in", rate: "8.50% - 9.05%", fee: "Nil - 0.35%", speed: "6 Days", docs: "Detailed", disbursal: "7 Days" },
-    { bank: "Tata Capital", logo: "https://logo.clearbit.com/tatacapital.com", rate: "8.75% - 9.95%", fee: "Up to 0.5%", speed: "5 Days", docs: "Standard", disbursal: "5 Days" },
-    { bank: "Bajaj Finance", logo: "https://logo.clearbit.com/bajajfinserv.in", rate: "8.85% - 10.25%", fee: "Up to 1.0%", speed: "3 Days", docs: "Minimal", disbursal: "4 Days" }
+    { bank: "HDFC Bank", logo: "https://upload.wikimedia.org/wikipedia/commons/2/2a/HDFC_Bank_Logo.svg", rate: "8.50% - 9.15%", fee: "0.5% or ₹3,000", speed: "4 Days", docs: "Standard", disbursal: "5 Days" },
+    { bank: "ICICI Bank", logo: "https://upload.wikimedia.org/wikipedia/commons/1/12/ICICI_Bank_Logo.svg", rate: "8.65% - 9.35%", fee: "Up to 0.5%", speed: "3 Days", docs: "Standard", disbursal: "4 Days" },
+    { bank: "Axis Bank", logo: "https://upload.wikimedia.org/wikipedia/commons/a/ae/Axis_Bank_logo.svg", rate: "8.60% - 9.25%", fee: "Up to ₹10,000", speed: "4 Days", docs: "Detailed", disbursal: "6 Days" },
+    { bank: "SBI", logo: "https://upload.wikimedia.org/wikipedia/commons/d/d4/State_Bank_of_India.svg", rate: "8.50% - 9.05%", fee: "Nil - 0.35%", speed: "6 Days", docs: "Detailed", disbursal: "7 Days" },
+    { bank: "Tata Capital", logo: "https://upload.wikimedia.org/wikipedia/commons/8/8e/Tata_logo.svg", rate: "8.75% - 9.95%", fee: "Up to 0.5%", speed: "5 Days", docs: "Standard", disbursal: "5 Days" },
+    { bank: "Bajaj Finance", logo: "https://upload.wikimedia.org/wikipedia/commons/f/f7/Bajaj_Finserv_Logo.svg", rate: "8.85% - 10.25%", fee: "Up to 1.0%", speed: "3 Days", docs: "Minimal", disbursal: "4 Days" }
   ],
   business: [
-    { bank: "HDFC Bank", logo: "https://logo.clearbit.com/hdfcbank.com", rate: "15.00% - 19.00%", fee: "Up to 2.5%", speed: "48 Hours", docs: "Standard", disbursal: "3 Days" },
-    { bank: "ICICI Bank", logo: "https://logo.clearbit.com/icicibank.com", rate: "14.50% - 18.50%", fee: "Up to 2.0%", speed: "24 Hours", docs: "Minimal", disbursal: "24 Hours" },
-    { bank: "Axis Bank", logo: "https://logo.clearbit.com/axisbank.com", rate: "15.25% - 20.00%", fee: "1.5% - 2.5%", speed: "3 Days", docs: "Standard", disbursal: "4 Days" },
-    { bank: "SBI", logo: "https://logo.clearbit.com/sbi.co.in", rate: "11.20% - 14.50%", fee: "Up to 1.5%", speed: "5 Days", docs: "Detailed", disbursal: "6 Days" },
-    { bank: "Tata Capital", logo: "https://logo.clearbit.com/tatacapital.com", rate: "13.99% - 22.00%", fee: "Up to 2.0%", speed: "24 Hours", docs: "Minimal", disbursal: "24 Hours" },
-    { bank: "Bajaj Finance", logo: "https://logo.clearbit.com/bajajfinserv.in", rate: "14.00% - 24.00%", fee: "Up to 3.0%", speed: "12 Hours", docs: "Minimal", disbursal: "24 Hours" }
+    { bank: "HDFC Bank", logo: "https://upload.wikimedia.org/wikipedia/commons/2/2a/HDFC_Bank_Logo.svg", rate: "15.00% - 19.00%", fee: "Up to 2.5%", speed: "48 Hours", docs: "Standard", disbursal: "3 Days" },
+    { bank: "ICICI Bank", logo: "https://upload.wikimedia.org/wikipedia/commons/1/12/ICICI_Bank_Logo.svg", rate: "14.50% - 18.50%", fee: "Up to 2.0%", speed: "24 Hours", docs: "Minimal", disbursal: "24 Hours" },
+    { bank: "Axis Bank", logo: "https://upload.wikimedia.org/wikipedia/commons/a/ae/Axis_Bank_logo.svg", rate: "15.25% - 20.00%", fee: "1.5% - 2.5%", speed: "3 Days", docs: "Standard", disbursal: "4 Days" },
+    { bank: "SBI", logo: "https://upload.wikimedia.org/wikipedia/commons/d/d4/State_Bank_of_India.svg", rate: "11.20% - 14.50%", fee: "Up to 1.5%", speed: "5 Days", docs: "Detailed", disbursal: "6 Days" },
+    { bank: "Tata Capital", logo: "https://upload.wikimedia.org/wikipedia/commons/8/8e/Tata_logo.svg", rate: "13.99% - 22.00%", fee: "Up to 2.0%", speed: "24 Hours", docs: "Minimal", disbursal: "24 Hours" },
+    { bank: "Bajaj Finance", logo: "https://upload.wikimedia.org/wikipedia/commons/f/f7/Bajaj_Finserv_Logo.svg", rate: "14.00% - 24.00%", fee: "Up to 3.0%", speed: "12 Hours", docs: "Minimal", disbursal: "24 Hours" }
   ]
 }
 

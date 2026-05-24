@@ -6,7 +6,7 @@ export function LogoCarousel() {
   const partners = [
     { 
       name: "HDFC Bank", 
-      logo: "https://upload.wikimedia.org/wikipedia/commons/2/28/HDFC_Bank_Logo.svg",
+      logo: "https://upload.wikimedia.org/wikipedia/commons/2/2a/HDFC_Bank_Logo.svg",
       className: "h-5 dark:brightness-200"
     },
     { 
@@ -16,22 +16,22 @@ export function LogoCarousel() {
     },
     { 
       name: "SBI", 
-      logo: "https://upload.wikimedia.org/wikipedia/commons/c/ca/State_Bank_of_India_logo.svg",
-      className: "h-7"
+      logo: "https://upload.wikimedia.org/wikipedia/commons/d/d4/State_Bank_of_India.svg",
+      className: "h-5"
     },
     { 
       name: "Axis Bank", 
-      logo: "https://upload.wikimedia.org/wikipedia/commons/1/1a/Axis_Bank_logo.svg",
+      logo: "https://upload.wikimedia.org/wikipedia/commons/a/ae/Axis_Bank_logo.svg",
       className: "h-4 dark:brightness-200"
     },
     { 
       name: "Kotak Mahindra", 
-      logo: "https://upload.wikimedia.org/wikipedia/commons/b/b8/Kotak_Mahindra_Bank_logo.svg",
+      logo: "https://upload.wikimedia.org/wikipedia/commons/e/e0/Kotak_Mahindra_Bank_logo.svg",
       className: "h-5 dark:brightness-200"
     },
     { 
       name: "IDFC First Bank", 
-      logo: "https://upload.wikimedia.org/wikipedia/commons/9/9f/Logo_of_IDFC_First_Bank.svg",
+      logo: "https://upload.wikimedia.org/wikipedia/commons/e/e9/Logo_of_IDFC_First_Bank.svg",
       className: "h-6 dark:brightness-200"
     },
     { 
@@ -39,9 +39,24 @@ export function LogoCarousel() {
       logo: "https://upload.wikimedia.org/wikipedia/commons/e/ee/Yes_Bank_SVG_Logo.svg",
       className: "h-5 dark:brightness-200"
     },
+    { 
+      name: "Bajaj Finserv", 
+      logo: "https://upload.wikimedia.org/wikipedia/commons/f/f7/Bajaj_Finserv_Logo.svg",
+      className: "h-5 dark:brightness-200"
+    },
+    { 
+      name: "Tata Capital", 
+      logo: "https://upload.wikimedia.org/wikipedia/commons/8/8e/Tata_logo.svg",
+      className: "h-6 dark:brightness-200"
+    },
+    { 
+      name: "L&T Finance", 
+      logo: "https://upload.wikimedia.org/wikipedia/commons/e/e0/L%26T_Logo.svg",
+      className: "h-5 dark:brightness-200"
+    }
   ]
 
-  // Multiple list entries to create a seamless infinite marquee scrolling loop
+  // Double list to create seamless infinite scrolling effect
   const marqueeItems = [...partners, ...partners, ...partners]
 
   return (
@@ -59,7 +74,7 @@ export function LogoCarousel() {
               <img 
                 src={item.logo} 
                 alt={item.name} 
-                className={`${item.className} w-auto object-contain transition-all`}
+                className={`${item.className} w-auto object-contain`}
               />
               <span className="text-xs font-black text-secondary dark:text-white tracking-tight">{item.name}</span>
             </div>
