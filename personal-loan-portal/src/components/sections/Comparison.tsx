@@ -40,17 +40,6 @@ export function Comparison() {
     <section className="py-20 lg:py-24 bg-white dark:bg-slate-950 transition-colors duration-300 relative" id="compare">
       <div className="container mx-auto px-4">
         
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-xs font-black uppercase text-primary tracking-widest bg-blue-50 dark:bg-blue-900/20 px-4 py-1.5 rounded-full border border-blue-100 dark:border-blue-800/30">Lender Rates</span>
-          <h2 className="text-3xl md:text-5xl font-black text-secondary dark:text-white mt-4 tracking-tight leading-tight">
-            Compare Top Lending Partners
-          </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 font-bold max-w-xl mx-auto">
-            Review live interest rates, processing fees, and document requirements across India's premium banks.
-          </p>
-        </div>
-
         {/* Tab Selection Row */}
         <div className="flex justify-center gap-4 mb-12">
           {(Object.keys(comparisonData) as Array<keyof typeof comparisonData>).map((tab) => (

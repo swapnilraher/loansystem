@@ -14,7 +14,6 @@ import { Features } from "@/components/sections/Features"
 import { TrustSignals } from "@/components/sections/TrustSignals"
 import { Testimonials } from "@/components/sections/Testimonials"
 import { FAQ } from "@/components/sections/FAQ"
-import { AppDownload } from "@/components/sections/AppDownload"
 import { BlogAndCTA } from "@/components/sections/BlogAndCTA"
 import { Button } from "@/components/ui/Button"
 
@@ -67,9 +66,6 @@ export default function Home() {
       
       {/* 10. FAQ section */}
       <FAQ />
-      
-      {/* 11. App download section */}
-      <AppDownload />
       
       {/* Latest Insights & Footer CTA */}
       <BlogAndCTA />
