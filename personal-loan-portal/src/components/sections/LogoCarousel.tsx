@@ -6,7 +6,7 @@ export function LogoCarousel() {
   const partners = [
     { 
       name: "HDFC Bank", 
-      logo: "https://upload.wikimedia.org/wikipedia/commons/2/2a/HDFC_Bank_Logo.svg",
+      logo: "https://upload.wikimedia.org/wikipedia/commons/f/f0/HDFC-Bank-Logo.svg",
       className: "h-5 dark:brightness-200"
     },
     { 
@@ -16,7 +16,7 @@ export function LogoCarousel() {
     },
     { 
       name: "SBI", 
-      logo: "https://upload.wikimedia.org/wikipedia/commons/d/d4/State_Bank_of_India.svg",
+      logo: "https://upload.wikimedia.org/wikipedia/commons/c/cc/State_Bank_of_India.svg",
       className: "h-5"
     },
     { 
@@ -31,12 +31,12 @@ export function LogoCarousel() {
     },
     { 
       name: "IDFC First Bank", 
-      logo: "https://upload.wikimedia.org/wikipedia/commons/e/e9/Logo_of_IDFC_First_Bank.svg",
+      logo: "https://upload.wikimedia.org/wikipedia/commons/e/e5/IDFC_First_Bank_logo.svg",
       className: "h-6 dark:brightness-200"
     },
     { 
       name: "Yes Bank", 
-      logo: "https://upload.wikimedia.org/wikipedia/commons/e/ee/Yes_Bank_SVG_Logo.svg",
+      logo: "https://upload.wikimedia.org/wikipedia/commons/2/20/Yes_Bank_Logo.svg",
       className: "h-5 dark:brightness-200"
     },
     { 
@@ -70,13 +70,12 @@ export function LogoCarousel() {
       <div className="relative w-full flex items-center justify-center overflow-hidden py-4 mask-gradient-x">
         <div className="flex gap-8 whitespace-nowrap animate-marquee hover:[animation-play-state:paused]">
           {marqueeItems.map((item, idx) => (
-            <div key={idx} className="flex items-center gap-4 bg-white dark:bg-slate-900 py-3.5 px-6 rounded-2xl border border-slate-100 dark:border-slate-850 shadow-sm shrink-0 hover:border-primary/20 transition-all duration-300">
+            <div key={idx} className="flex items-center justify-center bg-white dark:bg-slate-900 py-3.5 px-6 rounded-2xl border border-slate-100 dark:border-slate-850 shadow-sm shrink-0 hover:border-primary/20 transition-all duration-300 min-w-[120px] h-14">
               <img 
                 src={item.logo} 
                 alt={item.name} 
-                className={`${item.className} w-auto object-contain`}
+                className={`${item.className} w-auto max-h-full object-contain`}
               />
-              <span className="text-xs font-black text-secondary dark:text-white tracking-tight">{item.name}</span>
             </div>
           ))}
         </div>
