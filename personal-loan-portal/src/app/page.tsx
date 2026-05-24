@@ -7,6 +7,9 @@ import { LogoCarousel } from "@/components/sections/LogoCarousel"
 import { LoanJourney } from "@/components/sections/LoanJourney"
 import { Insurance } from "@/components/sections/Insurance"
 import { EMICalculator } from "@/components/sections/EMICalculator"
+import { EligibilityWizard } from "@/components/sections/EligibilityWizard"
+import { Comparison } from "@/components/sections/Comparison"
+import { DocumentSupport } from "@/components/sections/DocumentSupport"
 import { Features } from "@/components/sections/Features"
 import { TrustSignals } from "@/components/sections/TrustSignals"
 import { Testimonials } from "@/components/sections/Testimonials"
@@ -43,6 +46,15 @@ export default function Home() {
       <div className="bg-slate-50 dark:bg-slate-900/30">
         <EMICalculator />
       </div>
+
+      {/* Interactive Eligibility Match Wizard */}
+      <EligibilityWizard />
+
+      {/* Premium Bank Comparison System */}
+      <Comparison />
+
+      {/* Dedicated Document Assistance & Required Checklist Section */}
+      <DocumentSupport />
 
       {/* 7. Why choose us */}
       <Features />
