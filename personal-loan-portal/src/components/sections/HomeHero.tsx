@@ -31,7 +31,7 @@ export function HomeHero() {
   const stats = [
     { value: 5.8, decimals: 1, suffix: " Lacs+", label: "Customers Annually", icon: Users },
     { value: 150, decimals: 0, suffix: "+", label: "Cities Covered", icon: MapPin },
-    { value: 580, decimals: 0, suffix: "+", label: "Branches", icon: Building },
+    { value: 4, decimals: 0, suffix: "+", label: "Branches", icon: Building },
     { value: 61000, decimals: 0, suffix: " Cr+", label: "Disbursed Annually", icon: Banknote },
   ]
 
