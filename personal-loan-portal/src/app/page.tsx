@@ -16,7 +16,6 @@ import { BlogAndCTA } from "@/components/sections/BlogAndCTA"
 import { Button } from "@/components/ui/Button"
 
 import { FloatingLeadNotifications } from "@/components/ui/FloatingLeadNotifications"
-import { FloatingCalculatorWidget } from "@/components/ui/FloatingCalculatorWidget"
 
 export default function Home() {
   return (
@@ -76,7 +75,6 @@ export default function Home() {
 
       {/* Premium Floating Elements */}
       <FloatingLeadNotifications />
-      <FloatingCalculatorWidget />
     </main>
   )
 }
