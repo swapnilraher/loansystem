@@ -30,11 +30,6 @@ export function AIChatbot() {
     "💯 पात्रता काय आहे?"
   ]
 
-  // Hide on admin routes
-  if (pathname?.startsWith('/admin')) {
-    return null;
-  }
-
   useEffect(() => {
     // Auto scroll to bottom
     if (chatAreaRef.current) {
@@ -145,6 +140,11 @@ export function AIChatbot() {
       setMessages(prev => [...prev, aiMessage])
       setIsTyping(false)
     }, 1200)
+  }
+
+  // Hide on admin routes (positioned after all hook calls to comply with Rules of Hooks)
+  if (pathname?.startsWith('/admin')) {
+    return null
   }
 
   return (
