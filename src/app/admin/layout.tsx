@@ -16,13 +16,20 @@ export default function AdminLayout({
   const pathname = usePathname()
 
   useEffect(() => {
-    if (!loading) {
-      if (!user || !adminRole) {
-        // Not logged in or not an admin, boot them
+    if (!loading && pathname !== "/admin/login") {
+      if (!user) {
+        // Not logged in at all, redirect to admin login page
+        router.push("/admin/login")
+      } else if (!adminRole) {
+        // Logged in but not an authorized admin, redirect to homepage
         router.push("/")
       }
     }
-  }, [user, adminRole, loading, router])
+  }, [user, adminRole, loading, router, pathname])
+
+  if (pathname === "/admin/login") {
+    return <div className="min-h-screen bg-slate-50 flex flex-col justify-center">{children}</div>
+  }
 
   if (loading || !adminRole) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400 font-bold">Verifying Permissions...</div>
