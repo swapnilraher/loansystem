@@ -65,6 +65,7 @@ export default function UsersPage() {
     role: "Telecaller",
     designation: "",
     status: "Active" as const,
+    password: "",
   })
 
   // Fetch Portal Users
@@ -118,6 +119,7 @@ export default function UsersPage() {
       role: "Telecaller",
       designation: "",
       status: "Active",
+      password: "Techstar@123",
     })
     setIsModalOpen(true)
   }
@@ -131,6 +133,7 @@ export default function UsersPage() {
       role: user.role,
       designation: user.designation || "",
       status: user.status,
+      password: (user as any).password || "",
     })
     setIsModalOpen(true)
   }
@@ -455,6 +458,17 @@ export default function UsersPage() {
                   placeholder="e.g., Senior Loan Consultant" 
                   value={formData.designation} 
                   onChange={(e) => setFormData({...formData, designation: e.target.value})} 
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">System Password</label>
+                <input 
+                  type="text" 
+                  required
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold" 
+                  placeholder="Set login password" 
+                  value={formData.password} 
+                  onChange={(e) => setFormData({...formData, password: e.target.value})} 
                 />
               </div>
               <button type="submit" className="w-full py-4 bg-primary text-white rounded-2xl font-black shadow-lg shadow-primary/20 mt-6 uppercase tracking-widest text-xs">{editingUser ? 'Update Member' : 'Create Member'}</button>

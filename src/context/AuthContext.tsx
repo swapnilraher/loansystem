@@ -6,7 +6,9 @@ import {
   User, 
   GoogleAuthProvider, 
   signInWithCredential,
-  signOut as firebaseSignOut
+  signOut as firebaseSignOut,
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword
 } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
@@ -18,6 +20,9 @@ interface AuthContextType {
   adminRole: string | null;
   loading: boolean;
   loginWithGoogle: (credential: string) => Promise<void>;
+  loginWithEmailAndPassword: (email: string, password: string) => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  resetPasswordWithOTP: (email: string, token: string, newPassword: string) => Promise<void>;
   updateProfile: (data: any) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -80,6 +85,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signInWithCredential(auth, credential);
   };
 
+  // Request OTP for password reset (calls API)
+  const requestPasswordReset = async (email: string) => {
+    const res = await fetch('/api/auth/request-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Password reset request failed: ${err}`);
+    }
+  };
+
+  // Reset password using OTP token (calls API)
+  const resetPasswordWithOTP = async (email: string, token: string, newPassword: string) => {
+    const res = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, token, newPassword }),
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Password reset failed: ${err}`);
+    }
+  };
+
+
+
+
+  const loginWithEmailAndPassword = async (email: string, password: string) => {
+    try {
+      // 1. Try to sign in with Firebase Auth
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (authError: any) {
+      console.log("Firebase Auth failed, checking Firestore backup...", authError.code);
+      
+      // If user not found or invalid credential, check if they exist in Firestore admin_users with this password
+      if (authError.code === "auth/user-not-found" || authError.code === "auth/invalid-credential" || authError.code === "auth/wrong-password") {
+        const adminQuery = query(collection(db, "admin_users"), where("email", "==", email), where("password", "==", password));
+        const adminSnapshot = await getDocs(adminQuery);
+        
+        if (!adminSnapshot.empty) {
+          // User exists in admin_users with matching password. Register them in Firebase Auth!
+          console.log("Found matching admin_user in Firestore, registering in Firebase Auth...");
+          await createUserWithEmailAndPassword(auth, email, password);
+          return;
+        }
+      }
+      throw authError;
+    }
+  };
+
   const updateProfile = async (data: any) => {
     if (!user) return;
     const docRef = doc(db, "users", user.uid);
@@ -96,7 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, adminRole, loading, loginWithGoogle, updateProfile, logout }}>
+    <AuthContext.Provider value={{ user, profile, adminRole, loading, loginWithGoogle, requestPasswordReset, resetPasswordWithOTP, updateProfile, logout }}>
       {children}
     </AuthContext.Provider>
   );
