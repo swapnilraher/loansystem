@@ -19,6 +19,7 @@ import {
   IndianRupee
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/context/AuthContext"
 
 const navItems = [
   { name: "Overview", href: "/admin", icon: LayoutDashboard },
@@ -37,6 +38,23 @@ const navItems = [
 
 export function AdminSidebar() {
   const pathname = usePathname()
+  const { user, profile, adminRole, logout } = useAuth()
+
+  const filteredNavItems = navItems.filter((item) => {
+    if (item.href === "/admin/users") {
+      // Only Super Admin can manage team
+      return adminRole === "Super Admin"
+    }
+    if (item.href === "/admin/whatsapp") {
+      // WhatsApp is for HR and Admin (and Super Admin)
+      return adminRole === "Super Admin" || adminRole === "Admin" || adminRole === "HR"
+    }
+    if (item.href === "/admin/settings" || item.href === "/admin/marketing") {
+      // Global Settings & Marketing for Super Admin & Admin
+      return adminRole === "Super Admin" || adminRole === "Admin"
+    }
+    return true
+  })
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-72 bg-slate-950 text-white border-r border-slate-800 flex flex-col z-50">
@@ -53,7 +71,7 @@ export function AdminSidebar() {
       </div>
 
       <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto custom-scrollbar">
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           const isActive = pathname === item.href
           return (
             <Link
@@ -76,16 +94,19 @@ export function AdminSidebar() {
 
       <div className="p-6 mt-auto border-t border-slate-800">
         <div className="flex items-center gap-4 p-4 bg-slate-900/50 rounded-2xl border border-slate-800 mb-6">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-blue-400 flex items-center justify-center font-bold text-sm">
-            AD
+          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-blue-400 flex items-center justify-center font-bold text-sm uppercase">
+            {(profile?.name || user?.displayName || user?.email || "AD").substring(0, 2)}
           </div>
-          <div className="overflow-hidden">
-            <p className="font-bold text-sm truncate">Admin User</p>
-            <p className="text-xs text-slate-500 truncate">Super Admin</p>
+          <div className="overflow-hidden flex-1">
+            <p className="font-bold text-sm truncate">{profile?.name || user?.displayName || user?.email || "Admin User"}</p>
+            <p className="text-xs text-slate-500 truncate">{adminRole || "Staff"}</p>
           </div>
         </div>
 
-        <button className="flex items-center gap-4 px-4 py-3 w-full text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all font-bold text-sm">
+        <button 
+          onClick={logout}
+          className="flex items-center gap-4 px-4 py-3 w-full text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all font-bold text-sm"
+        >
           <LogOut size={20} />
           <span>Logout</span>
         </button>

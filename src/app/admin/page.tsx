@@ -17,8 +17,13 @@ import {
   PhoneCall,
   ShieldCheck,
   Clock,
-  CheckCircle2
+  CheckCircle2,
+  Phone
 } from "lucide-react"
+import { useUsers } from "@/lib/hooks/useUsers"
+import { db } from "@/lib/firebase"
+import { collection, query, onSnapshot } from "firebase/firestore"
+import { useAuth } from "@/context/AuthContext"
 import { 
   AreaChart, 
   Area, 
@@ -37,13 +42,24 @@ import { useLeads } from "@/lib/hooks/useLeads"
 const COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444']
 
 export default function AdminDashboard() {
+  const { user, profile, adminRole } = useAuth()
   const { leads, loading } = useLeads()
+  const { users: adminUsers } = useUsers()
+  const [activities, setActivities] = useState<any[]>([])
+
+  useEffect(() => {
+    const q = query(collection(db, "lead_activities"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setActivities(snapshot.docs.map(doc => doc.data()));
+    });
+    return () => unsubscribe();
+  }, []);
 
   const stats = [
-    { name: 'New Leads Today', value: leads.filter(l => l.status === 'New').length.toString(), change: '+12.5%', trend: 'up', icon: Users, color: 'blue' },
-    { name: 'Disbursed Cases', value: leads.filter(l => l.status === 'Converted').length.toString(), change: '+18.2%', trend: 'up', icon: ShieldCheck, color: 'emerald' },
+    { name: 'New Leads Today', value: leads.filter(l => l.status === 'New Lead' || l.status === 'New').length.toString(), change: '+12.5%', trend: 'up', icon: Users, color: 'blue' },
+    { name: 'Disbursed Cases', value: leads.filter(l => l.status === 'Disbursed' || l.status === 'Converted').length.toString(), change: '+18.2%', trend: 'up', icon: ShieldCheck, color: 'emerald' },
     { name: 'Total Revenue', value: '₹42.5L', change: '+8.1%', trend: 'up', icon: DollarSign, color: 'indigo' },
-    { name: 'Follow-ups Due', value: '24', change: '8 Overdue', trend: 'down', icon: Clock, color: 'amber' },
+    { name: 'Follow-ups Due', value: leads.filter(l => l.status === 'Documents Pending' || l.status === 'Under Process').length.toString(), change: '8 Overdue', trend: 'down', icon: Clock, color: 'amber' },
   ]
 
   const chartData = [
@@ -68,7 +84,7 @@ export default function AdminDashboard() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-black text-secondary tracking-tight">Dashboard Overview</h2>
-          <p className="text-slate-500 font-medium">Welcome back, Alex. Here's what's happening today.</p>
+          <p className="text-slate-500 font-medium">Welcome back, {profile?.name || user?.displayName || user?.email || "Alex"}. Here's what's happening today.</p>
         </div>
         <div className="flex items-center gap-3">
           <button className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
@@ -214,35 +230,51 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden">
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden flex flex-col justify-between">
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 blur-[100px] rounded-full" />
-          <h3 className="text-xl font-black mb-8 relative z-10">Integration Status</h3>
-          <div className="space-y-6 relative z-10">
-            {[
-              { name: 'WhatsApp API', status: 'Connected', uptime: '99.9%', icon: MessageSquare, color: 'text-green-400' },
-              { name: 'CRM Sync', status: 'Running', uptime: '100%', icon: Zap, color: 'text-amber-400' },
-              { name: 'Call Tracking', status: 'Idle', uptime: '98.5%', icon: PhoneCall, color: 'text-blue-400' },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center justify-between p-5 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-colors cursor-pointer">
-                <div className="flex items-center gap-4">
-                  <div className={`p-3 rounded-xl bg-white/10 ${item.color}`}>
-                    <item.icon size={20} />
+          <div>
+            <h3 className="text-xl font-black mb-1 relative z-10">Team Performance</h3>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6 relative z-10">Real-time Staff Productivity</p>
+            <div className="space-y-4 relative z-10 max-h-[320px] overflow-y-auto custom-scrollbar">
+              {adminUsers.length === 0 ? (
+                <p className="text-xs font-bold text-slate-400 text-center py-10">No team members registered yet.</p>
+              ) : adminUsers.map((member, i) => {
+                const callsCount = activities.filter(a => a.type === 'Call' && (a.userName || '').includes(member.name)).length
+                const updatesCount = activities.filter(a => a.type === 'Status Update' && (a.userName || '').includes(member.name)).length
+                return (
+                  <div key={i} className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center font-bold text-xs uppercase text-slate-300">
+                        {member.name.substring(0, 2)}
+                      </div>
+                      <div>
+                        <p className="font-bold text-xs text-white">{member.name}</p>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{member.role}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 text-right">
+                      <div title="Calls placed">
+                        <p className="font-black text-xs text-blue-400">{callsCount}</p>
+                        <p className="text-[8px] font-bold text-slate-500 uppercase">Calls</p>
+                      </div>
+                      <div title="Lead updates">
+                        <p className="font-black text-xs text-amber-400">{updatesCount}</p>
+                        <p className="text-[8px] font-bold text-slate-500 uppercase">Updates</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold text-sm">{item.name}</p>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{item.status}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-black text-primary">{item.uptime}</p>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase">Uptime</p>
-                </div>
-              </div>
-            ))}
+                )
+              })}
+            </div>
           </div>
-          <button className="w-full mt-8 py-4 bg-primary rounded-2xl font-black text-sm hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
-            View All Integrations
-          </button>
+          {adminRole === "Super Admin" && (
+            <a 
+              href="/admin/users" 
+              className="w-full text-center mt-6 py-4 bg-primary rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 block"
+            >
+              Manage Team Members
+            </a>
+          )}
         </div>
       </div>
     </div>

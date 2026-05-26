@@ -9,12 +9,13 @@ import {
   signOut as firebaseSignOut
 } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 
 interface AuthContextType {
   user: User | null;
   profile: any;
+  adminRole: string | null;
   loading: boolean;
   loginWithGoogle: (credential: string) => Promise<void>;
   updateProfile: (data: any) => Promise<void>;
@@ -26,6 +27,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [adminRole, setAdminRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,8 +52,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await setDoc(docRef, newProfile);
           setProfile(newProfile);
         }
+
+        // Check Admin Role
+        if (user.email === "swapnil.r.aher@gmail.com") {
+          setAdminRole("Super Admin");
+        } else {
+          const adminQuery = query(collection(db, "admin_users"), where("email", "==", user.email));
+          const adminSnapshot = await getDocs(adminQuery);
+          if (!adminSnapshot.empty) {
+            setAdminRole(adminSnapshot.docs[0].data().role);
+          } else {
+            setAdminRole(null);
+          }
+        }
       } else {
         setProfile(null);
+        setAdminRole(null);
       }
       setLoading(false);
     });
@@ -80,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, loginWithGoogle, updateProfile, logout }}>
+    <AuthContext.Provider value={{ user, profile, adminRole, loading, loginWithGoogle, updateProfile, logout }}>
       {children}
     </AuthContext.Provider>
   );

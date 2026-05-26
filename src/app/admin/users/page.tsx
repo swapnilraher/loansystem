@@ -21,18 +21,20 @@ import {
   FileText,
   MapPin,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  ArrowUpRight
 } from "lucide-react"
 import { useUsers, AdminUser } from "@/lib/hooks/useUsers"
 import { db } from "@/lib/firebase"
 import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, onSnapshot, query, orderBy } from "firebase/firestore"
 import { Button } from "@/components/ui/Button"
+import { useAuth } from "@/context/AuthContext"
 
 const roleColors: any = {
   'Super Admin': 'bg-rose-50 text-rose-600 border-rose-100',
-  'Sales Manager': 'bg-indigo-50 text-indigo-600 border-indigo-100',
-  'Agent': 'bg-blue-50 text-blue-600 border-blue-100',
-  'Accountant': 'bg-amber-50 text-amber-600 border-amber-100',
+  'Admin': 'bg-indigo-50 text-indigo-600 border-indigo-100',
+  'HR': 'bg-purple-50 text-purple-600 border-purple-100',
+  'Telecaller': 'bg-blue-50 text-blue-600 border-blue-100',
 }
 
 const statusColors: any = {
@@ -43,6 +45,7 @@ const statusColors: any = {
 }
 
 export default function UsersPage() {
+  const { user, adminRole } = useAuth()
   const { users: adminUsers, loading: adminsLoading } = useUsers()
   const [portalUsers, setPortalUsers] = useState<any[]>([])
   const [portalLoading, setPortalLoading] = useState(true)
@@ -52,13 +55,14 @@ export default function UsersPage() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null)
   const [selectedPortalUser, setSelectedPortalUser] = useState<any | null>(null)
+  const [activities, setActivities] = useState<any[]>([])
   
   // Form State for Admin Users
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
-    role: "Agent",
+    role: "Telecaller",
     designation: "",
     status: "Active" as const,
   })
@@ -76,6 +80,22 @@ export default function UsersPage() {
     });
     return () => unsubscribe();
   }, []);
+
+  // Fetch activities to compute stats
+  useEffect(() => {
+    const q = query(collection(db, "lead_activities"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setActivities(snapshot.docs.map(doc => doc.data()));
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Safeguard: Redirect if not Super Admin and trying to view admin tab
+  useEffect(() => {
+    if (viewTab === "admins" && adminRole !== "Super Admin") {
+      setViewTab("portal")
+    }
+  }, [adminRole, viewTab])
 
   const filteredAdminUsers = adminUsers.filter(user => 
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -95,7 +115,7 @@ export default function UsersPage() {
       name: "",
       email: "",
       phone: "",
-      role: "Agent",
+      role: "Telecaller",
       designation: "",
       status: "Active",
     })
@@ -113,6 +133,17 @@ export default function UsersPage() {
       status: user.status,
     })
     setIsModalOpen(true)
+  }
+
+  const handleDeleteAdmin = async (userId: string) => {
+    if (!window.confirm("Are you sure you want to remove this team member?")) return
+    try {
+      await deleteDoc(doc(db, 'admin_users', userId))
+      alert("Team member removed successfully.")
+    } catch (error) {
+      console.error("Error deleting user:", error)
+      alert("Error deleting user.")
+    }
   }
 
   const handleSubmitAdmin = async (e: React.FormEvent) => {
@@ -166,12 +197,14 @@ export default function UsersPage() {
         >
           Portal Users
         </button>
-        <button 
-          onClick={() => setViewTab("admins")}
-          className={`px-6 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${viewTab === "admins" ? "bg-white text-secondary shadow-sm border border-slate-100" : "text-slate-400 hover:text-secondary"}`}
-        >
-          Admin Team
-        </button>
+        {adminRole === "Super Admin" && (
+          <button 
+            onClick={() => setViewTab("admins")}
+            className={`px-6 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${viewTab === "admins" ? "bg-white text-secondary shadow-sm border border-slate-100" : "text-slate-400 hover:text-secondary"}`}
+          >
+            Admin Team
+          </button>
+        )}
       </div>
 
       <div className="bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col md:flex-row items-center gap-4">
@@ -275,12 +308,24 @@ export default function UsersPage() {
                       <Phone size={16} className="text-slate-400" />
                       <span className="text-xs font-bold">{user.phone}</span>
                     </div>
+                    
+                    {/* Staff Progress Stats */}
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      <div className="flex items-center gap-1.5" title="Calls logged by this member">
+                        <Phone size={12} className="text-primary" />
+                        <span>Calls: {activities.filter(a => a.type === 'Call' && (a.userName || '').includes(user.name)).length}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5" title="Lead updates by this member">
+                        <Clock size={12} className="text-amber-500" />
+                        <span>Updates: {activities.filter(a => a.type === 'Status Update' && (a.userName || '').includes(user.name)).length}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 <div className="px-8 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-4">
-                  <button onClick={() => handleOpenEditModal(user)} className="p-2 text-slate-400 hover:text-primary transition-colors"><Edit size={16} /></button>
-                  <button className="p-2 text-slate-400 hover:text-rose-500 transition-colors"><Trash2 size={16} /></button>
+                  <button onClick={() => handleOpenEditModal(user)} className="p-2 text-slate-400 hover:text-primary transition-colors" title="Edit Member"><Edit size={16} /></button>
+                  <button onClick={() => handleDeleteAdmin(user.id)} className="p-2 text-slate-400 hover:text-rose-500 transition-colors" title="Remove Member"><Trash2 size={16} /></button>
                 </div>
               </div>
             ))}
@@ -374,6 +419,43 @@ export default function UsersPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5"><label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Email</label><input type="email" required className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} /></div>
                 <div className="space-y-1.5"><label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Phone</label><input type="text" required className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Role</label>
+                  <select 
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold outline-none"
+                    value={formData.role} 
+                    onChange={(e) => setFormData({...formData, role: e.target.value})}
+                  >
+                    <option value="Admin">Admin</option>
+                    <option value="HR">HR</option>
+                    <option value="Telecaller">Telecaller</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
+                  <select 
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold outline-none"
+                    value={formData.status} 
+                    onChange={(e) => setFormData({...formData, status: e.target.value as any})}
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Away">Away</option>
+                    <option value="Offline">Offline</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Designation</label>
+                <input 
+                  type="text" 
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold" 
+                  placeholder="e.g., Senior Loan Consultant" 
+                  value={formData.designation} 
+                  onChange={(e) => setFormData({...formData, designation: e.target.value})} 
+                />
               </div>
               <button type="submit" className="w-full py-4 bg-primary text-white rounded-2xl font-black shadow-lg shadow-primary/20 mt-6 uppercase tracking-widest text-xs">{editingUser ? 'Update Member' : 'Create Member'}</button>
             </form>

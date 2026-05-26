@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
-import { useLeads } from "@/lib/hooks/useLeads"
+import { useLeads, logLeadActivity } from "@/lib/hooks/useLeads"
 import { 
   Plus, 
   MoreHorizontal, 
@@ -17,7 +17,8 @@ import {
   Columns
 } from "lucide-react"
 import { db } from "@/lib/firebase"
-import { doc, updateDoc } from "firebase/firestore"
+import { doc, updateDoc, serverTimestamp } from "firebase/firestore"
+import { useAuth } from "@/context/AuthContext"
 
 const KANBAN_STATUSES = [
   'New',
@@ -38,6 +39,7 @@ const statusColors: any = {
 }
 
 export default function KanbanPage() {
+  const { user, profile, adminRole } = useAuth()
   const { leads, loading } = useLeads()
   const [searchTerm, setSearchTerm] = useState("")
 
@@ -54,9 +56,11 @@ export default function KanbanPage() {
     const leadId = e.dataTransfer.getData("leadId")
     if (!leadId) return
 
+    const staffDetail = `${profile?.name || user?.displayName || user?.email || "Unknown"} (${adminRole || 'Staff'})`
     try {
       const leadRef = doc(db, 'leads', leadId)
-      await updateDoc(leadRef, { status: newStatus })
+      await updateDoc(leadRef, { status: newStatus, updatedAt: serverTimestamp() })
+      await logLeadActivity(leadId, 'Status Update', `Changed status to ${newStatus} via Kanban`, staffDetail)
     } catch (error) {
       console.error("Error updating lead status:", error)
     }

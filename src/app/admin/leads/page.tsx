@@ -35,6 +35,7 @@ import {
 import { useLeads, Lead, logLeadActivity } from "@/lib/hooks/useLeads"
 import { db } from "@/lib/firebase"
 import { doc, updateDoc, deleteDoc, collection, query, where, orderBy, onSnapshot, serverTimestamp, addDoc } from "firebase/firestore"
+import { useAuth } from "@/context/AuthContext"
 import * as XLSX from 'xlsx'
 import Papa from 'papaparse'
 
@@ -43,6 +44,7 @@ const STATUS_CONFIG: any = {
   'New Lead': { color: 'bg-blue-50 text-blue-600 border-blue-100', icon: Plus },
   'Contacted': { color: 'bg-indigo-50 text-indigo-600 border-indigo-100', icon: Phone },
   'Interested': { color: 'bg-amber-50 text-amber-600 border-amber-100', icon: Star },
+  'Processed': { color: 'bg-emerald-100 text-emerald-800 border-emerald-200', icon: CheckCircle2 },
   'Documents Pending': { color: 'bg-orange-50 text-orange-600 border-orange-100', icon: FileText },
   'Documents Received': { color: 'bg-purple-50 text-purple-600 border-purple-100', icon: FileText },
   'Login to Bank': { color: 'bg-cyan-50 text-cyan-600 border-cyan-100', icon: ArrowUpRight },
@@ -59,6 +61,7 @@ const STATUS_CONFIG: any = {
 }
 
 export default function LeadsPage() {
+  const { user, profile, adminRole } = useAuth()
   const { leads, loading, error } = useLeads()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("All Statuses")
@@ -221,10 +224,11 @@ export default function LeadsPage() {
 
   const handleStatusUpdate = async (leadId: string, newStatus: string) => {
     console.log("Updating Lead Status:", leadId, "to", newStatus)
+    const staffDetail = `${profile?.name || user?.displayName || user?.email || "Unknown"} (${adminRole || 'Staff'})`
     try {
       const leadRef = doc(db, 'leads', leadId)
       await updateDoc(leadRef, { status: newStatus, updatedAt: serverTimestamp() })
-      await logLeadActivity(leadId, 'Status Update', `Changed status to ${newStatus}`, "Super Admin")
+      await logLeadActivity(leadId, 'Status Update', `Changed status to ${newStatus}`, staffDetail)
       if (selectedLead?.id === leadId) setSelectedLead({...selectedLead, status: newStatus})
       alert(`Status updated to ${newStatus}`)
     } catch (e) { 
@@ -236,11 +240,32 @@ export default function LeadsPage() {
   const handleLogActivity = async (type: string) => {
     if (!selectedLead || !note.trim()) return
     setIsLogging(true)
+    const staffDetail = `${profile?.name || user?.displayName || user?.email || "Unknown"} (${adminRole || 'Staff'})`
     try {
-      await logLeadActivity(selectedLead.id, type, note, "Super Admin")
+      await logLeadActivity(selectedLead.id, type, note, staffDetail)
       setNote("")
     } catch (e) { console.error(e) }
     setIsLogging(false)
+  }
+
+  const handleQuickCall = async (lead: Lead) => {
+    const phoneNum = lead.phone || (lead as any).mobile
+    if (!phoneNum) {
+      alert("No phone number available!")
+      return
+    }
+    const staffDetail = `${profile?.name || user?.displayName || user?.email || "Unknown"} (${adminRole || 'Staff'})`
+    try {
+      await logLeadActivity(lead.id, 'Call', 'Placed a quick call to customer', staffDetail)
+      if (lead.status === 'New Lead' || lead.status === 'New') {
+        const leadRef = doc(db, 'leads', lead.id)
+        await updateDoc(leadRef, { status: 'Contacted', updatedAt: serverTimestamp() })
+      }
+      alert(`Call logged! Opening dialer...`)
+      window.location.href = `tel:${phoneNum}`
+    } catch (e) {
+      console.error("Error logging call:", e)
+    }
   }
 
   const handleWhatsAppClick = (lead: any) => {
@@ -495,19 +520,29 @@ export default function LeadsPage() {
                   <td className="px-8 py-6 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button 
-                        onClick={() => handleWhatsAppClick(lead)}
-                        className="p-3 text-emerald-500 hover:bg-emerald-50 rounded-2xl transition-all"
-                        title="Send WhatsApp"
+                        onClick={() => handleQuickCall(lead)}
+                        className="p-3 text-blue-500 hover:bg-blue-50 rounded-2xl transition-all"
+                        title="Log & Place Call"
                       >
-                        <MessageSquare size={18} />
+                        <Phone size={18} />
                       </button>
+                      {(adminRole === 'Super Admin' || adminRole === 'Admin' || adminRole === 'HR') && (
+                        <button 
+                          onClick={() => handleWhatsAppClick(lead)}
+                          className="p-3 text-emerald-500 hover:bg-emerald-50 rounded-2xl transition-all"
+                          title="Send WhatsApp"
+                        >
+                          <MessageSquare size={18} />
+                        </button>
+                      )}
                       <button 
                         onClick={() => setSelectedLead(lead)}
                         className="p-3 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-2xl transition-all"
+                        title="View Details"
                       >
                         <Eye size={18} />
                       </button>
-                      <button className="p-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-2xl transition-all">
+                      <button className="p-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-2xl transition-all" title="Delete Lead">
                         <Trash2 size={18} />
                       </button>
                     </div>

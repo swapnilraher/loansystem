@@ -16,6 +16,11 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  webpack: (config) => {
+    config.cache = false;
+    config.resolve.symlinks = false;
+    return config;
+  },
 };
 
 export default nextConfig;
