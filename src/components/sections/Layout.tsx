@@ -85,13 +85,6 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-4 lg:gap-8">
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary transition-all"
-            >
-              {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
-            </button>
 
             <a href="tel:9579005645" className={`hidden md:flex items-center gap-3 text-lg font-black hover:text-primary transition-all group ${theme === "dark" ? "text-white" : "text-secondary"
               }`}>

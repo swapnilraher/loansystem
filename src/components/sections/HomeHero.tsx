@@ -47,9 +47,9 @@ export function HomeHero() {
       
       {/* Animated Aurora Mesh Background blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[-5%] w-[45vw] h-[45vw] rounded-full bg-blue-400/15 dark:bg-primary/10 blur-[100px] animate-blob" />
-        <div className="absolute top-[15%] right-[-5%] w-[55vw] h-[55vw] rounded-full bg-purple-400/10 dark:bg-purple-900/10 blur-[130px] animate-blob [animation-delay:2s]" />
-        <div className="absolute bottom-[-5%] left-[15%] w-[40vw] h-[40vw] rounded-full bg-indigo-300/15 dark:bg-indigo-950/10 blur-[110px] animate-blob [animation-delay:4s]" />
+        <div className="absolute top-[-10%] left-[-5%] w-[45vw] h-[45vw] rounded-full bg-blue-600/15 blur-[100px] animate-blob" />
+        <div className="absolute top-[15%] right-[-5%] w-[55vw] h-[55vw] rounded-full bg-orange-500/10 blur-[130px] animate-blob [animation-delay:2s]" />
+        <div className="absolute bottom-[-5%] left-[15%] w-[40vw] h-[40vw] rounded-full bg-blue-400/15 blur-[110px] animate-blob [animation-delay:4s]" />
       </div>
 
       <motion.section 
@@ -77,9 +77,9 @@ export function HomeHero() {
                 </div>
               </div>
 
-              <h1 className="text-5xl lg:text-7xl font-black text-secondary dark:text-white leading-[1.1] tracking-tight">
+              <h1 className="text-5xl lg:text-7xl font-black text-secondary leading-[1.1] tracking-tight">
                 Empowering Your <br className="hidden md:block" />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-blue-500 to-indigo-600 drop-shadow-sm">Financial Future</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-blue-600 to-orange-500 drop-shadow-sm">Financial Future</span>
               </h1>
               
               <p className="text-lg lg:text-xl text-slate-600 dark:text-slate-400 leading-relaxed max-w-xl font-medium">

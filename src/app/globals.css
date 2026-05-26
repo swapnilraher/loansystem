@@ -1,47 +1,47 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fafcff;
-  --foreground: #0f172a;
+  --background: #ffffff;
+  --foreground: #1e293b;
   
-  --primary: #2563eb;
+  --primary: #0052cc;
   --primary-foreground: #ffffff;
   
-  --secondary: #0f172a;
-  --secondary-foreground: #ffffff;
+  --secondary: #f8fafc;
+  --secondary-foreground: #0f172a;
   
-  --accent: #f59e0b;
+  --accent: #f97316;
   --accent-foreground: #ffffff;
   
   --muted: #f1f5f9;
   --muted-foreground: #64748b;
   
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #1e293b;
   
   --border: #e2e8f0;
   --input: #e2e8f0;
   
-  --radius: 1rem;
+  --radius: 0.75rem;
 }
 
 .dark {
-  --background: #020617;
-  --foreground: #f8fafc;
+  --background: #f8fafc;
+  --foreground: #0f172a;
   
-  --primary: #3b82f6;
+  --primary: #0052cc;
   
-  --secondary: #f8fafc;
-  --secondary-foreground: #020617;
+  --secondary: #ffffff;
+  --secondary-foreground: #0f172a;
   
-  --muted: #0f172a;
-  --muted-foreground: #94a3b8;
+  --muted: #e2e8f0;
+  --muted-foreground: #475569;
   
-  --card: #0f172a;
-  --card-foreground: #f8fafc;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
   
-  --border: #1e293b;
-  --input: #1e293b;
+  --border: #cbd5e1;
+  --input: #cbd5e1;
 }
 
 @theme inline {
@@ -65,9 +65,9 @@
   --radius-xl: 0.75rem;
   --radius-lg: 0.5rem;
   
-  --shadow-soft: 0 20px 40px -15px rgba(0,0,0,0.05);
-  --shadow-glow: 0 0 40px -10px var(--primary);
-  --shadow-premium: 0 10px 40px -10px rgba(37, 99, 235, 0.15), 0 0 20px -5px rgba(0, 0, 0, 0.05);
+  --shadow-soft: 0 4px 20px -2px rgba(0,0,0,0.05);
+  --shadow-glow: 0 0 20px -5px rgba(0, 82, 204, 0.4);
+  --shadow-premium: 0 10px 30px -5px rgba(0, 82, 204, 0.1), 0 4px 10px -2px rgba(0, 0, 0, 0.05);
   
   --animate-float: float 6s ease-in-out infinite;
   --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
@@ -117,19 +117,19 @@
 
 /* Premium Utilities */
 .text-gradient {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-500 to-sky-400;
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-600 to-blue-400;
 }
 
 .text-gradient-gold {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600;
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-orange-500 via-orange-400 to-amber-500;
 }
 
 .glass {
-  @apply bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/20 dark:border-slate-800/50 shadow-soft;
+  @apply bg-white border border-slate-200 shadow-soft;
 }
 
 .glass-card {
-  @apply bg-gradient-to-br from-white/90 to-white/50 dark:from-slate-900/90 dark:to-slate-900/50 backdrop-blur-2xl border border-white/50 dark:border-slate-700/50 shadow-premium;
+  @apply bg-white border border-slate-100 shadow-premium;
 }
 
 .hover-lift {
