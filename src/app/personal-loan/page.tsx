@@ -9,7 +9,6 @@ import { EMICalculator } from "@/components/sections/EMICalculator"
 import { Eligibility } from "@/components/sections/Eligibility"
 import { Features } from "@/components/sections/Features"
 import { Purpose } from "@/components/sections/Purpose"
-import { Comparison } from "@/components/sections/Comparison"
 import { ProcessAndTips } from "@/components/sections/ProcessAndTips"
 import { FAQ } from "@/components/sections/FAQ"
 import { Testimonials } from "@/components/sections/Testimonials"
@@ -61,7 +60,6 @@ export default function PersonalLoanPage() {
       <Eligibility />
       <Features />
       <Purpose />
-      <Comparison />
       <ProcessAndTips />
       <CIBILBanner />
       <FAQ />
