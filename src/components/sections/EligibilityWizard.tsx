@@ -1,6 +1,5 @@
 "use client"
 import React, { useState } from "react"
-import { motion, AnimatePresence } from "react-transition-group" // Wait, we can use Framer Motion for better animation control!
 import { motion as motionFramer } from "framer-motion"
 import { Sparkles, ArrowRight, ArrowLeft, CheckCircle2, AlertTriangle, Coins, Building } from "lucide-react"
 import { PremiumCard } from "../ui/PremiumCard"
