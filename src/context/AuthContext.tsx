@@ -59,16 +59,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Check Admin Role
-        if (user.email === "swapnil.r.aher@gmail.com") {
-          setAdminRole("Super Admin");
-        } else {
-          const adminQuery = query(collection(db, "admin_users"), where("email", "==", user.email));
-          const adminSnapshot = await getDocs(adminQuery);
-          if (!adminSnapshot.empty) {
-            setAdminRole(adminSnapshot.docs[0].data().role);
+        if (user.email) {
+          if (user.email === "swapnil.r.aher@gmail.com") {
+            setAdminRole("Super Admin");
           } else {
-            setAdminRole(null);
+            const adminQuery = query(collection(db, "admin_users"), where("email", "==", user.email));
+            const adminSnapshot = await getDocs(adminQuery);
+            if (!adminSnapshot.empty) {
+              setAdminRole(adminSnapshot.docs[0].data().role);
+            } else {
+              setAdminRole(null);
+            }
           }
+        } else {
+          setAdminRole(null);
         }
       } else {
         setProfile(null);

@@ -29,7 +29,7 @@ export async function POST(request: Request) {
         phoneNumber
       });
       console.log("Firestore save successful");
-    } catch (fsError) {
+    } catch (fsError: any) {
       console.error("Firestore Error:", fsError);
       return NextResponse.json({ error: "Database error. Please try again later." }, { status: 500 });
     }

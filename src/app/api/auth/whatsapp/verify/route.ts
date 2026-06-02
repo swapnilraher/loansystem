@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     const customToken = await auth.createCustomToken(uid);
 
     return NextResponse.json({ success: true, customToken });
-  } catch (error) {
+  } catch (error: any) {
     console.error("OTP Verify Error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
