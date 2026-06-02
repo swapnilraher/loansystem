@@ -128,6 +128,27 @@ const nextConfig: NextConfig = {
     config.resolve.symlinks = false;
     return config;
   },
+  async redirects() {
+    return [
+      { source: '/index.html', destination: '/', permanent: true },
+      { source: '/personal-loan.html', destination: '/personal-loan', permanent: true },
+      { source: '/home-loan.html', destination: '/home-loan', permanent: true },
+      { source: '/privacy-policy.html', destination: '/privacy', permanent: true },
+      { source: '/terms-conditions.html', destination: '/terms', permanent: true },
+      { source: '/about-us.html', destination: '/', permanent: true },
+      { source: '/business-loan.html', destination: '/personal-loan', permanent: true },
+      { source: '/car-loan.html', destination: '/', permanent: true },
+      { source: '/cibil-score.html', destination: '/', permanent: true },
+      { source: '/contact-us.html', destination: '/', permanent: true },
+      { source: '/credit-cards.html', destination: '/', permanent: true },
+      { source: '/education-loan.html', destination: '/', permanent: true },
+      { source: '/fd-calculator.html', destination: '/', permanent: true },
+      { source: '/gold-loan.html', destination: '/', permanent: true },
+      { source: '/loan-against-property.html', destination: '/', permanent: true },
+      { source: '/sip-calculator.html', destination: '/', permanent: true },
+      { source: '/used-car-loan.html', destination: '/', permanent: true },
+    ]
+  },
 };
 
 export default nextConfig;
