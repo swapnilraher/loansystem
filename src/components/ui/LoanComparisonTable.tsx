@@ -93,7 +93,8 @@ export default function LoanComparisonTable() {
 
         {/* Table Container */}
         <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-2xl overflow-hidden backdrop-blur-xl">
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             {activeTab !== "cards" ? (
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -185,6 +186,90 @@ export default function LoanComparisonTable() {
                   ))}
                 </tbody>
               </table>
+            )}
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="block md:hidden">
+            {activeTab !== "cards" ? (
+              <div className="divide-y divide-slate-100 dark:divide-slate-850 p-6 space-y-4">
+                {((activeTab === "personal" ? personalLoans : activeTab === "home" ? homeLoans : businessLoans) as LoanProduct[]).map((row, idx) => (
+                  <div key={idx} className="pt-6 first:pt-2 last:pb-2 space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-primary shadow-inner shrink-0">
+                        <Building size={20} />
+                      </div>
+                      <div>
+                        <h4 className="font-black text-secondary dark:text-white text-sm">{row.bank}</h4>
+                        <span className="text-[9px] font-black text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md uppercase tracking-wider">Floating*</span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-left">
+                      <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Interest Rate</p>
+                        <p className="text-sm font-black text-primary">{row.rate} p.a.</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Processing Fee</p>
+                        <p className="text-xs font-bold text-slate-600 dark:text-slate-350">{row.processingFee}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Max Amount</p>
+                        <p className="text-xs font-bold text-secondary dark:text-white">{row.amount}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Tenure</p>
+                        <p className="text-xs font-bold text-slate-600 dark:text-slate-350">{row.tenure}</p>
+                      </div>
+                    </div>
+                    <a
+                      href={activeTab === "personal" ? "/personal-loan" : activeTab === "home" ? "/home-loan" : "#"}
+                      className="w-full h-11 bg-primary hover:bg-blue-750 text-white rounded-xl flex items-center justify-center font-black uppercase tracking-widest text-[10px] gap-2 shadow-md"
+                    >
+                      Check Offer <ArrowRight size={14} />
+                    </a>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100 dark:divide-slate-850 p-6 space-y-4">
+                {creditCards.map((row, idx) => (
+                  <div key={idx} className="pt-6 first:pt-2 last:pb-2 space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-slate-800 flex items-center justify-center text-amber-500 shadow-inner shrink-0">
+                        <Sparkles size={20} />
+                      </div>
+                      <div>
+                        <h4 className="font-black text-secondary dark:text-white text-sm">{row.name}</h4>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-left">
+                      <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Annual Fee</p>
+                        <p className="text-xs font-black text-secondary dark:text-white">{row.fee}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Reward Rate</p>
+                        <p className="text-sm font-black text-primary">{row.rewards}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Key Benefit</p>
+                        <p className="text-xs font-bold text-slate-650 dark:text-slate-350">{row.benefit}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Welcome Gift</p>
+                        <p className="text-xs font-bold text-slate-600 dark:text-slate-450">{row.gift}</p>
+                      </div>
+                    </div>
+                    <a
+                      href="#"
+                      className="w-full h-11 bg-primary hover:bg-blue-750 text-white rounded-xl flex items-center justify-center font-black uppercase tracking-widest text-[10px] gap-2 shadow-md"
+                    >
+                      Apply Now <ArrowRight size={14} />
+                    </a>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>

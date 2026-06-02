@@ -13,8 +13,35 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "TechStar | Premium Fintech Loan Marketplace",
-  description: "Compare loans, credit cards and insurance with India's most trusted financial marketplace.",
+  metadataBase: new URL("https://techstarsolution.in"),
+  title: "TechStar | Premium Fintech Loan Marketplace & DSA",
+  description: "Compare loans, credit cards, and insurance with Techstar Business Solution Pvt Ltd - India's most trusted financial loan marketplace.",
+  keywords: "loan dsa, personal loan, business loan, home loan, loan agent, mortgage loan, finance service",
+  alternates: {
+    canonical: "/"
+  },
+  openGraph: {
+    title: "TechStar | Premium Fintech Loan Marketplace & DSA",
+    description: "Compare loans, credit cards, and insurance with Techstar Business Solution Pvt Ltd - India's most trusted financial loan marketplace.",
+    url: "https://techstarsolution.in",
+    siteName: "TechStar",
+    images: [
+      {
+        url: "/partners.png",
+        width: 1200,
+        height: 630,
+        alt: "TechStar Fintech Marketplace"
+      }
+    ],
+    locale: "en_IN",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "TechStar | Premium Fintech Loan Marketplace & DSA",
+    description: "Compare loans, credit cards, and insurance with India's most trusted financial marketplace.",
+    images: ["/partners.png"],
+  }
 };
 
 
@@ -22,6 +49,8 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { AIChatbot } from "@/components/ui/AIChatbot";
 import { SmoothScroll } from "@/components/layout/SmoothScroll";
+import { SEOSchema } from "@/components/ui/SEOSchema";
+import { MobileBottomNav } from "@/components/ui/MobileBottomNav";
 
 export default function RootLayout({
   children,
@@ -34,12 +63,15 @@ export default function RootLayout({
       className={`${inter.variable} ${outfit.variable} h-full antialiased transition-colors duration-300`}
     >
       <body className="min-h-full flex flex-col font-inter">
+        <SEOSchema type="Organization" />
+        <SEOSchema type="WebSite" />
         <ThemeProvider>
           <AuthProvider>
             <SmoothScroll>
               {children}
             </SmoothScroll>
             <AIChatbot />
+            <MobileBottomNav />
           </AuthProvider>
         </ThemeProvider>
       </body>

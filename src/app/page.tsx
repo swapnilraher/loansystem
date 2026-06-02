@@ -3,7 +3,6 @@ import React from "react"
 import { Header, Footer } from "@/components/sections/Layout"
 import { HomeHero } from "@/components/sections/HomeHero"
 import { ProductGrid } from "@/components/sections/ProductGrid"
-import LoanComparisonTable from "@/components/ui/LoanComparisonTable"
 import { CIBILBanner } from "@/components/sections/CIBILBanner"
 import { EligibilityWizard } from "@/components/sections/EligibilityWizard"
 import { EMICalculator } from "@/components/sections/EMICalculator"
@@ -19,7 +18,6 @@ export default function Home() {
       <main>
         <HomeHero />
         <ProductGrid />
-        <LoanComparisonTable />
         <CIBILBanner />
         <EligibilityWizard />
         <EMICalculator />

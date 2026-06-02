@@ -14,6 +14,7 @@ import { FAQ } from "@/components/sections/FAQ"
 import { Testimonials } from "@/components/sections/Testimonials"
 import { BlogAndCTA } from "@/components/sections/BlogAndCTA"
 import { CIBILBanner } from "@/components/sections/CIBILBanner"
+import { StickyMobileCTA } from "@/components/ui/StickyMobileCTA"
 export const metadata: Metadata = {
   title: "Instant Personal Loan Up to ₹50 Lakhs | Competitive Rates | TechStar",
   description: "Apply for a personal loan online with TechStar. Compare top banks, check eligibility in 2 minutes, and get quick approval with minimal documentation. Rates start at 10.50% p.a.",
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
     title: "Instant Personal Loan Up to ₹50 Lakhs | TechStar",
     description: "Compare and apply for personal loans from 100+ lenders. Instant approval & quick disbursal.",
     type: "website",
-    url: "https://techstar.in/personal-loan",
+    url: "https://techstarsolution.in/personal-loan",
   },
 }
 
@@ -67,12 +68,7 @@ export default function PersonalLoanPage() {
       <BlogAndCTA />
       <Footer />
 
-      {/* Sticky Mobile CTA */}
-      <div className="lg:hidden fixed bottom-0 left-0 w-full p-4 bg-white border-t border-slate-100 z-50">
-        <button className="w-full h-14 bg-primary text-white font-bold rounded-xl shadow-lg active:scale-95 transition-all">
-          Apply Now
-        </button>
-      </div>
+      <StickyMobileCTA targetId="personal-loan-form" label="Apply Now" />
     </main>
   )
 }

@@ -1,12 +1,24 @@
 "use client"
 
 import React from "react"
-import { Search, Bell, Moon, Sun, SearchIcon, Grid, User } from "lucide-react"
+import { Search, Bell, Moon, Sun, SearchIcon, Grid, User, Menu } from "lucide-react"
 
-export function AdminHeader() {
+interface AdminHeaderProps {
+  onMenuClick?: () => void
+}
+
+export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
   return (
-    <header className="h-20 bg-white border-b border-slate-100 px-8 flex items-center justify-between sticky top-0 z-40">
-      <div className="flex items-center gap-8 flex-1">
+    <header className="h-20 bg-white border-b border-slate-100 px-4 md:px-8 flex items-center justify-between sticky top-0 z-40">
+      <div className="flex items-center gap-4 md:gap-8 flex-1">
+        {onMenuClick && (
+          <button 
+            onClick={onMenuClick} 
+            className="lg:hidden p-2 -ml-2 mr-2 text-slate-500 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer"
+          >
+            <Menu size={20} />
+          </button>
+        )}
         <div className="relative max-w-md w-full group">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Search size={18} className="text-slate-400 group-focus-within:text-primary transition-colors" />

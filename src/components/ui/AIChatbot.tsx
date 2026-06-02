@@ -149,7 +149,7 @@ export function AIChatbot() {
 
   return (
     <>
-      <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end">
+      <div className="fixed bottom-[92px] lg:bottom-6 right-6 z-[100] flex flex-col items-end">
         {/* Welcome Tooltip */}
         <AnimatePresence>
           {!isOpen && showTooltip && (

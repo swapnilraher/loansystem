@@ -71,7 +71,78 @@ export function Header() {
           </a>
 
           <nav className="hidden lg:flex items-center gap-12">
-            {navLinks.map((item) => (
+            {navLinks.slice(0, 3).map((item) => (
+              <a
+                key={item.name}
+                href={item.href}
+                className={`text-base font-black uppercase tracking-tight relative py-2 group transition-colors hover:text-primary ${theme === "dark" ? "text-slate-300" : "text-secondary"
+                  }`}
+              >
+                {item.name}
+                <span className="absolute bottom-0 left-0 w-0 h-1 bg-primary transition-all duration-300 group-hover:w-full" />
+              </a>
+            ))}
+
+            {/* Locations Dropdown */}
+            <div className="relative group py-2">
+              <button
+                className={`text-base font-black uppercase tracking-tight flex items-center gap-1 transition-colors hover:text-primary ${theme === "dark" ? "text-slate-300" : "text-secondary"
+                  }`}
+              >
+                Locations
+                <svg className="w-4 h-4 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-xl p-6 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-300 z-50">
+                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-left">Nashik</p>
+                    <div className="grid grid-cols-2 gap-2 text-xs font-bold text-left">
+                      <a href="/personal-loan-nashik" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Personal Loan</a>
+                      <a href="/business-loan-nashik" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Business Loan</a>
+                      <a href="/home-loan-nashik" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Home Loan</a>
+                      <a href="/loan-against-property-nashik" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Property Loan</a>
+                      <a href="/loan-agent-nashik" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Loan Agent</a>
+                      <a href="/dsa-loan-nashik" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">DSA Loan</a>
+                    </div>
+                  </div>
+                  <div className="border-t border-slate-150/50 dark:border-slate-800 pt-3">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-left">Pune</p>
+                    <div className="grid grid-cols-2 gap-2 text-xs font-bold text-left">
+                      <a href="/personal-loan-pune" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Personal Loan</a>
+                      <a href="/business-loan-pune" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Business Loan</a>
+                      <a href="/home-loan-pune" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Home Loan</a>
+                      <a href="/loan-against-property-pune" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Property Loan</a>
+                      <a href="/loan-agent-pune" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Loan Agent</a>
+                      <a href="/dsa-loan-pune" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">DSA Loan</a>
+                    </div>
+                  </div>
+                  <div className="border-t border-slate-150/50 dark:border-slate-800 pt-3">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-left">Mumbai</p>
+                    <div className="grid grid-cols-2 gap-2 text-xs font-bold text-left">
+                      <a href="/personal-loan-mumbai" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Personal Loan</a>
+                      <a href="/business-loan-mumbai" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Business Loan</a>
+                      <a href="/home-loan-mumbai" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Home Loan</a>
+                    </div>
+                  </div>
+                  <div className="border-t border-slate-150/50 dark:border-slate-800 pt-3">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-left">Chhatrapati Sambhajianagar</p>
+                    <div className="grid grid-cols-2 gap-2 text-xs font-bold text-left">
+                      <a href="/personal-loan-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Personal Loan</a>
+                      <a href="/business-loan-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Business Loan</a>
+                      <a href="/home-loan-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Home Loan</a>
+                      <a href="/loan-against-property-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Property Loan</a>
+                      <a href="/loan-agent-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Loan Agent</a>
+                      <a href="/dsa-loan-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">DSA Loan</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {navLinks.slice(3).map((item) => (
               <a
                 key={item.name}
                 href={item.href}
@@ -159,40 +230,93 @@ export function Header() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className={`fixed top-0 right-0 h-full w-4/5 max-w-sm shadow-2xl z-[70] p-8 ${theme === "dark" ? "bg-slate-900" : "bg-white"
-                }`}
+              className="fixed top-0 right-0 h-full w-4/5 max-w-sm shadow-2xl z-[70] p-8 flex flex-col justify-between overflow-y-auto border-l border-slate-100/50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl"
             >
-              <div className="flex justify-between items-center mb-10">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
-                    <ShieldCheck size={20} />
-                  </div>
-                  <span className={`font-black text-xl italic ${theme === "dark" ? "text-white" : "text-secondary"}`}>TechStar</span>
-                </div>
-                <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                  <X size={24} className={theme === "dark" ? "text-white" : "text-secondary"} />
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                {navLinks.map((link) => (
-                  <a
-                    key={link.name}
-                    href={link.href}
-                    onClick={() => setIsOpen(false)}
-                    className={`flex items-center gap-4 text-lg font-bold transition-colors p-4 rounded-2xl group ${theme === "dark" ? "text-slate-300 hover:bg-slate-800" : "text-secondary hover:bg-blue-50"
-                      }`}
-                  >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${theme === "dark" ? "bg-slate-800 group-hover:bg-primary group-hover:text-white" : "bg-slate-50 group-hover:bg-primary group-hover:text-white"
-                      }`}>
-                      <link.icon size={20} />
+              <div>
+                <div className="flex justify-between items-center mb-10">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
+                      <ShieldCheck size={20} />
                     </div>
-                    {link.name}
-                  </a>
-                ))}
+                    <span className={`font-black text-xl italic ${theme === "dark" ? "text-white" : "text-secondary"}`}>TechStar</span>
+                  </div>
+                  <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                    <X size={24} className={theme === "dark" ? "text-white" : "text-secondary"} />
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  {navLinks.map((link) => (
+                    <a
+                      key={link.name}
+                      href={link.href}
+                      onClick={() => setIsOpen(false)}
+                      className={`flex items-center gap-4 text-lg font-bold transition-colors p-4 rounded-2xl group ${theme === "dark" ? "text-slate-300 hover:bg-slate-800" : "text-secondary hover:bg-blue-50"
+                        }`}
+                    >
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${theme === "dark" ? "bg-slate-800 group-hover:bg-primary group-hover:text-white" : "bg-slate-50 group-hover:bg-primary group-hover:text-white"
+                        }`}>
+                        <link.icon size={20} />
+                      </div>
+                      {link.name}
+                    </a>
+                  ))}
+                </div>
+
+                {/* Mobile Locations Section */}
+                <div className="mt-6 border-t border-slate-100 dark:border-slate-800 pt-6 text-left">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-4">Locations Covered</p>
+                  <div className="space-y-4">
+                    {/* Nashik */}
+                    <div className="px-4">
+                      <p className="text-xs font-black text-secondary dark:text-white mb-2">Nashik</p>
+                      <div className="flex flex-wrap gap-2 text-[10px] font-bold">
+                        <a href="/personal-loan-nashik" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Personal Loan</a>
+                        <a href="/business-loan-nashik" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Business Loan</a>
+                        <a href="/home-loan-nashik" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Home Loan</a>
+                        <a href="/loan-against-property-nashik" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Property Loan</a>
+                        <a href="/loan-agent-nashik" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Loan Agent</a>
+                        <a href="/dsa-loan-nashik" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">DSA Loan</a>
+                      </div>
+                    </div>
+                    {/* Pune */}
+                    <div className="px-4">
+                      <p className="text-xs font-black text-secondary dark:text-white mb-2">Pune</p>
+                      <div className="flex flex-wrap gap-2 text-[10px] font-bold">
+                        <a href="/personal-loan-pune" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Personal Loan</a>
+                        <a href="/business-loan-pune" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Business Loan</a>
+                        <a href="/home-loan-pune" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Home Loan</a>
+                        <a href="/loan-against-property-pune" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Property Loan</a>
+                        <a href="/loan-agent-pune" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Loan Agent</a>
+                        <a href="/dsa-loan-pune" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">DSA Loan</a>
+                      </div>
+                    </div>
+                    {/* Mumbai */}
+                    <div className="px-4">
+                      <p className="text-xs font-black text-secondary dark:text-white mb-2">Mumbai</p>
+                      <div className="flex flex-wrap gap-2 text-[10px] font-bold">
+                        <a href="/personal-loan-mumbai" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Personal Loan</a>
+                        <a href="/business-loan-mumbai" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Business Loan</a>
+                        <a href="/home-loan-mumbai" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Home Loan</a>
+                      </div>
+                    </div>
+                    {/* Chhatrapati Sambhajianagar */}
+                    <div className="px-4">
+                      <p className="text-xs font-black text-secondary dark:text-white mb-2">Chhatrapati Sambhajianagar</p>
+                      <div className="flex flex-wrap gap-2 text-[10px] font-bold">
+                        <a href="/personal-loan-chhatrapati-sambhajianagar" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Personal Loan</a>
+                        <a href="/business-loan-chhatrapati-sambhajianagar" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Business Loan</a>
+                        <a href="/home-loan-chhatrapati-sambhajianagar" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Home Loan</a>
+                        <a href="/loan-against-property-chhatrapati-sambhajianagar" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Property Loan</a>
+                        <a href="/loan-agent-chhatrapati-sambhajianagar" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Loan Agent</a>
+                        <a href="/dsa-loan-chhatrapati-sambhajianagar" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">DSA Loan</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="absolute bottom-10 left-8 right-8 space-y-6">
+              <div className="mt-8 space-y-6">
                 {user ? (
                   <div className={`p-6 rounded-3xl border border-dashed flex items-center gap-4 ${theme === "dark" ? "bg-slate-800/50 border-slate-700" : "bg-slate-50 border-slate-200"
                     }`}>
@@ -320,6 +444,51 @@ export function Footer() {
                 </li>
               ))}
             </ul>
+          </div>
+        </div>
+
+        {/* Service Areas Link Pool for SEO Crawlability */}
+        <div className="pt-8 border-t border-slate-900 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-[11px] text-slate-550 mb-8 text-left">
+          <div className="space-y-2">
+            <h5 className="font-black text-slate-300 uppercase tracking-widest text-[9px]">Loans in Nashik</h5>
+            <div className="flex flex-wrap gap-x-2 gap-y-1">
+              <a href="/personal-loan-nashik" className="hover:text-primary transition-colors text-slate-400">Personal Loan</a> <span className="text-slate-800">•</span>
+              <a href="/business-loan-nashik" className="hover:text-primary transition-colors text-slate-400">Business Loan</a> <span className="text-slate-800">•</span>
+              <a href="/home-loan-nashik" className="hover:text-primary transition-colors text-slate-400">Home Loan</a> <span className="text-slate-800">•</span>
+              <a href="/loan-against-property-nashik" className="hover:text-primary transition-colors text-slate-400">Property Loan</a> <span className="text-slate-800">•</span>
+              <a href="/loan-agent-nashik" className="hover:text-primary transition-colors text-slate-400">Loan Agent</a> <span className="text-slate-800">•</span>
+              <a href="/dsa-loan-nashik" className="hover:text-primary transition-colors text-slate-400">DSA Loan</a>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <h5 className="font-black text-slate-300 uppercase tracking-widest text-[9px]">Loans in Pune</h5>
+            <div className="flex flex-wrap gap-x-2 gap-y-1">
+              <a href="/personal-loan-pune" className="hover:text-primary transition-colors text-slate-400">Personal Loan</a> <span className="text-slate-800">•</span>
+              <a href="/business-loan-pune" className="hover:text-primary transition-colors text-slate-400">Business Loan</a> <span className="text-slate-800">•</span>
+              <a href="/home-loan-pune" className="hover:text-primary transition-colors text-slate-400">Home Loan</a> <span className="text-slate-800">•</span>
+              <a href="/loan-against-property-pune" className="hover:text-primary transition-colors text-slate-400">Property Loan</a> <span className="text-slate-800">•</span>
+              <a href="/loan-agent-pune" className="hover:text-primary transition-colors text-slate-400">Loan Agent</a> <span className="text-slate-800">•</span>
+              <a href="/dsa-loan-pune" className="hover:text-primary transition-colors text-slate-400">DSA Loan</a>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <h5 className="font-black text-slate-300 uppercase tracking-widest text-[9px]">Loans in Mumbai</h5>
+            <div className="flex flex-wrap gap-x-2 gap-y-1">
+              <a href="/personal-loan-mumbai" className="hover:text-primary transition-colors text-slate-400">Personal Loan</a> <span className="text-slate-800">•</span>
+              <a href="/business-loan-mumbai" className="hover:text-primary transition-colors text-slate-400">Business Loan</a> <span className="text-slate-800">•</span>
+              <a href="/home-loan-mumbai" className="hover:text-primary transition-colors text-slate-400">Home Loan</a>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <h5 className="font-black text-slate-300 uppercase tracking-widest text-[9px]">Loans in Sambhajianagar</h5>
+            <div className="flex flex-wrap gap-x-2 gap-y-1">
+              <a href="/personal-loan-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-400">Personal Loan</a> <span className="text-slate-800">•</span>
+              <a href="/business-loan-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-400">Business Loan</a> <span className="text-slate-800">•</span>
+              <a href="/home-loan-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-400">Home Loan</a> <span className="text-slate-800">•</span>
+              <a href="/loan-against-property-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-400">Property Loan</a> <span className="text-slate-800">•</span>
+              <a href="/loan-agent-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-400">Loan Agent</a> <span className="text-slate-800">•</span>
+              <a href="/dsa-loan-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-400">DSA Loan</a>
+            </div>
           </div>
         </div>
 

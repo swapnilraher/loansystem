@@ -16,7 +16,8 @@ import {
   PieChart,
   Zap,
   HardDrive,
-  IndianRupee
+  IndianRupee,
+  X
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/context/AuthContext"
@@ -36,7 +37,12 @@ const navItems = [
   { name: "Global Settings", href: "/admin/settings", icon: Settings },
 ]
 
-export function AdminSidebar() {
+interface AdminSidebarProps {
+  isOpen?: boolean
+  onClose?: () => void
+}
+
+export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
   const pathname = usePathname()
   const { user, profile, adminRole, logout } = useAuth()
 
@@ -57,8 +63,11 @@ export function AdminSidebar() {
   })
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-72 bg-slate-950 text-white border-r border-slate-800 flex flex-col z-50">
-      <div className="p-8">
+    <aside className={cn(
+      "fixed left-0 top-0 h-screen w-72 bg-slate-950 text-white border-r border-slate-800 flex flex-col z-50 transition-transform duration-300 lg:translate-x-0",
+      isOpen ? "translate-x-0" : "-translate-x-full"
+    )}>
+      <div className="p-8 flex justify-between items-center shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
             <ShieldCheck className="text-white" size={24} />
@@ -68,6 +77,14 @@ export function AdminSidebar() {
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Admin Control</p>
           </div>
         </div>
+        {onClose && (
+          <button 
+            onClick={onClose} 
+            className="lg:hidden p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-900 transition-colors"
+          >
+            <X size={20} />
+          </button>
+        )}
       </div>
 
       <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto custom-scrollbar">
@@ -77,6 +94,7 @@ export function AdminSidebar() {
             <Link
               key={item.name}
               href={item.href}
+              onClick={onClose}
               className={cn(
                 "flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-200 group",
                 isActive

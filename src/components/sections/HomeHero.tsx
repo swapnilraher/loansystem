@@ -77,7 +77,7 @@ export function HomeHero() {
                 </div>
               </div>
 
-              <h1 className="text-5xl lg:text-7xl font-black text-secondary leading-[1.1] tracking-tight">
+              <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-secondary leading-[1.1] tracking-tight">
                 Empowering Your <br className="hidden md:block" />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-blue-600 to-orange-500 drop-shadow-sm">Financial Future</span>
               </h1>
@@ -87,17 +87,17 @@ export function HomeHero() {
               </p>
 
               {/* Stats Grid with Animated Counters */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-8 mt-4 border-t border-slate-200/60 dark:border-slate-800/60">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-8 mt-6 border-t border-slate-150/60 text-left">
                 {stats.map((stat, i) => (
-                  <div key={i} className="space-y-3">
-                    <div className="w-10 h-10 rounded-full bg-white dark:bg-slate-900 shadow-md border border-slate-100 dark:border-slate-800 flex items-center justify-center text-primary transform hover:scale-110 transition-transform">
-                      <stat.icon size={20} strokeWidth={2.5} />
+                  <div key={i} className="space-y-2.5 group">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-50 text-primary flex items-center justify-center group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all duration-300 shadow-sm border border-emerald-100/50">
+                      <stat.icon size={18} strokeWidth={2.5} />
                     </div>
                     <div>
-                      <h3 className="text-xl lg:text-2xl font-black text-secondary dark:text-white leading-none mb-1">
+                      <h3 className="text-xl lg:text-2xl font-black text-secondary leading-none mb-1 tracking-tight">
                         <AnimatedCounter value={stat.value} decimals={stat.decimals} suffix={stat.suffix} />
                       </h3>
-                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400">{stat.label}</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
                     </div>
                   </div>
                 ))}
@@ -111,16 +111,16 @@ export function HomeHero() {
         </div>
 
         {/* Overlapping Service Cards */}
-        <div className="relative z-30 mt-16 lg:mt-24 mb-[-8rem] px-4 flex justify-center">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 w-full max-w-7xl">
+        <div className="relative z-30 mt-16 lg:mt-24 mb-[-8rem] px-4 w-full flex justify-center overflow-x-auto no-scrollbar snap-x snap-mandatory lg:overflow-visible">
+          <div className="flex gap-4 pb-6 px-4 w-full max-w-7xl snap-x snap-mandatory lg:grid lg:grid-cols-4 lg:gap-6 lg:px-0 lg:pb-0">
             {services.map((service, i) => (
               <a 
                 key={i} 
                 href={service.link}
-                className="block"
+                className="block shrink-0 w-[280px] snap-center lg:w-auto lg:shrink"
               >
                 <PremiumCard 
-                  className="p-6 shadow-xl hover:shadow-2xl flex flex-col min-h-[220px] cursor-pointer"
+                  className="p-6 shadow-xl hover:shadow-2xl flex flex-col min-h-[220px] h-full cursor-pointer"
                   glowColor={service.glow}
                 >
                   <div className={`absolute top-0 right-0 px-3 py-1 rounded-bl-xl bg-gradient-to-r ${service.color} text-white text-[10px] font-black uppercase tracking-widest`}>

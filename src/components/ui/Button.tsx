@@ -10,24 +10,24 @@ export interface ButtonProps
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', ...props }, ref) => {
     const variants = {
-      primary: 'bg-primary text-primary-foreground hover:bg-blue-700 shadow-soft',
-      secondary: 'bg-secondary text-secondary-foreground hover:bg-slate-800',
-      outline: 'border border-input bg-background hover:bg-muted text-foreground',
-      ghost: 'hover:bg-muted text-foreground',
-      accent: 'bg-accent text-accent-foreground hover:bg-amber-600 shadow-soft',
+      primary: 'bg-primary text-primary-foreground hover:bg-emerald-600 shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/25 font-black uppercase tracking-wider transition-all duration-300',
+      secondary: 'bg-secondary text-secondary-foreground hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-950/15 font-black uppercase tracking-wider transition-all duration-300',
+      outline: 'border border-slate-200/80 bg-background hover:bg-slate-50 text-foreground hover:border-slate-350 font-bold uppercase tracking-wider transition-all duration-300',
+      ghost: 'hover:bg-slate-50 text-foreground font-bold transition-all duration-300',
+      accent: 'bg-accent text-accent-foreground hover:bg-amber-600 shadow-lg shadow-amber-500/10 hover:shadow-amber-500/20 font-black uppercase tracking-wider transition-all duration-300',
     }
     
     const sizes = {
-      sm: 'h-9 px-3 text-sm',
-      md: 'h-11 px-6',
-      lg: 'h-14 px-10 text-lg font-semibold',
+      sm: 'h-10 px-4 text-xs font-black',
+      md: 'h-12 px-6 text-sm',
+      lg: 'h-14 px-10 text-base font-black',
     }
 
     return (
       <button
         ref={ref}
         className={cn(
-          'inline-flex items-center justify-center rounded-xl transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none',
+          'inline-flex items-center justify-center rounded-2xl transition-all active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none select-none',
           variants[variant],
           sizes[size],
           className

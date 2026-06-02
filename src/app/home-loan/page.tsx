@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent } from "@/components/ui/Card"
+import { StickyMobileCTA } from "@/components/ui/StickyMobileCTA"
 
 export const metadata = {
   title: "Home Loans 2026: Compare Rates from 50+ Banks | TechStar",
@@ -61,7 +62,7 @@ export default function HomeLoanPage() {
                 </div>
               </div>
             </div>
-            <div className="flex-1 w-full flex justify-center lg:justify-end">
+            <div id="home-loan-form" className="flex-1 w-full flex justify-center lg:justify-end">
               <HomeLoanForm />
             </div>
           </div>
@@ -230,6 +231,8 @@ export default function HomeLoanPage() {
       <FAQ />
       <BlogAndCTA />
       <Footer />
+
+      <StickyMobileCTA targetId="home-loan-form" label="Apply Now" />
     </main>
   )
 }

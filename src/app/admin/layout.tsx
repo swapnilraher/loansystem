@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
 import { AdminSidebar } from "@/components/admin/AdminSidebar"
@@ -14,6 +14,7 @@ export default function AdminLayout({
   const { user, adminRole, loading } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     if (!loading && pathname !== "/admin/login") {
@@ -36,11 +37,20 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
-      <AdminSidebar />
-      <div className="flex-1 ml-72">
-        <AdminHeader />
-        <main className="p-8">
+    <div className="min-h-screen bg-slate-50 flex relative">
+      <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      
+      {/* Mobile sidebar overlay backdrop */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <div className="flex-1 min-w-0 ml-0 lg:ml-72">
+        <AdminHeader onMenuClick={() => setSidebarOpen(true)} />
+        <main className="p-4 md:p-8">
           {children}
         </main>
       </div>
