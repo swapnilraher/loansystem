@@ -32,6 +32,17 @@ export function Header() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("login") === "true") {
+        setIsWhatsAppOpen(true);
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, "", newUrl);
+      }
+    }
+  }, []);
+
   // Auto-open modal if profile is incomplete
   useEffect(() => {
     if (user && profile) {
@@ -46,7 +57,7 @@ export function Header() {
     { name: "Home", href: "/", icon: Home },
     { name: "Personal Loan", href: "/personal-loan", icon: User },
     { name: "Home Loan", href: "/home-loan", icon: Home },
-    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "My Account", href: "/dashboard", icon: LayoutDashboard },
   ]
 
   return (
@@ -142,17 +153,26 @@ export function Header() {
               </div>
             </div>
 
-            {navLinks.slice(3).map((item) => (
-              <a
-                key={item.name}
-                href={item.href}
-                className={`text-base font-black uppercase tracking-tight relative py-2 group transition-colors hover:text-primary ${theme === "dark" ? "text-slate-300" : "text-secondary"
-                  }`}
-              >
-                {item.name}
-                <span className="absolute bottom-0 left-0 w-0 h-1 bg-primary transition-all duration-300 group-hover:w-full" />
-              </a>
-            ))}
+            {navLinks.slice(3).map((item) => {
+              const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+                if (item.name === "My Account" && !user) {
+                  e.preventDefault();
+                  setIsWhatsAppOpen(true);
+                }
+              };
+              return (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  onClick={handleClick}
+                  className={`text-base font-black uppercase tracking-tight relative py-2 group transition-colors hover:text-primary ${theme === "dark" ? "text-slate-300" : "text-secondary"
+                    }`}
+                >
+                  {item.name}
+                  <span className="absolute bottom-0 left-0 w-0 h-1 bg-primary transition-all duration-300 group-hover:w-full" />
+                </a>
+              );
+            })}
           </nav>
 
           <div className="flex items-center gap-4 lg:gap-8">
@@ -246,21 +266,30 @@ export function Header() {
                 </div>
 
                 <div className="space-y-6">
-                  {navLinks.map((link) => (
-                    <a
-                      key={link.name}
-                      href={link.href}
-                      onClick={() => setIsOpen(false)}
-                      className={`flex items-center gap-4 text-lg font-bold transition-colors p-4 rounded-2xl group ${theme === "dark" ? "text-slate-300 hover:bg-slate-800" : "text-secondary hover:bg-blue-50"
-                        }`}
-                    >
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${theme === "dark" ? "bg-slate-800 group-hover:bg-primary group-hover:text-white" : "bg-slate-50 group-hover:bg-primary group-hover:text-white"
-                        }`}>
-                        <link.icon size={20} />
-                      </div>
-                      {link.name}
-                    </a>
-                  ))}
+                  {navLinks.map((link) => {
+                    const handleMobileClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+                      setIsOpen(false);
+                      if (link.name === "My Account" && !user) {
+                        e.preventDefault();
+                        setIsWhatsAppOpen(true);
+                      }
+                    };
+                    return (
+                      <a
+                        key={link.name}
+                        href={link.href}
+                        onClick={handleMobileClick}
+                        className={`flex items-center gap-4 text-lg font-bold transition-colors p-4 rounded-2xl group ${theme === "dark" ? "text-slate-300 hover:bg-slate-800" : "text-secondary hover:bg-blue-50"
+                          }`}
+                      >
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${theme === "dark" ? "bg-slate-800 group-hover:bg-primary group-hover:text-white" : "bg-slate-50 group-hover:bg-primary group-hover:text-white"
+                          }`}>
+                          <link.icon size={20} />
+                        </div>
+                        {link.name}
+                      </a>
+                    );
+                  })}
                 </div>
 
                 {/* Mobile Locations Section */}

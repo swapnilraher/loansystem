@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { 
   LayoutDashboard, 
   User, 
@@ -41,9 +42,10 @@ import { db } from "@/lib/firebase"
 import { collection, addDoc, serverTimestamp, query, where, onSnapshot, orderBy } from "firebase/firestore"
 
 export default function UserDashboard() {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState("overview")
   const [darkMode, setDarkMode] = useState(false)
-  const { user, profile, logout, updateProfile } = useAuth()
+  const { user, profile, logout, updateProfile, loading } = useAuth()
   const [uploading, setUploading] = useState<string | null>(null)
   const [showNewApp, setShowNewApp] = useState(false)
   const [userApplications, setUserApplications] = useState<any[]>([])
@@ -51,6 +53,12 @@ export default function UserDashboard() {
   const [referrals, setReferrals] = useState<any[]>([])
   const [referralsLoading, setReferralsLoading] = useState(true)
   const isMounted = useRef(true)
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/?login=true")
+    }
+  }, [user, loading, router])
 
   useEffect(() => {
     return () => { isMounted.current = false }
@@ -134,6 +142,17 @@ export default function UserDashboard() {
     { id: "documents", label: "Vault", icon: ShieldCheck },
     { id: "rewards", label: "Rewards", icon: Gift },
   ]
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="animate-spin text-primary" size={48} />
+          <p className="text-sm font-bold text-slate-400">Loading Account...</p>
+        </div>
+      </div>
+    )
+  }
 
   const userName = profile?.panName || user?.displayName?.split(" ")[0] || "User";
   const userInitials = userName.substring(0, 2).toUpperCase();
@@ -545,6 +564,7 @@ export default function UserDashboard() {
         <div className="flex items-center gap-2"><div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white"><ShieldCheck size={18} /></div><span className="text-lg font-black italic">TechStar</span></div>
         <div className="flex items-center gap-3">
            <button onClick={() => setDarkMode(!darkMode)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800">{darkMode ? <Sun size={18} /> : <Moon size={18} />}</button>
+           <button onClick={() => logout()} className="w-9 h-9 flex items-center justify-center rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-500 hover:bg-rose-100 transition-colors" title="Logout"><LogOut size={18} /></button>
            <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-black text-xs overflow-hidden">{user?.photoURL ? <img src={user.photoURL} alt={userName} className="w-full h-full object-cover" /> : userInitials}</div>
         </div>
       </header>
