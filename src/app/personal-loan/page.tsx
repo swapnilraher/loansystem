@@ -15,6 +15,8 @@ import { Testimonials } from "@/components/sections/Testimonials"
 import { BlogAndCTA } from "@/components/sections/BlogAndCTA"
 import { CIBILBanner } from "@/components/sections/CIBILBanner"
 import { StickyMobileCTA } from "@/components/ui/StickyMobileCTA"
+import LoanComparisonTable from "@/components/ui/LoanComparisonTable"
+import { PersonalLoanDetailedInfo } from "@/components/sections/PersonalLoanDetailedInfo"
 export const metadata: Metadata = {
   title: "Instant Personal Loan Up to ₹50 Lakhs | Competitive Rates | TechStar",
   description: "Apply for a personal loan online with TechStar. Compare top banks, check eligibility in 2 minutes, and get quick approval with minimal documentation. Rates start at 10.50% p.a.",
@@ -55,8 +57,10 @@ export default function PersonalLoanPage() {
       <Header />
       <Hero />
       <Partners />
+      <LoanComparisonTable />
       <AnimatedStats />
       <Overview />
+      <PersonalLoanDetailedInfo />
       <EMICalculator />
       <Eligibility />
       <Features />

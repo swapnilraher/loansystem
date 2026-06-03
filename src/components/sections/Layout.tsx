@@ -57,6 +57,7 @@ export function Header() {
     { name: "Home", href: "/", icon: Home },
     { name: "Personal Loan", href: "/personal-loan", icon: User },
     { name: "Home Loan", href: "/home-loan", icon: Home },
+    { name: "DSA Partner", href: "/#dsa-partner", icon: Briefcase },
     { name: "My Account", href: "/dashboard", icon: LayoutDashboard },
   ]
 
@@ -68,40 +69,40 @@ export function Header() {
         style={{ scaleX }}
       />
       <header className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${scrolled
-        ? "h-16 bg-white/95 dark:bg-slate-900/95 shadow-xl shadow-blue-900/5 backdrop-blur-xl"
-        : "h-20 bg-white/50 dark:bg-slate-950/50 backdrop-blur-md"
+        ? "h-14 bg-white/95 dark:bg-slate-900/95 shadow-xl shadow-blue-900/5 backdrop-blur-xl"
+        : "h-16 bg-white/50 dark:bg-slate-950/50 backdrop-blur-md"
         }`}>
         <div className="container mx-auto px-4 h-full flex items-center justify-between">
-          <a href="/" className="flex items-center gap-3 group">
-            <div className={`bg-primary rounded-2xl flex items-center justify-center text-white group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-blue-200 shadow-xl ${scrolled ? "w-10 h-10" : "w-12 h-12"
+          <a href="/" className="flex items-center gap-2.5 group">
+            <div className={`bg-primary flex items-center justify-center text-white group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-blue-200 shadow-xl ${scrolled ? "w-8 h-8 rounded-lg" : "w-9 h-9 rounded-xl"
               }`}>
-              <ShieldCheck size={scrolled ? 24 : 28} />
+              <ShieldCheck size={scrolled ? 18 : 22} />
             </div>
-            <span className={`font-black tracking-tighter italic group-hover:text-primary transition-all duration-300 ${scrolled ? "text-2xl" : "text-3xl"
+            <span className={`font-black tracking-tighter italic group-hover:text-primary transition-all duration-300 ${scrolled ? "text-lg" : "text-xl"
               } ${theme === "dark" ? "text-white" : "text-secondary"}`}>TechStar</span>
           </a>
 
-          <nav className="hidden lg:flex items-center gap-12">
-            {navLinks.slice(0, 3).map((item) => (
+          <nav className="hidden lg:flex items-center gap-8">
+            {navLinks.slice(0, 4).map((item) => (
               <a
                 key={item.name}
                 href={item.href}
-                className={`text-base font-black uppercase tracking-tight relative py-2 group transition-colors hover:text-primary ${theme === "dark" ? "text-slate-300" : "text-secondary"
+                className={`text-xs md:text-sm font-extrabold uppercase tracking-tight relative py-1.5 group transition-colors hover:text-primary ${theme === "dark" ? "text-slate-300" : "text-slate-700"
                   }`}
               >
                 {item.name}
-                <span className="absolute bottom-0 left-0 w-0 h-1 bg-primary transition-all duration-300 group-hover:w-full" />
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full" />
               </a>
             ))}
 
             {/* Locations Dropdown */}
-            <div className="relative group py-2">
+            <div className="relative group py-1.5">
               <button
-                className={`text-base font-black uppercase tracking-tight flex items-center gap-1 transition-colors hover:text-primary ${theme === "dark" ? "text-slate-300" : "text-secondary"
+                className={`text-xs md:text-sm font-extrabold uppercase tracking-tight flex items-center gap-1 transition-colors hover:text-primary ${theme === "dark" ? "text-slate-300" : "text-slate-700"
                   }`}
               >
                 Locations
-                <svg className="w-4 h-4 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
@@ -153,7 +154,7 @@ export function Header() {
               </div>
             </div>
 
-            {navLinks.slice(3).map((item) => {
+             {navLinks.slice(4).map((item) => {
               const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
                 if (item.name === "My Account" && !user) {
                   e.preventDefault();
@@ -165,55 +166,56 @@ export function Header() {
                   key={item.name}
                   href={item.href}
                   onClick={handleClick}
-                  className={`text-base font-black uppercase tracking-tight relative py-2 group transition-colors hover:text-primary ${theme === "dark" ? "text-slate-300" : "text-secondary"
+                  className={`text-xs md:text-sm font-extrabold uppercase tracking-tight relative py-1.5 group transition-colors hover:text-primary ${theme === "dark" ? "text-slate-300" : "text-slate-700"
                     }`}
                 >
                   {item.name}
-                  <span className="absolute bottom-0 left-0 w-0 h-1 bg-primary transition-all duration-300 group-hover:w-full" />
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full" />
                 </a>
               );
             })}
           </nav>
 
-          <div className="flex items-center gap-4 lg:gap-8">
+          <div className="flex items-center gap-3 lg:gap-6">
 
-            <a href="tel:9579005645" className={`hidden md:flex items-center gap-3 text-lg font-black hover:text-primary transition-all group ${theme === "dark" ? "text-white" : "text-secondary"
+            <a href="tel:9579005645" className={`hidden md:flex items-center gap-2.5 text-sm font-extrabold hover:text-primary transition-all group ${theme === "dark" ? "text-white" : "text-secondary"
               }`}>
-              <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
-                <Phone size={20} />
+              <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
+                <Phone size={16} />
               </div>
               9579005645
             </a>
-            <Button size={scrolled ? "md" : "lg"} className="hidden sm:inline-flex rounded-2xl shadow-xl shadow-blue-100 font-black uppercase tracking-wider h-14 px-8">Apply Now</Button>
+            <Button size={scrolled ? "sm" : "md"} className="hidden sm:inline-flex rounded-xl shadow-xl shadow-blue-100/10 font-black uppercase tracking-wider px-5">Apply Now</Button>
 
             {user ? (
-              <div className="flex items-center gap-3 bg-slate-100 dark:bg-slate-800 p-1 pr-4 rounded-2xl border border-slate-200 dark:border-slate-700">
-                <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center overflow-hidden">
+              <div className="flex items-center gap-2.5 bg-slate-100 dark:bg-slate-800 p-0.5 pr-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center overflow-hidden">
                   {user.photoURL ? (
                     <img src={user.photoURL} alt={user.displayName || "User"} className="w-full h-full object-cover" />
                   ) : (
-                    <User size={20} className="text-white" />
+                    <User size={16} className="text-white" />
                   )}
                 </div>
                 <div className="hidden lg:block">
-                  <p className="text-xs font-black uppercase tracking-tight text-slate-400 leading-none mb-1">Welcome</p>
-                  <p className="text-sm font-black dark:text-white leading-none">{user.displayName?.split(" ")[0] || "Member"}</p>
+                  <p className="text-[9px] font-black uppercase tracking-tight text-slate-400 leading-none mb-0.5">Welcome</p>
+                  <p className="text-xs font-black dark:text-white leading-none">{user.displayName?.split(" ")[0] || "Member"}</p>
                 </div>
                 <button
                   onClick={() => logout()}
-                  className="ml-2 p-2 text-slate-400 hover:text-red-500 transition-colors"
+                  className="ml-1 p-1 text-slate-400 hover:text-red-500 transition-colors"
                   title="Logout"
                 >
-                  <LogOut size={18} />
+                  <LogOut size={14} />
                 </button>
               </div>
             ) : (
               <Button
                 variant="outline"
+                size={scrolled ? "sm" : "md"}
                 onClick={() => setIsWhatsAppOpen(true)}
-                className="rounded-2xl font-black uppercase tracking-wider h-14 px-6 border-2 border-slate-200 dark:border-slate-700 flex gap-2"
+                className="rounded-xl font-black uppercase tracking-wider border-2 border-slate-200 dark:border-slate-700 flex gap-1.5 px-4"
               >
-                <MessageSquare size={18} className="text-green-500" />
+                <MessageSquare size={16} className="text-green-500" />
                 Login
               </Button>
             )}
@@ -431,7 +433,9 @@ export function Footer() {
                 { name: "Home", href: "/" },
                 { name: "Personal Loan", href: "/personal-loan" },
                 { name: "Home Loan", href: "/home-loan" },
-
+                { name: "Business Loan", href: "/business-loan" },
+                { name: "Property Loan", href: "/loan-against-property" },
+                { name: "Car Loan", href: "/car-loan" },
               ].map((link) => (
                 <li key={link.name}>
                   <a href={link.href} className="hover:text-white transition-all relative group py-1 block">

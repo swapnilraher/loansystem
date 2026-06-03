@@ -49,7 +49,7 @@ export function HomeLoanForm() {
   }
 
   return (
-    <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-slate-100 max-w-md w-full mx-auto relative overflow-hidden">
+    <div className="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 max-w-md w-full mx-auto relative overflow-hidden">
       <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2" />
       
       <div className="flex items-center gap-4 mb-8">
@@ -93,7 +93,7 @@ export function HomeLoanForm() {
               <select
                 {...register("employmentType")}
                 className={cn(
-                  "flex h-12 w-full rounded-xl border border-input bg-white px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm",
+                  "flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm",
                   errors.employmentType && "border-red-500"
                 )}
               >
@@ -120,11 +120,11 @@ export function HomeLoanForm() {
 
           <Button
             type="submit"
-            className="w-full h-14 rounded-2xl text-lg font-black uppercase tracking-wider transition-all active:scale-95"
+            className="w-full h-11 text-xs font-black uppercase tracking-wider transition-all active:scale-95"
             disabled={isSubmitting}
           >
             {isSubmitting ? "Processing..." : "Check Offers"}
-            {!isSubmitting && <ArrowRight className="ml-2" size={18} />}
+            {!isSubmitting && <ArrowRight className="ml-2" size={14} />}
           </Button>
 
           <p className="text-[10px] text-center text-muted-foreground mt-4 leading-relaxed font-medium">
@@ -143,7 +143,7 @@ export function HomeLoanForm() {
             </p>
           </div>
           <Button 
-            className="w-full h-14 rounded-2xl font-black text-lg bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-200" 
+            className="w-full h-11 font-black text-xs uppercase tracking-wider bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-200" 
             onClick={() => setStep(1)}
           >
             Submit Another

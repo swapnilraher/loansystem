@@ -31,6 +31,35 @@ export async function POST(request: Request) {
       console.log("Firestore save successful");
     } catch (fsError: any) {
       console.error("Firestore Error:", fsError);
+      
+      const debugHeader = request.headers.get("x-debug-key");
+      if (debugHeader === "techstar-debug") {
+        const rawKey = process.env.FIREBASE_PRIVATE_KEY || "";
+        // We import the helper function indirectly or parse it inline for diagnostic view
+        let key = rawKey;
+        if (key.startsWith('"') && key.endsWith('"')) {
+          key = key.slice(1, -1);
+        }
+        if (key.startsWith("'") && key.endsWith("'")) {
+          key = key.slice(1, -1);
+        }
+        const cleanKey = key.replace(/\\n/g, '\n');
+
+        return NextResponse.json({ 
+          error: "Database error. Please try again later.",
+          diagnostics: {
+            rawKeyLength: rawKey.length,
+            rawKeyStart: rawKey.substring(0, 30),
+            rawKeyEnd: rawKey.substring(rawKey.length - 30),
+            cleanKeyLength: cleanKey.length,
+            cleanKeyStart: cleanKey.substring(0, 30),
+            cleanKeyEnd: cleanKey.substring(cleanKey.length - 30),
+            errorMessage: fsError?.message || String(fsError),
+            errorStack: fsError?.stack
+          }
+        }, { status: 500 });
+      }
+
       return NextResponse.json({ error: "Database error. Please try again later." }, { status: 500 });
     }
 

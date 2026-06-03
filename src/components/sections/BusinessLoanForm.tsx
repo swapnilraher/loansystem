@@ -6,13 +6,10 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { leadFormSchema, LeadFormData } from "@/lib/schemas"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
-import { ShieldCheck, Lock, ArrowRight, CheckCircle2 } from "lucide-react"
+import { ShieldCheck, Lock, ArrowRight, CheckCircle2, Briefcase } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-import { db } from "@/lib/firebase"
-import { collection, addDoc, serverTimestamp } from "firebase/firestore"
-
-export function PersonalLoanForm() {
+export function BusinessLoanForm() {
   const [step, setStep] = useState(1) // 1: Form, 3: Success
   const [progress, setProgress] = useState(0)
 
@@ -30,7 +27,7 @@ export function PersonalLoanForm() {
 
   // Auto-save & Progress Calculation
   useEffect(() => {
-    const savedData = localStorage.getItem("loan_lead_draft")
+    const savedData = localStorage.getItem("business_loan_draft")
     if (savedData) {
       const parsed = JSON.parse(savedData)
       Object.keys(parsed).forEach((key) => {
@@ -40,7 +37,7 @@ export function PersonalLoanForm() {
   }, [setValue])
 
   useEffect(() => {
-    localStorage.setItem("loan_lead_draft", JSON.stringify(formValues))
+    localStorage.setItem("business_loan_draft", JSON.stringify(formValues))
     
     // Calculate progress based on filled fields
     const totalFields = 6
@@ -50,13 +47,14 @@ export function PersonalLoanForm() {
 
   const onSubmit = async (data: LeadFormData) => {
     try {
-      console.log("Saving Personal Loan Lead via API:", data)
+      console.log("Saving Business Loan Lead via API:", data)
       const response = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...data,
-          source: "Website - Personal Loan",
+          source: "Website - Business Loan",
+          type: "Business Loan",
         }),
       });
 
@@ -65,7 +63,7 @@ export function PersonalLoanForm() {
         throw new Error(errorData.error || 'Failed to save lead');
       }
       
-      localStorage.removeItem("loan_lead_draft")
+      localStorage.removeItem("business_loan_draft")
       setStep(3) // Success
     } catch (error: any) {
       console.error("Error saving lead:", error)
@@ -73,13 +71,8 @@ export function PersonalLoanForm() {
     }
   }
 
-  const handleVerifyOTP = () => {
-    setStep(3) // Success
-    localStorage.removeItem("loan_lead_draft")
-  }
-
   return (
-    <div className="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 max-w-md w-full mx-auto relative overflow-hidden">
+    <div className="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 max-w-md w-full mx-auto relative overflow-hidden text-left">
       {/* Progress Bar */}
       {step === 1 && (
         <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-100">
@@ -93,11 +86,11 @@ export function PersonalLoanForm() {
       {step === 1 && (
         <>
           <div className="flex items-center gap-4 mb-8">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-primary shadow-sm">
-              <ShieldCheck size={28} />
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm">
+              <Briefcase size={28} />
             </div>
             <div>
-              <h3 className="font-black text-secondary text-xl">Check Eligibility</h3>
+              <h3 className="font-black text-secondary text-xl">Business Loan Eligibility</h3>
               <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground flex items-center gap-1">
                 <Lock size={10} className="text-green-500" /> 100% Secure & Private
               </p>
@@ -106,7 +99,7 @@ export function PersonalLoanForm() {
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <Input
-              label="Full Name"
+              label="Full Name (Proprietor)"
               placeholder="As per PAN card"
               {...register("fullName")}
               error={errors.fullName?.message}
@@ -121,7 +114,7 @@ export function PersonalLoanForm() {
 
             <div className="grid grid-cols-2 gap-4">
               <Input
-                label="Monthly Income"
+                label="Monthly Turnover"
                 placeholder="₹"
                 type="number"
                 {...register("monthlyIncome")}
@@ -136,8 +129,8 @@ export function PersonalLoanForm() {
                     errors.employmentType && "border-red-500"
                   )}
                 >
-                  <option value="Salaried">Salaried</option>
                   <option value="Self-Employed">Self-Employed</option>
+                  <option value="Salaried">Salaried</option>
                 </select>
               </div>
             </div>
@@ -150,8 +143,8 @@ export function PersonalLoanForm() {
             />
 
             <Input
-              label="Loan Amount"
-              placeholder="₹ Required amount"
+              label="Required Capital"
+              placeholder="₹ Loan amount needed"
               type="number"
               {...register("loanAmount")}
               error={errors.loanAmount?.message}
@@ -159,16 +152,16 @@ export function PersonalLoanForm() {
 
             <Button
               type="submit"
-              className="w-full h-11 text-xs font-black uppercase tracking-wider"
+              className="w-full h-11 text-xs font-black uppercase tracking-wider bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 border-none text-white"
               size="md"
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Processing..." : "Get Free Quotes"}
+              {isSubmitting ? "Processing..." : "Get Business Quotes"}
               {!isSubmitting && <ArrowRight className="ml-2" size={14} />}
             </Button>
 
             <p className="text-[10px] text-center text-muted-foreground mt-4 leading-relaxed font-medium">
-              By clicking, you agree to our Terms & Conditions and authorize us to contact you for loan requirements.
+              By clicking, you agree to our Terms & Conditions and authorize us to contact you for business finance requirements.
             </p>
           </form>
         </>
@@ -182,15 +175,15 @@ export function PersonalLoanForm() {
           <div className="space-y-3">
             <h3 className="text-3xl font-black text-secondary tracking-tight">Thank You!</h3>
             <p className="text-slate-500 font-medium leading-relaxed">
-              Your application has been received. Our expert will call you within 15 minutes.
+              Your application has been received. Our business finance expert will call you within 15 minutes.
             </p>
           </div>
           <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Application ID</p>
-            <p className="text-xl font-mono font-black text-secondary">TS-{Math.floor(Math.random()*90000) + 10000}</p>
+            <p className="text-xl font-mono font-black text-secondary">TS-BL-{Math.floor(Math.random()*90000) + 10000}</p>
           </div>
           <Button 
-            className="w-full h-11 font-black text-xs uppercase tracking-wider bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-200" 
+            className="w-full h-11 font-black text-xs uppercase tracking-wider bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-200 text-white" 
             onClick={() => setStep(1)}
           >
             Done

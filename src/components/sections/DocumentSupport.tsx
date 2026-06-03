@@ -100,11 +100,11 @@ export function DocumentSupport() {
   }
 
   return (
-    <section className="py-20 lg:py-24 bg-slate-50/50 dark:bg-slate-900/10 transition-colors duration-300 relative">
+    <section className="py-12 md:py-16 bg-slate-55/50 dark:bg-slate-900/10 transition-colors duration-300 relative">
       <div className="container mx-auto px-4 relative z-10">
         
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="text-center max-w-3xl mx-auto mb-8 md:mb-12">
           <span className="text-xs font-black uppercase text-primary tracking-widest bg-blue-50 dark:bg-blue-900/20 px-4 py-1.5 rounded-full border border-blue-100 dark:border-blue-800/30">Document Assistance</span>
           <h2 className="text-3xl md:text-5xl font-black text-secondary dark:text-white mt-4 tracking-tight leading-tight">
             Financial Documentation Support
@@ -114,7 +114,7 @@ export function DocumentSupport() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
           
           {/* Left Column: Services Grid (12 Items) */}
           <div className="lg:col-span-7 space-y-6">
@@ -262,7 +262,7 @@ export function DocumentSupport() {
         </div>
 
         {/* Conversion CTA Block */}
-        <div className="mt-20 relative overflow-hidden bg-gradient-to-br from-primary to-indigo-650 text-white rounded-[2.5rem] p-8 md:p-12 lg:p-16 shadow-2xl border border-white/10 flex flex-col lg:flex-row items-center gap-10">
+        <div className="mt-10 md:mt-14 relative overflow-hidden bg-gradient-to-br from-primary to-indigo-650 text-white rounded-[2.5rem] p-6 md:p-10 shadow-2xl border border-white/10 flex flex-col lg:flex-row items-center gap-6 lg:gap-10">
           <div className="absolute top-0 right-0 w-[50%] h-full bg-white/5 skew-x-12 translate-x-1/4 pointer-events-none" />
           <div className="flex-1 space-y-4 text-left">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 text-white rounded-lg text-[10px] font-black uppercase tracking-wider">

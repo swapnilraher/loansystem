@@ -1,0 +1,60 @@
+/* src/styles/designTokens.css */
+:root {
+  /* Color palette */
+  --color-primary-dark: hsl(210, 30%, 15%);   /* deep navy */
+  --color-primary: hsl(210, 30%, 22%);
+  --color-primary-light: hsl(210, 30%, 30%);
+  --color-accent: hsl(166, 70%, 40%);   /* teal */
+  --color-accent-light: hsl(166, 70%, 55%);
+  --color-gold: hsl(45, 90%, 55%);
+  --color-bg: hsl(210, 30%, 12%);
+  --color-bg-light: hsl(210, 30%, 20%);
+  --color-surface: rgba(255,255,255,0.08);
+  --color-text: hsl(0,0%,95%);
+  --color-text-muted: hsl(0,0%,70%);
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 2rem;
+  --spacing-xl: 4rem;
+  /* Typography */
+  --font-family: 'Inter', sans-serif;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.5rem;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+  /* Shadows */
+  --shadow-elevated: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: var(--color-primary-dark);
+    --color-text: var(--color-text);
+    --color-surface: rgba(255,255,255,0.08);
+  }
+}
+
+/* Utility classes */
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.text-center { text-align: center; }
+.rounded { border-radius: var(--spacing-sm); }
+.gradient-border {
+  border: 2px solid transparent;
+  background-clip: padding-box, border-box;
+  background-origin: border-box;
+  background-image: linear-gradient(var(--color-bg), var(--color-bg)),
+    linear-gradient(135deg, var(--color-accent), var(--color-gold));
+}
+.glass {
+  backdrop-filter: blur(12px);
+  background: var(--color-surface);
+}

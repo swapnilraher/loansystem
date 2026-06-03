@@ -47,14 +47,14 @@ export function Testimonials() {
   }
 
   return (
-    <section className="py-24 bg-slate-50 dark:bg-slate-900/10 relative overflow-hidden transition-colors duration-300">
+    <section className="py-12 md:py-16 bg-slate-55/50 dark:bg-slate-900/10 relative overflow-hidden transition-colors duration-300">
       {/* Background patterns */}
       <div className="absolute top-0 left-0 w-full h-full opacity-[0.03] dark:opacity-[0.015] pointer-events-none" 
         style={{ backgroundImage: 'radial-gradient(#2563eb 1px, transparent 1px)', backgroundSize: '40px 40px' }} 
       />
       
       <div className="container mx-auto px-4 relative z-10">
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="text-center max-w-3xl mx-auto mb-8 md:mb-12">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-white dark:bg-slate-900 text-primary rounded-lg text-xs font-black uppercase tracking-widest mb-4 shadow-sm border border-slate-100 dark:border-slate-800">
             <Star size={14} fill="currentColor" /> Customer Stories
           </div>
@@ -69,12 +69,12 @@ export function Testimonials() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-100px" }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-8"
+          className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6"
         >
           {testimonials.map((t, i) => (
             <motion.div key={i} variants={cardVariants} className="h-full">
               <PremiumCard 
-                className="p-8 md:p-10 h-full flex flex-col cursor-pointer border-slate-150/40 dark:border-slate-800"
+                className="p-6 md:p-8 h-full flex flex-col cursor-pointer border-slate-150/40 dark:border-slate-800"
                 glowColor={t.glow}
               >
                 <div className="flex gap-1 text-amber-400 mb-6">
@@ -102,7 +102,7 @@ export function Testimonials() {
         </motion.div>
 
         {/* Brand Stats */}
-        <div className="mt-20 flex flex-wrap justify-center gap-12 md:gap-24 opacity-60 dark:opacity-40 grayscale hover:grayscale-0 dark:hover:opacity-80 transition-all duration-300">
+        <div className="mt-10 md:mt-12 flex flex-wrap justify-center gap-6 md:gap-12 opacity-60 dark:opacity-40 grayscale hover:grayscale-0 dark:hover:opacity-80 transition-all duration-300">
           <div className="flex items-center gap-3">
             <span className="text-2xl font-black text-secondary dark:text-white">4.8/5</span>
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Google Rating</span>

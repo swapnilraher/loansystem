@@ -34,9 +34,9 @@ export function EMICalculator() {
   ]
 
   return (
-    <section className="py-20 bg-slate-50 dark:bg-slate-950 transition-colors duration-300" id="calculator">
+    <section className="py-10 md:py-14 bg-slate-50 dark:bg-slate-950 transition-colors duration-300" id="calculator">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
+        <div className="text-center mb-6 md:mb-8">
           <h2 className="text-3xl md:text-4xl font-black text-secondary dark:text-white mb-4">Personal Loan EMI Calculator</h2>
           <p className="text-muted-foreground dark:text-slate-400 max-w-2xl mx-auto">
             Adjust the sliders or enter values manually to estimate your repayments.
@@ -45,7 +45,7 @@ export function EMICalculator() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           <Card className="border-none shadow-xl rounded-[2.5rem] overflow-hidden dark:bg-slate-900">
-            <CardContent className="p-8 space-y-10">
+            <CardContent className="p-6 space-y-8">
               {/* Loan Amount */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
@@ -138,7 +138,7 @@ export function EMICalculator() {
             <CardHeader className="pt-10">
               <CardTitle className="text-center font-black text-secondary dark:text-white uppercase tracking-tight">Payment Breakup</CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center p-10">
+            <CardContent className="flex flex-col items-center justify-center p-6 md:p-10">
               <div className="w-full h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>

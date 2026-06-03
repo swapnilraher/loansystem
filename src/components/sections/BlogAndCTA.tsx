@@ -17,9 +17,9 @@ const articles = [
 export function BlogAndCTA() {
   return (
     <>
-      <section className="py-20 bg-white">
+      <section className="py-12 md:py-16 bg-white">
         <div className="container mx-auto px-4">
-          <div className="flex justify-between items-end mb-12">
+          <div className="flex justify-between items-end mb-8">
             <div>
               <h2 className="text-3xl font-bold text-secondary mb-4">Latest Insights</h2>
               <p className="text-muted-foreground">Expert advice to help you make better financial decisions.</p>
@@ -27,7 +27,7 @@ export function BlogAndCTA() {
             <Button variant="ghost">View Blog <ArrowRight className="ml-2" size={16} /></Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
             {articles.map((a) => (
               <a key={a.title} href={a.link}>
                 <Card className="group cursor-pointer overflow-hidden border-slate-100 hover:border-primary transition-all h-full">
@@ -49,9 +49,9 @@ export function BlogAndCTA() {
       </section>
 
 
-      <section className="py-24 bg-primary relative overflow-hidden">
+      <section className="py-12 md:py-16 bg-primary relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full bg-blue-600 opacity-50 skew-y-6 translate-y-1/2" />
-        <div className="container mx-auto px-4 relative z-10 text-center text-white space-y-8">
+        <div className="container mx-auto px-4 relative z-10 text-center text-white space-y-6">
           <h2 className="text-4xl md:text-5xl font-extrabold max-w-3xl mx-auto leading-tight">
             Check Your Personal Loan Eligibility in Just 2 Minutes
           </h2>

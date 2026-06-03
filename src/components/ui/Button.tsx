@@ -18,16 +18,16 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     }
     
     const sizes = {
-      sm: 'h-10 px-4 text-xs font-black',
-      md: 'h-12 px-6 text-sm',
-      lg: 'h-14 px-10 text-base font-black',
+      sm: 'h-9 px-3 text-[10px] font-black',
+      md: 'h-11 px-5 text-xs',
+      lg: 'h-12 px-6 text-sm font-black',
     }
 
     return (
       <button
         ref={ref}
         className={cn(
-          'inline-flex items-center justify-center rounded-2xl transition-all active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none select-none',
+          'inline-flex items-center justify-center rounded-xl transition-all active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none select-none',
           variants[variant],
           sizes[size],
           className

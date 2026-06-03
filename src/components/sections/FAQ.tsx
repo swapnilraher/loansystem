@@ -29,9 +29,9 @@ export function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(0)
 
   return (
-    <section className="py-24 bg-white" id="faq">
+    <section className="py-12 md:py-16 bg-white" id="faq">
       <div className="container mx-auto px-4">
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="text-center max-w-3xl mx-auto mb-8 md:mb-12">
           <h2 className="text-4xl font-black text-secondary mb-4">Got Questions? <br/><span className="text-primary italic">We've Got Answers.</span></h2>
           <p className="text-muted-foreground">Find answers to the most commonly asked questions about loans, eligibility, and the application process.</p>
         </div>
@@ -46,7 +46,7 @@ export function FAQ() {
             >
               <button 
                 onClick={() => setOpenIndex(openIndex === i ? null : i)}
-                className="w-full px-8 py-6 flex items-center justify-between text-left"
+                className="w-full px-6 py-4 flex items-center justify-between text-left"
               >
                 <span className={`text-lg font-bold transition-colors ${
                   openIndex === i ? "text-primary" : "text-secondary"
@@ -58,8 +58,8 @@ export function FAQ() {
                 </div>
               </button>
               
-              <div className={`px-8 transition-all duration-300 ease-in-out overflow-hidden ${
-                openIndex === i ? "max-h-96 pb-8 opacity-100" : "max-h-0 opacity-0"
+              <div className={`px-6 transition-all duration-300 ease-in-out overflow-hidden ${
+                openIndex === i ? "max-h-96 pb-6 opacity-100" : "max-h-0 opacity-0"
               }`}>
                 <p className="text-secondary/70 leading-relaxed font-medium">
                   {faq.a}

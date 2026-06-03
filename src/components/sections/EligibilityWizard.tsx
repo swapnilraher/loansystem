@@ -99,11 +99,11 @@ export function EligibilityWizard() {
   const matchedLenders = getMatchedLenders()
 
   return (
-    <section className="py-20 lg:py-24 bg-slate-50 dark:bg-slate-900/20 transition-colors duration-300 relative">
+    <section className="py-12 md:py-16 bg-slate-50 dark:bg-slate-900/20 transition-colors duration-300 relative">
       <div className="container mx-auto px-4">
         
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="text-center max-w-3xl mx-auto mb-8 md:mb-12">
           <span className="text-xs font-black uppercase text-primary tracking-widest bg-blue-50 dark:bg-blue-900/20 px-4 py-1.5 rounded-full border border-blue-100 dark:border-blue-800/30">Lender Match</span>
           <h2 className="text-3xl md:text-5xl font-black text-secondary dark:text-white mt-4 tracking-tight leading-tight">
             Smart Loan Eligibility Wizard
@@ -113,10 +113,10 @@ export function EligibilityWizard() {
           </p>
         </div>
 
-        <div className="max-w-4xl mx-auto bg-white/80 dark:bg-slate-900/80 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 md:p-10 shadow-2xl backdrop-blur-xl">
+        <div className="max-w-4xl mx-auto bg-white/80 dark:bg-slate-900/80 border border-slate-100 dark:border-slate-800 rounded-3xl p-5 md:p-8 shadow-xl backdrop-blur-xl">
           
           {/* Progress Steps header */}
-          <div className="flex justify-between items-center mb-10 max-w-xl mx-auto relative">
+          <div className="flex justify-between items-center mb-6 max-w-xl mx-auto relative">
             <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-100 dark:bg-slate-800 -translate-y-1/2 z-0" />
             {steps.map((s) => (
               <div key={s.id} className="relative z-10 flex flex-col items-center">

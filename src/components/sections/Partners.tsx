@@ -4,19 +4,23 @@ import { Button } from "@/components/ui/Button"
 import { ExternalLink } from "lucide-react"
 
 const partners = [
-  { name: "HDFC Bank", rate: "10.50%", fee: "Up to 2%", tenure: "Up to 72 months", loan: "Up to ₹50 Lakh" },
-  { name: "ICICI Bank", rate: "10.75%", fee: "Up to 2.5%", tenure: "Up to 60 months", loan: "Up to ₹40 Lakh" },
-  { name: "Axis Bank", rate: "10.49%", fee: "Up to 1.5%", tenure: "Up to 60 months", loan: "Up to ₹40 Lakh" },
-  { name: "SBI", rate: "11.00%", fee: "Up to 1%", tenure: "Up to 72 months", loan: "Up to ₹20 Lakh" },
-  { name: "Kotak Bank", rate: "10.99%", fee: "Up to 2%", tenure: "Up to 60 months", loan: "Up to ₹30 Lakh" },
-  { name: "Bajaj Finance", rate: "13.00%", fee: "Up to 3%", tenure: "Up to 84 months", loan: "Up to ₹25 Lakh" },
+  { name: "HDFC Bank", rate: "10.50%", fee: "Up to 2%", tenure: "Up to 72 months", loan: "Up to ₹50 Lakh", logo: "/partners/hdfc.svg" },
+  { name: "ICICI Bank", rate: "10.75%", fee: "Up to 2.5%", tenure: "Up to 60 months", loan: "Up to ₹40 Lakh", logo: "/partners/icici.svg" },
+  { name: "Axis Bank", rate: "10.49%", fee: "Up to 1.5%", tenure: "Up to 60 months", loan: "Up to ₹40 Lakh", logo: "/partners/axis.svg" },
+  { name: "SBI", rate: "11.00%", fee: "Up to 1%", tenure: "Up to 72 months", loan: "Up to ₹20 Lakh", logo: "/partners/sbi.svg" },
+  { name: "Kotak Bank", rate: "10.99%", fee: "Up to 2%", tenure: "Up to 60 months", loan: "Up to ₹30 Lakh", logo: "/partners/kotak.svg" },
+  { name: "Bajaj Finance", rate: "13.00%", fee: "Up to 3%", tenure: "Up to 84 months", loan: "Up to ₹25 Lakh", logo: "/partners/bajaj.svg" },
+  { name: "IDFC First Bank", rate: "10.75%", fee: "Up to 2%", tenure: "Up to 60 months", loan: "Up to ₹40 Lakh", logo: "/partners/idfc.svg" },
+  { name: "L&T Finance", rate: "12.00%", fee: "Up to 2.5%", tenure: "Up to 60 months", loan: "Up to ₹30 Lakh", logo: "/partners/ltfinance.svg" },
+  { name: "Tata Capital", rate: "10.99%", fee: "Up to 2%", tenure: "Up to 72 months", loan: "Up to ₹35 Lakh", logo: "/partners/tata.svg" },
+  { name: "Yes Bank", rate: "10.99%", fee: "Up to 2%", tenure: "Up to 60 months", loan: "Up to ₹40 Lakh", logo: "/partners/yesbank.svg" },
 ]
 
 export function Partners() {
   return (
-    <section className="py-16 bg-white">
+    <section className="py-10 md:py-14 bg-white">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+        <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
           <div className="max-w-xl">
             <h2 className="text-3xl font-bold text-secondary mb-4">Our Top Lending Partners</h2>
             <p className="text-muted-foreground mb-6">
@@ -32,14 +36,14 @@ export function Partners() {
         </div>
 
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {partners.map((bank) => (
             <Card key={bank.name} className="overflow-hidden group hover:border-primary transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
               <CardContent className="p-0">
                 <div className="p-6 bg-slate-50 border-b flex justify-between items-center group-hover:bg-blue-50/30 transition-colors">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white rounded-xl border border-slate-100 flex items-center justify-center font-black text-[10px] text-primary shadow-sm group-hover:border-primary group-hover:scale-105 transition-all">
-                      {bank.name.split(' ').map(n => n[0]).join('')}
+                    <div className="w-12 h-12 bg-white rounded-xl border border-slate-100 flex items-center justify-center p-2 shadow-sm group-hover:border-primary group-hover:scale-105 transition-all">
+                      <img src={bank.logo} alt={bank.name} className="w-full h-full object-contain" />
                     </div>
                     <div>
                       <h4 className="font-bold text-lg text-secondary group-hover:text-primary transition-colors">{bank.name}</h4>

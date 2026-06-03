@@ -4,6 +4,9 @@ import React from "react"
 import { Header, Footer } from "@/components/sections/Layout"
 import { PersonalLoanForm } from "./PersonalLoanForm"
 import { HomeLoanForm } from "./HomeLoanForm"
+import { BusinessLoanForm } from "./BusinessLoanForm"
+import { LAPForm } from "./LAPForm"
+import { CarLoanForm } from "./CarLoanForm"
 import { SEOSchema } from "@/components/ui/SEOSchema"
 import { Button } from "@/components/ui/Button"
 import { PremiumCard } from "@/components/ui/PremiumCard"
@@ -47,7 +50,7 @@ export default function LocationPageTemplate({
     maxAmount = "₹10 Crores"
     tenure = "Up to 30 Years"
     fee = "Up to 0.50%"
-  } else if (service.includes("Property") || service.includes("Mortgage")) {
+  } else if (service.includes("Property") || service.includes("Mortgage") || service.includes("LAP")) {
     startRate = "9.00%"
     maxAmount = "₹5 Crores"
     tenure = "Up to 15 Years"
@@ -57,6 +60,11 @@ export default function LocationPageTemplate({
     maxAmount = "₹75 Lakhs"
     tenure = "1 to 5 Years"
     fee = "Up to 3.00%"
+  } else if (service.includes("Car") || service.includes("Vehicle") || service.includes("Auto")) {
+    startRate = "8.75%"
+    maxAmount = "₹50 Lakhs"
+    tenure = "Up to 7 Years"
+    fee = "Up to 1.50%"
   } else if (service.includes("Agent") || service.includes("DSA")) {
     startRate = "8.40%"
     maxAmount = "₹10 Crores"
@@ -134,7 +142,7 @@ export default function LocationPageTemplate({
       <main className="min-h-screen pt-20 bg-slate-50/20 dark:bg-slate-950/10">
         
         {/* Localized Hero Banner */}
-        <section className="relative py-20 lg:py-28 overflow-hidden bg-white border-b border-slate-100">
+        <section className="relative py-12 lg:py-16 overflow-hidden bg-white border-b border-slate-100">
           <div className="absolute top-0 right-0 w-1/2 h-full bg-blue-50/30 -skew-x-12 translate-x-1/4 z-0 pointer-events-none" />
           <div className="container mx-auto px-4 relative z-10">
             <div className="flex flex-col lg:flex-row items-center gap-16">
@@ -145,7 +153,7 @@ export default function LocationPageTemplate({
                   <MapPin size={14} className="text-primary animate-pulse" /> {location} Location Office
                 </div>
                 
-                <h1 className="text-4xl lg:text-6xl font-black text-secondary leading-[1.1] tracking-tight">
+                <h1 className="text-3xl lg:text-5xl font-extrabold text-secondary leading-[1.15] tracking-tight">
                   Premium <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-600 italic">{service}</span> <br />
                   in {location}
                 </h1>
@@ -170,7 +178,14 @@ export default function LocationPageTemplate({
               {/* Right Content - Lead Form Wrapper */}
               <div className="flex-1 w-full flex justify-center lg:justify-end">
                 <div id={`${serviceSlug}-${locationSlug}-form`} className="w-full">
-                  {isSecuredProduct ? <HomeLoanForm /> : <PersonalLoanForm />}
+                  {service.includes("Home") && <HomeLoanForm />}
+                  {(service.includes("Property") || service.includes("Mortgage") || service.includes("LAP")) && <LAPForm />}
+                  {(service.includes("Business") || service.includes("MSME") || service.includes("Working Capital")) && <BusinessLoanForm />}
+                  {(service.includes("Car") || service.includes("Vehicle") || service.includes("Auto")) && <CarLoanForm />}
+                  {(!service.includes("Home") && 
+                    !service.includes("Property") && !service.includes("Mortgage") && !service.includes("LAP") &&
+                    !service.includes("Business") && !service.includes("MSME") && !service.includes("Working Capital") &&
+                    !service.includes("Car") && !service.includes("Vehicle") && !service.includes("Auto")) && <PersonalLoanForm />}
                 </div>
               </div>
 
@@ -179,10 +194,10 @@ export default function LocationPageTemplate({
         </section>
 
         {/* Localized Rates & Parameters */}
-        <section className="py-20 bg-slate-50/50">
+        <section className="py-12 bg-slate-50/50">
           <div className="container mx-auto px-4 max-w-5xl">
-            <div className="text-center mb-12">
-              <h2 className="text-2xl md:text-4xl font-black text-secondary uppercase tracking-tight">
+            <div className="text-center mb-8">
+              <h2 className="text-xl md:text-3xl font-extrabold text-secondary uppercase tracking-tight">
                 {service} in {location} Parameters (2026)
               </h2>
               <p className="text-slate-500 text-sm font-bold mt-2">
@@ -214,8 +229,8 @@ export default function LocationPageTemplate({
         </section>
 
         {/* SEO Topical Authority & AI GEO Content section */}
-        <section className="py-20 bg-white">
-          <div className="container mx-auto px-4 max-w-4xl space-y-12">
+        <section className="py-12 bg-white">
+          <div className="container mx-auto px-4 max-w-4xl space-y-8">
             
             <div className="prose prose-lg prose-slate mx-auto text-left">
               <h2 className="text-3xl font-black text-secondary leading-tight mb-6">
@@ -306,7 +321,7 @@ export default function LocationPageTemplate({
             </div>
 
             {/* Local NAP Consistency Card */}
-            <div className="p-6 md:p-8 bg-slate-900 rounded-[2rem] text-white flex flex-col md:flex-row items-center justify-between gap-6 my-12 relative overflow-hidden">
+            <div className="p-6 bg-slate-900 rounded-[2.5rem] text-white flex flex-col md:flex-row items-center justify-between gap-4 my-8 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
               <div className="text-left space-y-2 relative z-10">
                 <h4 className="text-xs font-black uppercase text-primary tracking-widest">Office Contacts</h4>

@@ -6,13 +6,13 @@ import { motion } from "framer-motion"
 
 export function CIBILBanner() {
   return (
-    <section className="py-20 relative overflow-hidden bg-slate-950">
+    <section className="py-10 md:py-14 relative overflow-hidden bg-slate-950">
       {/* Background glowing effects */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[128px] opacity-50 mix-blend-screen pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-[30rem] h-[30rem] bg-amber-500/10 rounded-full blur-[128px] opacity-50 mix-blend-screen pointer-events-none" />
       
       <div className="container mx-auto px-4 relative z-10">
-        <div className="relative rounded-[2.5rem] bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 border border-slate-800 p-8 md:p-12 lg:p-16 overflow-hidden shadow-2xl">
+        <div className="relative rounded-[2.5rem] bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 border border-slate-800 p-6 md:p-10 lg:p-12 overflow-hidden shadow-2xl">
           
           {/* Inner subtle glow */}
           <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-bl from-amber-500/5 to-transparent pointer-events-none" />
