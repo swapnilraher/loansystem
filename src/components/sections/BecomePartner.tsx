@@ -1,12 +1,20 @@
 "use client"
 
-import React from "react"
+import React, { useState } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/Button"
 import { PremiumCard } from "../ui/PremiumCard"
 import { Award, DollarSign, ShieldCheck, Zap, ArrowRight, UserPlus } from "lucide-react"
 
 export function BecomePartner() {
+  const [submitted, setSubmitted] = useState(false)
+  const [formData, setFormData] = useState({ name: "", mobile: "", city: "Pune" })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitted(true)
+  }
+
   const benefits = [
     { title: "Highest Payouts", desc: "Get industry-best commission rates on all successful disbursals.", icon: DollarSign, color: "text-emerald-500 bg-emerald-50 dark:bg-emerald-950/20" },
     { title: "50+ Banking Partners", desc: "Access the entire credit catalog of top-tier private/public banks & NBFCs.", icon: ShieldCheck, color: "text-blue-500 bg-blue-50 dark:bg-blue-950/20" },
@@ -79,50 +87,81 @@ export function BecomePartner() {
             <div className="bg-white dark:bg-slate-900 border border-slate-150/50 dark:border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden text-left">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-blue-500" />
               
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 text-primary flex items-center justify-center shrink-0">
-                  <UserPlus size={20} />
+              {submitted ? (
+                <div className="text-center space-y-6 py-6 animate-in fade-in zoom-in duration-500">
+                  <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/20 text-primary rounded-full flex items-center justify-center mx-auto shadow-inner border border-emerald-100 dark:border-emerald-900/30">
+                    <ShieldCheck size={36} />
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-black text-secondary dark:text-white text-lg">Application Received!</h4>
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">
+                      Thank you, <span className="text-secondary dark:text-white font-bold">{formData.name}</span>. Our partnership desk will reach out to you on <span className="text-secondary dark:text-white font-bold">{formData.mobile}</span> within 2 hours.
+                    </p>
+                  </div>
+                  <Button 
+                    className="w-full h-11 text-xs font-black uppercase tracking-wider"
+                    onClick={() => { setSubmitted(false); setFormData({ name: "", mobile: "", city: "Pune" }) }}
+                  >
+                    Close
+                  </Button>
                 </div>
-                <div>
-                  <h4 className="font-black text-secondary dark:text-white text-base leading-tight">Start Earning Today</h4>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Apply for DSA License</p>
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 text-primary flex items-center justify-center shrink-0">
+                      <UserPlus size={20} />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-secondary dark:text-white text-base leading-tight">Start Earning Today</h4>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Apply for DSA License</p>
+                    </div>
+                  </div>
 
-              <form onSubmit={(e) => { e.preventDefault(); alert("DSA Application Received! Our team will contact you for KYC details."); }} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-350 mb-1.5">Full Name</label>
-                  <input 
-                    type="text" required placeholder="As per PAN Card" 
-                    className="w-full h-11 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 text-xs focus:ring-2 focus:ring-primary focus:border-transparent dark:text-white outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-350 mb-1.5">Mobile Number</label>
-                  <input 
-                    type="tel" required placeholder="10-digit mobile number" 
-                    className="w-full h-11 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 text-xs focus:ring-2 focus:ring-primary focus:border-transparent dark:text-white outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-350 mb-1.5">Select City</label>
-                  <select className="w-full h-11 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 text-xs focus:ring-2 focus:ring-primary focus:border-transparent dark:text-white outline-none font-medium">
-                    <option>Pune</option>
-                    <option>Nashik</option>
-                    <option>Mumbai</option>
-                    <option>Chhatrapati Sambhajianagar</option>
-                    <option>Other</option>
-                  </select>
-                </div>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-350 mb-1.5">Full Name</label>
+                      <input 
+                        type="text" required placeholder="As per PAN Card" 
+                        value={formData.name}
+                        onChange={e => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full h-11 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 text-xs focus:ring-2 focus:ring-primary focus:border-transparent dark:text-white outline-none font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-350 mb-1.5">Mobile Number</label>
+                      <input 
+                        type="tel" required placeholder="10-digit mobile number" 
+                        maxLength={10}
+                        value={formData.mobile}
+                        onChange={e => setFormData({ ...formData, mobile: e.target.value.replace(/\D/g, '') })}
+                        className="w-full h-11 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 text-xs focus:ring-2 focus:ring-primary focus:border-transparent dark:text-white outline-none font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-350 mb-1.5">Select City</label>
+                      <select 
+                        value={formData.city}
+                        onChange={e => setFormData({ ...formData, city: e.target.value })}
+                        className="w-full h-11 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 text-xs focus:ring-2 focus:ring-primary focus:border-transparent dark:text-white outline-none font-bold"
+                      >
+                        <option>Pune</option>
+                        <option>Nashik</option>
+                        <option>Mumbai</option>
+                        <option>Chhatrapati Sambhajianagar</option>
+                        <option>Other</option>
+                      </select>
+                    </div>
 
-                <Button type="submit" className="w-full h-12 rounded-xl text-xs font-black uppercase tracking-wider bg-primary hover:bg-primary/90 text-white mt-2">
-                  Become a Partner <ArrowRight className="ml-2" size={14} />
-                </Button>
+                    <Button type="submit" className="w-full h-12 rounded-xl text-xs font-black uppercase tracking-wider bg-primary hover:bg-primary/90 text-white mt-2">
+                      Become a Partner <ArrowRight className="ml-2" size={14} />
+                    </Button>
 
-                <p className="text-[9px] text-center text-slate-400 font-bold leading-relaxed uppercase tracking-wide">
-                  ⚡ Real-Time Tracking App Included
-                </p>
-              </form>
+                    <p className="text-[9px] text-center text-slate-400 font-bold leading-relaxed uppercase tracking-wide">
+                      ⚡ Real-Time Tracking App Included
+                    </p>
+                  </form>
+                </>
+              )}
             </div>
           </div>
         </div>
