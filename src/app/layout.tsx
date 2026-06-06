@@ -22,23 +22,23 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://techstarsolution.in"),
-  title: "TechStar | Premium Fintech Loan Marketplace & DSA",
-  description: "Compare loans, credit cards, and insurance with Techstar Business Solution Pvt Ltd - India's most trusted financial loan marketplace.",
+  title: "Techstar Money Solution | Premium Fintech Loan Marketplace & DSA",
+  description: "Compare loans, credit cards, and insurance with Techstar Money Solution - India's most trusted financial loan marketplace.",
   keywords: "loan dsa, personal loan, business loan, home loan, loan agent, mortgage loan, finance service",
   alternates: {
     canonical: "/"
   },
   openGraph: {
-    title: "TechStar | Premium Fintech Loan Marketplace & DSA",
-    description: "Compare loans, credit cards, and insurance with Techstar Business Solution Pvt Ltd - India's most trusted financial loan marketplace.",
+    title: "Techstar Money Solution | Premium Fintech Loan Marketplace & DSA",
+    description: "Compare loans, credit cards, and insurance with Techstar Money Solution - India's most trusted financial loan marketplace.",
     url: "https://techstarsolution.in",
-    siteName: "TechStar",
+    siteName: "Techstar Money Solution",
     images: [
       {
         url: "/partners.png",
         width: 1200,
         height: 630,
-        alt: "TechStar Fintech Marketplace"
+        alt: "Techstar Money Solution Fintech Marketplace"
       }
     ],
     locale: "en_IN",
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "TechStar | Premium Fintech Loan Marketplace & DSA",
+    title: "Techstar Money Solution | Premium Fintech Loan Marketplace & DSA",
     description: "Compare loans, credit cards, and insurance with India's most trusted financial marketplace.",
     images: ["/partners.png"],
   }

@@ -549,7 +549,7 @@ export default function UserDashboard() {
     <main className={`min-h-screen flex flex-col lg:flex-row ${darkMode ? "bg-slate-950 text-white" : "bg-slate-50 text-secondary"}`}>
       {/* Desktop Sidebar */}
       <aside className={`w-72 hidden lg:flex flex-col border-r sticky top-0 h-screen p-8 ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100"}`}>
-        <div className="flex items-center gap-3 mb-12"><div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg"><ShieldCheck size={24} /></div><span className="text-2xl font-black italic">TechStar</span></div>
+        <div className="flex items-center gap-3 mb-12"><div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg overflow-hidden"><img src="/img/logo.jpeg" alt="Techstar Money Solution Logo" className="w-full h-full object-cover" /></div><span className="text-2xl font-black italic">Techstar Money Solution</span></div>
         <nav className="flex-1 space-y-2">{menuItems.map((item) => (
             <button key={item.id} onClick={() => { setActiveTab(item.id); setShowNewApp(false); }} className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === item.id ? "bg-primary text-white shadow-xl shadow-primary/20" : `hover:bg-primary/5 ${darkMode ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-primary"}`}`}><item.icon size={20} />{item.label}</button>
           ))}</nav>
@@ -561,7 +561,7 @@ export default function UserDashboard() {
 
       {/* Mobile Top Header */}
       <header className={`lg:hidden flex items-center justify-between p-4 sticky top-0 z-30 ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100 shadow-sm"} border-b`}>
-        <div className="flex items-center gap-2"><div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white"><ShieldCheck size={18} /></div><span className="text-lg font-black italic">TechStar</span></div>
+        <div className="flex items-center gap-2"><div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white overflow-hidden"><img src="/img/logo.jpeg" alt="Techstar Money Solution Logo" className="w-full h-full object-cover" /></div><span className="text-lg font-black italic">Techstar Money Solution</span></div>
         <div className="flex items-center gap-3">
            <button onClick={() => setDarkMode(!darkMode)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800">{darkMode ? <Sun size={18} /> : <Moon size={18} />}</button>
            <button onClick={() => logout()} className="w-9 h-9 flex items-center justify-center rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-500 hover:bg-rose-100 transition-colors" title="Logout"><LogOut size={18} /></button>

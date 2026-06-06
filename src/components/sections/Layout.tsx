@@ -57,7 +57,7 @@ export function Header() {
     { name: "Home", href: "/", icon: Home },
     { name: "Personal Loan", href: "/personal-loan", icon: User },
     { name: "Home Loan", href: "/home-loan", icon: Home },
-    { name: "DSA Partner", href: "/#dsa-partner", icon: Briefcase },
+    { name: "Become DSA Partner", href: "/become-dsa-partner", icon: Briefcase },
     { name: "My Account", href: "/dashboard", icon: LayoutDashboard },
   ]
 
@@ -73,16 +73,18 @@ export function Header() {
         : "h-16 bg-white/50 dark:bg-slate-950/50 backdrop-blur-md"
         }`}>
         <div className="container mx-auto px-4 h-full flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2.5 group">
-            <div className={`bg-primary flex items-center justify-center text-white group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-blue-200 shadow-xl ${scrolled ? "w-8 h-8 rounded-lg" : "w-9 h-9 rounded-xl"
+          <a href="/" className="flex items-center gap-2 group">
+            <div className={`bg-primary flex items-center justify-center text-white group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-blue-200 shadow-xl overflow-hidden ${scrolled ? "w-8 h-8 rounded-lg" : "w-9 h-9 rounded-xl"
               }`}>
-              <ShieldCheck size={scrolled ? 18 : 22} />
+              <img src="/img/logo.jpeg" alt="Techstar Money Solution Logo" className="w-full h-full object-cover" />
             </div>
-            <span className={`font-black tracking-tighter italic group-hover:text-primary transition-all duration-300 ${scrolled ? "text-lg" : "text-xl"
-              } ${theme === "dark" ? "text-white" : "text-secondary"}`}>TechStar</span>
+            <span className={`font-black tracking-tighter italic group-hover:text-primary transition-all duration-300 ${scrolled ? "text-base sm:text-lg" : "text-lg sm:text-xl"
+              } ${theme === "dark" ? "text-white" : "text-secondary"}`}>
+              Techstar<span className="hidden sm:inline"> Money Solution</span>
+            </span>
           </a>
 
-          <nav className="hidden lg:flex items-center gap-8">
+          <nav className="hidden lg:flex items-center gap-5 xl:gap-8">
             {navLinks.slice(0, 4).map((item) => (
               <a
                 key={item.name}
@@ -107,8 +109,8 @@ export function Header() {
                 </svg>
               </button>
               
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-xl p-6 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-300 z-50">
-                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
+              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 w-80 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-300 z-50">
+                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-xl p-6 space-y-4 max-h-[400px] overflow-y-auto pr-1">
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-left">Nashik</p>
                     <div className="grid grid-cols-2 gap-2 text-xs font-bold text-left">
@@ -153,56 +155,36 @@ export function Header() {
                 </div>
               </div>
             </div>
-
-             {navLinks.slice(4).map((item) => {
-              const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-                if (item.name === "My Account" && !user) {
-                  e.preventDefault();
-                  setIsWhatsAppOpen(true);
-                }
-              };
-              return (
-                <a
-                  key={item.name}
-                  href={item.href}
-                  onClick={handleClick}
-                  className={`text-xs md:text-sm font-extrabold uppercase tracking-tight relative py-1.5 group transition-colors hover:text-primary ${theme === "dark" ? "text-slate-300" : "text-slate-700"
-                    }`}
-                >
-                  {item.name}
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full" />
-                </a>
-              );
-            })}
           </nav>
 
           <div className="flex items-center gap-3 lg:gap-6">
-
-            <a href="tel:9579005645" className={`hidden md:flex items-center gap-2.5 text-sm font-extrabold hover:text-primary transition-all group ${theme === "dark" ? "text-white" : "text-secondary"
+            <a href="tel:9579005645" className={`hidden xl:flex items-center gap-2.5 text-sm font-extrabold hover:text-primary transition-all group ${theme === "dark" ? "text-white" : "text-secondary"
               }`}>
               <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
                 <Phone size={16} />
               </div>
               9579005645
             </a>
-            <Button size={scrolled ? "sm" : "md"} className="hidden sm:inline-flex rounded-xl shadow-xl shadow-blue-100/10 font-black uppercase tracking-wider px-5">Apply Now</Button>
+            <Button size={scrolled ? "sm" : "md"} className="hidden xl:inline-flex rounded-xl shadow-xl shadow-blue-100/10 font-black uppercase tracking-wider px-5">Apply Now</Button>
 
             {user ? (
               <div className="flex items-center gap-2.5 bg-slate-100 dark:bg-slate-800 p-0.5 pr-3 rounded-xl border border-slate-200 dark:border-slate-700">
-                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center overflow-hidden">
-                  {user.photoURL ? (
-                    <img src={user.photoURL} alt={user.displayName || "User"} className="w-full h-full object-cover" />
-                  ) : (
-                    <User size={16} className="text-white" />
-                  )}
-                </div>
-                <div className="hidden lg:block">
-                  <p className="text-[9px] font-black uppercase tracking-tight text-slate-400 leading-none mb-0.5">Welcome</p>
-                  <p className="text-xs font-black dark:text-white leading-none">{user.displayName?.split(" ")[0] || "Member"}</p>
-                </div>
+                <a href="/dashboard" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+                  <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center overflow-hidden">
+                    {user.photoURL ? (
+                      <img src={user.photoURL} alt={user.displayName || "User"} className="w-full h-full object-cover" />
+                    ) : (
+                      <User size={16} className="text-white" />
+                    )}
+                  </div>
+                  <div className="hidden lg:block text-left">
+                    <p className="text-[9px] font-black uppercase tracking-tight text-slate-400 leading-none mb-0.5">Welcome</p>
+                    <p className="text-xs font-black dark:text-white leading-none">{user.displayName?.split(" ")[0] || "Member"}</p>
+                  </div>
+                </a>
                 <button
                   onClick={() => logout()}
-                  className="ml-1 p-1 text-slate-400 hover:text-red-500 transition-colors"
+                  className="ml-1 p-1 text-slate-400 hover:text-red-500 transition-colors pl-2 border-l border-slate-200 dark:border-slate-700"
                   title="Logout"
                 >
                   <LogOut size={14} />
@@ -213,15 +195,12 @@ export function Header() {
                 variant="outline"
                 size={scrolled ? "sm" : "md"}
                 onClick={() => setIsWhatsAppOpen(true)}
-                className="rounded-xl font-black uppercase tracking-wider border-2 border-slate-200 dark:border-slate-700 flex gap-1.5 px-4"
+                className="hidden sm:flex rounded-xl font-black uppercase tracking-wider border-2 border-slate-200 dark:border-slate-700 items-center gap-1.5 px-4"
               >
                 <MessageSquare size={16} className="text-green-500" />
                 Login
               </Button>
             )}
-
-
-
 
             <button
               onClick={() => setIsOpen(true)}
@@ -257,10 +236,10 @@ export function Header() {
               <div>
                 <div className="flex justify-between items-center mb-10">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
-                      <ShieldCheck size={20} />
+                    <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white overflow-hidden">
+                      <img src="/img/logo.jpeg" alt="TechStar Logo" className="w-full h-full object-cover" />
                     </div>
-                    <span className={`font-black text-xl italic ${theme === "dark" ? "text-white" : "text-secondary"}`}>TechStar</span>
+                    <span className={`font-black text-xl italic ${theme === "dark" ? "text-white" : "text-secondary"}`}>Techstar Money Solution</span>
                   </div>
                   <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
                     <X size={24} className={theme === "dark" ? "text-white" : "text-secondary"} />
@@ -401,17 +380,17 @@ export function Footer() {
       <div className="container mx-auto px-4">
         {/* Disclaimer Section */}
         <div className="mb-10 p-4 bg-slate-900/50 border border-slate-800 rounded-xl text-[10px] leading-relaxed">
-          <strong className="text-slate-300">Disclaimer:</strong> TechStar Business Solution is a Direct Selling Agent (DSA) and does not lend directly. All loan products are sourced from partner banks and NBFCs. Interest rates, processing fees, and loan eligibility are subject to the lender's discretion and your credit profile. Information on this website is for general guidance only.
+          <strong className="text-slate-300">Disclaimer:</strong> Techstar Money Solution is a Direct Selling Agent (DSA) and does not lend directly. All loan products are sourced from partner banks and NBFCs. Interest rates, processing fees, and loan eligibility are subject to the lender's discretion and your credit profile. Information on this website is for general guidance only.
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-10">
 
           <div className="col-span-2 space-y-4">
             <a href="/" className="flex items-center gap-2 text-white group">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
-                <ShieldCheck size={28} />
+              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 overflow-hidden">
+                <img src="/img/logo.jpeg" alt="TechStar Logo" className="w-full h-full object-cover" />
               </div>
-              <span className="text-2xl font-black tracking-tight italic group-hover:text-primary transition-colors">TechStar</span>
+              <span className="text-2xl font-black tracking-tight italic group-hover:text-primary transition-colors">Techstar Money Solution</span>
             </a>
             <p className="text-sm leading-relaxed max-w-xs">
               Empowering millions of Indians with quick, transparent, and hassle-free financial solutions.
@@ -526,7 +505,7 @@ export function Footer() {
         </div>
 
         <div className="pt-6 border-t border-slate-900 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-[10px]">© 2026 TechStar Business Solution. All rights reserved.</p>
+          <p className="text-[10px]">© 2026 Techstar Money Solution. All rights reserved.</p>
           <div className="flex gap-6 text-[10px] uppercase font-bold tracking-widest">
             {["Facebook", "Twitter", "LinkedIn"].map((social) => (
               <a key={social} href="#" className="hover:text-primary transition-colors relative group">

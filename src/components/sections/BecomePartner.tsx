@@ -27,7 +27,7 @@ export function BecomePartner() {
             B2B DSA Partner Program
           </span>
           <h2 className="text-3xl md:text-4xl font-black text-secondary dark:text-white mt-4 tracking-tight leading-tight">
-            Partner with TechStar as a <span className="text-primary italic">Loan DSA Agent</span>
+            Partner with Techstar Money Solution as a <span className="text-primary italic">Loan DSA Agent</span>
           </h2>
           <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-2 font-bold max-w-xl mx-auto">
             Become a certified connector or sub-agent. Submit customer leads, track payouts in real-time, and scale your financial agency.
@@ -37,7 +37,7 @@ export function BecomePartner() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center max-w-5xl mx-auto">
           {/* Left: Interactive Details */}
           <div className="lg:col-span-7 space-y-4 text-left">
-            <h3 className="text-xl font-black text-secondary dark:text-white mb-2 uppercase tracking-tight">Why Choose TechStar DSA Program?</h3>
+            <h3 className="text-xl font-black text-secondary dark:text-white mb-2 uppercase tracking-tight">Why Choose Techstar Money Solution DSA Program?</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {benefits.map((benefit, idx) => (
                 <PremiumCard 

@@ -8,7 +8,7 @@ const testimonials = [
   {
     name: "Rahul Sharma",
     role: "Home Loan Customer",
-    content: "TechStar helped me find the best home loan rate when other banks were giving me 9%+. Got it at 8.45% through them. Highly recommended!",
+    content: "Techstar Money Solution helped me find the best home loan rate when other banks were giving me 9%+. Got it at 8.45% through them. Highly recommended!",
     rating: 5,
     image: "https://i.pravatar.cc/150?u=rahul",
     glow: "rgba(59, 130, 246, 0.08)"

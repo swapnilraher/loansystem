@@ -9,7 +9,7 @@ const faqs = [
   },
   {
     q: "How long does it take for loan disbursement?",
-    a: "At TechStar, our digital partners often provide instant approval. Once all documents are verified, the loan amount can be disbursed to your bank account within 24 to 48 hours."
+    a: "At Techstar Money Solution, our digital partners often provide instant approval. Once all documents are verified, the loan amount can be disbursed to your bank account within 24 to 48 hours."
   },
   {
     q: "Are there any hidden charges?",

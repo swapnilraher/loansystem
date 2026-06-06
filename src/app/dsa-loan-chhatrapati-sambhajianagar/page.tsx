@@ -3,9 +3,9 @@ import { Metadata } from "next"
 import LocationPageTemplate from "@/components/sections/LocationPageTemplate"
 
 export const metadata: Metadata = {
-  title: "Registered Loan DSA in Chhatrapati Sambhajianagar | Techstar",
+  title: "Registered Loan DSA in Chhatrapati Sambhajianagar | Techstar Money Solution",
   description: "Get RBI-authorized DSA assistance in Chhatrapati Sambhajianagar (Aurangabad). Evaluate 50+ lenders, match credit scores, and secure quick loan dispatches.",
-  keywords: "dsa loan chhatrapati sambhajianagar, loan dsa aurangabad, direct selling agent chhatrapati sambhajianagar, techstar business solution dsa",
+  keywords: "dsa loan chhatrapati sambhajianagar, loan dsa aurangabad, direct selling agent chhatrapati sambhajianagar, techstar money solution dsa",
   alternates: {
     canonical: "https://techstarsolution.in/dsa-loan-chhatrapati-sambhajianagar"
   }

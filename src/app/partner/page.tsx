@@ -55,6 +55,10 @@ export default function PartnerDashboard() {
     .filter(l => l.status === "Disbursed")
     .reduce((sum, l) => sum + parseInt(l.amount || "0"), 0)
 
+  const partnerPhoto = profile?.kycData?.photoBase64 
+    ? `data:image/jpeg;base64,${profile.kycData.photoBase64}` 
+    : user?.photoURL || "";
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -65,6 +69,27 @@ export default function PartnerDashboard() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Dashboard Top Header (Desktop only) */}
+      <div className="hidden md:flex items-center justify-between pb-4 border-b border-slate-100">
+        <div>
+          <h1 className="text-2xl font-black text-secondary">Partner Dashboard</h1>
+          <p className="text-xs font-bold text-slate-400 mt-0.5">Manage your leads and commissions</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <p className="text-sm font-black text-secondary">{profile?.name || "Partner"}</p>
+            <p className="text-[10px] font-bold text-primary uppercase tracking-widest">{profile?.dsaCode || "Pending"}</p>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden flex items-center justify-center font-black text-secondary uppercase text-lg shrink-0">
+            {partnerPhoto ? (
+              <img src={partnerPhoto} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              profile?.name?.[0] || user?.email?.[0] || "P"
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Welcome Banner */}
       <div className="bg-primary rounded-[2rem] p-6 md:p-8 text-white relative overflow-hidden shadow-xl shadow-primary/20">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-[80px]" />

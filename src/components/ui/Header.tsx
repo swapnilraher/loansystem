@@ -4,8 +4,8 @@ export default function Header() {
   return (
     <header className="bg-white dark:bg-gray-900 shadow-md py-4 px-6 flex items-center justify-between">
       <div className="flex items-center">
-        {/* Placeholder logo */}
-        <div className="h-8 w-8 bg-gray-300 dark:bg-gray-700 rounded mr-2" />
+        {/* Logo */}
+        <img src="/img/logo.jpeg" alt="Techstar Loans Logo" className="h-8 w-8 object-cover rounded mr-2" />
         <span className="text-xl font-bold text-gray-800 dark:text-gray-100">Techstar Loans</span>
       </div>
       <nav className="space-x-6">

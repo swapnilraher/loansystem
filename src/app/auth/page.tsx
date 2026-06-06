@@ -22,10 +22,10 @@ export default function AuthPage() {
             
             <div className="relative z-10">
               <a href="/" className="flex items-center gap-3 mb-16">
-                <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white">
-                  <ShieldCheck size={28} />
+                <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white overflow-hidden">
+                  <img src="/img/logo.jpeg" alt="Techstar Money Solution Logo" className="w-full h-full object-cover" />
                 </div>
-                <span className="text-3xl font-black italic tracking-tighter">TechStar</span>
+                <span className="text-3xl font-black italic tracking-tighter">Techstar Money Solution</span>
               </a>
               
               <div className="space-y-12">
@@ -67,7 +67,7 @@ export default function AuthPage() {
                   {mode === "login" ? "Welcome Back" : "Create Account"}
                 </h3>
                 <p className="text-muted-foreground font-medium">
-                  {mode === "login" ? "Log in to access your dashboard" : "Join TechStar for a smarter financial journey"}
+                  {mode === "login" ? "Log in to access your dashboard" : "Join Techstar Money Solution for a smarter financial journey"}
                 </p>
               </div>
 

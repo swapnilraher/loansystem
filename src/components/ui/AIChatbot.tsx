@@ -11,7 +11,7 @@ export function AIChatbot() {
   const [isOpen, setIsOpen] = useState(false)
   const [showTooltip, setShowTooltip] = useState(true)
   const [messages, setMessages] = useState([
-    { id: 1, text: "नमस्कार! मी TechStar AI आहे. मी तुम्हाला कर्जाबद्दल कशी मदत करू शकेन?", sender: 'ai' }
+    { id: 1, text: "नमस्कार! मी Techstar Money Solution AI आहे. मी तुम्हाला कर्जाबद्दल कशी मदत करू शकेन?", sender: 'ai' }
   ])
   const [input, setInput] = useState("")
   const [isTyping, setIsTyping] = useState(false)
@@ -91,7 +91,7 @@ export function AIChatbot() {
       // General Inquiry Flow (idle or completed)
       else {
         if (lowerInput.includes("hi") || lowerInput.includes("hello") || lowerInput.includes("namaskar") || lowerInput.includes("नमस्कार") || lowerInput.includes("kase ahat") || lowerInput.includes("कसे आहात")) {
-          aiResponse = "नमस्कार! TechStar मध्ये आपले स्वागत आहे. मी तुम्हाला कर्ज मिळवण्यात कशी मदत करू?";
+          aiResponse = "नमस्कार! Techstar Money Solution मध्ये आपले स्वागत आहे. मी तुम्हाला कर्ज मिळवण्यात कशी मदत करू?";
         }
         else if (lowerInput.includes("personal") || lowerInput.includes("vyaktigat") || lowerInput.includes("loan") || lowerInput.includes("karj") || lowerInput.includes("कर्ज")) {
           aiResponse = "आम्ही ₹५० लाखांपर्यंतचे वैयक्तिक कर्ज (Personal Loan) देतो, ज्याचा व्याजदर १०.४९% पासून सुरू होतो. यासाठी कोणतीही कागदपत्रे प्रत्यक्ष द्यावी लागत नाहीत (Paperless)! कर्ज प्रक्रियेसाठी कृपया आधी तुमचे पूर्ण नाव सांगा.";
@@ -187,7 +187,7 @@ export function AIChatbot() {
                     <Bot size={24} />
                   </div>
                   <div>
-                    <h3 className="font-black text-lg leading-tight">TechStar AI</h3>
+                    <h3 className="font-black text-lg leading-tight">Techstar Money Solution AI</h3>
                     <p className="text-xs text-blue-100 flex items-center gap-1 font-medium">
                       <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.8)]" /> 24/7 Active
                     </p>
@@ -282,7 +282,7 @@ export function AIChatbot() {
                     </button>
                   </form>
                   <div className="text-center mt-2.5 text-[10px] text-slate-400 font-bold flex items-center justify-center gap-1 uppercase tracking-widest">
-                    <Sparkles size={10} className="text-amber-400" /> Powered by TechStar AI
+                    <Sparkles size={10} className="text-amber-400" /> Powered by Techstar Money Solution AI
                   </div>
                 </div>
               </div>

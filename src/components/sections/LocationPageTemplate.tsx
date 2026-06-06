@@ -76,7 +76,7 @@ export default function LocationPageTemplate({
   const faqItems = [
     {
       question: `How to get a ${service.toLowerCase()} in ${location}?`,
-      answer: `To get a ${service.toLowerCase()} in ${location} through Techstar, simply click 'Apply Now' and fill out our 2-minute secure check form. Our local ${location} executives will assist in evaluating bank quotes, managing paperwork, and coordinating direct bank verification.`
+      answer: `To get a ${service.toLowerCase()} in ${location} through Techstar Money Solution, simply click 'Apply Now' and fill out our 2-minute secure check form. Our local ${location} executives will assist in evaluating bank quotes, managing paperwork, and coordinating direct bank verification.`
     },
     {
       question: `What are the documents required for a ${service.toLowerCase()} in ${location}?`,
@@ -88,7 +88,7 @@ export default function LocationPageTemplate({
     },
     {
       question: `How fast is the approval process for a ${service.toLowerCase()}?`,
-      answer: `Techstar fast-tracks the evaluation. Pre-approvals and matched banking quotes are generated in under 15 minutes. Final disbursement into your bank account can take 24 to 48 hours for unsecured personal/business loans, and 5 to 7 days for secured property loans in ${location}.`
+      answer: `Techstar Money Solution fast-tracks the evaluation. Pre-approvals and matched banking quotes are generated in under 15 minutes. Final disbursement into your bank account can take 24 to 48 hours for unsecured personal/business loans, and 5 to 7 days for secured property loans in ${location}.`
     }
   ]
 
@@ -159,7 +159,7 @@ export default function LocationPageTemplate({
                 </h1>
                 
                 <p className="text-lg text-slate-650 dark:text-slate-450 leading-relaxed max-w-xl">
-                  Compare competitive loan quotes from 50+ partner banks & financial institutions. Apply for {service.toLowerCase()} in {location} through Techstar's customized digital platform. Fast turnaround, high approval ratios, and professional local consultation.
+                  Compare competitive loan quotes from 50+ partner banks & financial institutions. Apply for {service.toLowerCase()} in {location} through Techstar Money Solution's customized digital platform. Fast turnaround, high approval ratios, and professional local consultation.
                 </p>
 
                 {/* Local Trust Credentials */}
@@ -234,10 +234,10 @@ export default function LocationPageTemplate({
             
             <div className="prose prose-lg prose-slate mx-auto text-left">
               <h2 className="text-3xl font-black text-secondary leading-tight mb-6">
-                Why Apply for a {service} in {location} via Techstar?
+                Why Apply for a {service} in {location} via Techstar Money Solution?
               </h2>
-              <p className="text-slate-600 leading-relaxed mb-6">
-                Techstar Business Solution Pvt Ltd operates as a premium Direct Selling Agent (DSA) offering comprehensive financial marketplace support across major hubs in Maharashtra. When searching for a verified <strong>loan agent in {location}</strong> or seeking assistance with a <strong>DSA loan in {location}</strong>, our physical team supports you directly at every stage of the validation.
+              <p className="text-slate-650 leading-relaxed mb-6">
+                Techstar Money Solution operates as a premium Direct Selling Agent (DSA) offering comprehensive financial marketplace support across major hubs in Maharashtra. When searching for a verified <strong>loan agent in {location}</strong> or seeking assistance with a <strong>DSA loan in {location}</strong>, our physical team supports you directly at every stage of the validation.
               </p>
               <p className="text-slate-600 leading-relaxed mb-8">
                 We perform an objective review of processing fees, interest slab margins, prepayment penalties, and flexible repayment tenures across 50+ public/private banks and non-banking financial companies (NBFCs). This means you save significantly on finance charges, obtaining the best possible quote matching your monthly salary or business income profile.
@@ -325,7 +325,7 @@ export default function LocationPageTemplate({
               <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
               <div className="text-left space-y-2 relative z-10">
                 <h4 className="text-xs font-black uppercase text-primary tracking-widest">Office Contacts</h4>
-                <p className="text-lg font-black text-white">Techstar Business Solution Pvt Ltd</p>
+                <p className="text-lg font-black text-white">Techstar Money Solution</p>
                 <p className="text-xs text-slate-400 font-semibold max-w-sm flex items-center gap-1.5">
                   <MapPin size={12} className="text-primary shrink-0" /> Address: {localGeo.street}, {localGeo.locality}, Maharashtra - {localGeo.postalCode}
                 </p>

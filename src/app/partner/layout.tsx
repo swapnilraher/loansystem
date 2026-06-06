@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
+import Link from "next/link"
 import { Home, ListPlus, LayoutList, Wallet, User, Menu, X, LogOut, AlertCircle } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 
@@ -18,6 +19,10 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
   const pathname = usePathname()
   const router = useRouter()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  const partnerPhoto = profile?.kycData?.photoBase64 
+    ? `data:image/jpeg;base64,${profile.kycData.photoBase64}` 
+    : user?.photoURL || "";
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -42,14 +47,14 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex w-64 bg-white border-r border-slate-100 flex-col sticky top-0 h-screen">
         <div className="p-6 border-b border-slate-50">
-          <h1 className="text-2xl font-black text-secondary tracking-tight">TechStar <span className="text-primary">DSA</span></h1>
+          <h1 className="text-xl font-black text-secondary tracking-tight">Techstar Money Solution <span className="text-primary text-sm block font-bold mt-1">DSA Partner</span></h1>
         </div>
         
         <div className="flex-1 overflow-y-auto py-6 px-4 space-y-2">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/partner')
             return (
-              <a 
+              <Link 
                 key={item.href} 
                 href={item.href}
                 className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all ${
@@ -58,15 +63,19 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
               >
                 <item.icon size={20} />
                 {item.label}
-              </a>
+              </Link>
             )
           })}
         </div>
 
         <div className="p-4 border-t border-slate-50">
           <div className="flex items-center gap-3 mb-4 px-2">
-            <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-black text-secondary uppercase">
-              {profile?.name?.[0] || user.email?.[0] || "P"}
+            <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 shadow-inner overflow-hidden flex items-center justify-center font-black text-secondary uppercase">
+              {partnerPhoto ? (
+                <img src={partnerPhoto} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                profile?.name?.[0] || user.email?.[0] || "P"
+              )}
             </div>
             <div>
               <p className="text-sm font-black text-secondary truncate w-32">{profile?.name || "Partner"}</p>
@@ -84,9 +93,13 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
 
       {/* Mobile Header */}
       <header className="md:hidden bg-white border-b border-slate-100 p-4 sticky top-0 z-40 flex items-center justify-between shadow-sm">
-        <h1 className="text-xl font-black text-secondary tracking-tight">TechStar <span className="text-primary">DSA</span></h1>
-        <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center font-black text-secondary uppercase text-sm">
-          {profile?.name?.[0] || user.email?.[0] || "P"}
+        <h1 className="text-lg font-black text-secondary tracking-tight">Techstar Money Solution <span className="text-primary text-xs ml-1">DSA</span></h1>
+        <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200 shadow-inner overflow-hidden flex items-center justify-center font-black text-secondary uppercase text-sm">
+          {partnerPhoto ? (
+            <img src={partnerPhoto} alt="Profile" className="w-full h-full object-cover" />
+          ) : (
+            profile?.name?.[0] || user.email?.[0] || "P"
+          )}
         </div>
       </header>
 
@@ -112,7 +125,7 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/partner')
             return (
-              <a 
+              <Link 
                 key={item.href} 
                 href={item.href}
                 className={`flex flex-col items-center justify-center w-16 h-14 rounded-2xl transition-all ${
@@ -123,7 +136,7 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
                 <span className={`text-[9px] font-black tracking-tight ${isActive ? 'opacity-100' : 'opacity-70'}`}>
                   {item.label}
                 </span>
-              </a>
+              </Link>
             )
           })}
         </div>

@@ -14,7 +14,10 @@ export const StickyNav: React.FC = () => {
 
   return (
     <nav className={`${styles.stickyNav} ${scrolled ? styles.scrolled : ''}`}> 
-      <div className={styles.logo}>TechStar</div>
+      <div className={styles.logo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <img src="/img/logo.jpeg" alt="Techstar Money Solution Logo" style={{ height: '32px', width: '32px', borderRadius: '4px', objectFit: 'cover' }} />
+        Techstar Money Solution
+      </div>
       <div className={styles.navLinks}>
         <Link href="/" className={styles.navLink}>Home</Link>
         <Link href="/loans" className={styles.navLink}>Loans</Link>

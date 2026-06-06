@@ -56,11 +56,11 @@ export default function AdminLoginPage() {
       
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-10">
-          <div className="inline-flex w-16 h-16 bg-primary rounded-2xl items-center justify-center shadow-2xl shadow-primary/40 mb-6 animate-pulse">
-            <ShieldCheck className="text-white" size={32} />
+          <div className="inline-flex w-16 h-16 bg-primary rounded-2xl items-center justify-center shadow-2xl shadow-primary/40 mb-6 animate-pulse overflow-hidden">
+            <img src="/img/logo.jpeg" alt="Techstar Money Solution Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-3xl font-black text-white tracking-tight mb-2">Admin Control</h1>
-          <p className="text-slate-500 font-medium italic">Secure access for TechStar ERP system</p>
+          <p className="text-slate-500 font-medium italic">Secure access for Techstar Money Solution ERP system</p>
         </div>
 
         <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 p-10 rounded-[2.5rem] shadow-2xl">
@@ -145,7 +145,7 @@ export default function AdminLoginPage() {
 
             <div className="text-center">
               <p className="text-[10px] text-slate-500 font-bold leading-relaxed uppercase tracking-widest">
-                Protected by TechStar Multi-Factor Auth. <br/>
+                Protected by Techstar Money Solution Multi-Factor Auth. <br/>
                 Unauthorized access attempts are audited.
               </p>
             </div>

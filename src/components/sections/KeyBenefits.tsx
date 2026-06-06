@@ -4,7 +4,7 @@ import styles from '@/components/sections/KeyBenefits.module.css';
 export const KeyBenefits: React.FC = () => {
   return (
     <section className={styles.container} aria-labelledby="benefits-heading">
-      <h2 id="benefits-heading" className={styles.title}>Why Choose TechStar?</h2>
+      <h2 id="benefits-heading" className={styles.title}>Why Choose Techstar Money Solution?</h2>
       <div className={styles.grid}>
         <div className={styles.card}>
           <h3>50+</h3>

@@ -71,8 +71,8 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
     )}>
       <div className="p-8 flex justify-between items-center shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-            <ShieldCheck className="text-white" size={24} />
+          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center overflow-hidden">
+            <img src="/img/logo.jpeg" alt="TechStar Logo" className="w-full h-full object-cover" />
           </div>
           <div>
             <h1 className="font-black text-xl tracking-tight">TECHSTAR</h1>

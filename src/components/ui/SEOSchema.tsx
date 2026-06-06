@@ -22,10 +22,10 @@ export function SEOSchema({ type, data }: SEOSchemaProps) {
     schema = {
       "@context": "https://schema.org",
       "@type": "Organization",
-      "name": data?.name || "Techstar Business Solution Pvt Ltd",
-      "alternateName": "TechStar",
+      "name": data?.name || "Techstar Money Solution",
+      "alternateName": "Techstar Money Solution",
       "url": "https://techstarsolution.in",
-      "logo": "https://techstarsolution.in/favicon.ico",
+      "logo": "https://techstarsolution.in/img/logo.jpeg",
       "contactPoint": {
         "@type": "ContactPoint",
         "telephone": "+91-9579005645",
@@ -45,7 +45,7 @@ export function SEOSchema({ type, data }: SEOSchemaProps) {
     schema = {
       "@context": "https://schema.org",
       "@type": type,
-      "name": data?.name || "Techstar Business Solution Pvt Ltd",
+      "name": data?.name || "Techstar Money Solution",
       "image": "https://techstarsolution.in/partners.png",
       "telephone": "+91-9579005645",
       "url": "https://techstarsolution.in",
@@ -124,7 +124,7 @@ export function SEOSchema({ type, data }: SEOSchemaProps) {
       "serviceType": data?.serviceType || "Financial Loan DSA Service",
       "provider": {
         "@type": "FinancialService",
-        "name": "Techstar Business Solution Pvt Ltd",
+        "name": "Techstar Money Solution",
         "url": "https://techstarsolution.in"
       },
       "areaServed": [
@@ -145,7 +145,7 @@ export function SEOSchema({ type, data }: SEOSchemaProps) {
     schema = {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      "name": "TechStar",
+      "name": "Techstar Money Solution",
       "url": "https://techstarsolution.in",
       "potentialAction": {
         "@type": "SearchAction",

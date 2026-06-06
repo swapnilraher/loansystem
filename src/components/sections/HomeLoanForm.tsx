@@ -128,7 +128,7 @@ export function HomeLoanForm() {
           </Button>
 
           <p className="text-[10px] text-center text-muted-foreground mt-4 leading-relaxed font-medium">
-            By clicking, you authorize TechStar to contact you for home loan assistance.
+            By clicking, you authorize Techstar Money Solution to contact you for home loan assistance.
           </p>
         </form>
       ) : (
