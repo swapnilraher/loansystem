@@ -1,16 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
-
-const outfit = Outfit({
-  variable: "--font-outfit",
-  subsets: ["latin"],
-});
 
 export const viewport: Viewport = {
   themeColor: "#059669",
@@ -68,7 +57,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${outfit.variable} h-full antialiased transition-colors duration-300`}
+      className="h-full antialiased transition-colors duration-300"
     >
       <body className="min-h-full flex flex-col font-inter">
         <SEOSchema type="Organization" />

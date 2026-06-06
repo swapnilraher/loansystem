@@ -1,7 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  --font-inter: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-outfit: 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --background: #ffffff;
   --foreground: #0f172a;
   
@@ -15,15 +18,21 @@
   --accent-foreground: #ffffff;
   
   --muted: #f8fafc;
-  --muted-foreground: #64748b;
+  --muted-foreground: #334155; /* Increased contrast (slate-700) - was #64748b */
   
   --card: #ffffff;
   --card-foreground: #0f172a;
   
-  --border: #f1f5f9;
-  --input: #f1f5f9;
+  --border: #cbd5e1; /* Increased contrast (slate-300) - was #f1f5f9 */
+  --input: #cbd5e1;  /* Increased contrast (slate-300) - was #f1f5f9 */
   
   --radius: 1.25rem;
+
+  /* High contrast colors for slate variables */
+  --slate-300: #94a3b8; /* increased contrast */
+  --slate-400: #57534e; /* normally #94a3b8 - increased contrast */
+  --slate-500: #44403c; /* normally #64748b - increased contrast */
+  --slate-600: #292524; /* normally #475569 - increased contrast */
 }
 
 .dark {
@@ -37,13 +46,19 @@
   --secondary-foreground: #090d16;
   
   --muted: #111827;
-  --muted-foreground: #9ca3af;
+  --muted-foreground: #cbd5e1; /* Increased contrast - was #9ca3af */
   
   --card: #0f172a;
   --card-foreground: #f8fafc;
   
-  --border: #1f2937;
-  --input: #1f2937;
+  --border: #475569; /* Increased contrast - was #1f2937 */
+  --input: #475569;  /* Increased contrast - was #1f2937 */
+
+  /* High contrast dark mode colors for slate variables */
+  --slate-300: #e2e8f0; /* increased contrast */
+  --slate-400: #f1f5f9; /* normally #94a3b8 - increased contrast */
+  --slate-500: #f8fafc; /* normally #64748b - increased contrast */
+  --slate-600: #ffffff; /* normally #475569 - increased contrast */
 }
 
 @theme inline {
@@ -63,6 +78,11 @@
   --color-input: var(--input);
   --color-slate-150: #ebeef3;
   
+  --color-slate-300: var(--slate-300);
+  --color-slate-400: var(--slate-400);
+  --color-slate-500: var(--slate-500);
+  --color-slate-600: var(--slate-600);
+  
   --radius-3xl: 1.5rem;
   --radius-2xl: 1rem;
   --radius-xl: 0.75rem;
@@ -79,31 +99,31 @@
 
 @layer base {
   html {
-    font-size: 13.5px; /* Scales down mobile layout by ~15.6% for extra compact feel */
+    font-size: 15px; /* Increased from 13.5px */
   }
   @media (min-width: 640px) {
     html {
-      font-size: 14px;
+      font-size: 15.5px; /* Increased from 14px */
     }
   }
   @media (min-width: 768px) {
     html {
-      font-size: 14.5px;
+      font-size: 16px; /* Increased from 14.5px */
     }
   }
   @media (min-width: 1024px) {
     html {
-      font-size: 15px;
+      font-size: 16.5px; /* Increased from 15px */
     }
   }
   @media (min-width: 1280px) {
     html {
-      font-size: 15.5px;
+      font-size: 17px; /* Increased from 15.5px */
     }
   }
   @media (min-width: 1536px) {
     html {
-      font-size: 16px;
+      font-size: 17.5px; /* Increased from 16px */
     }
   }
 
