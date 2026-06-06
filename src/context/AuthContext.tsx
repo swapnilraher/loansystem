@@ -6,6 +6,7 @@ import {
   User, 
   GoogleAuthProvider, 
   signInWithCredential,
+  signInWithPopup,
   signOut as firebaseSignOut,
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword
@@ -20,6 +21,7 @@ interface AuthContextType {
   adminRole: string | null;
   loading: boolean;
   loginWithGoogle: (credential: string) => Promise<void>;
+  signInWithGooglePopup: () => Promise<void>;
   loginWithEmailAndPassword: (email: string, password: string) => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   resetPasswordWithOTP: (email: string, token: string, newPassword: string) => Promise<void>;
@@ -149,6 +151,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(updatedProfile);
   };
 
+  const signInWithGooglePopup = async () => {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+  };
+
   const router = useRouter();
 
   const logout = async () => {
@@ -157,7 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, adminRole, loading, loginWithGoogle, requestPasswordReset, resetPasswordWithOTP, updateProfile, logout }}>
+    <AuthContext.Provider value={{ user, profile, adminRole, loading, loginWithGoogle, signInWithGooglePopup, loginWithEmailAndPassword, requestPasswordReset, resetPasswordWithOTP, updateProfile, logout }}>
       {children}
     </AuthContext.Provider>
   );

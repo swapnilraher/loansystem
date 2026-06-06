@@ -229,6 +229,28 @@ export default function LeadsPage() {
       const leadRef = doc(db, 'leads', leadId)
       await updateDoc(leadRef, { status: newStatus, updatedAt: serverTimestamp() })
       await logLeadActivity(leadId, 'Status Update', `Changed status to ${newStatus}`, staffDetail)
+      
+      const targetLead = leads.find(l => l.id === leadId);
+      if (newStatus === "Disbursed" && targetLead && targetLead.partnerId) {
+        // Auto Calculate Commission (Mock 2% for all products for now, can be mapped to Product Master)
+        const disbursedAmount = parseInt(targetLead.amount || "0");
+        const commissionAmount = disbursedAmount * 0.02;
+
+        await addDoc(collection(db, "commission_ledger"), {
+          partnerId: targetLead.partnerId,
+          partnerName: targetLead.partnerName || "DSA Partner",
+          dsaCode: targetLead.dsaCode || "Unknown",
+          leadId: leadId,
+          customerName: targetLead.name || targetLead.fullName || "Customer",
+          productType: targetLead.type || "Loan",
+          disbursedAmount: disbursedAmount.toString(),
+          commissionAmount: commissionAmount.toString(),
+          commissionPercentage: "2",
+          status: "Under Settlement",
+          createdAt: serverTimestamp()
+        });
+      }
+
       if (selectedLead?.id === leadId) setSelectedLead({...selectedLead, status: newStatus})
       alert(`Status updated to ${newStatus}`)
     } catch (e) { 
@@ -473,9 +495,10 @@ export default function LeadsPage() {
                             (lead.category || "Landing") === "Portal" ? "bg-blue-50 text-blue-500" : 
                             (lead.category || "Landing") === "Bulk" ? "bg-purple-50 text-purple-500" : 
                             (lead.category || "Landing") === "Chatbot" ? "bg-teal-50 text-teal-600 border border-teal-100" : 
+                            (lead.category || "Landing") === "Partner" ? "bg-indigo-50 text-indigo-600 border border-indigo-100" : 
                             "bg-amber-50 text-amber-500"
                           }`}>
-                            {lead.category || "Landing"}
+                            {lead.category === "Partner" && lead.partnerName ? `Partner: ${lead.partnerName}` : (lead.category || "Landing")}
                           </span>
                           <span className="text-[9px] text-slate-400 font-bold ml-1">
                             {lead.createdAt?.toDate 

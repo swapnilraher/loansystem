@@ -142,8 +142,8 @@ export function AIChatbot() {
     }, 1200)
   }
 
-  // Hide on admin routes (positioned after all hook calls to comply with Rules of Hooks)
-  if (pathname?.startsWith('/admin')) {
+  // Hide on admin and partner routes (positioned after all hook calls to comply with Rules of Hooks)
+  if (pathname?.startsWith('/admin') || pathname?.startsWith('/partner')) {
     return null
   }
 

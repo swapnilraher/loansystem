@@ -8,8 +8,8 @@ import { motion } from "framer-motion"
 export function MobileBottomNav() {
   const pathname = usePathname()
   
-  // Hide on admin routes to prevent dashboard layout overlapping
-  if (pathname?.startsWith("/admin")) {
+  // Hide on admin and partner routes to prevent dashboard layout overlapping
+  if (pathname?.startsWith("/admin") || pathname?.startsWith("/partner")) {
     return null
   }
 
