@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react"
 import { useAuth } from "@/context/AuthContext"
 import { db } from "@/lib/firebase"
 import { doc, getDoc, updateDoc } from "firebase/firestore"
-import { UserCircle, Building2, Smartphone, ShieldCheck, CreditCard, Banknote, Loader2, CheckCircle2 } from "lucide-react"
+import { UserCircle, Building2, Smartphone, ShieldCheck, CreditCard, Banknote, Loader2, CheckCircle2, Mail, Calendar, MapPin } from "lucide-react"
 
 export default function PartnerProfile() {
   const { user, profile } = useAuth()
@@ -100,8 +100,12 @@ export default function PartnerProfile() {
           </div>
           
           <div className="flex items-center gap-4 relative z-10">
-            <div className="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center">
-              <UserCircle size={32} />
+            <div className="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center overflow-hidden border border-primary/20">
+              {profile.kycData?.photoBase64 ? (
+                <img src={`data:image/jpeg;base64,${profile.kycData.photoBase64}`} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <UserCircle size={32} />
+              )}
             </div>
             <div>
               <h2 className="text-xl font-black text-secondary">{profile.kycData?.name || "Partner"}</h2>
@@ -120,6 +124,13 @@ export default function PartnerProfile() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <Mail className="text-slate-400" size={20} />
+              <div>
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Email Address</p>
+                <p className="font-bold text-secondary">{user?.email || "Not provided"}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
               <Building2 className="text-slate-400" size={20} />
               <div>
                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Business Type</p>
@@ -131,6 +142,25 @@ export default function PartnerProfile() {
               <div>
                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">PAN Number</p>
                 <p className="font-bold text-secondary uppercase tracking-widest">{profile.panData?.panNumber}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Calendar className="text-slate-400" size={20} />
+              <div>
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Date of Birth</p>
+                <p className="font-bold text-secondary">{profile.kycData?.dob || "Not provided"}</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <MapPin className="text-slate-400 shrink-0 mt-0.5" size={20} />
+              <div>
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Aadhaar Address</p>
+                <p className="font-bold text-secondary text-xs mt-0.5 leading-relaxed pr-4">
+                  {typeof profile.kycData?.address === 'object' && profile.kycData?.address !== null
+                    ? [profile.kycData.address.house, profile.kycData.address.street, profile.kycData.address.landmark, profile.kycData.address.vtc, profile.kycData.address.district, profile.kycData.address.state, profile.kycData.address.pincode].filter(Boolean).join(', ')
+                    : profile.kycData?.address || "Not provided"
+                  }
+                </p>
               </div>
             </div>
             

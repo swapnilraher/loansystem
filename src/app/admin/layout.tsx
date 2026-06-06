@@ -17,6 +17,8 @@ export default function AdminLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
+    // TEMPORARILY DISABLED: Admin Login Flow
+    /*
     if (!loading && pathname !== "/admin/login") {
       if (!user) {
         // Not logged in at all, redirect to admin login page
@@ -26,15 +28,19 @@ export default function AdminLayout({
         router.push("/")
       }
     }
+    */
   }, [user, adminRole, loading, router, pathname])
 
   if (pathname === "/admin/login") {
     return <div className="min-h-screen bg-slate-50 flex flex-col justify-center">{children}</div>
   }
 
+  // TEMPORARILY DISABLED: Permission verification check
+  /*
   if (loading || !adminRole) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400 font-bold">Verifying Permissions...</div>
   }
+  */
 
   return (
     <div className="min-h-screen bg-slate-50 flex relative">

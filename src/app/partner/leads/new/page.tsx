@@ -26,6 +26,10 @@ export default function NewLeadPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) return
+    if (profile?.dsaStatus && profile.dsaStatus !== "Active") {
+      setError("Your account is currently inactive. You cannot submit leads.")
+      return
+    }
     if (formData.mobile.length !== 10) {
       setError("Please enter a valid 10-digit mobile number")
       return
@@ -47,7 +51,7 @@ export default function NewLeadPage() {
         category: "Partner",
         source: "DSA App",
         partnerId: user.uid,
-        partnerName: profile?.name || "Unknown Partner",
+        partnerName: profile?.kycData?.name || profile?.name || "Partner",
         dsaCode: profile?.dsaCode || "",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -194,7 +198,7 @@ export default function NewLeadPage() {
 
         <button 
           type="submit"
-          disabled={loading}
+          disabled={loading || (profile?.dsaStatus && profile.dsaStatus !== "Active")}
           className="w-full h-14 bg-primary text-white rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 shadow-lg shadow-primary/20 mt-8"
         >
           {loading ? <Loader2 className="animate-spin" /> : (

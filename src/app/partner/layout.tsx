@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { Home, ListPlus, LayoutList, Wallet, User, Menu, X, LogOut } from "lucide-react"
+import { Home, ListPlus, LayoutList, Wallet, User, Menu, X, LogOut, AlertCircle } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 
 const NAV_ITEMS = [
@@ -93,6 +93,15 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto pb-24 md:pb-0 relative w-full overflow-x-hidden">
         <div className="max-w-4xl mx-auto w-full p-4 md:p-8">
+          {profile?.dsaStatus && profile.dsaStatus !== "Active" && (
+            <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3">
+              <AlertCircle className="text-rose-500 mt-0.5 shrink-0" size={20} />
+              <div>
+                <h3 className="text-sm font-black text-rose-600 uppercase tracking-widest">Account {profile.dsaStatus}</h3>
+                <p className="text-xs font-bold text-rose-500 mt-1">You cannot submit new leads at this time. Please contact Admin for support.</p>
+              </div>
+            </div>
+          )}
           {children}
         </div>
       </main>

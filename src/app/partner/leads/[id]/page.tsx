@@ -151,20 +151,36 @@ export default function LeadCRMView() {
                 }`}
                 value={lead.status}
                 onChange={async (e) => {
-                  const newStatus = e.target.value;
+                  const selectedStatus = e.target.value;
                   if (!user) return;
+
+                  let finalStatus = selectedStatus;
+                  let disbursedAmt = lead.amount;
+
+                  if (selectedStatus === 'Disbursed') {
+                    const amt = window.prompt("Please enter the Disbursed Amount:");
+                    if (!amt || isNaN(Number(amt))) {
+                      alert("A valid disbursed amount is required.");
+                      return; // Cancel update
+                    }
+                    disbursedAmt = amt;
+                    finalStatus = 'Disbursement Approval Pending'; // Route to admin
+                    alert("Status changed to Pending Approval. The admin will verify and approve the disbursement.");
+                  }
+
                   try {
                     // Update main document
                     const { updateDoc } = await import("firebase/firestore");
                     await updateDoc(doc(db, "leads", lead.id), { 
-                      status: newStatus,
+                      status: finalStatus,
+                      ...(selectedStatus === 'Disbursed' && { disbursedAmount: disbursedAmt }),
                       updatedAt: serverTimestamp() 
                     });
                     
                     // Log status change in timeline
                     const remarksRef = collection(db, `leads/${lead.id}/remarks`);
                     await addDoc(remarksRef, {
-                      note: `Status changed to: ${newStatus}`,
+                      note: `Status changed to: ${finalStatus}${selectedStatus === 'Disbursed' ? ` (Amount: ₹${disbursedAmt})` : ''}`,
                       type: "Status",
                       addedBy: user.uid,
                       createdAt: serverTimestamp()
@@ -175,7 +191,7 @@ export default function LeadCRMView() {
                   }
                 }}
               >
-                {['New Lead', 'Contacted', 'Documents Pending', 'Under Process', 'Login to Bank', 'Approved', 'Sanctioned', 'Disbursed', 'Rejected', 'Not Interested'].map(s => (
+                {['New Lead', 'Contacted', 'Documents Pending', 'Under Process', 'Login to Bank', 'Approved', 'Sanctioned', 'Disbursement Approval Pending', 'Disbursed', 'Rejected', 'Not Interested'].map(s => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>

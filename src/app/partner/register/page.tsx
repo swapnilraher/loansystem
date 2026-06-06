@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react"
 import { useAuth } from "@/context/AuthContext"
 import { useRouter } from "next/navigation"
 import { db } from "@/lib/firebase"
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore"
+import { doc, setDoc, getDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore"
 import { 
   CheckCircle2, 
   ShieldCheck, 
@@ -64,6 +64,22 @@ export default function PartnerRegistration() {
         setError("Please enter a valid 10-digit mobile number")
         return
       }
+      setLoading(true)
+      try {
+        const q = query(collection(db, "users"), where("mobileNumber", "==", formData.mobileNumber));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          const existingUser = snapshot.docs[0];
+          if (existingUser.id !== user.uid) {
+            setError("This mobile number is already registered with another partner.");
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Duplicate check error:", err);
+      }
+      setLoading(false)
       setError("")
       nextStep()
     }
@@ -147,6 +163,21 @@ export default function PartnerRegistration() {
     } else if (/^\d{2}-\d{2}-\d{4}$/.test(rawDob)) {
       const [d, m, y] = rawDob.split('-');
       formattedDob = `${d}/${m}/${y}`;
+    }
+
+    try {
+      const q = query(collection(db, "users"), where("panData.panNumber", "==", formData.panNumber));
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        const existingUser = snapshot.docs[0];
+        if (existingUser.id !== user.uid) {
+          setError("A partner with this PAN is already registered.");
+          setLoading(false);
+          return;
+        }
+      }
+    } catch (err) {
+      console.error("PAN Duplicate check error:", err);
     }
 
     try {

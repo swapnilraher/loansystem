@@ -51,6 +51,7 @@ const STATUS_CONFIG: any = {
   'Under Process': { color: 'bg-slate-50 text-slate-600 border-slate-100', icon: Clock },
   'Approved': { color: 'bg-emerald-50 text-emerald-600 border-emerald-100', icon: CheckCircle2 },
   'Sanctioned': { color: 'bg-green-50 text-green-600 border-green-100', icon: IndianRupee },
+  'Disbursement Approval Pending': { color: 'bg-amber-100 text-amber-700 border-amber-200', icon: Clock },
   'Disbursed': { color: 'bg-green-100 text-green-700 border-green-200', icon: IndianRupee },
   'Not Interested': { color: 'bg-slate-100 text-slate-500 border-slate-200', icon: XCircle },
   'Rejected': { color: 'bg-rose-50 text-rose-600 border-rose-100', icon: XCircle },
@@ -66,6 +67,7 @@ export default function LeadsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("All Statuses")
   const [categoryFilter, setCategoryFilter] = useState("All Sources")
+  const [partnerFilter, setPartnerFilter] = useState("All Partners")
   const [dateRange, setDateRange] = useState({ start: "", end: "" })
   const [datePreset, setDatePreset] = useState("All Time")
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
@@ -94,14 +96,23 @@ export default function LeadsPage() {
   const [isSendingWA, setIsSendingWA] = useState(false)
 
   // 🔍 Advanced Filtering Logic
-  const filteredLeads = useMemo(() => {
+  const partnerNames = useMemo(() => {
+    const names = new Set<string>()
+    leads.forEach(l => {
+      if (l.category === 'Partner' && l.partnerName) {
+        names.add(l.partnerName)
+      }
+    })
+    return Array.from(names)
+  }, [leads])
+
+  const pipelineLeads = useMemo(() => {
     return leads.filter(lead => {
       const matchesSearch = 
         (lead.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         (lead.phone || "").includes(searchTerm) ||
         (lead.type || "").toLowerCase().includes(searchTerm.toLowerCase())
       
-      const matchesStatus = statusFilter === "All Statuses" || lead.status === statusFilter
       const matchesCategory = categoryFilter === "All Sources" || (lead.category || "Landing") === categoryFilter
       
       // Date Filtering
@@ -132,9 +143,15 @@ export default function LeadsPage() {
         matchesDate = leadDate >= start && leadDate <= end;
       }
 
-      return matchesSearch && matchesStatus && matchesCategory && matchesDate
+      const matchesPartner = partnerFilter === "All Partners" || lead.partnerName === partnerFilter
+
+      return matchesSearch && matchesCategory && matchesDate && matchesPartner
     })
-  }, [leads, searchTerm, statusFilter, categoryFilter, datePreset, dateRange])
+  }, [leads, searchTerm, categoryFilter, partnerFilter, datePreset, dateRange])
+
+  const filteredLeads = useMemo(() => {
+    return pipelineLeads.filter(lead => statusFilter === "All Statuses" || lead.status === statusFilter)
+  }, [pipelineLeads, statusFilter])
 
   const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -225,15 +242,31 @@ export default function LeadsPage() {
   const handleStatusUpdate = async (leadId: string, newStatus: string) => {
     console.log("Updating Lead Status:", leadId, "to", newStatus)
     const staffDetail = `${profile?.name || user?.displayName || user?.email || "Unknown"} (${adminRole || 'Staff'})`
+    
+    const targetLead = leads.find(l => l.id === leadId);
+    let disbursedAmt = targetLead?.disbursedAmount || targetLead?.amount || "0";
+
+    if (newStatus === "Disbursed") {
+      const amt = window.prompt("Enter final Disbursed Amount:", disbursedAmt);
+      if (!amt || isNaN(Number(amt))) {
+        alert("Valid disbursed amount is required to complete disbursement.");
+        return;
+      }
+      disbursedAmt = amt;
+    }
+
     try {
       const leadRef = doc(db, 'leads', leadId)
-      await updateDoc(leadRef, { status: newStatus, updatedAt: serverTimestamp() })
-      await logLeadActivity(leadId, 'Status Update', `Changed status to ${newStatus}`, staffDetail)
       
-      const targetLead = leads.find(l => l.id === leadId);
+      const updatePayload: any = { status: newStatus, updatedAt: serverTimestamp() }
+      if (newStatus === "Disbursed") updatePayload.disbursedAmount = disbursedAmt;
+
+      await updateDoc(leadRef, updatePayload)
+      await logLeadActivity(leadId, 'Status Update', `Changed status to ${newStatus}${newStatus === 'Disbursed' ? ` (Amt: ₹${disbursedAmt})` : ''}`, staffDetail)
+      
       if (newStatus === "Disbursed" && targetLead && targetLead.partnerId) {
         // Auto Calculate Commission (Mock 2% for all products for now, can be mapped to Product Master)
-        const disbursedAmount = parseInt(targetLead.amount || "0");
+        const disbursedAmount = parseInt(disbursedAmt || "0");
         const commissionAmount = disbursedAmount * 0.02;
 
         await addDoc(collection(db, "commission_ledger"), {
@@ -379,7 +412,7 @@ export default function LeadsPage() {
         {['New Lead', 'Contacted', 'Interested', 'Approved', 'Disbursed', 'Rejected'].map((status) => (
           <div key={status} className="bg-white p-4 rounded-[1.5rem] border border-slate-100 shadow-sm min-w-[120px]">
             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 truncate">{status}</p>
-            <h3 className="text-xl font-black text-secondary">{leads.filter(l => l.status === status).length}</h3>
+            <h3 className="text-xl font-black text-secondary">{pipelineLeads.filter(l => l.status === status).length}</h3>
           </div>
         ))}
       </div>
@@ -436,6 +469,14 @@ export default function LeadsPage() {
             <option>Portal</option>
             <option>Bulk</option>
             <option>Chatbot</option>
+          </select>
+          <select 
+            className="px-5 py-3.5 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-600 focus:outline-none cursor-pointer hover:bg-slate-50 transition-all min-w-[140px]"
+            value={partnerFilter}
+            onChange={(e) => setPartnerFilter(e.target.value)}
+          >
+            <option>All Partners</option>
+            {partnerNames.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
           <select 
             className="px-5 py-3.5 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-600 focus:outline-none cursor-pointer hover:bg-slate-50 transition-all min-w-[150px]"
@@ -759,7 +800,10 @@ export default function LeadsPage() {
                     <div className="absolute left-0 top-1.5 w-4 h-4 rounded-full bg-emerald-500 border-4 border-white shadow-sm z-10" />
                     <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100">
                       <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Lead Captured</p>
-                      <p className="text-xs font-medium text-slate-500 italic mt-1">Application received via {selectedLead.source || 'Digital Channel'}</p>
+                      <p className="text-xs font-medium text-slate-500 italic mt-1">
+                        Application received via {selectedLead.source || 'Digital Channel'}
+                        {selectedLead.category === 'Partner' && selectedLead.partnerName ? ` by Partner: ${selectedLead.partnerName}` : ''}
+                      </p>
                     </div>
                   </div>
                 </div>

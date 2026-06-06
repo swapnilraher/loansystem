@@ -78,6 +78,10 @@ export function BulkUploadModal({ isOpen, onClose, onSuccess }: { isOpen: boolea
   }
 
   const handleProcess = async () => {
+    if (profile?.dsaStatus && profile.dsaStatus !== "Active") {
+      setError("Your account is currently inactive. You cannot upload leads.")
+      return
+    }
     // Validate mapping
     for (const field of SYSTEM_FIELDS) {
       if (field.required && !mapping[field.key]) {
@@ -121,7 +125,7 @@ export function BulkUploadModal({ isOpen, onClose, onSuccess }: { isOpen: boolea
               category: "Partner",
               source: "Excel Bulk Upload",
               partnerId: user?.uid,
-              partnerName: profile?.name || "Unknown Partner",
+              partnerName: profile?.kycData?.name || profile?.name || "Partner",
               dsaCode: profile?.dsaCode || "",
               createdAt: serverTimestamp(),
               updatedAt: serverTimestamp()
@@ -175,8 +179,14 @@ export function BulkUploadModal({ isOpen, onClose, onSuccess }: { isOpen: boolea
           {step === 1 && (
             <div className="space-y-6 animate-in zoom-in duration-300">
               <div 
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full h-48 border-2 border-dashed border-primary/30 rounded-3xl bg-primary/5 hover:bg-primary/10 transition-colors flex flex-col items-center justify-center cursor-pointer group"
+                onClick={() => {
+                  if (profile?.dsaStatus && profile.dsaStatus !== "Active") {
+                    setError("Your account is currently inactive. You cannot upload leads.")
+                    return
+                  }
+                  fileInputRef.current?.click()
+                }}
+                className={`w-full h-48 border-2 border-dashed border-primary/30 rounded-3xl bg-primary/5 transition-colors flex flex-col items-center justify-center group ${profile?.dsaStatus && profile.dsaStatus !== "Active" ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/10 cursor-pointer'}`}
               >
                 <div className="w-16 h-16 bg-white rounded-2xl shadow-sm text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <FileSpreadsheet size={32} />

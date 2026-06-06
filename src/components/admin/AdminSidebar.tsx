@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Users,
   Briefcase,
+  Building2,
   MessageSquare,
   PhoneCall,
   Settings,
@@ -25,6 +26,7 @@ import { useAuth } from "@/context/AuthContext"
 const navItems = [
   { name: "Overview", href: "/admin", icon: LayoutDashboard },
   { name: "Leads Pipeline", href: "/admin/leads", icon: Briefcase },
+  { name: "DSA Network", href: "/admin/partners", icon: Building2 },
   { name: "Kanban Board", href: "/admin/kanban", icon: LayoutDashboard },
   { name: "Team Management", href: "/admin/users", icon: Users },
   { name: "Cloud Storage", href: "/admin/storage", icon: HardDrive },
