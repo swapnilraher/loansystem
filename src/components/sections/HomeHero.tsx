@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useEffect, useRef } from "react"
 import { motion, useScroll, useTransform } from "framer-motion"
-import { Star, ArrowRight, Building, MapPin, Users, Banknote, Home, User, Car, CreditCard, Flame, CheckCircle2 } from "lucide-react"
+import { Star, ArrowRight, ArrowLeft, Building, MapPin, Users, Banknote, Home, User, Car, CreditCard, Flame, CheckCircle2, PhoneCall } from "lucide-react"
 import { PersonalLoanForm } from "./PersonalLoanForm"
 import { PremiumCard } from "../ui/PremiumCard"
 import { AnimatedCounter } from "../ui/AnimatedCounter"
@@ -28,17 +28,56 @@ export function HomeHero() {
     return () => clearInterval(interval)
   }, [])
 
-  // Auto-sliding banner images
+  // Slider states & manual controls
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
   const heroImages = ["/img/1.png", "/img/2.png", "/img/3.png", "/img/4.png"]
+
   useEffect(() => {
     if (isPaused) return
     const timer = setInterval(() => {
       setActiveImageIndex((prev) => (prev + 1) % heroImages.length)
-    }, 3000)
+    }, 3500)
     return () => clearInterval(timer)
   }, [isPaused, heroImages.length])
+
+  // Handle Swipe/Manual dragging
+  const minSwipeDistance = 50
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX)
+    setIsPaused(true)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > minSwipeDistance
+    const isRightSwipe = distance < -minSwipeDistance
+    
+    if (isLeftSwipe) {
+      nextSlide()
+    } else if (isRightSwipe) {
+      prevSlide()
+    }
+    setTouchStart(null)
+    setTouchEnd(null)
+    setIsPaused(false)
+  }
+
+  const nextSlide = () => {
+    setActiveImageIndex((prev) => (prev + 1) % heroImages.length)
+  }
+
+  const prevSlide = () => {
+    setActiveImageIndex((prev) => (prev - 1 + heroImages.length) % heroImages.length)
+  }
 
   const stats = [
     { value: 5.8, decimals: 1, suffix: " Lacs+", label: "Customers Annually", icon: Users },
@@ -59,8 +98,8 @@ export function HomeHero() {
       
       {/* Animated Aurora Mesh Background blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[-5%] w-[45vw] h-[45vw] rounded-full bg-emerald-500/10 blur-[120px] animate-blob" />
-        <div className="absolute top-[20%] right-[-5%] w-[55vw] h-[55vw] rounded-full bg-blue-600/10 blur-[130px] animate-blob [animation-delay:2s]" />
+        <div className="absolute top-[-10%] left-[-5%] w-[45vw] h-[45vw] rounded-full bg-emerald-500/10 blur-[120px] pointer-events-none animate-blob" />
+        <div className="absolute top-[20%] right-[-5%] w-[55vw] h-[55vw] rounded-full bg-blue-600/10 blur-[130px] pointer-events-none animate-blob [animation-delay:2s]" />
       </div>
 
       <motion.section 
@@ -111,6 +150,22 @@ export function HomeHero() {
                 </div>
               </div>
 
+              {/* Action Buttons */}
+              <div className="flex flex-wrap justify-center lg:justify-start gap-4 pt-2">
+                <a 
+                  href="#check-eligibility" 
+                  className="inline-flex items-center justify-center px-8 py-4 bg-primary text-white rounded-2xl font-black uppercase tracking-wider text-xs hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary/20"
+                >
+                  Check Eligibility <ArrowRight size={16} className="ml-2" />
+                </a>
+                <a 
+                  href="tel:+919579005645" 
+                  className="inline-flex items-center justify-center px-8 py-4 border-2 border-slate-300 dark:border-slate-700 hover:border-slate-500 dark:hover:border-slate-500 text-slate-750 dark:text-slate-300 rounded-2xl font-black uppercase tracking-wider text-xs hover:bg-slate-100/30 transition-all"
+                >
+                  <PhoneCall className="mr-2" size={16} /> 9579005645
+                </a>
+              </div>
+
               {/* Stats Counters Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-8 max-w-3xl mx-auto lg:mx-0 border-t border-slate-200/60 dark:border-slate-800/30 text-left">
                 {stats.map((stat, i) => (
@@ -124,72 +179,91 @@ export function HomeHero() {
               </div>
             </div>
 
-            {/* Right Column: Contact/Eligibility Form */}
-            <div className="w-full lg:w-auto shrink-0 flex justify-center z-20">
-              <PersonalLoanForm />
+            {/* Right Column: 1080x1350 Aspect Ratio slidable poster (visible right at the front) */}
+            <div className="w-full max-w-[420px] lg:max-w-[480px] aspect-[4/5] rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white dark:border-slate-800 bg-white dark:bg-slate-950 relative group select-none shrink-0 z-20">
+              
+              {/* Overlay Gradient */}
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/20 via-transparent to-transparent z-10 pointer-events-none" />
+              
+              {/* Slider Viewport */}
+              <div 
+                className="flex h-full w-full transition-transform duration-500 ease-out"
+                style={{ transform: `translateX(-${activeImageIndex * 100}%)` }}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onMouseEnter={() => setIsPaused(true)}
+                onMouseLeave={() => setIsPaused(false)}
+              >
+                {heroImages.map((src, index) => (
+                  <div key={src} className="w-full h-full shrink-0 relative flex items-center justify-center bg-slate-50 dark:bg-slate-900/40">
+                    <img
+                      src={src}
+                      alt={`Financial Poster ${index + 1}`}
+                      className="w-full h-full object-contain"
+                      draggable="false"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Manual Left/Right Navigation Arrows */}
+              <button 
+                onClick={(e) => { e.stopPropagation(); prevSlide(); }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/85 dark:bg-slate-900/85 text-secondary dark:text-white flex items-center justify-center shadow-md hover:bg-white dark:hover:bg-slate-900 hover:scale-105 active:scale-95 transition-all z-20 opacity-0 group-hover:opacity-100"
+                aria-label="Previous Slide"
+              >
+                <ArrowLeft size={18} strokeWidth={2.5} />
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); nextSlide(); }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/85 dark:bg-slate-900/85 text-secondary dark:text-white flex items-center justify-center shadow-md hover:bg-white dark:hover:bg-slate-900 hover:scale-105 active:scale-95 transition-all z-20 opacity-0 group-hover:opacity-100"
+                aria-label="Next Slide"
+              >
+                <ArrowRight size={18} strokeWidth={2.5} />
+              </button>
+
+              {/* Slider Dot Indicators */}
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2.5 z-20 bg-slate-950/40 backdrop-blur-md px-4 py-2 rounded-full">
+                {heroImages.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setActiveImageIndex(index)}
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      activeImageIndex === index ? "w-6 bg-primary" : "w-2 bg-white/60 hover:bg-white"
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
 
           </div>
         </div>
       </motion.section>
 
-      {/* Modern Wide Promotional Slider Banner (below the main hero fold) */}
-      <div className="container mx-auto px-4 lg:px-8 max-w-7xl pb-20">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-[2.5rem] p-6 lg:p-10 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center gap-8 lg:gap-12">
-          
+      {/* Interactive Form Card (below the main hero fold) */}
+      <div id="check-eligibility" className="container mx-auto px-4 lg:px-8 max-w-7xl pb-20 pt-4">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-[2.5rem] p-6 lg:p-10 shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none" />
           
-          <div className="flex-1 space-y-4 text-center md:text-left relative z-10">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-450 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-100 dark:border-amber-800/30">
-              <Flame size={12} fill="currentColor" className="text-amber-500 animate-pulse" />
-              <span>₹{liveApproved.toLocaleString("en-IN")} Approved Today</span>
-            </div>
-            <h2 className="text-2xl lg:text-3xl font-black text-secondary dark:text-white leading-tight tracking-tight">
-              Special Offers & Featured Loan Programs
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-              Explore curated financial services designed to give you maximum savings, cashbacks, and the lowest processing fees in the market.
-            </p>
-          </div>
-
-          {/* Slider content */}
-          <div 
-            className="w-full md:w-[320px] lg:w-[420px] aspect-[16/10] rounded-2xl overflow-hidden border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 relative group cursor-pointer shadow-md select-none shrink-0"
-            onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => setIsPaused(false)}
-            onTouchStart={() => setIsPaused(true)}
-            onTouchEnd={() => setIsPaused(false)}
-          >
-            <div 
-              className="flex h-full w-full transition-transform duration-500 ease-out"
-              style={{ transform: `translateX(-${activeImageIndex * 100}%)` }}
-            >
-              {heroImages.map((src, index) => (
-                <div key={src} className="w-full h-full shrink-0 relative flex items-center justify-center">
-                  <img
-                    src={src}
-                    alt={`Promo Banner ${index + 1}`}
-                    className="w-full h-full object-cover"
-                    draggable="false"
-                  />
-                </div>
-              ))}
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-12 relative z-10">
+            <div className="flex-1 space-y-4 text-center lg:text-left">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-450 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-100 dark:border-amber-800/30">
+                <Flame size={12} fill="currentColor" className="text-amber-500 animate-pulse" />
+                <span>₹{liveApproved.toLocaleString("en-IN")} Approved Today</span>
+              </div>
+              <h2 className="text-2xl lg:text-3xl font-black text-secondary dark:text-white leading-tight tracking-tight">
+                Check Your Personal Loan Eligibility
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-semibold leading-relaxed max-w-xl">
+                Get instant, customized quotes from 50+ top-tier banking and lending partners with no impact on your credit score.
+              </p>
             </div>
             
-            {/* Carousel Indicators */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20 bg-slate-950/40 backdrop-blur-md px-3 py-1.5 rounded-full">
-              {heroImages.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setActiveImageIndex(index)}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    activeImageIndex === index ? "w-4 bg-primary" : "w-1.5 bg-white/60"
-                  }`}
-                />
-              ))}
+            <div className="w-full lg:w-auto shrink-0 flex justify-center z-20">
+              <PersonalLoanForm />
             </div>
           </div>
-          
         </div>
       </div>
 
