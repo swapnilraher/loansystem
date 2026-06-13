@@ -123,7 +123,7 @@ export function ProductGrid() {
               key={i}
               className="col-lg-4 col-md-6 col-12"
             >
-              <div className="card shadow-sm border border-slate-100 dark:bg-slate-900 rounded-[2rem] h-100 overflow-hidden d-flex flex-column hover-lift">
+              <div className="product-premium-card h-100 overflow-hidden d-flex flex-column">
                 <div className="p-4 flex-grow-1">
                   
                   {/* Card Header */}

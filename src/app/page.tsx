@@ -19,46 +19,20 @@ export default function Home() {
   return (
     <>
       <Header />
-      <main className="scroll-snap-container">
-        <div className="scroll-snap-section">
-          <HomeHero />
-        </div>
-        <div className="scroll-snap-section">
-          <ProductGrid />
-        </div>
-        <div className="scroll-snap-section mb-5 mb-lg-0">
-          <TrustSignals />
-        </div>
-        <div className="scroll-snap-section">
-          <LoanJourney />
-        </div>
-        <div className="scroll-snap-section">
-          <BecomePartner />
-        </div>
-        <div className="scroll-snap-section">
-          <CIBILBanner />
-        </div>
-        <div className="scroll-snap-section">
-          <EligibilityWizard />
-        </div>
-        <div className="scroll-snap-section">
-          <EMICalculator />
-        </div>
-        <div className="scroll-snap-section">
-          <Testimonials />
-        </div>
-        <div className="scroll-snap-section">
-          <LocationCoverage />
-        </div>
-        <div className="scroll-snap-section">
-          <FAQ />
-        </div>
-        <div className="scroll-snap-section">
-          <BlogAndCTA />
-        </div>
-        <div className="scroll-snap-section">
-          <Footer />
-        </div>
+      <main className="relative bg-slate-50/10 dark:bg-slate-900/10">
+        <HomeHero />
+        <ProductGrid />
+        <TrustSignals />
+        <LoanJourney />
+        <BecomePartner />
+        <CIBILBanner />
+        <EligibilityWizard />
+        <EMICalculator />
+        <Testimonials />
+        <LocationCoverage />
+        <FAQ />
+        <BlogAndCTA />
+        <Footer />
       </main>
     </>
   )
