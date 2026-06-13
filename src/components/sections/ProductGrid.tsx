@@ -96,75 +96,82 @@ const products = [
 
 export function ProductGrid() {
   return (
-    <section className="py-16 md:py-24 bg-slate-50 dark:bg-slate-950 transition-colors duration-300 relative">
-      <div className="container mx-auto px-4">
+    <section className="py-5 bg-light dark:bg-slate-950 transition-colors duration-300">
+      <div className="container py-4">
         
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400 rounded-lg text-xs font-black uppercase tracking-widest mb-4">
+        <div className="row justify-content-between align-items-end mb-5 g-3">
+          <div className="col-lg-8 col-12 text-start">
+            <div className="d-inline-flex align-items-center gap-2 px-3 py-1 bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 rounded-xl text-xs font-black uppercase tracking-wider mb-3">
               <TrendingUp size={14} /> Compare & Save
             </div>
-            <h2 className="text-3xl md:text-5xl font-black text-secondary dark:text-white leading-tight">
-              One Platform for All Your <span className="text-orange-500">Financial Needs</span>
+            <h2 className="display-6 font-black text-paytm-navy dark:text-white leading-tight">
+              One Platform for All Your <span className="text-paytm-blue">Financial Needs</span>
             </h2>
           </div>
-          <Button variant="outline" className="font-bold border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
-            View All Products <ArrowRight size={16} className="ml-2" />
-          </Button>
+          <div className="col-lg-auto col-12 text-start text-lg-end">
+            <button className="btn btn-outline-secondary font-bold rounded-full py-2.5 px-4 text-xs uppercase tracking-wider">
+              View All Products <ArrowRight size={16} className="ms-1" />
+            </button>
+          </div>
         </div>
 
         {/* Grid Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="row g-4 justify-content-center">
           {products.map((p, i) => (
             <div 
               key={i}
-              className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-lg transition-shadow duration-300 flex flex-col overflow-hidden"
+              className="col-lg-4 col-md-6 col-12"
             >
-              <div className="p-6 flex-grow">
-                {/* Card Header */}
-                <div className="flex justify-between items-start mb-5">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${p.color}`}>
-                      <p.icon size={24} strokeWidth={2.5} />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-secondary dark:text-white">{p.title}</h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{p.desc}</p>
+              <div className="card shadow-sm border border-slate-100 dark:bg-slate-900 rounded-[2rem] h-100 overflow-hidden d-flex flex-column hover-lift">
+                <div className="p-4 flex-grow-1">
+                  
+                  {/* Card Header */}
+                  <div className="d-flex justify-content-between align-items-start mb-4">
+                    <div className="d-flex align-items-center gap-3">
+                      <div className={`w-12 h-12 rounded-xl d-flex align-items-center justify-content-center ${p.color}`}>
+                        <p.icon size={22} strokeWidth={2.5} />
+                      </div>
+                      <div className="text-start">
+                        <h4 className="fs-6 font-black text-paytm-navy dark:text-white m-0">{p.title}</h4>
+                        <p className="text-[11px] text-muted font-semibold m-0">{p.desc}</p>
+                      </div>
                     </div>
                   </div>
+
                   {/* Badge */}
-                  <span className="px-2.5 py-1 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px] font-bold rounded-full border border-green-100 dark:border-green-800/50 uppercase tracking-wider whitespace-nowrap">
-                    {p.badge}
-                  </span>
+                  <div className="mb-3 text-start">
+                    <span className="px-2.5 py-1 bg-success/15 text-success text-[10px] font-black rounded-pill border border-success/20 uppercase tracking-wider">
+                      {p.badge}
+                    </span>
+                  </div>
+
+                  <hr className="border-slate-100 dark:border-slate-800 my-3" />
+
+                  {/* Features Grid */}
+                  <div className="row g-2 text-start">
+                    {p.features.map((feature, idx) => (
+                      <div key={idx} className="col-4">
+                        <span className="text-[9px] text-uppercase font-black text-slate-400 d-block mb-1">{feature.label}</span>
+                        <span className="text-xs font-black text-slate-800 dark:text-slate-200">{feature.value}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                {/* Key Features Divider */}
-                <div className="h-px bg-slate-100 dark:bg-slate-800 my-5 w-full"></div>
-
-                {/* Features Grid */}
-                <div className="grid grid-cols-3 gap-2">
-                  {p.features.map((feature, idx) => (
-                    <div key={idx} className="flex flex-col">
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">{feature.label}</span>
-                      <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{feature.value}</span>
-                    </div>
-                  ))}
+                {/* Card Footer */}
+                <div className="bg-light dark:bg-slate-850 px-4 py-3 border-top border-slate-100 dark:border-slate-800 d-flex justify-content-between align-items-center">
+                  <div className="d-flex align-items-center gap-1 text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                    <CheckCircle2 size={14} className="text-success" />
+                    <span>100% Digital</span>
+                  </div>
+                  <a 
+                    href={p.href}
+                    className="btn btn-paytm btn-sm py-2 px-3 text-[10px] text-uppercase font-black tracking-wider d-flex align-items-center gap-1 shadow-sm"
+                  >
+                    Check Offers <ArrowRight size={12} />
+                  </a>
                 </div>
-              </div>
-
-              {/* Card Footer */}
-              <div className="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
-                  <CheckCircle2 size={14} className="text-emerald-500" />
-                  <span>100% Paperless</span>
-                </div>
-                <a 
-                  href={p.href}
-                  className="inline-flex items-center justify-center h-9 px-4 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition-colors"
-                >
-                  Check Offers <ArrowRight size={14} className="ml-1.5" />
-                </a>
               </div>
             </div>
           ))}

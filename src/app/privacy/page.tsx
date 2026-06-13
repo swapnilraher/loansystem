@@ -5,6 +5,9 @@ import { Metadata } from "next"
 export const metadata: Metadata = {
   title: "Privacy Policy | TechStar Business Solution",
   description: "Privacy policy and data protection guidelines for TechStar Business Solution.",
+  alternates: {
+    canonical: "https://techstarsolution.in/privacy"
+  }
 }
 
 export default function PrivacyPage() {

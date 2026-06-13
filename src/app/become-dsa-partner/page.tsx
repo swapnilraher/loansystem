@@ -229,7 +229,7 @@ export default function BecomeDSAPartnerPage() {
             <div className="pt-2 relative z-10">
               <a 
                 href="/partner/register"
-                className="w-full sm:w-auto px-10 h-14 bg-primary text-white rounded-2xl font-black text-lg hover:scale-105 transition-all shadow-xl shadow-primary/20 inline-flex items-center justify-center gap-2 group"
+                className="w-full sm:w-auto px-10 h-14 bg-primary text-white rounded-full font-black text-lg hover:scale-105 transition-all shadow-xl shadow-primary/20 inline-flex items-center justify-center gap-2 group"
               >
                 Register as DSA Partner
                 <ArrowRight size={20} className="group-hover:translate-x-1.5 transition-transform" />

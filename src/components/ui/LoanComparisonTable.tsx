@@ -132,7 +132,7 @@ export default function LoanComparisonTable() {
                       <td className="py-6 px-8 text-right">
                         <a
                           href={activeTab === "personal" ? "/personal-loan" : activeTab === "home" ? "/home-loan" : "#"}
-                          className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-blue-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md hover:shadow-lg transition-all"
+                          className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-blue-700 text-white rounded-full text-xs font-black uppercase tracking-wider shadow-md hover:shadow-lg transition-all"
                         >
                           Check Offer <ArrowRight size={14} />
                         </a>
@@ -177,7 +177,7 @@ export default function LoanComparisonTable() {
                       <td className="py-6 px-8 text-right">
                         <a
                           href="#"
-                          className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-blue-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md hover:shadow-lg transition-all"
+                          className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-blue-700 text-white rounded-full text-xs font-black uppercase tracking-wider shadow-md hover:shadow-lg transition-all"
                         >
                           Apply Now <ArrowRight size={14} />
                         </a>
@@ -224,7 +224,7 @@ export default function LoanComparisonTable() {
                     </div>
                     <a
                       href={activeTab === "personal" ? "/personal-loan" : activeTab === "home" ? "/home-loan" : "#"}
-                      className="w-full h-11 bg-primary hover:bg-blue-750 text-white rounded-xl flex items-center justify-center font-black uppercase tracking-widest text-[10px] gap-2 shadow-md"
+                      className="w-full h-11 bg-primary hover:bg-blue-750 text-white rounded-full flex items-center justify-center font-black uppercase tracking-widest text-[10px] gap-2 shadow-md"
                     >
                       Check Offer <ArrowRight size={14} />
                     </a>
@@ -263,7 +263,7 @@ export default function LoanComparisonTable() {
                     </div>
                     <a
                       href="#"
-                      className="w-full h-11 bg-primary hover:bg-blue-750 text-white rounded-xl flex items-center justify-center font-black uppercase tracking-widest text-[10px] gap-2 shadow-md"
+                      className="w-full h-11 bg-primary hover:bg-blue-750 text-white rounded-full flex items-center justify-center font-black uppercase tracking-widest text-[10px] gap-2 shadow-md"
                     >
                       Apply Now <ArrowRight size={14} />
                     </a>

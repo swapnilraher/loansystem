@@ -5,6 +5,9 @@ import { Metadata } from "next"
 export const metadata: Metadata = {
   title: "Terms and Conditions | TechStar Business Solution",
   description: "Terms and conditions for using TechStar Business Solution services.",
+  alternates: {
+    canonical: "https://techstarsolution.in/terms"
+  }
 }
 
 export default function TermsPage() {

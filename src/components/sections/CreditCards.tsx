@@ -41,7 +41,7 @@ export function CreditCards() {
             </h2>
             <p className="text-muted-foreground text-lg">Compare 100+ cards based on your spending habits and get instant approval.</p>
           </div>
-          <Button size="lg" className="h-14 px-8 rounded-2xl">View All Cards</Button>
+          <Button size="lg" className="h-14 px-8 rounded-full">View All Cards</Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -69,7 +69,7 @@ export function CreditCards() {
                   </div>
                 </div>
                 
-                <Button variant="outline" className="mt-auto w-full h-14 rounded-2xl border-slate-200 group-hover:border-primary group-hover:text-primary transition-all">
+                <Button variant="outline" className="mt-auto w-full h-14 rounded-full border-slate-200 group-hover:border-primary group-hover:text-primary transition-all">
                   Apply Now <ArrowRight size={18} className="ml-2" />
                 </Button>
               </div>

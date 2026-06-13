@@ -149,7 +149,7 @@ export function LocationCoverage() {
                 {/* Quick Action Links */}
                 <div className="space-y-1.5 pt-1">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Quick Links</p>
-                  <div className="grid grid-cols-2 gap-2 text-[10px] font-extrabold text-slate-650 dark:text-slate-350">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2 text-[10px] font-extrabold text-slate-650 dark:text-slate-350">
                     <a href={loc.routes.personal} className="hover:text-primary transition-colors flex items-center gap-0.5">
                       Personal Loan <ArrowRight size={10} />
                     </a>

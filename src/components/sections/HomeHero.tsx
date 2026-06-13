@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useEffect, useRef } from "react"
 import { motion, useScroll, useTransform } from "framer-motion"
-import { Star, ArrowRight, ArrowLeft, Building, MapPin, Users, Banknote, Home, User, Car, CreditCard, Flame, CheckCircle2, PhoneCall } from "lucide-react"
+import { Star, ArrowRight, ArrowLeft, Building, MapPin, Users, Banknote, Home, User, Car, CreditCard, Flame, CheckCircle2, PhoneCall, Lock } from "lucide-react"
 import { PersonalLoanForm } from "./PersonalLoanForm"
 import { PremiumCard } from "../ui/PremiumCard"
 import { AnimatedCounter } from "../ui/AnimatedCounter"
@@ -28,56 +28,8 @@ export function HomeHero() {
     return () => clearInterval(interval)
   }, [])
 
-  // Slider states & manual controls
-  const [activeImageIndex, setActiveImageIndex] = useState(0)
-  const [isPaused, setIsPaused] = useState(false)
-  const [touchStart, setTouchStart] = useState<number | null>(null)
-  const [touchEnd, setTouchEnd] = useState<number | null>(null)
-  const heroImages = ["/img/1.png", "/img/2.png", "/img/3.png", "/img/4.png"]
-
-  useEffect(() => {
-    if (isPaused) return
-    const timer = setInterval(() => {
-      setActiveImageIndex((prev) => (prev + 1) % heroImages.length)
-    }, 3500)
-    return () => clearInterval(timer)
-  }, [isPaused, heroImages.length])
-
-  // Handle Swipe/Manual dragging
-  const minSwipeDistance = 50
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.targetTouches[0].clientX)
-    setIsPaused(true)
-  }
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX)
-  }
-
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return
-    const distance = touchStart - touchEnd
-    const isLeftSwipe = distance > minSwipeDistance
-    const isRightSwipe = distance < -minSwipeDistance
-    
-    if (isLeftSwipe) {
-      nextSlide()
-    } else if (isRightSwipe) {
-      prevSlide()
-    }
-    setTouchStart(null)
-    setTouchEnd(null)
-    setIsPaused(false)
-  }
-
-  const nextSlide = () => {
-    setActiveImageIndex((prev) => (prev + 1) % heroImages.length)
-  }
-
-  const prevSlide = () => {
-    setActiveImageIndex((prev) => (prev - 1 + heroImages.length) % heroImages.length)
-  }
+  // Single static banner image configuration
+  const bannerImage = "/img/homepagebanner.png"
 
   const stats = [
     { value: 5.8, decimals: 1, suffix: " Lacs+", label: "Customers Annually", icon: Users },
@@ -93,13 +45,60 @@ export function HomeHero() {
     { title: "Credit Card", desc: "Choose cards from all top banks", icon: CreditCard, link: "/credit-card", tag: "Rewards Unlimited", color: "from-purple-500 to-indigo-700", glow: "rgba(99, 102, 241, 0.15)" },
   ]
 
-  return (
-    <div ref={containerRef} className="relative overflow-visible z-10">
+  // Lead capture states for the hero tabbed form
+  const [activeTab, setActiveTab] = useState("personal")
+  const [leadAmount, setLeadAmount] = useState("")
+  const [leadMobile, setLeadMobile] = useState("")
+  const [leadName, setLeadName] = useState("")
+  const [leadCity, setLeadCity] = useState("Pune")
+  const [leadIncome, setLeadIncome] = useState("")
+  const [isLeadSubmitting, setIsLeadSubmitting] = useState(false)
+  const [leadSuccess, setLeadSuccess] = useState(false)
+
+  const handleHeroLeadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!leadName || !leadMobile || !leadAmount) {
+      alert("Please fill in Name, Mobile, and Loan Amount.")
+      return
+    }
+    try {
+      setIsLeadSubmitting(true)
+      const data = {
+        fullName: leadName,
+        mobileNumber: leadMobile,
+        loanAmount: leadAmount,
+        monthlyIncome: leadIncome || "30000",
+        employmentType: "Salaried",
+        city: leadCity,
+        source: `Hero Quick Apply - ${activeTab.toUpperCase()}`,
+      }
       
-      {/* Animated Aurora Mesh Background blobs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[-5%] w-[45vw] h-[45vw] rounded-full bg-emerald-500/10 blur-[120px] pointer-events-none animate-blob" />
-        <div className="absolute top-[20%] right-[-5%] w-[55vw] h-[55vw] rounded-full bg-blue-600/10 blur-[130px] pointer-events-none animate-blob [animation-delay:2s]" />
+      const response = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to submit application')
+      }
+      
+      setLeadSuccess(true)
+    } catch (err: any) {
+      console.error(err)
+      alert("Something went wrong. Please try again.")
+    } finally {
+      setIsLeadSubmitting(false)
+    }
+  }
+
+  return (
+    <div ref={containerRef} className="position-relative overflow-hidden pt-5 mt-4 z-10">
+      
+      {/* Mesh Background */}
+      <div className="position-absolute w-100 h-100 top-0 start-0 overflow-hidden pointer-events-none z-0">
+        <div className="position-absolute top-0 start-0 w-[45vw] h-[45vw] rounded-circle bg-emerald-500/10 blur-[120px] animate-blob" />
+        <div className="position-absolute top-50 end-0 w-[45vw] h-[45vw] rounded-circle bg-paytm-blue/10 blur-[130px] animate-blob [animation-delay:2s]" />
       </div>
 
       <motion.section 
@@ -109,197 +108,224 @@ export function HomeHero() {
           y: heroY,
           filter: heroBlur
         }}
-        className="relative pt-24 pb-16 transition-colors duration-300 z-10"
+        className="container py-5 position-relative z-10"
       >
-        <div className="container mx-auto px-4 lg:px-8 max-w-7xl relative z-10">
-          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+        <div className="row g-5 align-items-center align-items-lg-stretch">
+          
+          {/* Left Column - Content */}
+          <div className="col-lg-6 col-12 text-lg-start text-center space-y-6 d-flex flex-column justify-content-center">
             
-            {/* Left Content Column */}
-            <div className="flex-1 space-y-8 text-center lg:text-left">
-              {/* Trust Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-450 rounded-full text-xs font-black uppercase tracking-wider border border-emerald-100 dark:border-emerald-900/30 shadow-sm">
-                <Star size={14} fill="currentColor" className="text-emerald-500" />
-                <span>India's Premium Fintech Loan Marketplace</span>
-              </div>
-
-              {/* H1 Main Title */}
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-secondary dark:text-white leading-[1.15] tracking-tight">
-                Compare & Apply for <br className="hidden lg:block" />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-teal-600 to-blue-600 drop-shadow-sm">
-                  Loans & Credit Cards
-                </span>
-              </h1>
-
-              {/* Subheading */}
-              <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 leading-relaxed font-medium max-w-xl mx-auto lg:mx-0">
-                Experience seamless access to top-tier personal loans, business loans, and credit cards with our 100% digital, paperless process and instant approvals.
-              </p>
-
-              {/* Benefits List */}
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
-                <div className="flex items-center gap-2 text-xs font-black uppercase text-secondary dark:text-white tracking-wider">
-                  <CheckCircle2 size={16} className="text-emerald-500" /> 50+ Top Bank Partners
-                </div>
-                <div className="hidden sm:block w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
-                <div className="flex items-center gap-2 text-xs font-black uppercase text-secondary dark:text-white tracking-wider">
-                  <CheckCircle2 size={16} className="text-emerald-500" /> 100% Digital Process
-                </div>
-                <div className="hidden sm:block w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
-                <div className="flex items-center gap-2 text-xs font-black uppercase text-secondary dark:text-white tracking-wider">
-                  <CheckCircle2 size={16} className="text-emerald-500" /> Instant Sanctions
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap justify-center lg:justify-start gap-4 pt-2">
-                <a 
-                  href="#check-eligibility" 
-                  className="inline-flex items-center justify-center px-8 py-4 bg-primary text-white rounded-2xl font-black uppercase tracking-wider text-xs hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary/20"
-                >
-                  Check Eligibility <ArrowRight size={16} className="ml-2" />
-                </a>
-                <a 
-                  href="tel:+919579005645" 
-                  className="inline-flex items-center justify-center px-8 py-4 border-2 border-slate-300 dark:border-slate-700 hover:border-slate-500 dark:hover:border-slate-500 text-slate-750 dark:text-slate-300 rounded-2xl font-black uppercase tracking-wider text-xs hover:bg-slate-100/30 transition-all"
-                >
-                  <PhoneCall className="mr-2" size={16} /> 9579005645
-                </a>
-              </div>
-
-              {/* Stats Counters Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-8 max-w-3xl mx-auto lg:mx-0 border-t border-slate-200/60 dark:border-slate-800/30 text-left">
-                {stats.map((stat, i) => (
-                  <div key={i} className="space-y-1 group">
-                    <p className="text-2xl font-black text-secondary dark:text-white tracking-tight group-hover:text-primary transition-colors">
-                      <AnimatedCounter value={stat.value} decimals={stat.decimals} suffix={stat.suffix} />
-                    </p>
-                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none mt-0.5">{stat.label}</p>
-                  </div>
-                ))}
-              </div>
+            {/* Top Badge */}
+            <div className="d-inline-flex align-items-center gap-2 px-3 py-1.5 bg-light dark:bg-slate-800 rounded-pill border border-slate-200 dark:border-slate-700 shadow-sm align-self-lg-start align-self-center">
+              <Star size={14} fill="currentColor" className="text-warning animate-pulse" />
+              <span className="text-xs uppercase font-black tracking-wider text-paytm-navy dark:text-slate-300">India's Premium Fintech Marketplace</span>
             </div>
 
-            {/* Right Column: 1080x1350 Aspect Ratio slidable poster (visible right at the front) */}
-            <div className="w-full max-w-[420px] lg:max-w-[480px] aspect-[4/5] rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white dark:border-slate-800 bg-white dark:bg-slate-950 relative group select-none shrink-0 z-20">
+            {/* Title */}
+            <h1 className="display-4 font-black tracking-tight text-paytm-navy dark:text-white mb-3 leading-tight">
+              Compare & Apply for <br className="d-none d-lg-block" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-600">
+                Loans & Credit Cards
+              </span>
+            </h1>
+
+            {/* Subtitle */}
+            <p className="lead text-slate-500 dark:text-slate-400 max-w-xl mx-auto mx-lg-0 mb-4">
+              Get lowest interest rates with 100% digital, paperless processing and instant approvals from 50+ banking partners.
+            </p>
+
+            {/* Checkmarks */}
+            <div className="d-flex flex-wrap justify-content-lg-start justify-content-center gap-3 pt-3">
+              {["50+ Banking Partners", "100% Digital Process", "Zero Paperwork"].map((chk, idx) => (
+                <div key={idx} className="text-[11px] font-black text-uppercase text-slate-600 dark:text-slate-300 tracking-wider d-flex align-items-center gap-1.5">
+                  <CheckCircle2 size={14} className="text-success" />
+                  {chk}
+                </div>
+              ))}
+            </div>
+
+          </div>
+
+          {/* Right Column - Single Banner Visual (Very Large) */}
+          <div className="col-lg-6 col-12 d-flex justify-content-center align-items-center position-relative">
+            <div className="w-100 h-100 d-flex align-items-center justify-content-center position-relative z-20">
+              <motion.img
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.8 }}
+                src={bannerImage}
+                alt="Fintech Banner"
+                className="w-100 h-auto object-fit-contain max-h-[500px] lg:max-h-[600px] mix-blend-multiply dark:invert dark:mix-blend-screen"
+                draggable="false"
+              />
+            </div>
+          </div>
+
+        </div>
+
+        {/* Row 2 - Horizontal Eligibility Form */}
+        <div className="row mt-5 pt-4 position-relative z-20">
+          <div className="col-12 max-w-5xl mx-auto">
+            <div className="card border-0 shadow-lg rounded-[2.5rem] p-4 bg-white dark:bg-slate-900 text-start position-relative overflow-hidden" style={{ boxShadow: '0 20px 40px rgba(0, 41, 112, 0.08)' }}>
+              <div className="position-absolute top-0 start-0 w-100 h-1 bg-paytm-blue" />
               
-              {/* Overlay Gradient */}
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/20 via-transparent to-transparent z-10 pointer-events-none" />
-              
-              {/* Slider Viewport */}
-              <div 
-                className="flex h-full w-full transition-transform duration-500 ease-out"
-                style={{ transform: `translateX(-${activeImageIndex * 100}%)` }}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                onMouseEnter={() => setIsPaused(true)}
-                onMouseLeave={() => setIsPaused(false)}
-              >
-                {heroImages.map((src, index) => (
-                  <div key={src} className="w-full h-full shrink-0 relative flex items-center justify-center bg-slate-50 dark:bg-slate-900/40">
-                    <img
-                      src={src}
-                      alt={`Financial Poster ${index + 1}`}
-                      className="w-full h-full object-contain"
-                      draggable="false"
+              <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                <div>
+                  <h3 className="fs-6 font-black text-paytm-navy dark:text-white m-0">Check Eligibility</h3>
+                  <p className="text-[9px] text-uppercase font-black text-slate-400 m-0">Get instant approval rates</p>
+                </div>
+                
+                {/* Tabs inside form */}
+                <div className="nav nav-pills bg-light dark:bg-slate-800 p-1 rounded-xl d-flex border border-slate-100 dark:border-slate-800/60 max-w-md">
+                  {[
+                    { id: "personal", label: "Personal" },
+                    { id: "home", label: "Home" },
+                    { id: "business", label: "Business" },
+                    { id: "card", label: "Credit Card" }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => { setActiveTab(tab.id); setLeadSuccess(false); }}
+                      className={`btn btn-xs rounded-lg py-1.5 px-3 border-0 font-extrabold transition-all text-[11px] ${
+                        activeTab === tab.id 
+                          ? "bg-paytm-blue text-white shadow-sm" 
+                          : "text-slate-500 bg-transparent hover:text-slate-800"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                <span className="badge bg-success/10 text-success text-[10px] px-2.5 py-2 rounded-pill border border-success/20 d-flex align-items-center gap-1">
+                  <Lock size={10} /> 100% Secure Verification
+                </span>
+              </div>
+
+              {!leadSuccess ? (
+                <form onSubmit={handleHeroLeadSubmit} className="row g-3 align-items-end">
+                  <div className="col-lg-3 col-md-6 col-12">
+                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-1.5 d-block">Full Name</label>
+                    <input 
+                      type="text" 
+                      placeholder="As per PAN card" 
+                      className="form-control rounded-xl py-2 text-xs"
+                      value={leadName}
+                      onChange={(e) => setLeadName(e.target.value)}
+                      required
                     />
                   </div>
-                ))}
-              </div>
 
-              {/* Manual Left/Right Navigation Arrows */}
-              <button 
-                onClick={(e) => { e.stopPropagation(); prevSlide(); }}
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/85 dark:bg-slate-900/85 text-secondary dark:text-white flex items-center justify-center shadow-md hover:bg-white dark:hover:bg-slate-900 hover:scale-105 active:scale-95 transition-all z-20 opacity-0 group-hover:opacity-100"
-                aria-label="Previous Slide"
-              >
-                <ArrowLeft size={18} strokeWidth={2.5} />
-              </button>
-              <button 
-                onClick={(e) => { e.stopPropagation(); nextSlide(); }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/85 dark:bg-slate-900/85 text-secondary dark:text-white flex items-center justify-center shadow-md hover:bg-white dark:hover:bg-slate-900 hover:scale-105 active:scale-95 transition-all z-20 opacity-0 group-hover:opacity-100"
-                aria-label="Next Slide"
-              >
-                <ArrowRight size={18} strokeWidth={2.5} />
-              </button>
+                  <div className="col-lg-3 col-md-6 col-12">
+                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-1.5 d-block">Mobile Number</label>
+                    <input 
+                      type="tel" 
+                      maxLength={10}
+                      placeholder="10-digit number" 
+                      className="form-control rounded-xl py-2 text-xs"
+                      value={leadMobile}
+                      onChange={(e) => setLeadMobile(e.target.value)}
+                      required
+                    />
+                  </div>
 
-              {/* Slider Dot Indicators */}
-              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2.5 z-20 bg-slate-950/40 backdrop-blur-md px-4 py-2 rounded-full">
-                {heroImages.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setActiveImageIndex(index)}
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      activeImageIndex === index ? "w-6 bg-primary" : "w-2 bg-white/60 hover:bg-white"
-                    }`}
-                  />
-                ))}
-              </div>
+                  <div className="col-lg-2 col-md-6 col-12">
+                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-1.5 d-block">Loan Amount (₹)</label>
+                    <input 
+                      type="number" 
+                      placeholder="Required amount" 
+                      className="form-control rounded-xl py-2 text-xs"
+                      value={leadAmount}
+                      onChange={(e) => setLeadAmount(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="col-lg-2 col-md-6 col-12">
+                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-1.5 d-block">Select City</label>
+                    <select 
+                      className="form-select rounded-xl py-2 text-xs"
+                      value={leadCity}
+                      onChange={(e) => setLeadCity(e.target.value)}
+                    >
+                      <option value="Pune">Pune</option>
+                      <option value="Sambhajianagar">Sambhajianagar</option>
+                    </select>
+                  </div>
+
+                  <div className="col-lg-2 col-12">
+                    <button 
+                      type="submit" 
+                      disabled={isLeadSubmitting}
+                      className="w-100 btn btn-paytm py-2 text-xs text-uppercase font-black tracking-wider shadow-sm d-flex align-items-center justify-content-center gap-1.5"
+                    >
+                      {isLeadSubmitting ? "Processing..." : `Get Offers`}
+                      <ArrowRight size={13} />
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="text-center py-4 space-y-3">
+                  <div className="w-12 h-12 bg-success/10 text-success rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2">
+                    <CheckCircle2 size={24} />
+                  </div>
+                  <h5 className="font-black text-paytm-navy dark:text-white m-0">Offers Sent Successfully!</h5>
+                  <p className="text-xs text-slate-500 m-0 leading-relaxed">
+                    Our loan advisor will contact you within 15 minutes with verified quotes.
+                  </p>
+                  <button onClick={() => setLeadSuccess(false)} className="btn btn-outline-secondary btn-sm py-1.5 px-4 rounded-full text-xs mt-3">
+                    Submit Another Application
+                  </button>
+                </div>
+              )}
             </div>
-
           </div>
         </div>
-      </motion.section>
 
-      {/* Interactive Form Card (below the main hero fold) */}
-      <div id="check-eligibility" className="container mx-auto px-4 lg:px-8 max-w-7xl pb-20 pt-4">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-[2.5rem] p-6 lg:p-10 shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none" />
-          
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-12 relative z-10">
-            <div className="flex-1 space-y-4 text-center lg:text-left">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-450 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-100 dark:border-amber-800/30">
-                <Flame size={12} fill="currentColor" className="text-amber-500 animate-pulse" />
-                <span>₹{liveApproved.toLocaleString("en-IN")} Approved Today</span>
+        {/* Stats Grid - Bootstrap Columns */}
+        <div className="row g-4 pt-5 mt-5 border-top border-slate-200/50 dark:border-slate-800/30 text-start">
+          {stats.map((stat, i) => (
+            <div key={i} className="col-6 col-md-3">
+              <div className="space-y-1">
+                <p className="fs-3 font-black text-paytm-navy dark:text-white tracking-tight m-0">
+                  <AnimatedCounter value={stat.value} decimals={stat.decimals} suffix={stat.suffix} />
+                </p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mt-1 m-0">{stat.label}</p>
               </div>
-              <h2 className="text-2xl lg:text-3xl font-black text-secondary dark:text-white leading-tight tracking-tight">
-                Check Your Personal Loan Eligibility
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-semibold leading-relaxed max-w-xl">
-                Get instant, customized quotes from 50+ top-tier banking and lending partners with no impact on your credit score.
-              </p>
             </div>
-            
-            <div className="w-full lg:w-auto shrink-0 flex justify-center z-20">
-              <PersonalLoanForm />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Overlapping Service Cards */}
-      <div className="relative z-30 mb-[-6rem] px-4 w-full flex justify-center overflow-x-auto no-scrollbar snap-x snap-mandatory lg:overflow-visible">
-        <div className="flex gap-4 pb-6 px-4 w-full max-w-7xl snap-x snap-mandatory lg:grid lg:grid-cols-4 lg:gap-6 lg:px-0 lg:pb-0">
-          {services.map((service, i) => (
-            <a 
-              key={i} 
-              href={service.link}
-              className="block shrink-0 w-[280px] snap-center lg:w-auto lg:shrink"
-            >
-              <PremiumCard 
-                className="p-6 shadow-xl hover:shadow-2xl flex flex-col min-h-[220px] h-full cursor-pointer group"
-                glowColor={service.glow}
-              >
-                <div className={`absolute top-0 right-0 px-3 py-1 rounded-bl-xl bg-gradient-to-r ${service.color} text-white text-[10px] font-black uppercase tracking-widest`}>
-                  {service.tag}
-                </div>
-                
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${service.color} flex items-center justify-center text-white mb-6 shadow-lg transform group-hover:scale-110 transition-transform duration-300`}>
-                  <service.icon size={28} />
-                </div>
-                
-                <h3 className="text-xl font-black text-secondary dark:text-white mb-2">{service.title}</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6 flex-grow">{service.desc}</p>
-                
-                <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs mt-auto">
-                  Apply Now <ArrowRight size={16} className="transform group-hover:translate-x-1.5 transition-transform duration-300" />
-                </div>
-              </PremiumCard>
-            </a>
           ))}
         </div>
-      </div>
-      
+
+      </motion.section>
+
+      {/* Services Grid (Paytm layout style) */}
+      <section className="container py-5 mt-4">
+        <div className="row g-4 justify-content-center">
+          {services.map((service, i) => (
+            <div key={i} className="col-lg-3 col-md-6 col-12">
+              <a href={service.link} className="text-decoration-none d-block h-100">
+                <div className="card-paytm p-4 d-flex flex-column h-100 position-relative overflow-hidden">
+                  <div className={`position-absolute top-0 end-0 px-3 py-1 rounded-bottom-left bg-gradient-to-r ${service.color} text-white text-[9px] font-black uppercase tracking-widest`}>
+                    {service.tag}
+                  </div>
+                  
+                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${service.color} d-flex align-items-center justify-content-center text-white mb-4 shadow-sm`}>
+                    <service.icon size={22} />
+                  </div>
+                  
+                  <h4 className="fs-5 font-black text-paytm-navy mb-2">{service.title}</h4>
+                  <p className="text-xs text-slate-500 font-semibold mb-4 flex-grow">{service.desc}</p>
+                  
+                  <div className="d-flex align-items-center gap-1 text-paytm-blue font-black uppercase tracking-widest text-[10px] mt-auto">
+                    Apply Now <ArrowRight size={14} />
+                  </div>
+                </div>
+              </a>
+            </div>
+          ))}
+        </div>
+      </section>
+
     </div>
   )
 }

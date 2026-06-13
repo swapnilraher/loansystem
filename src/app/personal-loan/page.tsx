@@ -21,6 +21,9 @@ export const metadata: Metadata = {
   title: "Instant Personal Loan Up to ₹50 Lakhs | Competitive Rates | TechStar",
   description: "Apply for a personal loan online with TechStar. Compare top banks, check eligibility in 2 minutes, and get quick approval with minimal documentation. Rates start at 10.50% p.a.",
   keywords: "personal loan, instant loan, low interest loan, compare loans, online loan application, eligibility calculator, EMI calculator",
+  alternates: {
+    canonical: "https://techstarsolution.in/personal-loan"
+  },
   openGraph: {
     title: "Instant Personal Loan Up to ₹50 Lakhs | TechStar",
     description: "Compare and apply for personal loans from 100+ lenders. Instant approval & quick disbursal.",

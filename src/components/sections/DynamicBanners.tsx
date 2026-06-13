@@ -129,7 +129,7 @@ export function DynamicBanners() {
                     </ul>
                     
                     <div>
-                      <a href={banner.link} className={`inline-flex items-center gap-2 font-black uppercase tracking-widest text-xs px-8 py-4 rounded-xl transition-all shadow-lg active:scale-95 ${
+                      <a href={banner.link} className={`inline-flex items-center gap-2 font-black uppercase tracking-widest text-xs px-8 py-4 rounded-full transition-all shadow-lg active:scale-95 ${
                         banner.bgColor === 'bg-emerald-50' 
                           ? 'bg-primary text-white hover:bg-blue-700 shadow-primary/20' 
                           : 'bg-white text-slate-900 hover:bg-slate-100 shadow-black/10'

@@ -142,7 +142,7 @@ export default function LocationPageTemplate({
       <main className="min-h-screen pt-20 bg-slate-50/20 dark:bg-slate-950/10">
         
         {/* Localized Hero Banner */}
-        <section className="relative py-12 lg:py-16 overflow-hidden bg-white border-b border-slate-100">
+        <section className="relative py-12 lg:py-16 overflow-hidden bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
           <div className="absolute top-0 right-0 w-1/2 h-full bg-blue-50/30 -skew-x-12 translate-x-1/4 z-0 pointer-events-none" />
           <div className="container mx-auto px-4 relative z-10">
             <div className="flex flex-col lg:flex-row items-center gap-16">
@@ -164,13 +164,13 @@ export default function LocationPageTemplate({
 
                 {/* Local Trust Credentials */}
                 <div className="flex flex-wrap gap-4 pt-2">
-                  <div className="flex items-center gap-2.5 px-4 py-3 bg-slate-50 rounded-2xl border border-slate-150/40">
+                  <div className="flex items-center gap-2.5 px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-150/40 dark:border-slate-700">
                     <ShieldCheck size={18} className="text-emerald-500" />
-                    <span className="text-xs font-black text-secondary">RBI Authorized DSA Partner</span>
+                    <span className="text-xs font-black text-secondary dark:text-slate-200">RBI Authorized DSA Partner</span>
                   </div>
-                  <div className="flex items-center gap-2.5 px-4 py-3 bg-slate-50 rounded-2xl border border-slate-150/40">
+                  <div className="flex items-center gap-2.5 px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-150/40 dark:border-slate-700">
                     <Clock size={18} className="text-amber-500" />
-                    <span className="text-xs font-black text-secondary">24-48 Hours Disbursal*</span>
+                    <span className="text-xs font-black text-secondary dark:text-slate-200">24-48 Hours Disbursal*</span>
                   </div>
                 </div>
               </div>
@@ -229,7 +229,7 @@ export default function LocationPageTemplate({
         </section>
 
         {/* SEO Topical Authority & AI GEO Content section */}
-        <section className="py-12 bg-white">
+        <section className="py-12 bg-white dark:bg-slate-900">
           <div className="container mx-auto px-4 max-w-4xl space-y-8">
             
             <div className="prose prose-lg prose-slate mx-auto text-left">
@@ -247,11 +247,11 @@ export default function LocationPageTemplate({
                 Eligibility & Guidelines for Applicants
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-8">
-                <div className="p-6 bg-slate-50 border border-slate-100 rounded-3xl">
-                  <h4 className="font-black text-base text-secondary flex items-center gap-2 mb-3">
+                <div className="p-6 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-750 rounded-3xl">
+                  <h4 className="font-black text-base text-secondary dark:text-white flex items-center gap-2 mb-3">
                     <UserCheck size={18} className="text-primary" /> Salaried Individuals
                   </h4>
-                  <ul className="space-y-2 text-xs font-bold text-slate-550 list-disc pl-4">
+                  <ul className="space-y-2 text-xs font-bold text-slate-550 dark:text-slate-350 list-disc pl-4">
                     <li>Age limit: 21 to 60 years</li>
                     <li>Minimum Salary: ₹20,000 per month (varies by employer tier)</li>
                     <li>Resident status: Indian Citizen living in {location}</li>
@@ -259,11 +259,11 @@ export default function LocationPageTemplate({
                   </ul>
                 </div>
                 
-                <div className="p-6 bg-slate-50 border border-slate-100 rounded-3xl">
-                  <h4 className="font-black text-base text-secondary flex items-center gap-2 mb-3">
+                <div className="p-6 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-750 rounded-3xl">
+                  <h4 className="font-black text-base text-secondary dark:text-white flex items-center gap-2 mb-3">
                     <Building size={18} className="text-primary" /> Self-Employed & MSMEs
                   </h4>
-                  <ul className="space-y-2 text-xs font-bold text-slate-550 list-disc pl-4">
+                  <ul className="space-y-2 text-xs font-bold text-slate-550 dark:text-slate-350 list-disc pl-4">
                     <li>Business existence: Minimum 3 years active continuity</li>
                     <li>Income threshold: Verified ITR of ₹3.5 Lakhs+ p.a.</li>
                     <li>Age constraints: 25 to 65 years</li>
@@ -287,18 +287,18 @@ export default function LocationPageTemplate({
                   "Last 6 Months Bank Savings/Current Statements",
                   "GST Returns & Business Address Registration Proof"
                 ].map((doc, idx) => (
-                  <div key={idx} className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100/50">
+                  <div key={idx} className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100/50 dark:border-slate-700">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                    <span className="text-xs font-bold text-slate-650">{doc}</span>
+                    <span className="text-xs font-bold text-slate-650 dark:text-slate-300">{doc}</span>
                   </div>
                 ))}
               </div>
 
-              <div className="p-6 bg-blue-50 border border-blue-150 rounded-3xl flex gap-4 my-8">
+              <div className="p-6 bg-blue-50 dark:bg-blue-950/20 border border-blue-150 dark:border-blue-900/40 rounded-3xl flex gap-4 my-8">
                 <Info size={24} className="text-primary shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="font-black text-secondary text-sm mb-1">CIBIL Score Support</h4>
-                  <p className="text-xs text-slate-600 leading-relaxed">
+                  <h4 className="font-black text-secondary dark:text-white text-sm mb-1">CIBIL Score Support</h4>
+                  <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed">
                     Don't worry if you have minor defaults or a low credit score. Our local {location} documentation team reviews your statements to outline potential corrections and coordinates with banks accepting exceptions.
                   </p>
                 </div>
@@ -312,8 +312,8 @@ export default function LocationPageTemplate({
               </h3>
               <div className="space-y-6">
                 {faqItems.map((item, idx) => (
-                  <div key={idx} className="p-6 bg-white border border-slate-100 rounded-3xl shadow-sm">
-                    <h4 className="text-sm font-black text-secondary mb-2">Q. {item.question}</h4>
+                  <div key={idx} className="p-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-sm">
+                    <h4 className="text-sm font-black text-secondary dark:text-white mb-2">Q. {item.question}</h4>
                     <p className="text-xs font-bold text-slate-500 dark:text-slate-400 leading-relaxed">A. {item.answer}</p>
                   </div>
                 ))}
@@ -336,7 +336,7 @@ export default function LocationPageTemplate({
               <div className="shrink-0 relative z-10">
                 <a 
                   href="tel:9579005645" 
-                  className="inline-flex items-center justify-center gap-2 bg-primary text-white h-12 px-6 rounded-xl font-black uppercase tracking-wider text-xs shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                  className="inline-flex items-center justify-center gap-2 bg-primary text-white h-12 px-6 rounded-full font-black uppercase tracking-wider text-xs shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
                 >
                   Call Consultant <ArrowRight size={14} />
                 </a>
@@ -351,7 +351,7 @@ export default function LocationPageTemplate({
                   <p className="text-[9px] uppercase tracking-wider text-slate-400 font-black">Compare Other Cities</p>
                   <div className="flex flex-wrap gap-2">
                     {peerLocations.map((link, idx) => (
-                      <a key={idx} href={link.url} className="px-3 py-1.5 bg-slate-50 border border-slate-100 hover:border-primary rounded-lg transition-colors">
+                      <a key={idx} href={link.url} className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 hover:border-primary rounded-lg transition-colors">
                         {link.name}
                       </a>
                     ))}
@@ -362,7 +362,7 @@ export default function LocationPageTemplate({
                   <p className="text-[9px] uppercase tracking-wider text-slate-400 font-black">Other Loans in {location}</p>
                   <div className="flex flex-wrap gap-2">
                     {peerServices.map((link, idx) => (
-                      <a key={idx} href={link.url} className="px-3 py-1.5 bg-slate-50 border border-slate-100 hover:border-primary rounded-lg transition-colors">
+                      <a key={idx} href={link.url} className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 hover:border-primary rounded-lg transition-colors">
                         {link.name}
                       </a>
                     ))}

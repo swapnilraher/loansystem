@@ -65,149 +65,148 @@ export function Header() {
     <>
       {/* Dynamic Scroll Progress Bar */}
       <motion.div 
-        className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-blue-500 to-indigo-600 z-[99] origin-left"
+        className="fixed-top h-1 bg-gradient-to-r from-emerald-500 via-cyan-400 to-blue-600 z-[999] origin-left"
         style={{ scaleX }}
       />
-      <header className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${scrolled
-        ? "h-14 bg-white/95 dark:bg-slate-900/95 shadow-xl shadow-blue-900/5 backdrop-blur-xl"
-        : "h-16 bg-white/50 dark:bg-slate-950/50 backdrop-blur-md"
+      <header className={`fixed-top w-full z-50 transition-all duration-300 ${scrolled
+        ? "py-2 bg-white dark:bg-slate-900 border-bottom border-slate-100 dark:border-slate-800 shadow-sm"
+        : "py-3 bg-white/70 dark:bg-slate-950/70 border-bottom border-transparent backdrop-blur-md"
         }`}>
-        <div className="container mx-auto px-4 h-full flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2 group">
-            <div className={`bg-primary flex items-center justify-center text-white group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-blue-200 shadow-xl overflow-hidden ${scrolled ? "w-8 h-8 rounded-lg" : "w-9 h-9 rounded-xl"
-              }`}>
-              <img src="/img/logo.jpeg" alt="Techstar Money Solution Logo" className="w-full h-full object-cover" />
-            </div>
-            <span className={`font-black tracking-tighter italic group-hover:text-primary transition-all duration-300 ${scrolled ? "text-base sm:text-lg" : "text-lg sm:text-xl"
-              } ${theme === "dark" ? "text-white" : "text-secondary"}`}>
-              Techstar<span className="hidden sm:inline"> Money Solution</span>
-            </span>
-          </a>
+        <div className="container-fluid px-md-5 px-3">
+          <div className="d-flex align-items-center justify-content-between">
+            {/* Logo Brand */}
+            <a href="/" className="d-flex align-items-center gap-2 text-decoration-none group">
+              <div className={`bg-paytm-blue d-flex align-items-center justify-content-center text-white rounded-xl shadow-sm overflow-hidden transition-all duration-300 ${scrolled ? "w-8 h-8" : "w-9 h-9"
+                }`}>
+                <img src="/img/logo.jpeg" alt="Techstar Money Solution Logo" className="w-100 h-100 object-cover" />
+              </div>
+              <span className={`font-black tracking-tight italic group-hover:text-primary transition-all duration-300 ${scrolled ? "fs-6" : "fs-5"
+                } ${theme === "dark" ? "text-white" : "text-paytm-navy"}`}>
+                Techstar Money Solution
+              </span>
+            </a>
 
-          <nav className="hidden lg:flex items-center gap-5 xl:gap-8">
-            {navLinks.slice(0, 4).map((item) => (
-              <a
-                key={item.name}
-                href={item.href}
-                className={`text-xs md:text-sm font-extrabold uppercase tracking-tight relative py-1.5 group transition-colors hover:text-primary ${theme === "dark" ? "text-slate-300" : "text-slate-700"
-                  }`}
-              >
-                {item.name}
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full" />
-              </a>
-            ))}
+            {/* Desktop Navigation Links */}
+            <nav className="d-none d-lg-flex align-items-center gap-4">
+              {navLinks.slice(0, 4).map((item) => (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  className={`text-xs text-uppercase font-black tracking-wider py-1 text-decoration-none transition-colors hover:text-paytm-blue ${theme === "dark" ? "text-slate-300" : "text-slate-600"
+                    }`}
+                >
+                  {item.name}
+                </a>
+              ))}
 
-            {/* Locations Dropdown */}
-            <div className="relative group py-1.5">
-              <button
-                className={`text-xs md:text-sm font-extrabold uppercase tracking-tight flex items-center gap-1 transition-colors hover:text-primary ${theme === "dark" ? "text-slate-300" : "text-slate-700"
-                  }`}
-              >
-                Locations
-                <svg className="w-3.5 h-3.5 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              
-              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 w-80 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-300 z-50">
-                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-xl p-6 space-y-4 max-h-[400px] overflow-y-auto pr-1">
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-left">Nashik</p>
-                    <div className="grid grid-cols-2 gap-2 text-xs font-bold text-left">
-                      <a href="/personal-loan-nashik" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Personal Loan</a>
-                      <a href="/business-loan-nashik" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Business Loan</a>
-                      <a href="/home-loan-nashik" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Home Loan</a>
-                      <a href="/loan-against-property-nashik" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Property Loan</a>
-                      <a href="/loan-agent-nashik" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Loan Agent</a>
-                      <a href="/dsa-loan-nashik" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">DSA Loan</a>
+              {/* Locations Dropdown */}
+              <div className="position-relative group py-1">
+                <button
+                  className={`text-xs text-uppercase font-black tracking-wider bg-transparent border-0 d-flex align-items-center gap-1 transition-colors hover:text-paytm-blue ${theme === "dark" ? "text-slate-300" : "text-slate-600"
+                    }`}
+                >
+                  Locations
+                  <svg className="w-3.5 h-3.5 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                <div className="position-absolute top-100 start-50 translate-middle-x pt-2 w-80 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-300 z-50">
+                  <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-lg p-4 max-h-[400px] overflow-y-auto pr-1">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-start">Pune</p>
+                      <div className="grid grid-cols-2 gap-2 text-xs font-bold text-start">
+                        <a href="/personal-loan-pune" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Personal Loan</a>
+                        <a href="/business-loan-pune" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Business Loan</a>
+                        <a href="/home-loan-pune" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Home Loan</a>
+                        <a href="/loan-against-property-pune" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Property Loan</a>
+                        <a href="/loan-agent-pune" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Loan Agent</a>
+                        <a href="/dsa-loan-pune" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">DSA Loan</a>
+                      </div>
                     </div>
-                  </div>
-                  <div className="border-t border-slate-150/50 dark:border-slate-800 pt-3">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-left">Pune</p>
-                    <div className="grid grid-cols-2 gap-2 text-xs font-bold text-left">
-                      <a href="/personal-loan-pune" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Personal Loan</a>
-                      <a href="/business-loan-pune" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Business Loan</a>
-                      <a href="/home-loan-pune" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Home Loan</a>
-                      <a href="/loan-against-property-pune" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Property Loan</a>
-                      <a href="/loan-agent-pune" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Loan Agent</a>
-                      <a href="/dsa-loan-pune" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">DSA Loan</a>
-                    </div>
-                  </div>
-                  <div className="border-t border-slate-150/50 dark:border-slate-800 pt-3">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-left">Mumbai</p>
-                    <div className="grid grid-cols-2 gap-2 text-xs font-bold text-left">
-                      <a href="/personal-loan-mumbai" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Personal Loan</a>
-                      <a href="/business-loan-mumbai" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Business Loan</a>
-                      <a href="/home-loan-mumbai" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Home Loan</a>
-                    </div>
-                  </div>
-                  <div className="border-t border-slate-150/50 dark:border-slate-800 pt-3">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-left">Chhatrapati Sambhajianagar</p>
-                    <div className="grid grid-cols-2 gap-2 text-xs font-bold text-left">
-                      <a href="/personal-loan-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Personal Loan</a>
-                      <a href="/business-loan-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Business Loan</a>
-                      <a href="/home-loan-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Home Loan</a>
-                      <a href="/loan-against-property-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Property Loan</a>
-                      <a href="/loan-agent-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Loan Agent</a>
-                      <a href="/dsa-loan-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">DSA Loan</a>
+                    <div className="border-t border-slate-150/50 dark:border-slate-800 pt-3 mt-3">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-start">Chhatrapati Sambhajianagar</p>
+                      <div className="grid grid-cols-2 gap-2 text-xs font-bold text-start">
+                        <a href="/personal-loan-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Personal Loan</a>
+                        <a href="/business-loan-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Business Loan</a>
+                        <a href="/home-loan-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Home Loan</a>
+                        <a href="/loan-against-property-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Property Loan</a>
+                        <a href="/loan-agent-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">Loan Agent</a>
+                        <a href="/dsa-loan-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-600 dark:text-slate-400">DSA Loan</a>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </nav>
+            </nav>
 
-          <div className="flex items-center gap-3 lg:gap-6">
-            <a href="tel:9579005645" className={`hidden xl:flex items-center gap-2.5 text-sm font-extrabold hover:text-primary transition-all group ${theme === "dark" ? "text-white" : "text-secondary"
-              }`}>
-              <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
-                <Phone size={16} />
-              </div>
-              9579005645
-            </a>
-            <Button size={scrolled ? "sm" : "md"} className="hidden xl:inline-flex rounded-xl shadow-xl shadow-blue-100/10 font-black uppercase tracking-wider px-5">Apply Now</Button>
+            {/* Right CTAs / Login */}
+            <div className="d-flex align-items-center gap-3">
+              <a href="tel:9579005645" className={`d-none d-xl-flex align-items-center gap-2 text-decoration-none font-bold hover:text-paytm-blue transition-all group ${theme === "dark" ? "text-white" : "text-paytm-navy"
+                }`}>
+                <div className="w-8 h-8 rounded-circle bg-light dark:bg-slate-800 d-flex align-items-center justify-content-center text-paytm-blue group-hover:bg-paytm-blue group-hover:text-white transition-all">
+                  <Phone size={14} />
+                </div>
+                <span className="text-xs">9579005645</span>
+              </a>
 
-            {user ? (
-              <div className="flex items-center gap-2.5 bg-slate-100 dark:bg-slate-800 p-0.5 pr-3 rounded-xl border border-slate-200 dark:border-slate-700">
-                <a href="/dashboard" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-                  <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center overflow-hidden">
-                    {user.photoURL ? (
-                      <img src={user.photoURL} alt={user.displayName || "User"} className="w-full h-full object-cover" />
-                    ) : (
-                      <User size={16} className="text-white" />
-                    )}
-                  </div>
-                  <div className="hidden lg:block text-left">
-                    <p className="text-[9px] font-black uppercase tracking-tight text-slate-400 leading-none mb-0.5">Welcome</p>
-                    <p className="text-xs font-black dark:text-white leading-none">{user.displayName?.split(" ")[0] || "Member"}</p>
-                  </div>
-                </a>
-                <button
-                  onClick={() => logout()}
-                  className="ml-1 p-1 text-slate-400 hover:text-red-500 transition-colors pl-2 border-l border-slate-200 dark:border-slate-700"
-                  title="Logout"
-                >
-                  <LogOut size={14} />
-                </button>
-              </div>
-            ) : (
-              <Button
-                variant="outline"
-                size={scrolled ? "sm" : "md"}
-                onClick={() => setIsWhatsAppOpen(true)}
-                className="hidden sm:flex rounded-xl font-black uppercase tracking-wider border-2 border-slate-200 dark:border-slate-700 items-center gap-1.5 px-4"
+              <button 
+                onClick={() => router.push("#check-eligibility")} 
+                className="d-none d-xl-inline-flex btn btn-paytm btn-sm py-2 px-4 shadow-sm"
               >
-                <MessageSquare size={16} className="text-green-500" />
-                Login
-              </Button>
-            )}
+                Apply Now
+              </button>
 
-            <button
-              onClick={() => setIsOpen(true)}
-              className="lg:hidden w-10 h-10 flex items-center justify-center text-secondary hover:bg-slate-100 rounded-xl transition-colors border border-slate-100"
-            >
-              <Menu size={24} />
-            </button>
+              {user ? (
+                <div className="d-flex align-items-center gap-2 bg-light dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <a href="/dashboard" className="d-flex align-items-center gap-2 text-decoration-none hover:opacity-85">
+                    <div className="w-8 h-8 rounded-circle bg-paytm-blue d-flex align-items-center justify-content-center overflow-hidden">
+                      {user.photoURL ? (
+                        <img src={user.photoURL} alt={user.displayName || "User"} className="w-100 h-100 object-cover" />
+                      ) : (
+                        <User size={16} className="text-white" />
+                      )}
+                    </div>
+                    <div className="d-none d-lg-block text-start leading-none">
+                      <p className="text-[8px] text-uppercase font-black text-slate-400 m-0 mb-0.5">Welcome</p>
+                      <p className="text-xs font-black dark:text-white m-0 leading-none">{user.displayName?.split(" ")[0] || "Member"}</p>
+                    </div>
+                  </a>
+                  <button
+                    onClick={() => logout()}
+                    className="btn btn-link p-1 text-slate-400 hover:text-danger border-start border-slate-200 dark:border-slate-700 ms-1"
+                    title="Logout"
+                  >
+                    <LogOut size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsWhatsAppOpen(true)}
+                  className="d-none d-sm-flex btn btn-outline-secondary btn-sm rounded-pill py-2 px-3 d-flex align-items-center gap-1.5 font-bold"
+                >
+                  <MessageSquare size={16} className="text-success" />
+                  <span>Login</span>
+                </button>
+              )}
+
+              {/* Theme Toggle */}
+              <button
+                onClick={toggleTheme}
+                className="btn btn-light dark:btn-slate-800 p-2 rounded-xl text-secondary dark:text-white"
+                title="Toggle Theme"
+              >
+                {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+
+              {/* Mobile Drawer Trigger */}
+              <button
+                onClick={() => setIsOpen(true)}
+                className="d-lg-none btn btn-light border border-slate-100 p-2 rounded-xl text-secondary"
+              >
+                <Menu size={20} />
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -277,18 +276,6 @@ export function Header() {
                 <div className="mt-6 border-t border-slate-100 dark:border-slate-800 pt-6 text-left">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-4">Locations Covered</p>
                   <div className="space-y-4">
-                    {/* Nashik */}
-                    <div className="px-4">
-                      <p className="text-xs font-black text-secondary dark:text-white mb-2">Nashik</p>
-                      <div className="flex flex-wrap gap-2 text-[10px] font-bold">
-                        <a href="/personal-loan-nashik" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Personal Loan</a>
-                        <a href="/business-loan-nashik" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Business Loan</a>
-                        <a href="/home-loan-nashik" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Home Loan</a>
-                        <a href="/loan-against-property-nashik" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Property Loan</a>
-                        <a href="/loan-agent-nashik" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Loan Agent</a>
-                        <a href="/dsa-loan-nashik" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">DSA Loan</a>
-                      </div>
-                    </div>
                     {/* Pune */}
                     <div className="px-4">
                       <p className="text-xs font-black text-secondary dark:text-white mb-2">Pune</p>
@@ -299,15 +286,6 @@ export function Header() {
                         <a href="/loan-against-property-pune" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Property Loan</a>
                         <a href="/loan-agent-pune" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Loan Agent</a>
                         <a href="/dsa-loan-pune" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">DSA Loan</a>
-                      </div>
-                    </div>
-                    {/* Mumbai */}
-                    <div className="px-4">
-                      <p className="text-xs font-black text-secondary dark:text-white mb-2">Mumbai</p>
-                      <div className="flex flex-wrap gap-2 text-[10px] font-bold">
-                        <a href="/personal-loan-mumbai" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Personal Loan</a>
-                        <a href="/business-loan-mumbai" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Business Loan</a>
-                        <a href="/home-loan-mumbai" onClick={() => setIsOpen(false)} className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:text-primary">Home Loan</a>
                       </div>
                     </div>
                     {/* Chhatrapati Sambhajianagar */}
@@ -347,7 +325,7 @@ export function Header() {
                   <Button
                     size="lg"
                     onClick={() => { setIsWhatsAppOpen(true); setIsOpen(false); }}
-                    className="w-full h-16 rounded-2xl text-lg shadow-xl shadow-blue-100 flex gap-3"
+                    className="w-full h-16 rounded-full text-lg shadow-xl shadow-blue-100 flex gap-3"
                   >
                     <MessageSquare size={20} />
                     Login with WhatsApp
@@ -361,7 +339,7 @@ export function Header() {
                     <Phone size={20} className="text-primary" /> 9579005645
                   </a>
                 </div>
-                <Button size="lg" className="w-full h-16 rounded-2xl text-lg shadow-xl shadow-blue-100">Apply Now</Button>
+                <Button size="lg" className="w-full h-16 rounded-full text-lg shadow-xl shadow-blue-100">Apply Now</Button>
               </div>
             </motion.div>
 
@@ -376,38 +354,56 @@ export function Header() {
 
 export function Footer() {
   return (
-    <footer className="bg-slate-950 text-slate-400 py-12 border-t border-slate-800">
-      <div className="container mx-auto px-4">
+    <footer className="bg-urban-dark text-slate-400 py-5 border-top border-slate-800">
+      <div className="container">
         {/* Disclaimer Section */}
-        <div className="mb-10 p-4 bg-slate-900/50 border border-slate-800 rounded-xl text-[10px] leading-relaxed">
-          <strong className="text-slate-300">Disclaimer:</strong> Techstar Money Solution is a Direct Selling Agent (DSA) and does not lend directly. All loan products are sourced from partner banks and NBFCs. Interest rates, processing fees, and loan eligibility are subject to the lender's discretion and your credit profile. Information on this website is for general guidance only.
+        <div className="card bg-slate-900/40 border border-slate-800 p-4 rounded-2xl mb-5 text-[11px] leading-relaxed text-slate-450">
+          <strong className="text-white">Disclaimer:</strong> Techstar Money Solution is a Direct Selling Agent (DSA) and does not lend directly. All loan products are sourced from partner banks and NBFCs. Interest rates, processing fees, and loan eligibility are subject to the lender's discretion and your credit profile. Information on this website is for general guidance only.
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-10">
-
-          <div className="col-span-2 space-y-4">
-            <a href="/" className="flex items-center gap-2 text-white group">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 overflow-hidden">
-                <img src="/img/logo.jpeg" alt="TechStar Logo" className="w-full h-full object-cover" />
+        <div className="row g-4 mb-5">
+          {/* Brand Info */}
+          <div className="col-lg-4 col-md-6 mb-4">
+            <a href="/" className="d-flex align-items-center gap-2 text-white text-decoration-none mb-3 group">
+              <div className="w-10 h-10 bg-paytm-blue rounded-xl d-flex align-items-center justify-content-center overflow-hidden">
+                <img src="/img/logo.jpeg" alt="TechStar Logo" className="w-100 h-100 object-cover" />
               </div>
-              <span className="text-2xl font-black tracking-tight italic group-hover:text-primary transition-colors">Techstar Money Solution</span>
+              <span className="fs-5 font-black tracking-tight italic text-white">Techstar Money Solution</span>
             </a>
-            <p className="text-sm leading-relaxed max-w-xs">
+            <p className="text-sm leading-relaxed mb-3" style={{ maxWidth: "320px" }}>
               Empowering millions of Indians with quick, transparent, and hassle-free financial solutions.
             </p>
-            <div className="flex gap-4 pt-2">
-              <a href="tel:9579005645" className="text-white hover:text-primary transition-all flex items-center gap-2 text-sm font-extrabold group">
-                <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center group-hover:bg-primary transition-colors">
+            <div className="space-y-2 pt-1">
+              <a href="tel:9579005645" className="text-white text-decoration-none hover:text-paytm-blue transition-all d-flex align-items-center gap-2 text-sm font-extrabold group">
+                <div className="w-8 h-8 rounded-circle bg-slate-800 d-flex align-items-center justify-content-center group-hover:bg-paytm-blue transition-colors">
                   <Phone size={14} />
                 </div>
                 9579005645
               </a>
+              <a href="mailto:support@techstarsolution.in" className="text-slate-400 text-decoration-none hover:text-paytm-blue transition-all d-flex align-items-center gap-2 text-sm font-bold group">
+                <div className="w-8 h-8 rounded-circle bg-slate-800 d-flex align-items-center justify-content-center group-hover:bg-paytm-blue transition-colors">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                support@techstarsolution.in
+              </a>
+              <div className="text-slate-400 d-flex align-items-center gap-2 text-sm font-bold group">
+                <div className="w-8 h-8 rounded-circle bg-slate-800 d-flex align-items-center justify-content-center">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                Sadashiv Peth, Pune
+              </div>
             </div>
           </div>
 
-          <div className="space-y-3">
-            <h4 className="text-white font-bold uppercase tracking-widest text-[10px]">Products</h4>
-            <ul className="space-y-2 text-sm">
+          {/* Products Column */}
+          <div className="col-lg-2 col-md-3 col-6">
+            <h5 className="text-white font-bold uppercase tracking-widest text-[11px] mb-3">Products</h5>
+            <ul className="list-unstyled space-y-2 text-sm">
               {[
                 { name: "Home", href: "/" },
                 { name: "Personal Loan", href: "/personal-loan" },
@@ -416,101 +412,84 @@ export function Footer() {
                 { name: "Property Loan", href: "/loan-against-property" },
                 { name: "Car Loan", href: "/car-loan" },
               ].map((link) => (
-                <li key={link.name}>
-                  <a href={link.href} className="hover:text-white transition-all relative group py-1 block">
+                <li key={link.name} className="py-1">
+                  <a href={link.href} className="text-slate-400 hover:text-white text-decoration-none transition-colors">
                     {link.name}
-                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-8" />
                   </a>
                 </li>
               ))}
             </ul>
           </div>
 
-
-          <div className="space-y-3">
-            <h4 className="text-white font-bold uppercase tracking-widest text-[10px]">Calculators</h4>
-            <ul className="space-y-2 text-sm">
-              {["EMI Calculator", "Eligibility", "SIP"].map((link) => (
-                <li key={link}>
-                  <a href="#" className="hover:text-white transition-all relative group py-1 block">
+          {/* Calculators Column */}
+          <div className="col-lg-2 col-md-3 col-6">
+            <h5 className="text-white font-bold uppercase tracking-widest text-[11px] mb-3">Calculators</h5>
+            <ul className="list-unstyled space-y-2 text-sm">
+              {["EMI Calculator", "Eligibility Checker", "SIP Calculator"].map((link) => (
+                <li key={link} className="py-1">
+                  <a href="#" className="text-slate-400 hover:text-white text-decoration-none transition-colors">
                     {link}
-                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-8" />
                   </a>
                 </li>
               ))}
             </ul>
           </div>
 
-          <div className="space-y-3">
-            <h4 className="text-white font-bold uppercase tracking-widest text-[10px]">Legal</h4>
-            <ul className="space-y-2 text-sm">
+          {/* Legal Column */}
+          <div className="col-lg-2 col-md-3 col-6">
+            <h5 className="text-white font-bold uppercase tracking-widest text-[11px] mb-3">Legal</h5>
+            <ul className="list-unstyled space-y-2 text-sm">
               {[
                 { name: "Privacy Policy", href: "/privacy" },
                 { name: "Terms & Conditions", href: "/terms" }
               ].map((link) => (
-                <li key={link.name}>
-                  <a href={link.href} className="hover:text-white transition-all relative group py-1 block">
+                <li key={link.name} className="py-1">
+                  <a href={link.href} className="text-slate-400 hover:text-white text-decoration-none transition-colors">
                     {link.name}
-                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-8" />
                   </a>
                 </li>
               ))}
+            </ul>
+          </div>
+
+          {/* Connect Column */}
+          <div className="col-lg-2 col-md-3 col-6">
+            <h5 className="text-white font-bold uppercase tracking-widest text-[11px] mb-3">Locations</h5>
+            <ul className="list-unstyled space-y-2 text-sm">
+              <li><a href="/loan-agent-pune" className="text-slate-400 hover:text-white text-decoration-none">Pune Office</a></li>
+              <li><a href="/home-loan-chhatrapati-sambhajianagar" className="text-slate-400 hover:text-white text-decoration-none">Sambhajianagar</a></li>
             </ul>
           </div>
         </div>
 
         {/* Service Areas Link Pool for SEO Crawlability */}
-        <div className="pt-8 border-t border-slate-900 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-[11px] text-slate-550 mb-8 text-left">
-          <div className="space-y-2">
-            <h5 className="font-black text-slate-300 uppercase tracking-widest text-[9px]">Loans in Nashik</h5>
-            <div className="flex flex-wrap gap-x-2 gap-y-1">
-              <a href="/personal-loan-nashik" className="hover:text-primary transition-colors text-slate-400">Personal Loan</a> <span className="text-slate-800">•</span>
-              <a href="/business-loan-nashik" className="hover:text-primary transition-colors text-slate-400">Business Loan</a> <span className="text-slate-800">•</span>
-              <a href="/home-loan-nashik" className="hover:text-primary transition-colors text-slate-400">Home Loan</a> <span className="text-slate-800">•</span>
-              <a href="/loan-against-property-nashik" className="hover:text-primary transition-colors text-slate-400">Property Loan</a> <span className="text-slate-800">•</span>
-              <a href="/loan-agent-nashik" className="hover:text-primary transition-colors text-slate-400">Loan Agent</a> <span className="text-slate-800">•</span>
-              <a href="/dsa-loan-nashik" className="hover:text-primary transition-colors text-slate-400">DSA Loan</a>
+        <div className="border-top border-slate-900 pt-4 mb-4">
+          <div className="row g-3 text-[11px]">
+            <div className="col-md-6 col-12 text-start">
+              <h6 className="font-black text-slate-300 uppercase tracking-widest text-[9px] mb-2">Pune</h6>
+              <div className="d-flex flex-wrap gap-2">
+                <a href="/personal-loan-pune" className="text-slate-450 hover:text-paytm-blue text-decoration-none">Personal Loan</a>
+                <a href="/business-loan-pune" className="text-slate-450 hover:text-paytm-blue text-decoration-none">Business Loan</a>
+                <a href="/home-loan-pune" className="text-slate-450 hover:text-paytm-blue text-decoration-none">Home Loan</a>
+              </div>
             </div>
-          </div>
-          <div className="space-y-2">
-            <h5 className="font-black text-slate-300 uppercase tracking-widest text-[9px]">Loans in Pune</h5>
-            <div className="flex flex-wrap gap-x-2 gap-y-1">
-              <a href="/personal-loan-pune" className="hover:text-primary transition-colors text-slate-400">Personal Loan</a> <span className="text-slate-800">•</span>
-              <a href="/business-loan-pune" className="hover:text-primary transition-colors text-slate-400">Business Loan</a> <span className="text-slate-800">•</span>
-              <a href="/home-loan-pune" className="hover:text-primary transition-colors text-slate-400">Home Loan</a> <span className="text-slate-800">•</span>
-              <a href="/loan-against-property-pune" className="hover:text-primary transition-colors text-slate-400">Property Loan</a> <span className="text-slate-800">•</span>
-              <a href="/loan-agent-pune" className="hover:text-primary transition-colors text-slate-400">Loan Agent</a> <span className="text-slate-800">•</span>
-              <a href="/dsa-loan-pune" className="hover:text-primary transition-colors text-slate-400">DSA Loan</a>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <h5 className="font-black text-slate-300 uppercase tracking-widest text-[9px]">Loans in Mumbai</h5>
-            <div className="flex flex-wrap gap-x-2 gap-y-1">
-              <a href="/personal-loan-mumbai" className="hover:text-primary transition-colors text-slate-400">Personal Loan</a> <span className="text-slate-800">•</span>
-              <a href="/business-loan-mumbai" className="hover:text-primary transition-colors text-slate-400">Business Loan</a> <span className="text-slate-800">•</span>
-              <a href="/home-loan-mumbai" className="hover:text-primary transition-colors text-slate-400">Home Loan</a>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <h5 className="font-black text-slate-300 uppercase tracking-widest text-[9px]">Loans in Sambhajianagar</h5>
-            <div className="flex flex-wrap gap-x-2 gap-y-1">
-              <a href="/personal-loan-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-400">Personal Loan</a> <span className="text-slate-800">•</span>
-              <a href="/business-loan-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-400">Business Loan</a> <span className="text-slate-800">•</span>
-              <a href="/home-loan-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-400">Home Loan</a> <span className="text-slate-800">•</span>
-              <a href="/loan-against-property-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-400">Property Loan</a> <span className="text-slate-800">•</span>
-              <a href="/loan-agent-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-400">Loan Agent</a> <span className="text-slate-800">•</span>
-              <a href="/dsa-loan-chhatrapati-sambhajianagar" className="hover:text-primary transition-colors text-slate-400">DSA Loan</a>
+            <div className="col-md-6 col-12 text-start">
+              <h6 className="font-black text-slate-300 uppercase tracking-widest text-[9px] mb-2">Sambhajianagar</h6>
+              <div className="d-flex flex-wrap gap-2">
+                <a href="/personal-loan-chhatrapati-sambhajianagar" className="text-slate-450 hover:text-paytm-blue text-decoration-none">Personal Loan</a>
+                <a href="/business-loan-chhatrapati-sambhajianagar" className="text-slate-450 hover:text-paytm-blue text-decoration-none">Business Loan</a>
+                <a href="/home-loan-chhatrapati-sambhajianagar" className="text-slate-450 hover:text-paytm-blue text-decoration-none">Home Loan</a>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="pt-6 border-t border-slate-900 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-[10px]">© 2026 Techstar Money Solution. All rights reserved.</p>
-          <div className="flex gap-6 text-[10px] uppercase font-bold tracking-widest">
+        <div className="border-top border-slate-900 pt-4 d-flex flex-col flex-md-row justify-content-between align-items-center gap-3">
+          <p className="text-[10px] m-0">© 2026 Techstar Money Solution. All rights reserved.</p>
+          <div className="d-flex gap-4 text-[10px] uppercase font-bold tracking-widest">
             {["Facebook", "Twitter", "LinkedIn"].map((social) => (
-              <a key={social} href="#" className="hover:text-primary transition-colors relative group">
+              <a key={social} href="#" className="text-slate-400 hover:text-paytm-blue text-decoration-none position-relative group">
                 {social}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full" />
               </a>
             ))}
           </div>

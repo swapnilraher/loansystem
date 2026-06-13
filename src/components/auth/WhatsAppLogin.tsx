@@ -169,7 +169,7 @@ export function WhatsAppLogin({ isOpen, onClose }: WhatsAppLoginProps) {
               <Button
                 onClick={handleSendOTP}
                 disabled={loading || phoneNumber.length < 10}
-                className="w-full h-16 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-black text-lg shadow-xl shadow-green-100 flex gap-3 transition-all"
+                className="w-full h-16 rounded-full bg-green-500 hover:bg-green-600 text-white font-black text-lg shadow-xl shadow-green-100 flex gap-3 transition-all"
               >
                 {loading ? <Loader2 className="animate-spin" /> : <>Send WhatsApp OTP <ArrowRight size={20} /></>}
               </Button>
@@ -187,7 +187,7 @@ export function WhatsAppLogin({ isOpen, onClose }: WhatsAppLoginProps) {
                 onClick={handleGoogleLogin}
                 variant="outline"
                 disabled={loading}
-                className="w-full h-16 rounded-2xl border-2 border-slate-200 dark:border-slate-700 font-black text-lg flex gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm"
+                className="w-full h-16 rounded-full border-2 border-slate-200 dark:border-slate-700 font-black text-lg flex gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm"
               >
                 <img src="https://www.google.com/favicon.ico" className="w-6 h-6" alt="Google" />
                 Continue with Google
@@ -230,7 +230,7 @@ export function WhatsAppLogin({ isOpen, onClose }: WhatsAppLoginProps) {
               ))}
             </div>
 
-            <Button onClick={handleVerifyOTP} disabled={loading || otp.length < 4} className="w-full h-16 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-black text-lg">
+            <Button onClick={handleVerifyOTP} disabled={loading || otp.length < 4} className="w-full h-16 rounded-full bg-green-500 hover:bg-green-600 text-white font-black text-lg">
               {loading ? <Loader2 className="animate-spin" /> : "Verify & Login"}
             </Button>
           </div>
@@ -260,7 +260,7 @@ export function WhatsAppLogin({ isOpen, onClose }: WhatsAppLoginProps) {
               </div>
             ))}
 
-            <Button onClick={handleCompleteProfile} disabled={loading} className="w-full h-16 rounded-2xl bg-primary text-white font-black text-lg mt-4 shadow-lg shadow-blue-100 dark:shadow-none">
+            <Button onClick={handleCompleteProfile} disabled={loading} className="w-full h-16 rounded-full bg-primary text-white font-black text-lg mt-4 shadow-lg shadow-blue-100 dark:shadow-none">
               {loading ? <Loader2 className="animate-spin" /> : "Save & Go to Dashboard"}
             </Button>
           </div>

@@ -18,7 +18,8 @@ import {
   Zap,
   HardDrive,
   IndianRupee,
-  X
+  X,
+  BarChart3
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/context/AuthContext"
@@ -31,6 +32,7 @@ const navItems = [
   { name: "Team Management", href: "/admin/users", icon: Users },
   { name: "Cloud Storage", href: "/admin/storage", icon: HardDrive },
   { name: "Marketing & UTM", href: "/admin/marketing", icon: Zap },
+  { name: "Google Analytics", href: "/admin/analytics", icon: BarChart3 },
   { name: "Reports & MIS", href: "/admin/reports", icon: FileText },
   { name: "Revenue Tracking", href: "/admin/revenue", icon: PieChart },
   { name: "Payouts & Commissions", href: "/admin/payouts", icon: IndianRupee },
@@ -92,8 +94,13 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
       <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto custom-scrollbar">
         {filteredNavItems.map((item) => {
           const isActive = pathname === item.href
+          const isExternal = item.href.startsWith("http")
+          const LinkComponent = isExternal ? "a" : Link
+          const extraProps = isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {}
+
           return (
-            <Link
+            // @ts-ignore
+            <LinkComponent
               key={item.name}
               href={item.href}
               onClick={onClose}
@@ -103,11 +110,12 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
                   ? "bg-primary text-white shadow-lg shadow-primary/20"
                   : "text-slate-400 hover:text-white hover:bg-slate-900"
               )}
+              {...extraProps}
             >
               <item.icon size={20} className={cn(isActive ? "text-white" : "text-slate-500 group-hover:text-primary transition-colors")} />
               <span className="font-bold text-sm">{item.name}</span>
               {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
-            </Link>
+            </LinkComponent>
           )
         })}
       </nav>

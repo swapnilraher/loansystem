@@ -86,7 +86,7 @@ export default function AdminDashboard() {
           <h2 className="text-3xl font-black text-secondary tracking-tight">Dashboard Overview</h2>
           <p className="text-slate-500 font-medium">Welcome back, {profile?.name || user?.displayName || user?.email || "Alex"}. Here's what's happening today.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <button className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
             <Calendar size={18} />
             <span>Last 30 Days</span>
@@ -95,6 +95,15 @@ export default function AdminDashboard() {
             <Filter size={18} />
             <span>Filter Reports</span>
           </button>
+          <a
+            href="https://analytics.google.com/analytics/web/#/p538052670/reports/intelligenthome"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2.5 bg-black text-white rounded-xl text-sm font-bold hover:bg-slate-900 transition-all shadow-md shadow-black/10"
+          >
+            <ArrowUpRight size={18} />
+            <span>Google Analytics</span>
+          </a>
         </div>
       </div>
 

@@ -90,13 +90,13 @@ export function BlogAndCTA() {
             <div className="flex flex-wrap justify-center gap-4 pt-4">
               <a 
                 href="/personal-loan" 
-                className="inline-flex items-center justify-center px-8 py-4 bg-white text-emerald-650 rounded-2xl font-black uppercase tracking-wider text-xs hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg"
+                className="inline-flex items-center justify-center px-8 py-4 bg-white text-emerald-650 rounded-full font-black uppercase tracking-wider text-xs hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg"
               >
                 Apply Now <ArrowRight size={16} className="ml-2" />
               </a>
               <a 
                 href="tel:+919579005645" 
-                className="inline-flex items-center justify-center px-8 py-4 border-2 border-white/30 hover:border-white text-white rounded-2xl font-black uppercase tracking-wider text-xs hover:bg-white/10 transition-all"
+                className="inline-flex items-center justify-center px-8 py-4 border-2 border-white/30 hover:border-white text-white rounded-full font-black uppercase tracking-wider text-xs hover:bg-white/10 transition-all"
               >
                 <PhoneCall className="mr-2" size={16} /> 9579005645
               </a>

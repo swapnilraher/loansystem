@@ -7,7 +7,7 @@ import { BecomePartner } from "@/components/sections/BecomePartner"
 import { CIBILBanner } from "@/components/sections/CIBILBanner"
 import { EligibilityWizard } from "@/components/sections/EligibilityWizard"
 import { EMICalculator } from "@/components/sections/EMICalculator"
-import { DocumentSupport } from "@/components/sections/DocumentSupport"
+
 import { Testimonials } from "@/components/sections/Testimonials"
 import { FAQ } from "@/components/sections/FAQ"
 import { BlogAndCTA } from "@/components/sections/BlogAndCTA"
@@ -19,22 +19,47 @@ export default function Home() {
   return (
     <>
       <Header />
-      <main>
-        <HomeHero />
-        <ProductGrid />
-        <TrustSignals />
-        <LoanJourney />
-        <BecomePartner />
-        <CIBILBanner />
-        <EligibilityWizard />
-        <EMICalculator />
-        <DocumentSupport />
-        <Testimonials />
-        <LocationCoverage />
-        <FAQ />
-        <BlogAndCTA />
+      <main className="scroll-snap-container">
+        <div className="scroll-snap-section">
+          <HomeHero />
+        </div>
+        <div className="scroll-snap-section">
+          <ProductGrid />
+        </div>
+        <div className="scroll-snap-section mb-5 mb-lg-0">
+          <TrustSignals />
+        </div>
+        <div className="scroll-snap-section">
+          <LoanJourney />
+        </div>
+        <div className="scroll-snap-section">
+          <BecomePartner />
+        </div>
+        <div className="scroll-snap-section">
+          <CIBILBanner />
+        </div>
+        <div className="scroll-snap-section">
+          <EligibilityWizard />
+        </div>
+        <div className="scroll-snap-section">
+          <EMICalculator />
+        </div>
+        <div className="scroll-snap-section">
+          <Testimonials />
+        </div>
+        <div className="scroll-snap-section">
+          <LocationCoverage />
+        </div>
+        <div className="scroll-snap-section">
+          <FAQ />
+        </div>
+        <div className="scroll-snap-section">
+          <BlogAndCTA />
+        </div>
+        <div className="scroll-snap-section">
+          <Footer />
+        </div>
       </main>
-      <Footer />
     </>
   )
 }

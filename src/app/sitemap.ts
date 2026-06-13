@@ -6,8 +6,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // Base URLs
   const routes = [
     '',
+    '/about',
     '/personal-loan',
     '/home-loan',
+    '/business-loan',
+    '/car-loan',
+    '/loan-against-property',
+    '/become-dsa-partner',
     '/dashboard',
     '/privacy',
     '/terms',
@@ -16,21 +21,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
   
   // Dedicated local target routes
   const locationRoutes = [
-    '/personal-loan-nashik',
-    '/business-loan-nashik',
-    '/home-loan-nashik',
-    '/loan-against-property-nashik',
-    '/loan-agent-nashik',
-    '/dsa-loan-nashik',
     '/personal-loan-pune',
     '/business-loan-pune',
     '/home-loan-pune',
     '/loan-against-property-pune',
     '/loan-agent-pune',
     '/dsa-loan-pune',
-    '/personal-loan-mumbai',
-    '/business-loan-mumbai',
-    '/home-loan-mumbai',
     '/personal-loan-chhatrapati-sambhajianagar',
     '/business-loan-chhatrapati-sambhajianagar',
     '/home-loan-chhatrapati-sambhajianagar',

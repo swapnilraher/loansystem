@@ -11,6 +11,8 @@
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@types/nodemailer": "^8.0.0",
+    "bootstrap": "^5.3.8",
+    "bootstrap-icons": "^1.13.1",
     "clsx": "^2.1.1",
     "firebase": "^12.13.0",
     "firebase-admin": "^13.10.0",

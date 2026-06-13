@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Bot, X, Send, Sparkles, Phone, MessageCircle } from "lucide-react"
+import { Bot, X, Send, Sparkles, Phone, MessageCircle, MessageSquare } from "lucide-react"
 import { usePathname } from "next/navigation"
 
 type ChatState = 'idle' | 'awaiting_name' | 'awaiting_mobile' | 'completed';
@@ -184,7 +184,7 @@ export function AIChatbot() {
                 <div className="absolute inset-0 bg-white/10" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'20\' height=\'20\' viewBox=\'0 0 20 20\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.1\' fill-rule=\'evenodd\'%3E%3Ccircle cx=\'3\' cy=\'3\' r=\'3\'/%3E%3Cg/%3E%3C/svg%3E")' }} />
                 <div className="flex items-center gap-3 relative z-10">
                   <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/30 shadow-inner">
-                    <Bot size={24} />
+                    <MessageSquare size={24} />
                   </div>
                   <div>
                     <h3 className="font-black text-lg leading-tight">Techstar Money Solution AI</h3>
@@ -238,10 +238,10 @@ export function AIChatbot() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <a href="tel:9579005645" className="flex items-center justify-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-secondary dark:text-white py-2.5 rounded-xl text-sm font-bold hover:border-primary hover:text-primary transition-colors shadow-sm hover-lift">
+                    <a href="tel:9579005645" className="flex items-center justify-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-secondary dark:text-white py-2.5 rounded-full text-sm font-bold hover:border-primary hover:text-primary transition-colors shadow-sm hover-lift">
                       <Phone size={16} className="text-primary" /> Call Us
                     </a>
-                    <a href="https://wa.me/919579005645" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-[#25D366] text-white py-2.5 rounded-xl text-sm font-bold hover:bg-[#1fad53] transition-colors shadow-sm hover-lift">
+                    <a href="https://wa.me/919579005645" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-[#25D366] text-white py-2.5 rounded-full text-sm font-bold hover:bg-[#1fad53] transition-colors shadow-sm hover-lift">
                       <MessageCircle size={16} /> WhatsApp
                     </a>
                   </div>
@@ -292,18 +292,36 @@ export function AIChatbot() {
 
         {/* Floating Button */}
         <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.92 }}
           onClick={() => {
             setIsOpen(!isOpen)
             setShowTooltip(false)
           }}
-          className="w-16 h-16 bg-primary text-white rounded-full shadow-premium flex items-center justify-center relative hover-lift group z-[100]"
+          className="w-16 h-16 rounded-full shadow-premium flex items-center justify-center relative hover-lift group z-[100] border-0 outline-none overflow-visible bg-gradient-to-tr from-[#355efc] via-blue-500 to-emerald-500"
+          style={{ boxShadow: "0 8px 30px rgba(53, 94, 252, 0.4)" }}
         >
-          <div className="absolute inset-0 bg-primary rounded-full animate-ping opacity-20" />
-          {isOpen ? <X size={28} /> : <Bot size={28} />}
+          {/* Pulse Glow Backing */}
+          <div className="absolute -inset-1 bg-gradient-to-tr from-[#355efc] to-emerald-500 rounded-full blur opacity-30 group-hover:opacity-60 transition duration-300 animate-pulse-slow pointer-events-none" />
+          
+          {/* Hover Phone Contact Tooltip */}
           {!isOpen && (
-            <span className="absolute -top-2 -right-2 bg-rose-500 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white dark:border-slate-950 shadow-sm">
+            <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white px-3.5 py-2 rounded-xl text-xs font-black shadow-premium whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 translate-x-2 transition-all duration-300 z-50 flex items-center gap-2">
+              <Phone size={12} className="text-primary animate-pulse" />
+              <span>Call Expert: 9579005645</span>
+            </div>
+          )}
+
+          {isOpen ? (
+            <X size={26} className="text-white relative z-10" />
+          ) : (
+            <div className="relative flex items-center justify-center w-10 h-10 z-10">
+              <MessageSquare size={26} className="text-white" />
+            </div>
+          )}
+          
+          {!isOpen && (
+            <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[9px] font-black w-5.5 h-5.5 flex items-center justify-center rounded-full border-2 border-white dark:border-slate-950 shadow-sm">
               1
             </span>
           )}

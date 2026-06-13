@@ -252,3 +252,207 @@
   background: radial-gradient(800px circle at var(--mouse-x, 0) var(--mouse-y, 0), rgba(59, 130, 246, 0.15), transparent 40%);
 }
 
+/* Premium Paytm & UrbanMoney Styles (Bootstrap Bridges) */
+.bg-paytm-blue {
+  background-color: #00baf2 !important;
+}
+.bg-paytm-navy {
+  background-color: #002970 !important;
+}
+.bg-urban-green {
+  background-color: #25a254 !important;
+}
+.bg-urban-dark {
+  background-color: #0f2942 !important;
+}
+
+.text-paytm-blue {
+  color: #00baf2 !important;
+}
+.text-paytm-navy {
+  color: #002970 !important;
+}
+.text-urban-green {
+  color: #25a254 !important;
+}
+.text-urban-dark {
+  color: #0f2942 !important;
+}
+
+/* Custom premium rounded hover-up effects and custom buttons */
+.btn-paytm {
+  background-color: #00baf2;
+  color: white;
+  border: none;
+  font-weight: 850;
+  border-radius: 30px !important; /* rounded-pill style */
+  padding: 12px 30px !important;
+  transition: all 0.3s ease;
+}
+.btn-paytm:hover {
+  background-color: #0099c8;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 186, 242, 0.3);
+  color: white;
+}
+
+.btn-paytm-navy {
+  background-color: #002970;
+  color: white;
+  border: none;
+  font-weight: 850;
+  border-radius: 30px !important;
+  padding: 12px 30px !important;
+  transition: all 0.3s ease;
+}
+.btn-paytm-navy:hover {
+  background-color: #001e52;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 41, 112, 0.3);
+  color: white;
+}
+
+.btn-urban {
+  background-color: #25a254;
+  color: white;
+  border: none;
+  font-weight: 850;
+  border-radius: 30px !important;
+  padding: 12px 30px !important;
+  transition: all 0.3s ease;
+}
+.btn-urban:hover {
+  background-color: #1e8343;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(37, 162, 84, 0.3);
+  color: white;
+}
+
+.card-paytm {
+  border: 1.5px solid rgba(0, 41, 112, 0.16) !important; /* Increased contrast border */
+  border-radius: 28px !important; /* Rounder corners */
+  background: white;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-paytm:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 15px 35px rgba(0, 41, 112, 0.12);
+}
+
+.card-urban {
+  border: 1.5px solid rgba(15, 41, 66, 0.16) !important;
+  border-radius: 24px !important;
+  background: white;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-urban:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 15px 30px rgba(37, 162, 84, 0.12);
+}
+
+/* Resolve Bootstrap & Tailwind Conflicts */
+a {
+  text-decoration: none !important;
+}
+.navbar-brand {
+  font-family: var(--font-outfit), sans-serif;
+}
+.nav-link {
+  font-weight: 600;
+}
+
+/* Premium Form Input Custom Styles */
+.form-control, .form-select {
+  border: 1.8px solid #94a3b8 !important; /* Increased border contrast (slate-400) */
+  border-radius: 16px !important; /* Rounder corners */
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  color: #002970 !important;
+  padding: 0.75rem 1.25rem !important;
+  transition: all 0.2s ease-in-out !important;
+}
+.form-control:focus, .form-select:focus {
+  border-color: #00baf2 !important;
+  box-shadow: 0 0 0 4px rgba(0, 186, 242, 0.16) !important;
+  outline: 0 !important;
+}
+.form-control::placeholder {
+  color: #64748b !important; /* Increased placeholder contrast (slate-500) */
+  font-weight: 500 !important;
+}
+.dark .form-control, .dark .form-select {
+  background-color: #0f172a !important;
+  border-color: #475569 !important;
+  color: #f8fafc !important;
+}
+.dark .form-control:focus, .dark .form-select:focus {
+  border-color: #00baf2 !important;
+  box-shadow: 0 0 0 4px rgba(0, 186, 242, 0.25) !important;
+}
+
+/* Scroll Snapping Utilities */
+.scroll-snap-container {
+  scroll-snap-type: y mandatory;
+  overflow-y: auto;
+  height: 100vh;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+}
+.scroll-snap-section {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  scroll-margin-top: 56px; /* offset for height of header */
+  min-height: calc(100vh - 56px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+}
+
+/* swapnilaher.in style integrations */
+.techstar-blue-gradient {
+  background: radial-gradient(circle at 10% 0%, rgba(53, 94, 252, 0.08), transparent 42%) !important;
+}
+.techstar-service-bg {
+  background: linear-gradient(180deg, #ffffff 0%, rgba(223, 228, 253, 0.38) 100%) !important;
+}
+.home-info-card {
+  border: 1.8px solid rgba(53, 94, 252, 0.22) !important; /* Increased contrast border */
+  border-radius: 24px !important; /* Rounder corners */
+  padding: 1.75rem !important;
+  background: #ffffff !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.home-info-card:hover {
+  box-shadow: 0 20px 40px rgba(1, 26, 65, 0.12) !important;
+  transform: translateY(-6px) !important;
+  border-color: rgba(53, 94, 252, 0.45) !important;
+}
+.home-icon-box {
+  width: 52px;
+  height: 52px;
+  background: rgba(53, 94, 252, 0.1);
+  border-radius: 14px; /* Rounder box */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #355efc;
+}
+
+/* Global Premium Button Overrides */
+.btn {
+  border-radius: 30px !important; /* Force all Bootstrap buttons to be rounded-pill */
+  font-weight: 750 !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 15px rgba(53, 94, 252, 0.15) !important;
+}
+
+.btn:active {
+  transform: translateY(0px) !important;
+}
+
+

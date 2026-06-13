@@ -28,6 +28,9 @@ import { StickyMobileCTA } from "@/components/ui/StickyMobileCTA"
 export const metadata = {
   title: "Home Loans 2026: Compare Rates from 50+ Banks | TechStar",
   description: "Get comprehensive information on home loans, tax benefits, eligibility, and documentation. Apply now for the lowest interest rates starting 8.40%.",
+  alternates: {
+    canonical: "https://techstarsolution.in/home-loan"
+  }
 }
 
 export default function HomeLoanPage() {

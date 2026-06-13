@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "bootstrap/dist/css/bootstrap.min.css";
+import Script from "next/script";
 
 export const viewport: Viewport = {
   themeColor: "#059669",
@@ -14,9 +16,6 @@ export const metadata: Metadata = {
   title: "Techstar Money Solution | Premium Fintech Loan Marketplace & DSA",
   description: "Compare loans, credit cards, and insurance with Techstar Money Solution - India's most trusted financial loan marketplace.",
   keywords: "loan dsa, personal loan, business loan, home loan, loan agent, mortgage loan, finance service",
-  alternates: {
-    canonical: "/"
-  },
   openGraph: {
     title: "Techstar Money Solution | Premium Fintech Loan Marketplace & DSA",
     description: "Compare loans, credit cards, and insurance with Techstar Money Solution - India's most trusted financial loan marketplace.",
@@ -60,6 +59,21 @@ export default function RootLayout({
       className="h-full antialiased transition-colors duration-300"
     >
       <body className="min-h-full flex flex-col font-inter">
+        {/* Google Analytics (gtag.js) */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-Y8ZY3SCES2"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'G-Y8ZY3SCES2');
+          `}
+        </Script>
+
         <SEOSchema type="Organization" />
         <SEOSchema type="WebSite" />
         <ThemeProvider>
