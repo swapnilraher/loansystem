@@ -206,7 +206,7 @@ export function HomeHero() {
                       placeholder="10-digit number" 
                       className="form-control rounded-pill py-3 px-4 text-xs shadow-sm"
                       value={leadMobile}
-                      onChange={(e) => setLeadMobile(e.target.value)}
+                      onChange={(e) => setLeadMobile(e.target.value.replace(/\D/g, ''))}
                       required
                     />
                   </div>
@@ -232,11 +232,13 @@ export function HomeHero() {
                   <div className="col-lg-2 col-md-4 col-12">
                     <label className="text-[10px] text-uppercase font-black text-slate-400 mb-2 d-block ms-3 tracking-wider">Amount (₹)</label>
                     <input 
-                      type="number" 
+                      type="text" 
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       placeholder="Required amount" 
                       className="form-control rounded-pill py-3 px-4 text-xs shadow-sm"
                       value={leadAmount}
-                      onChange={(e) => setLeadAmount(e.target.value)}
+                      onChange={(e) => setLeadAmount(e.target.value.replace(/\D/g, ''))}
                       required
                     />
                   </div>
