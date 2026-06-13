@@ -35,7 +35,7 @@ export default function AboutPage() {
   ]
 
   const stats = [
-    { value: "₹100Cr+", label: "Loans Disbursed" },
+    { value: "₹500Cr+", label: "Loans Disbursed" },
     { value: "5,000+", label: "Happy Customers" },
     { value: "50+", label: "Banking Partners" },
     { value: "24/7", label: "Expert Support" }
