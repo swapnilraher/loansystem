@@ -69,8 +69,8 @@ export function Header() {
         style={{ scaleX }}
       />
       <header className={`fixed-top w-full z-50 transition-all duration-300 ${scrolled
-        ? "py-2 bg-white dark:bg-slate-900 border-bottom border-slate-100 dark:border-slate-800 shadow-sm"
-        : "py-3 bg-white/70 dark:bg-slate-950/70 border-bottom border-transparent backdrop-blur-md"
+        ? "py-1 bg-white dark:bg-slate-900 border-bottom border-slate-100 dark:border-slate-800"
+        : "py-2 bg-white/70 dark:bg-slate-950/70 border-bottom border-transparent backdrop-blur-md"
         }`}>
         <div className="container-fluid px-md-5 px-3">
           <div className="d-flex align-items-center justify-content-between">
