@@ -1,5 +1,6 @@
 "use client"
 import React from "react"
+import { motion } from "framer-motion"
 import { 
   CreditCard, 
   Home, 
@@ -119,8 +120,12 @@ export function ProductGrid() {
         {/* Grid Section */}
         <div className="row g-4 justify-content-center">
           {products.map((p, i) => (
-            <div 
+            <motion.div 
               key={i}
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.5, delay: i * 0.1 }}
               className="col-lg-4 col-md-6 col-12"
             >
               <div className="product-premium-card h-100 overflow-hidden d-flex flex-column group">
@@ -173,7 +178,7 @@ export function ProductGrid() {
                   </a>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
 
