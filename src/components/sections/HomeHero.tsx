@@ -50,7 +50,7 @@ export function HomeHero() {
   const [leadAmount, setLeadAmount] = useState("")
   const [leadMobile, setLeadMobile] = useState("")
   const [leadName, setLeadName] = useState("")
-  const [leadCity, setLeadCity] = useState("Pune")
+  const [leadCity, setLeadCity] = useState("")
   const [leadIncome, setLeadIncome] = useState("")
   const [isLeadSubmitting, setIsLeadSubmitting] = useState(false)
   const [leadSuccess, setLeadSuccess] = useState(false)
@@ -221,6 +221,11 @@ export function HomeHero() {
                       <option value="personal">Personal Loan</option>
                       <option value="home">Home Loan</option>
                       <option value="business">Business Loan</option>
+                      <option value="credit-card">Credit Card</option>
+                      <option value="lap">Loan Against Property</option>
+                      <option value="education">Education Loan</option>
+                      <option value="car">Car Loan</option>
+                      <option value="gold">Gold Loan</option>
                     </select>
                   </div>
 
