@@ -352,37 +352,38 @@ export function Header() {
 
 export function Footer() {
   return (
-    <footer className="bg-slate-950 text-slate-400 pt-16 pb-8 border-t border-slate-900 relative overflow-hidden">
-      {/* Background glow - subtle */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-64 bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+    <footer className="bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 pt-16 pb-8 border-t border-slate-200 dark:border-slate-900 relative overflow-hidden transition-colors duration-300">
+      {/* Dynamic Background Glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-primary/5 dark:bg-primary/10 rounded-[100%] blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-600/5 dark:bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
 
-      <div className="container px-md-5 px-3 position-relative z-10">
+      <div className="container px-md-5 px-3 relative z-10">
         
         {/* Top Section - Brand and Disclaimer */}
-        <div className="row g-5 mb-10 pb-10 border-b border-slate-900/60">
-          <div className="col-lg-5 col-md-12 text-start">
-            <a href="/" className="d-flex align-items-center gap-3 text-white text-decoration-none group mb-4">
-              <div className="w-12 h-12 bg-white rounded-xl d-flex align-items-center justify-content-center overflow-hidden shadow-sm">
+        <div className="row g-5 mb-12 pb-12 border-b border-slate-200 dark:border-slate-800/60">
+          <div className="col-lg-4 col-md-12 text-start">
+            <a href="/" className="d-flex align-items-center gap-3 text-secondary dark:text-white text-decoration-none group mb-4">
+              <div className="w-12 h-12 bg-white rounded-[1rem] d-flex align-items-center justify-content-center overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800 group-hover:border-primary transition-colors">
                 <img src="/img/logo.jpeg" alt="TechStar Logo" className="w-100 h-100 object-cover" />
               </div>
-              <span className="fs-4 font-black tracking-tight italic text-white group-hover:text-primary transition-colors">
-                Techstar Money Solution
+              <span className="fs-4 font-black tracking-tight italic text-secondary dark:text-white group-hover:text-primary dark:group-hover:text-primary transition-colors">
+                Techstar
               </span>
             </a>
-            <p className="text-sm font-medium leading-relaxed text-slate-400 mb-6 max-w-md">
+            <p className="text-xs font-medium leading-relaxed text-slate-500 dark:text-slate-400 mb-6 max-w-sm">
               Empowering millions of Indian borrowers with transparent, hassle-free, and expert-assisted digital financial solutions.
             </p>
             
             <div className="d-flex flex-column gap-3">
-              <a href="tel:9579005645" className="text-slate-300 text-decoration-none hover:text-primary transition-all d-flex align-items-center gap-3 text-sm font-bold group">
-                <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 d-flex align-items-center justify-content-center group-hover:bg-primary group-hover:border-primary group-hover:text-white transition-all">
+              <a href="tel:9579005645" className="text-slate-600 dark:text-slate-300 text-decoration-none hover:text-primary dark:hover:text-white transition-all d-flex align-items-center gap-3 text-sm font-bold group">
+                <div className="w-10 h-10 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 d-flex align-items-center justify-content-center group-hover:bg-primary group-hover:border-primary group-hover:text-white transition-all shadow-sm">
                   <Phone size={16} />
                 </div>
                 +91 9579005645
               </a>
-              <div className="text-slate-300 d-flex align-items-center gap-3 text-sm font-bold group">
-                <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 d-flex align-items-center justify-content-center">
-                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="text-slate-600 dark:text-slate-300 d-flex align-items-center gap-3 text-sm font-bold group">
+                <div className="w-10 h-10 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 d-flex align-items-center justify-content-center shadow-sm">
+                  <svg className="w-4 h-4 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
@@ -392,19 +393,24 @@ export function Footer() {
             </div>
           </div>
 
-          <div className="col-lg-7 col-md-12">
-            <div className="bg-slate-900/40 border border-slate-800/50 p-6 rounded-2xl text-xs leading-relaxed text-slate-400">
-              <strong className="text-slate-300 font-extrabold block mb-2">Disclaimer:</strong> 
-              Techstar Money Solution is a registered Direct Selling Agent (DSA) and is not a direct lender. All loan products, interest slabs, processing charges, and approval mandates are directly offered by our matched partner banks and RBI-registered NBFCs. Final approvals and disbursements are subject to credit profile checks and documentation verification by respective institutions.
+          <div className="col-lg-8 col-md-12">
+            <div className="bg-white/60 dark:bg-slate-900/50 backdrop-blur-md border border-slate-200 dark:border-slate-800/80 p-6 md:p-8 rounded-[2rem] text-xs leading-relaxed text-slate-500 dark:text-slate-400 shadow-sm dark:shadow-inner h-100 flex flex-col justify-center transition-colors">
+              <div className="flex items-center gap-2 mb-3 text-secondary dark:text-slate-300">
+                <ShieldCheck size={18} className="text-emerald-500" />
+                <strong className="font-black text-sm uppercase tracking-wider text-slate-700 dark:text-slate-300">Regulatory Disclaimer</strong>
+              </div>
+              <p className="m-0">Techstar Money Solution is a registered Direct Selling Agent (DSA) and is not a direct lender. All loan products, interest slabs, processing charges, and approval mandates are directly offered by our matched partner banks and RBI-registered NBFCs. Final approvals and disbursements are subject to credit profile checks and documentation verification by respective institutions. We guarantee 100% data privacy and never charge hidden advisory fees.</p>
             </div>
           </div>
         </div>
 
         {/* Links Section */}
-        <div className="row g-4 mb-10">
+        <div className="row g-5 mb-12">
           <div className="col-lg-3 col-md-6 col-6 text-start">
-            <h5 className="text-white font-bold text-sm mb-4">Products</h5>
-            <ul className="list-unstyled space-y-3 text-sm font-medium">
+            <h5 className="text-secondary dark:text-white font-black text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-primary"></span> Products
+            </h5>
+            <ul className="list-unstyled space-y-3 text-sm font-semibold">
               {[
                 { name: "Personal Loan", href: "/personal-loan" },
                 { name: "Home Loan", href: "/home-loan" },
@@ -413,7 +419,7 @@ export function Footer() {
                 { name: "Car Loan", href: "/car-loan" },
               ].map((link) => (
                 <li key={link.name}>
-                  <a href={link.href} className="text-slate-400 hover:text-white text-decoration-none transition-colors">
+                  <a href={link.href} className="text-slate-500 hover:text-primary dark:text-slate-500 dark:hover:text-white hover:pl-1 text-decoration-none transition-all duration-300 block">
                     {link.name}
                   </a>
                 </li>
@@ -422,11 +428,13 @@ export function Footer() {
           </div>
 
           <div className="col-lg-3 col-md-6 col-6 text-start">
-            <h5 className="text-white font-bold text-sm mb-4">Calculators</h5>
-            <ul className="list-unstyled space-y-3 text-sm font-medium">
+            <h5 className="text-secondary dark:text-white font-black text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Tools
+            </h5>
+            <ul className="list-unstyled space-y-3 text-sm font-semibold">
               {["EMI Calculator", "Eligibility Checker", "SIP Calculator"].map((link) => (
                 <li key={link}>
-                  <a href="/#calculator" className="text-slate-400 hover:text-white text-decoration-none transition-colors">
+                  <a href="/#calculator" className="text-slate-500 hover:text-emerald-500 dark:text-slate-500 dark:hover:text-white hover:pl-1 text-decoration-none transition-all duration-300 block">
                     {link}
                   </a>
                 </li>
@@ -435,14 +443,17 @@ export function Footer() {
           </div>
 
           <div className="col-lg-3 col-md-6 col-6 text-start">
-            <h5 className="text-white font-bold text-sm mb-4">Legal</h5>
-            <ul className="list-unstyled space-y-3 text-sm font-medium">
+            <h5 className="text-secondary dark:text-white font-black text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-500"></span> Legal
+            </h5>
+            <ul className="list-unstyled space-y-3 text-sm font-semibold">
               {[
                 { name: "Privacy Policy", href: "/privacy" },
-                { name: "Terms & Conditions", href: "/terms" }
+                { name: "Terms & Conditions", href: "/terms" },
+                { name: "Become a Partner", href: "/become-dsa-partner" }
               ].map((link) => (
                 <li key={link.name}>
-                  <a href={link.href} className="text-slate-400 hover:text-white text-decoration-none transition-colors">
+                  <a href={link.href} className="text-slate-500 hover:text-amber-500 dark:text-slate-500 dark:hover:text-white hover:pl-1 text-decoration-none transition-all duration-300 block">
                     {link.name}
                   </a>
                 </li>
@@ -451,15 +462,17 @@ export function Footer() {
           </div>
 
           <div className="col-lg-3 col-md-6 col-6 text-start">
-            <h5 className="text-white font-bold text-sm mb-4">Locations</h5>
-            <ul className="list-unstyled space-y-3 text-sm font-medium">
+            <h5 className="text-secondary dark:text-white font-black text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-purple-500"></span> Locations
+            </h5>
+            <ul className="list-unstyled space-y-3 text-sm font-semibold">
               <li>
-                <a href="/loan-agent-pune" className="text-slate-400 hover:text-white text-decoration-none transition-colors">
+                <a href="/loan-agent-pune" className="text-slate-500 hover:text-purple-500 dark:text-slate-500 dark:hover:text-white hover:pl-1 text-decoration-none transition-all duration-300 block">
                   Pune Office
                 </a>
               </li>
               <li>
-                <a href="/home-loan-chhatrapati-sambhajianagar" className="text-slate-400 hover:text-white text-decoration-none transition-colors">
+                <a href="/home-loan-chhatrapati-sambhajianagar" className="text-slate-500 hover:text-purple-500 dark:text-slate-500 dark:hover:text-white hover:pl-1 text-decoration-none transition-all duration-300 block">
                   Sambhajianagar Office
                 </a>
               </li>
@@ -468,8 +481,8 @@ export function Footer() {
         </div>
 
         {/* Service Areas */}
-        <div className="border-t border-slate-900/60 pt-8 mb-8 text-start">
-          <p className="font-bold text-white text-sm mb-4">Local Directories</p>
+        <div className="border-t border-slate-200 dark:border-slate-800/60 pt-8 mb-8 text-start">
+          <p className="font-black text-slate-400 dark:text-slate-300 text-[10px] uppercase tracking-widest mb-4">Local Directories</p>
           <div className="d-flex flex-wrap gap-2">
             {[
               { name: "Personal Loan Pune", href: "/personal-loan-pune" },
@@ -483,7 +496,7 @@ export function Footer() {
               { name: "Property Loan Sambhajianagar", href: "/loan-against-property-chhatrapati-sambhajianagar" },
               { name: "DSA Agent Sambhajianagar", href: "/dsa-loan-chhatrapati-sambhajianagar" },
             ].map((item, idx) => (
-              <a key={idx} href={item.href} className="text-xs text-slate-500 hover:text-white bg-slate-900/50 hover:bg-slate-800 border border-slate-800/80 rounded-lg px-3 py-1.5 text-decoration-none transition-all">
+              <a key={idx} href={item.href} className="text-[10px] font-bold text-slate-500 dark:text-slate-400 hover:text-white bg-white dark:bg-slate-900 hover:bg-primary dark:hover:bg-primary/20 border border-slate-200 dark:border-slate-800 hover:border-primary dark:hover:border-primary/50 rounded-pill px-4 py-2 text-decoration-none transition-all shadow-sm">
                 {item.name}
               </a>
             ))}
@@ -491,13 +504,13 @@ export function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-slate-900/60 pt-6 d-flex flex-column flex-md-row justify-content-between align-items-center gap-4">
-          <p className="text-xs font-medium text-slate-500 m-0">
+        <div className="border-t border-slate-200 dark:border-slate-800/60 pt-6 d-flex flex-column flex-md-row justify-content-between align-items-center gap-4">
+          <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest m-0">
             © {new Date().getFullYear()} Techstar Money Solution. All rights reserved.
           </p>
-          <div className="d-flex gap-4 text-sm font-medium">
+          <div className="d-flex gap-5 text-[10px] font-black uppercase tracking-widest">
             {["Facebook", "Twitter", "LinkedIn"].map((social) => (
-              <a key={social} href="#" className="text-slate-500 hover:text-white text-decoration-none transition-colors">
+              <a key={social} href="#" className="text-slate-400 hover:text-primary dark:text-slate-500 dark:hover:text-white text-decoration-none transition-colors">
                 {social}
               </a>
             ))}

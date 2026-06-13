@@ -70,8 +70,8 @@ export function LoanJourney() {
               >
                 <PremiumCard className="p-6 h-full flex flex-col items-center text-center hover-lift min-h-[280px]" glowColor="rgba(59, 130, 246, 0.06)">
                   {/* Step bubble */}
-                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${item.color} flex items-center justify-center text-white mb-6 shadow-lg shadow-blue-500/10`}>
-                    <Icon size={22} />
+                  <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${item.color} flex items-center justify-center text-white mb-6 shadow-lg shadow-blue-500/10`}>
+                    <Icon size={24} />
                   </div>
 
                   <span className="absolute top-4 right-6 text-4xl font-black text-slate-200/50 dark:text-slate-800/20 select-none">

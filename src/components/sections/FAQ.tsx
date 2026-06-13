@@ -29,30 +29,30 @@ export function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(0)
 
   return (
-    <section className="py-12 md:py-16 bg-white" id="faq">
+    <section className="py-12 md:py-16 bg-white dark:bg-slate-950 transition-colors duration-300" id="faq">
       <div className="container mx-auto px-4">
         <div className="text-center max-w-3xl mx-auto mb-8 md:mb-12">
-          <h2 className="text-4xl font-black text-secondary mb-4">Got Questions? <br/><span className="text-primary italic">We've Got Answers.</span></h2>
-          <p className="text-muted-foreground">Find answers to the most commonly asked questions about loans, eligibility, and the application process.</p>
+          <h2 className="text-4xl font-black text-secondary dark:text-white mb-4">Got Questions? <br/><span className="text-primary italic">We've Got Answers.</span></h2>
+          <p className="text-muted-foreground dark:text-slate-400">Find answers to the most commonly asked questions about loans, eligibility, and the application process.</p>
         </div>
 
         <div className="max-w-3xl mx-auto space-y-4">
           {faqs.map((faq, i) => (
             <div 
               key={i} 
-              className={`group border rounded-3xl transition-all duration-300 overflow-hidden ${
-                openIndex === i ? "border-primary bg-blue-50/30" : "border-slate-100 bg-white"
+              className={`group border rounded-[2rem] transition-all duration-300 overflow-hidden ${
+                openIndex === i ? "border-primary bg-blue-50/30 dark:bg-primary/5 shadow-md" : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900"
               }`}
             >
               <button 
                 onClick={() => setOpenIndex(openIndex === i ? null : i)}
-                className="w-full px-6 py-4 flex items-center justify-between text-left"
+                className="w-full px-6 py-5 flex items-center justify-between text-left"
               >
                 <span className={`text-lg font-bold transition-colors ${
-                  openIndex === i ? "text-primary" : "text-secondary"
+                  openIndex === i ? "text-primary" : "text-secondary dark:text-slate-200"
                 }`}>{faq.q}</span>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-                  openIndex === i ? "bg-primary text-white rotate-180" : "bg-slate-50 text-slate-400 group-hover:bg-slate-100"
+                <div className={`w-10 h-10 rounded-full flex shrink-0 items-center justify-center transition-all ${
+                  openIndex === i ? "bg-primary text-white rotate-180" : "bg-slate-50 dark:bg-slate-800 text-slate-400 group-hover:bg-slate-100 dark:group-hover:bg-slate-700"
                 }`}>
                   <ChevronDown size={20} />
                 </div>
@@ -61,7 +61,7 @@ export function FAQ() {
               <div className={`px-6 transition-all duration-300 ease-in-out overflow-hidden ${
                 openIndex === i ? "max-h-96 pb-6 opacity-100" : "max-h-0 opacity-0"
               }`}>
-                <p className="text-secondary/70 leading-relaxed font-medium">
+                <p className="text-secondary/70 dark:text-slate-400 leading-relaxed font-medium">
                   {faq.a}
                 </p>
               </div>

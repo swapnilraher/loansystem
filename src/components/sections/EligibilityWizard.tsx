@@ -148,13 +148,13 @@ export function EligibilityWizard() {
                       <button
                         key={type}
                         onClick={() => setLoanType(type as any)}
-                        className={`p-5 rounded-2xl border flex flex-col items-center justify-center gap-3 transition-all cursor-pointer ${
+                        className={`p-5 rounded-[2rem] border flex flex-col items-center justify-center gap-3 transition-all cursor-pointer ${
                           loanType === type
-                            ? "border-primary bg-primary/5 text-primary"
+                            ? "border-primary bg-primary/5 text-primary shadow-md"
                             : "border-slate-150/60 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-500 hover:border-slate-300"
                         }`}
                       >
-                        <Coins size={24} />
+                        <Coins size={28} />
                         <span className="text-xs font-black uppercase tracking-wider">{type} Loan</span>
                       </button>
                     ))}
@@ -162,10 +162,10 @@ export function EligibilityWizard() {
                 </div>
 
                 {/* Amount Slider */}
-                <div>
-                  <div className="flex justify-between text-sm font-bold mb-2">
+                <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800">
+                  <div className="flex justify-between text-sm font-bold mb-4">
                     <span className="text-slate-550 dark:text-slate-400">Required Amount</span>
-                    <span className="text-primary font-black">₹{(amount / 100000).toFixed(1)} Lacs</span>
+                    <span className="text-primary font-black bg-white dark:bg-slate-800 px-3 py-1 rounded-pill shadow-sm">₹{(amount / 100000).toFixed(1)} Lacs</span>
                   </div>
                   <input
                     type="range"
@@ -174,9 +174,9 @@ export function EligibilityWizard() {
                     step="50000"
                     value={amount}
                     onChange={(e) => setAmount(Number(e.target.value))}
-                    className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-primary"
+                    className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer accent-primary"
                   />
-                  <div className="flex justify-between text-[10px] text-slate-400 mt-1 font-semibold">
+                  <div className="flex justify-between text-[10px] text-slate-400 mt-2 font-semibold px-1">
                     <span>₹1 Lac</span>
                     <span>₹50 Lacs</span>
                   </div>
@@ -197,9 +197,9 @@ export function EligibilityWizard() {
                       <button
                         key={emp.id}
                         onClick={() => setEmployment(emp.id as any)}
-                        className={`p-5 rounded-2xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+                        className={`p-6 rounded-[2.5rem] border text-left flex flex-col gap-1.5 transition-all cursor-pointer ${
                           employment === emp.id
-                            ? "border-primary bg-primary/5 text-primary"
+                            ? "border-primary bg-primary/5 text-primary shadow-md"
                             : "border-slate-150/60 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-500 hover:border-slate-350"
                         }`}
                       >
@@ -211,10 +211,10 @@ export function EligibilityWizard() {
                 </div>
 
                 {/* Monthly Income Slider */}
-                <div>
-                  <div className="flex justify-between text-sm font-bold mb-2">
+                <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800">
+                  <div className="flex justify-between text-sm font-bold mb-4">
                     <span className="text-slate-550 dark:text-slate-400">Monthly Net Income</span>
-                    <span className="text-primary font-black">₹{income.toLocaleString("en-IN")}</span>
+                    <span className="text-primary font-black bg-white dark:bg-slate-800 px-3 py-1 rounded-pill shadow-sm">₹{income.toLocaleString("en-IN")}</span>
                   </div>
                   <input
                     type="range"
@@ -223,19 +223,19 @@ export function EligibilityWizard() {
                     step="5000"
                     value={income}
                     onChange={(e) => setIncome(Number(e.target.value))}
-                    className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-primary"
+                    className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer accent-primary"
                   />
-                  <div className="flex justify-between text-[10px] text-slate-400 mt-1 font-semibold">
+                  <div className="flex justify-between text-[10px] text-slate-400 mt-2 font-semibold px-1">
                     <span>₹15K</span>
                     <span>₹3 Lacs+</span>
                   </div>
                 </div>
 
                 {/* Existing EMIs Slider */}
-                <div>
-                  <div className="flex justify-between text-sm font-bold mb-2">
+                <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800">
+                  <div className="flex justify-between text-sm font-bold mb-4">
                     <span className="text-slate-550 dark:text-slate-400">Existing Monthly EMIs (if any)</span>
-                    <span className="text-primary font-black">₹{emis.toLocaleString("en-IN")}</span>
+                    <span className="text-primary font-black bg-white dark:bg-slate-800 px-3 py-1 rounded-pill shadow-sm">₹{emis.toLocaleString("en-IN")}</span>
                   </div>
                   <input
                     type="range"
@@ -244,9 +244,9 @@ export function EligibilityWizard() {
                     step="2000"
                     value={emis}
                     onChange={(e) => setEmis(Number(e.target.value))}
-                    className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-primary"
+                    className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer accent-primary"
                   />
-                  <div className="flex justify-between text-[10px] text-slate-400 mt-1 font-semibold">
+                  <div className="flex justify-between text-[10px] text-slate-400 mt-2 font-semibold px-1">
                     <span>₹0</span>
                     <span>₹1 Lac</span>
                   </div>
@@ -259,14 +259,14 @@ export function EligibilityWizard() {
                 {/* Credit Score Range */}
                 <div>
                   <label className="block text-sm font-black text-secondary dark:text-white mb-4">Select your Credit Score (CIBIL) Range</label>
-                  <div className="grid grid-cols-4 gap-2.5">
+                  <div className="grid grid-cols-4 gap-3">
                     {["750+", "700-749", "650-699", "<650"].map((range) => (
                       <button
                         key={range}
                         onClick={() => setCibil(range as any)}
-                        className={`py-3.5 px-1 rounded-xl border text-center transition-all cursor-pointer ${
+                        className={`py-4 px-2 rounded-full border text-center transition-all cursor-pointer ${
                           cibil === range
-                            ? "border-primary bg-primary/5 text-primary font-black text-xs"
+                            ? "border-primary bg-primary/10 text-primary font-black text-xs shadow-md"
                             : "border-slate-150/60 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-500 hover:border-slate-350 text-xs font-bold"
                         }`}
                       >
@@ -279,14 +279,14 @@ export function EligibilityWizard() {
                 {/* City Selector */}
                 <div>
                   <label className="block text-sm font-black text-secondary dark:text-white mb-4">Select your current City</label>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2.5">
                     {cities.map((c) => (
                       <button
                         key={c}
                         onClick={() => setCity(c)}
-                        className={`py-2 px-4 rounded-xl border text-xs font-black transition-all cursor-pointer ${
+                        className={`py-2 px-5 rounded-pill border text-xs font-black transition-all cursor-pointer ${
                           city === c
-                            ? "bg-primary border-primary text-white"
+                            ? "bg-primary border-primary text-white shadow-md"
                             : "bg-slate-50/50 dark:bg-slate-900 border-slate-150/60 dark:border-slate-800 text-slate-500 hover:border-slate-300"
                         }`}
                       >
@@ -304,46 +304,46 @@ export function EligibilityWizard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                   
                   {/* Result Panel */}
-                  <div className="p-6 bg-slate-50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-850 rounded-3xl text-center space-y-4">
+                  <div className="p-8 bg-slate-50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-850 rounded-[3rem] text-center space-y-4 shadow-inner">
                     <h4 className="text-xs uppercase font-black tracking-widest text-slate-450">Estimated Eligibility Output</h4>
                     <div>
                       <p className="text-[10px] text-slate-400 font-bold mb-1">Estimated Monthly EMI</p>
-                      <p className="text-4xl font-black text-primary">₹{results.emi.toLocaleString("en-IN")}</p>
-                      <p className="text-[9px] text-slate-400 font-bold mt-1">(Calculated over 5 Years tenure)</p>
+                      <p className="text-5xl font-black text-primary">₹{results.emi.toLocaleString("en-IN")}</p>
+                      <p className="text-[9px] text-slate-400 font-bold mt-2">(Calculated over 5 Years tenure)</p>
                     </div>
 
-                    <div className="pt-4 border-t border-slate-200/50 dark:border-slate-800/80 flex justify-center items-center gap-3">
+                    <div className="pt-5 border-t border-slate-200/50 dark:border-slate-800/80 flex justify-center items-center gap-3">
                       <span className="text-xs text-slate-550 font-bold">Approval Odds:</span>
-                      <span className={`text-xs font-black uppercase tracking-wider py-1 px-3.5 rounded-full ${results.oddsBg} ${results.oddsColor}`}>
+                      <span className={`text-xs font-black uppercase tracking-wider py-1.5 px-4 rounded-full ${results.oddsBg} ${results.oddsColor}`}>
                         {results.odds}
                       </span>
                     </div>
 
-                    <div className="text-xs text-slate-500 dark:text-slate-400 font-bold">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-2">
                       Estimated Interest Rate: <span className="text-secondary dark:text-white font-extrabold">{results.rate}% p.a.</span>
                     </div>
                   </div>
 
                   {/* Matched Lenders List */}
                   <div className="space-y-4">
-                    <h4 className="text-xs uppercase font-black tracking-widest text-slate-400 flex items-center gap-1.5">
+                    <h4 className="text-xs uppercase font-black tracking-widest text-slate-400 flex items-center gap-1.5 ms-2">
                       <Sparkles size={14} className="text-amber-500" /> Best Matched Lenders For You
                     </h4>
                     
                     <div className="space-y-3">
                       {matchedLenders.map((lender) => (
-                        <div key={lender.name} className="p-4 bg-white dark:bg-slate-900 border border-slate-150/40 dark:border-slate-800 rounded-2xl shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+                        <div key={lender.name} className="p-4 bg-white dark:bg-slate-900 border border-slate-150/40 dark:border-slate-800 rounded-[2rem] shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-slate-800 text-primary flex items-center justify-center font-black text-sm">
+                            <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-slate-800 text-primary flex items-center justify-center font-black text-sm shadow-inner">
                               {lender.name.substring(0,2)}
                             </div>
                             <div>
-                              <h5 className="text-sm font-black text-secondary dark:text-white">{lender.name}</h5>
+                              <h5 className="text-sm font-black text-secondary dark:text-white mb-0.5">{lender.name}</h5>
                               <p className="text-[10px] text-slate-400 font-bold">Disbursal in {lender.speed}</p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-xs font-black text-primary">{lender.rate}% p.a.</p>
+                            <p className="text-xs font-black text-primary mb-0.5">{lender.rate}% p.a.</p>
                             <p className="text-[9px] text-slate-400 font-bold">Docs: {lender.doc}</p>
                           </div>
                         </div>
@@ -352,7 +352,7 @@ export function EligibilityWizard() {
 
                     <a
                       href="/personal-loan"
-                      className="w-full h-12 bg-primary text-primary-foreground rounded-xl flex items-center justify-center font-black uppercase tracking-widest text-[10px] gap-2 shadow-lg shadow-primary/20 hover:bg-blue-700 transition-all cursor-pointer"
+                      className="w-full h-14 bg-primary text-primary-foreground rounded-pill flex items-center justify-center font-black uppercase tracking-widest text-[11px] gap-2 shadow-xl shadow-primary/20 hover:bg-blue-700 hover:-translate-y-1 transition-all cursor-pointer mt-2"
                     >
                       Instant Callback Approval <ArrowRight size={14} />
                     </a>
@@ -379,7 +379,7 @@ export function EligibilityWizard() {
             {step < 4 ? (
               <Button
                 onClick={() => setStep(step + 1)}
-                className="rounded-xl h-12 px-6 flex items-center gap-2 font-black uppercase text-xs tracking-widest cursor-pointer"
+                className="rounded-pill h-12 px-8 flex items-center gap-2 font-black uppercase text-xs tracking-widest cursor-pointer shadow-lg"
               >
                 {step === 3 ? "Calculate odds" : "Continue"} <ArrowRight size={16} />
               </Button>

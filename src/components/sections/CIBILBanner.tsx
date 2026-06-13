@@ -12,7 +12,7 @@ export function CIBILBanner() {
       <div className="position-absolute end-0 w-[40rem] h-[40rem] bg-warning/5 rounded-circle blur-[128px] pointer-events-none" style={{ bottom: "-10%" }} />
       
       <div className="container py-4 relative z-10">
-        <div className="card border-0 bg-gradient-to-br from-slate-900 via-slate-900 to-paytm-navy p-4 p-md-5 rounded-[2.5rem] shadow-lg overflow-hidden position-relative">
+        <div className="card border-0 bg-gradient-to-br from-slate-900 via-slate-900 to-paytm-navy p-4 p-md-5 rounded-[3rem] shadow-xl overflow-hidden position-relative">
           
           <div className="row g-4 align-items-center relative z-10">
             {/* Left Content */}
@@ -36,11 +36,11 @@ export function CIBILBanner() {
               </p>
               
               <div className="d-flex flex-wrap align-items-center gap-3 pt-3">
-                <button className="btn btn-warning py-3 px-4 font-black rounded-full text-xs uppercase tracking-wider text-slate-950 shadow d-flex align-items-center gap-2 hover-lift">
+                <button className="btn btn-warning py-3 px-5 font-black rounded-pill text-xs uppercase tracking-wider text-slate-950 shadow-lg d-flex align-items-center gap-2 hover-lift">
                   Check Free Score <ArrowRight size={16} />
                 </button>
                 
-                <div className="text-[10px] font-bold text-slate-500 d-flex flex-column gap-1">
+                <div className="text-[10px] font-bold text-slate-500 d-flex flex-column gap-1 ms-lg-2 mt-3 mt-lg-0">
                   <div className="d-flex align-items-center gap-1.5"><CheckCircle2 size={12} className="text-success"/> No impact on score</div>
                   <div className="d-flex align-items-center gap-1.5"><ShieldCheck size={12} className="text-primary"/> 100% Secure & Encrypted</div>
                 </div>
@@ -60,10 +60,10 @@ export function CIBILBanner() {
                 <motion.div 
                   animate={{ y: [-8, 8, -8] }}
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                  className="position-absolute bg-slate-800/80 border border-slate-700 p-3 rounded-2xl shadow-lg d-flex align-items-center gap-3"
+                  className="position-absolute bg-slate-800/90 backdrop-blur-md border border-slate-700/80 p-3 rounded-[1.5rem] shadow-xl d-flex align-items-center gap-3"
                   style={{ top: "-10px", right: "-10px", zIndex: 10 }}
                 >
-                  <div className="w-10 h-10 rounded-circle bg-emerald-500/20 d-flex align-items-center justify-content-center text-success">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 d-flex align-items-center justify-content-center text-success">
                     <Award size={18} />
                   </div>
                   <div className="text-start leading-none">
@@ -76,10 +76,10 @@ export function CIBILBanner() {
                 <motion.div 
                   animate={{ y: [8, -8, 8] }}
                   transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                  className="position-absolute bg-slate-800/80 border border-slate-700 p-3 rounded-2xl shadow-lg d-flex align-items-center gap-3"
+                  className="position-absolute bg-slate-800/90 backdrop-blur-md border border-slate-700/80 p-3 rounded-[1.5rem] shadow-xl d-flex align-items-center gap-3"
                   style={{ bottom: "-10px", left: "-10px", zIndex: 10 }}
                 >
-                  <div className="w-10 h-10 rounded-circle bg-paytm-blue/20 d-flex align-items-center justify-content-center text-paytm-blue">
+                  <div className="w-10 h-10 rounded-full bg-paytm-blue/20 d-flex align-items-center justify-content-center text-paytm-blue">
                     <Zap size={18} />
                   </div>
                   <div className="text-start leading-none">
@@ -89,7 +89,7 @@ export function CIBILBanner() {
                 </motion.div>
 
                 {/* Main Score Card */}
-                <div className="bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700 rounded-3xl p-4 shadow-2xl text-center">
+                <div className="bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700 rounded-[2.5rem] p-5 shadow-2xl text-center">
                   <div className="mb-3">
                     <h4 className="fs-6 font-black text-slate-350 m-0">Credit Score Checker</h4>
                     <p className="text-[10px] text-muted m-0">Real-time CIBIL Health</p>

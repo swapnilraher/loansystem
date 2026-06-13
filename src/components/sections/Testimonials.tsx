@@ -55,7 +55,7 @@ export function Testimonials() {
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="text-center max-w-3xl mx-auto mb-8 md:mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white dark:bg-slate-900 text-primary rounded-lg text-xs font-black uppercase tracking-widest mb-4 shadow-sm border border-slate-100 dark:border-slate-800">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white dark:bg-slate-900 text-primary rounded-full text-[10px] font-black uppercase tracking-widest mb-4 shadow-sm border border-slate-100 dark:border-slate-800">
             <Star size={14} fill="currentColor" /> Customer Stories
           </div>
           <h2 className="text-4xl md:text-5xl font-black text-secondary dark:text-white leading-tight tracking-tight">
@@ -88,7 +88,7 @@ export function Testimonials() {
                 </p>
                 
                 <div className="mt-auto flex items-center gap-4 pt-6 border-t border-slate-100 dark:border-slate-800/80">
-                  <img src={t.image} alt={t.name} className="w-14 h-14 rounded-2xl object-cover shadow-md border border-slate-100 dark:border-slate-800" />
+                  <img src={t.image} alt={t.name} className="w-14 h-14 rounded-full object-cover shadow-md border border-slate-100 dark:border-slate-800" />
                   <div>
                     <h4 className="font-bold text-secondary dark:text-white flex items-center gap-2">
                       {t.name} <CheckCircle2 size={14} className="text-green-500 shrink-0" />

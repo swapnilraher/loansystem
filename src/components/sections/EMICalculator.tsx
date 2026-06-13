@@ -44,8 +44,8 @@ export function EMICalculator() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-          <Card className="border-none shadow-xl rounded-[2.5rem] overflow-hidden dark:bg-slate-900">
-            <CardContent className="p-6 space-y-8">
+          <Card className="border-none shadow-xl rounded-[3rem] overflow-hidden dark:bg-slate-900">
+            <CardContent className="p-8 space-y-8">
               {/* Loan Amount */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
@@ -54,13 +54,13 @@ export function EMICalculator() {
                     type="number"
                     value={amount}
                     onChange={(e) => setAmount(Number(e.target.value))}
-                    className="w-40 h-12 bg-blue-50 dark:bg-slate-800 border-none rounded-2xl text-primary font-black text-right px-4 focus:ring-4 focus:ring-primary/10 outline-none transition-all dark:text-white"
+                    className="w-40 h-12 bg-blue-50 dark:bg-slate-800 border-none rounded-pill text-primary font-black text-right px-4 focus:ring-4 focus:ring-primary/10 outline-none transition-all dark:text-white"
                   />
                 </div>
                 <input 
                   type="range" min="50000" max="5000000" step="10000" value={amount} 
                   onChange={(e) => setAmount(Number(e.target.value))}
-                  className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-primary"
+                  className="w-full h-3 bg-slate-200 dark:bg-slate-800 rounded-full appearance-none cursor-pointer accent-primary"
                 />
               </div>
 
@@ -73,13 +73,13 @@ export function EMICalculator() {
                     step="0.1"
                     value={interest}
                     onChange={(e) => setInterest(Number(e.target.value))}
-                    className="w-40 h-12 bg-blue-50 dark:bg-slate-800 border-none rounded-2xl text-primary font-black text-right px-4 focus:ring-4 focus:ring-primary/10 outline-none transition-all dark:text-white"
+                    className="w-40 h-12 bg-blue-50 dark:bg-slate-800 border-none rounded-pill text-primary font-black text-right px-4 focus:ring-4 focus:ring-primary/10 outline-none transition-all dark:text-white"
                   />
                 </div>
                 <input 
                   type="range" min="8" max="36" step="0.1" value={interest} 
                   onChange={(e) => setInterest(Number(e.target.value))}
-                  className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-primary"
+                  className="w-full h-3 bg-slate-200 dark:bg-slate-800 rounded-full appearance-none cursor-pointer accent-primary"
                 />
               </div>
 
@@ -88,14 +88,14 @@ export function EMICalculator() {
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-4">
                     <label className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">Tenure</label>
-                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-full">
                       <button 
                         onClick={() => { setTenureType("years"); if(tenure > 7) setTenure(5); }}
-                        className={`px-4 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all ${tenureType === "years" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-400"}`}
+                        className={`px-4 py-1.5 text-[10px] font-black uppercase rounded-pill transition-all ${tenureType === "years" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-400"}`}
                       >Years</button>
                       <button 
                         onClick={() => { setTenureType("months"); if(tenure <= 7) setTenure(60); }}
-                        className={`px-4 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all ${tenureType === "months" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-400"}`}
+                        className={`px-4 py-1.5 text-[10px] font-black uppercase rounded-pill transition-all ${tenureType === "months" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-400"}`}
                       >Months</button>
                     </div>
                   </div>
@@ -103,7 +103,7 @@ export function EMICalculator() {
                     type="number"
                     value={tenure}
                     onChange={(e) => setTenure(Number(e.target.value))}
-                    className="w-40 h-12 bg-blue-50 dark:bg-slate-800 border-none rounded-2xl text-primary font-black text-right px-4 focus:ring-4 focus:ring-primary/10 outline-none transition-all dark:text-white"
+                    className="w-40 h-12 bg-blue-50 dark:bg-slate-800 border-none rounded-pill text-primary font-black text-right px-4 focus:ring-4 focus:ring-primary/10 outline-none transition-all dark:text-white"
                   />
                 </div>
                 <input 
@@ -113,20 +113,20 @@ export function EMICalculator() {
                   step="1" 
                   value={tenure} 
                   onChange={(e) => setTenure(Number(e.target.value))}
-                  className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-primary"
+                  className="w-full h-3 bg-slate-200 dark:bg-slate-800 rounded-full appearance-none cursor-pointer accent-primary"
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6">
-                <div className="p-5 bg-blue-50 dark:bg-blue-900/10 rounded-[2rem] text-center border border-blue-100/50 dark:border-blue-900/20">
+                <div className="p-5 bg-blue-50 dark:bg-blue-900/10 rounded-[2.5rem] text-center border border-blue-100/50 dark:border-blue-900/20">
                   <p className="text-[10px] font-black text-blue-600 mb-1 uppercase tracking-widest">Monthly EMI</p>
                   <p className="text-xl font-black text-secondary dark:text-white">{formatCurrency(emi)}</p>
                 </div>
-                <div className="p-5 bg-amber-50 dark:bg-amber-900/10 rounded-[2rem] text-center border border-amber-100/50 dark:border-amber-900/20">
+                <div className="p-5 bg-amber-50 dark:bg-amber-900/10 rounded-[2.5rem] text-center border border-amber-100/50 dark:border-amber-900/20">
                   <p className="text-[10px] font-black text-amber-600 mb-1 uppercase tracking-widest">Total Interest</p>
                   <p className="text-xl font-black text-secondary dark:text-white">{formatCurrency(totalInterest)}</p>
                 </div>
-                <div className="p-5 bg-slate-900 dark:bg-slate-800 rounded-[2rem] text-center shadow-lg">
+                <div className="p-5 bg-slate-900 dark:bg-slate-800 rounded-[2.5rem] text-center shadow-lg">
                   <p className="text-[10px] font-black text-slate-400 mb-1 uppercase tracking-widest">Total Payment</p>
                   <p className="text-xl font-black text-white">{formatCurrency(totalPayment)}</p>
                 </div>
@@ -134,7 +134,7 @@ export function EMICalculator() {
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-xl rounded-[2.5rem] overflow-hidden h-full dark:bg-slate-900">
+          <Card className="border-none shadow-xl rounded-[3rem] overflow-hidden h-full dark:bg-slate-900">
             <CardHeader className="pt-10">
               <CardTitle className="text-center font-black text-secondary dark:text-white uppercase tracking-tight">Payment Breakup</CardTitle>
             </CardHeader>

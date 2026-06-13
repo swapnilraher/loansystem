@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     title: "Techstar Money Solution | Premium Fintech Loan Marketplace & DSA",
     description: "Compare loans, credit cards, and insurance with India's most trusted financial marketplace.",
     images: ["/partners.png"],
-  }
+  },
   robots: { index: true, follow: true },
 };
 

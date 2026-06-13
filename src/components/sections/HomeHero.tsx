@@ -166,17 +166,17 @@ export function HomeHero() {
         {/* Row 2 - Horizontal Eligibility Form */}
         <div className="row mt-5 pt-4 position-relative z-20">
           <div className="col-12 max-w-5xl mx-auto">
-            <div className="card border-0 shadow-lg rounded-[2.5rem] p-4 bg-white dark:bg-slate-900 text-start position-relative overflow-hidden" style={{ boxShadow: '0 20px 40px rgba(0, 41, 112, 0.08)' }}>
-              <div className="position-absolute top-0 start-0 w-100 h-1 bg-paytm-blue" />
+            <div className="card border-0 shadow-xl rounded-[3rem] p-4 p-md-5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-start position-relative overflow-hidden" style={{ boxShadow: '0 25px 50px rgba(0, 41, 112, 0.1)' }}>
+              <div className="position-absolute top-0 start-0 w-100 h-2 bg-gradient-to-r from-emerald-500 via-cyan-400 to-blue-600" />
               
               <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
                 <div>
-                  <h3 className="fs-6 font-black text-paytm-navy dark:text-white m-0">Check Eligibility</h3>
-                  <p className="text-[9px] text-uppercase font-black text-slate-400 m-0">Get instant approval rates</p>
+                  <h3 className="fs-5 font-black text-paytm-navy dark:text-white m-0">Check Eligibility</h3>
+                  <p className="text-[10px] text-uppercase font-black text-slate-400 m-0 tracking-widest mt-1">Get instant approval rates</p>
                 </div>
                 
                 {/* Tabs inside form */}
-                <div className="nav nav-pills bg-light dark:bg-slate-800 p-1 rounded-xl d-flex border border-slate-100 dark:border-slate-800/60 max-w-md">
+                <div className="nav nav-pills bg-light dark:bg-slate-800 p-1.5 rounded-pill d-flex border border-slate-100 dark:border-slate-800/60 max-w-md shadow-inner">
                   {[
                     { id: "personal", label: "Personal" },
                     { id: "home", label: "Home" },
@@ -186,10 +186,10 @@ export function HomeHero() {
                     <button
                       key={tab.id}
                       onClick={() => { setActiveTab(tab.id); setLeadSuccess(false); }}
-                      className={`btn btn-xs rounded-lg py-1.5 px-3 border-0 font-extrabold transition-all text-[11px] ${
+                      className={`btn btn-xs rounded-pill py-2 px-4 border-0 font-black transition-all text-xs ${
                         activeTab === tab.id 
-                          ? "bg-paytm-blue text-white shadow-sm" 
-                          : "text-slate-500 bg-transparent hover:text-slate-800"
+                          ? "bg-paytm-blue text-white shadow-md" 
+                          : "text-slate-500 bg-transparent hover:text-paytm-navy dark:hover:text-white"
                       }`}
                     >
                       {tab.label}
@@ -197,19 +197,19 @@ export function HomeHero() {
                   ))}
                 </div>
 
-                <span className="badge bg-success/10 text-success text-[10px] px-2.5 py-2 rounded-pill border border-success/20 d-flex align-items-center gap-1">
-                  <Lock size={10} /> 100% Secure Verification
+                <span className="badge bg-success/10 text-success text-[10px] px-3 py-2 rounded-pill border border-success/20 d-flex align-items-center gap-1.5 font-bold">
+                  <Lock size={12} /> 100% Secure Verification
                 </span>
               </div>
 
               {!leadSuccess ? (
-                <form onSubmit={handleHeroLeadSubmit} className="row g-3 align-items-end">
+                <form onSubmit={handleHeroLeadSubmit} className="row g-4 align-items-end mt-2">
                   <div className="col-lg-3 col-md-6 col-12">
-                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-1.5 d-block">Full Name</label>
+                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-2 d-block ms-3 tracking-wider">Full Name</label>
                     <input 
                       type="text" 
                       placeholder="As per PAN card" 
-                      className="form-control rounded-xl py-2 text-xs"
+                      className="form-control rounded-pill py-3 px-4 text-xs shadow-sm"
                       value={leadName}
                       onChange={(e) => setLeadName(e.target.value)}
                       required
@@ -217,12 +217,12 @@ export function HomeHero() {
                   </div>
 
                   <div className="col-lg-3 col-md-6 col-12">
-                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-1.5 d-block">Mobile Number</label>
+                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-2 d-block ms-3 tracking-wider">Mobile Number</label>
                     <input 
                       type="tel" 
                       maxLength={10}
                       placeholder="10-digit number" 
-                      className="form-control rounded-xl py-2 text-xs"
+                      className="form-control rounded-pill py-3 px-4 text-xs shadow-sm"
                       value={leadMobile}
                       onChange={(e) => setLeadMobile(e.target.value)}
                       required
@@ -230,11 +230,11 @@ export function HomeHero() {
                   </div>
 
                   <div className="col-lg-2 col-md-6 col-12">
-                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-1.5 d-block">Loan Amount (₹)</label>
+                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-2 d-block ms-3 tracking-wider">Loan Amount (₹)</label>
                     <input 
                       type="number" 
                       placeholder="Required amount" 
-                      className="form-control rounded-xl py-2 text-xs"
+                      className="form-control rounded-pill py-3 px-4 text-xs shadow-sm"
                       value={leadAmount}
                       onChange={(e) => setLeadAmount(e.target.value)}
                       required
@@ -242,9 +242,9 @@ export function HomeHero() {
                   </div>
 
                   <div className="col-lg-2 col-md-6 col-12">
-                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-1.5 d-block">Select City</label>
+                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-2 d-block ms-3 tracking-wider">Select City</label>
                     <select 
-                      className="form-select rounded-xl py-2 text-xs"
+                      className="form-select rounded-pill py-3 px-4 text-xs shadow-sm"
                       value={leadCity}
                       onChange={(e) => setLeadCity(e.target.value)}
                     >
@@ -257,10 +257,10 @@ export function HomeHero() {
                     <button 
                       type="submit" 
                       disabled={isLeadSubmitting}
-                      className="w-100 btn btn-paytm py-2 text-xs text-uppercase font-black tracking-wider shadow-sm d-flex align-items-center justify-content-center gap-1.5"
+                      className="w-100 btn btn-paytm rounded-pill py-3 text-xs text-uppercase font-black tracking-wider shadow-lg d-flex align-items-center justify-content-center gap-2 hover:-translate-y-1 transition-transform"
                     >
                       {isLeadSubmitting ? "Processing..." : `Get Offers`}
-                      <ArrowRight size={13} />
+                      <ArrowRight size={14} />
                     </button>
                   </div>
                 </form>
@@ -298,26 +298,26 @@ export function HomeHero() {
 
       </motion.section>
 
-      {/* Services Grid (Paytm layout style) */}
+      {/* Services Grid (Premium layout style) */}
       <section className="container py-5 mt-4">
         <div className="row g-4 justify-content-center">
           {services.map((service, i) => (
             <div key={i} className="col-lg-3 col-md-6 col-12">
               <a href={service.link} className="text-decoration-none d-block h-100">
-                <div className="card-paytm p-4 d-flex flex-column h-100 position-relative overflow-hidden">
-                  <div className={`position-absolute top-0 end-0 px-3 py-1 rounded-bottom-left bg-gradient-to-r ${service.color} text-white text-[9px] font-black uppercase tracking-widest`}>
+                <div className="product-premium-card p-4 d-flex flex-column h-100 position-relative overflow-hidden">
+                  <div className={`position-absolute top-0 end-0 px-3 py-1 rounded-bl-2xl bg-gradient-to-r ${service.color} text-white text-[9px] font-black uppercase tracking-widest`}>
                     {service.tag}
                   </div>
                   
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${service.color} d-flex align-items-center justify-content-center text-white mb-4 shadow-sm`}>
-                    <service.icon size={22} />
+                  <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${service.color} d-flex align-items-center justify-content-center text-white mb-4 shadow-md`}>
+                    <service.icon size={24} />
                   </div>
                   
-                  <h4 className="fs-5 font-black text-paytm-navy mb-2">{service.title}</h4>
+                  <h4 className="fs-5 font-black text-paytm-navy dark:text-white mb-2">{service.title}</h4>
                   <p className="text-xs text-slate-500 font-semibold mb-4 flex-grow">{service.desc}</p>
                   
-                  <div className="d-flex align-items-center gap-1 text-paytm-blue font-black uppercase tracking-widest text-[10px] mt-auto">
-                    Apply Now <ArrowRight size={14} />
+                  <div className="d-flex align-items-center gap-1 text-paytm-blue font-black uppercase tracking-widest text-[10px] mt-auto group-hover:text-paytm-navy transition-colors">
+                    Apply Now <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
               </a>

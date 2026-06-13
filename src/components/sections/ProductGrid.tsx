@@ -123,17 +123,17 @@ export function ProductGrid() {
               key={i}
               className="col-lg-4 col-md-6 col-12"
             >
-              <div className="product-premium-card h-100 overflow-hidden d-flex flex-column">
+              <div className="product-premium-card h-100 overflow-hidden d-flex flex-column group">
                 <div className="p-4 flex-grow-1">
                   
                   {/* Card Header */}
                   <div className="d-flex justify-content-between align-items-start mb-4">
                     <div className="d-flex align-items-center gap-3">
-                      <div className={`w-12 h-12 rounded-xl d-flex align-items-center justify-content-center ${p.color}`}>
-                        <p.icon size={22} strokeWidth={2.5} />
+                      <div className={`w-14 h-14 rounded-full d-flex align-items-center justify-content-center shadow-sm ${p.color}`}>
+                        <p.icon size={24} strokeWidth={2.5} />
                       </div>
                       <div className="text-start">
-                        <h4 className="fs-6 font-black text-paytm-navy dark:text-white m-0">{p.title}</h4>
+                        <h4 className="fs-6 font-black text-paytm-navy dark:text-white m-0 group-hover:text-paytm-blue transition-colors">{p.title}</h4>
                         <p className="text-[11px] text-muted font-semibold m-0">{p.desc}</p>
                       </div>
                     </div>
@@ -141,12 +141,12 @@ export function ProductGrid() {
 
                   {/* Badge */}
                   <div className="mb-3 text-start">
-                    <span className="px-2.5 py-1 bg-success/15 text-success text-[10px] font-black rounded-pill border border-success/20 uppercase tracking-wider">
+                    <span className="px-3 py-1.5 bg-success/15 text-success text-[10px] font-black rounded-pill border border-success/20 uppercase tracking-wider">
                       {p.badge}
                     </span>
                   </div>
 
-                  <hr className="border-slate-100 dark:border-slate-800 my-3" />
+                  <hr className="border-slate-100 dark:border-slate-800/60 my-3" />
 
                   {/* Features Grid */}
                   <div className="row g-2 text-start">
@@ -160,16 +160,16 @@ export function ProductGrid() {
                 </div>
 
                 {/* Card Footer */}
-                <div className="bg-light dark:bg-slate-850 px-4 py-3 border-top border-slate-100 dark:border-slate-800 d-flex justify-content-between align-items-center">
-                  <div className="d-flex align-items-center gap-1 text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                <div className="bg-light/50 dark:bg-slate-900/50 px-4 py-3 border-top border-slate-100 dark:border-slate-800/60 d-flex justify-content-between align-items-center">
+                  <div className="d-flex align-items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-wider">
                     <CheckCircle2 size={14} className="text-success" />
                     <span>100% Digital</span>
                   </div>
                   <a 
                     href={p.href}
-                    className="btn btn-paytm btn-sm py-2 px-3 text-[10px] text-uppercase font-black tracking-wider d-flex align-items-center gap-1 shadow-sm"
+                    className="btn btn-paytm rounded-pill btn-sm py-2 px-4 text-[10px] text-uppercase font-black tracking-wider d-flex align-items-center gap-1.5 shadow-sm hover:-translate-y-0.5 transition-transform"
                   >
-                    Check Offers <ArrowRight size={12} />
+                    Check Offers <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
                   </a>
                 </div>
               </div>
