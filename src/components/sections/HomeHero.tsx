@@ -175,27 +175,7 @@ export function HomeHero() {
                   <p className="text-[10px] text-uppercase font-black text-slate-400 m-0 tracking-widest mt-1">Get instant approval rates</p>
                 </div>
                 
-                {/* Tabs inside form */}
-                <div className="nav nav-pills bg-light dark:bg-slate-800 p-1.5 rounded-pill d-flex border border-slate-100 dark:border-slate-800/60 max-w-md shadow-inner">
-                  {[
-                    { id: "personal", label: "Personal" },
-                    { id: "home", label: "Home" },
-                    { id: "business", label: "Business" },
-                    { id: "card", label: "Credit Card" }
-                  ].map(tab => (
-                    <button
-                      key={tab.id}
-                      onClick={() => { setActiveTab(tab.id); setLeadSuccess(false); }}
-                      className={`btn btn-xs rounded-pill py-2 px-4 border-0 font-black transition-all text-xs ${
-                        activeTab === tab.id 
-                          ? "bg-paytm-blue text-white shadow-md" 
-                          : "text-slate-500 bg-transparent hover:text-paytm-navy dark:hover:text-white"
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
+                {/* Tabs removed as per user request */}
 
                 <span className="badge bg-success/10 text-success text-[10px] px-3 py-2 rounded-pill border border-success/20 d-flex align-items-center gap-1.5 font-bold">
                   <Lock size={12} /> 100% Secure Verification
@@ -203,12 +183,12 @@ export function HomeHero() {
               </div>
 
               {!leadSuccess ? (
-                <form onSubmit={handleHeroLeadSubmit} className="row g-4 align-items-end mt-2">
-                  <div className="col-lg-3 col-md-6 col-12">
-                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-2 d-block ms-3 tracking-wider">Full Name</label>
+                <form onSubmit={handleHeroLeadSubmit} className="row g-3 align-items-end mt-2">
+                  <div className="col-lg-2 col-md-4 col-12">
+                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-2 d-block ms-3 tracking-wider">Your Name</label>
                     <input 
                       type="text" 
-                      placeholder="As per PAN card" 
+                      placeholder="Enter Your Name" 
                       className="form-control rounded-pill py-3 px-4 text-xs shadow-sm"
                       value={leadName}
                       onChange={(e) => setLeadName(e.target.value)}
@@ -216,11 +196,13 @@ export function HomeHero() {
                     />
                   </div>
 
-                  <div className="col-lg-3 col-md-6 col-12">
+                  <div className="col-lg-2 col-md-4 col-12">
                     <label className="text-[10px] text-uppercase font-black text-slate-400 mb-2 d-block ms-3 tracking-wider">Mobile Number</label>
                     <input 
                       type="tel" 
                       maxLength={10}
+                      pattern="[0-9]{10}"
+                      title="Please enter a valid 10-digit mobile number"
                       placeholder="10-digit number" 
                       className="form-control rounded-pill py-3 px-4 text-xs shadow-sm"
                       value={leadMobile}
@@ -229,8 +211,21 @@ export function HomeHero() {
                     />
                   </div>
 
-                  <div className="col-lg-2 col-md-6 col-12">
-                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-2 d-block ms-3 tracking-wider">Loan Amount (₹)</label>
+                  <div className="col-lg-2 col-md-4 col-12">
+                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-2 d-block ms-3 tracking-wider">Loan Type</label>
+                    <select 
+                      className="form-select rounded-pill py-3 px-4 text-xs shadow-sm"
+                      value={activeTab}
+                      onChange={(e) => { setActiveTab(e.target.value); setLeadSuccess(false); }}
+                    >
+                      <option value="personal">Personal Loan</option>
+                      <option value="home">Home Loan</option>
+                      <option value="business">Business Loan</option>
+                    </select>
+                  </div>
+
+                  <div className="col-lg-2 col-md-4 col-12">
+                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-2 d-block ms-3 tracking-wider">Amount (₹)</label>
                     <input 
                       type="number" 
                       placeholder="Required amount" 
@@ -241,25 +236,25 @@ export function HomeHero() {
                     />
                   </div>
 
-                  <div className="col-lg-2 col-md-6 col-12">
-                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-2 d-block ms-3 tracking-wider">Select City</label>
-                    <select 
-                      className="form-select rounded-pill py-3 px-4 text-xs shadow-sm"
+                  <div className="col-lg-2 col-md-4 col-12">
+                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-2 d-block ms-3 tracking-wider">City Name</label>
+                    <input 
+                      type="text" 
+                      placeholder="Enter City Name" 
+                      className="form-control rounded-pill py-3 px-4 text-xs shadow-sm"
                       value={leadCity}
                       onChange={(e) => setLeadCity(e.target.value)}
-                    >
-                      <option value="Pune">Pune</option>
-                      <option value="Sambhajianagar">Sambhajianagar</option>
-                    </select>
+                      required
+                    />
                   </div>
 
-                  <div className="col-lg-2 col-12">
+                  <div className="col-lg-2 col-md-4 col-12">
                     <button 
                       type="submit" 
                       disabled={isLeadSubmitting}
-                      className="w-100 btn btn-paytm rounded-pill py-3 text-xs text-uppercase font-black tracking-wider shadow-lg d-flex align-items-center justify-content-center gap-2 hover:-translate-y-1 transition-transform"
+                      className="w-100 btn btn-paytm rounded-pill py-3 text-[11px] text-uppercase font-black tracking-wider shadow-lg d-flex align-items-center justify-content-center gap-1 hover:-translate-y-1 transition-transform"
                     >
-                      {isLeadSubmitting ? "Processing..." : `Get Offers`}
+                      {isLeadSubmitting ? "Wait..." : `Get Offers`}
                       <ArrowRight size={14} />
                     </button>
                   </div>
