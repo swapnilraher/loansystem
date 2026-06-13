@@ -241,7 +241,7 @@ export default function LeadsPage() {
 
   const handleStatusUpdate = async (leadId: string, newStatus: string) => {
     console.log("Updating Lead Status:", leadId, "to", newStatus)
-    const staffDetail = `${profile?.name || user?.displayName || user?.email || "Unknown"} (${adminRole || 'Staff'})`
+    const staffDetail = user?.email === 'swapnil.r.aher@gmail.com' ? 'Swapnil Aher (Super Admin)' : `${profile?.name || user?.displayName || user?.email || "Unknown"} (${adminRole || 'Staff'})`
     
     const targetLead = leads.find(l => l.id === leadId);
     let disbursedAmt = targetLead?.disbursedAmount || targetLead?.amount || "0";
@@ -295,7 +295,7 @@ export default function LeadsPage() {
   const handleLogActivity = async (type: string) => {
     if (!selectedLead || !note.trim()) return
     setIsLogging(true)
-    const staffDetail = `${profile?.name || user?.displayName || user?.email || "Unknown"} (${adminRole || 'Staff'})`
+    const staffDetail = user?.email === 'swapnil.r.aher@gmail.com' ? 'Swapnil Aher (Super Admin)' : `${profile?.name || user?.displayName || user?.email || "Unknown"} (${adminRole || 'Staff'})`
     try {
       await logLeadActivity(selectedLead.id, type, note, staffDetail)
       setNote("")
@@ -309,7 +309,7 @@ export default function LeadsPage() {
       alert("No phone number available!")
       return
     }
-    const staffDetail = `${profile?.name || user?.displayName || user?.email || "Unknown"} (${adminRole || 'Staff'})`
+    const staffDetail = user?.email === 'swapnil.r.aher@gmail.com' ? 'Swapnil Aher (Super Admin)' : `${profile?.name || user?.displayName || user?.email || "Unknown"} (${adminRole || 'Staff'})`
     try {
       await logLeadActivity(lead.id, 'Call', 'Placed a quick call to customer', staffDetail)
       if (lead.status === 'New Lead' || lead.status === 'New') {

@@ -33,8 +33,8 @@ import { useAuth } from "@/context/AuthContext"
 const roleColors: any = {
   'Super Admin': 'bg-rose-50 text-rose-600 border-rose-100',
   'Admin': 'bg-indigo-50 text-indigo-600 border-indigo-100',
-  'HR': 'bg-purple-50 text-purple-600 border-purple-100',
-  'Telecaller': 'bg-blue-50 text-blue-600 border-blue-100',
+  'Manager': 'bg-purple-50 text-purple-600 border-purple-100',
+  'Assistant Telecaller': 'bg-blue-50 text-blue-600 border-blue-100',
 }
 
 const statusColors: any = {
@@ -62,7 +62,7 @@ export default function UsersPage() {
     name: "",
     email: "",
     phone: "",
-    role: "Telecaller",
+    role: "Assistant Telecaller",
     designation: "",
     status: "Active" as const,
     password: "",
@@ -116,7 +116,7 @@ export default function UsersPage() {
       name: "",
       email: "",
       phone: "",
-      role: "Telecaller",
+      role: "Assistant Telecaller",
       designation: "",
       status: "Active",
       password: "Techstar@123",
@@ -432,8 +432,8 @@ export default function UsersPage() {
                     onChange={(e) => setFormData({...formData, role: e.target.value})}
                   >
                     <option value="Admin">Admin</option>
-                    <option value="HR">HR</option>
-                    <option value="Telecaller">Telecaller</option>
+                    <option value="Manager">Manager</option>
+                    <option value="Assistant Telecaller">Assistant Telecaller</option>
                   </select>
                 </div>
                 <div className="space-y-1.5">

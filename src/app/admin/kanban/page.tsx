@@ -56,7 +56,7 @@ export default function KanbanPage() {
     const leadId = e.dataTransfer.getData("leadId")
     if (!leadId) return
 
-    const staffDetail = `${profile?.name || user?.displayName || user?.email || "Unknown"} (${adminRole || 'Staff'})`
+    const staffDetail = user?.email === 'swapnil.r.aher@gmail.com' ? 'Swapnil Aher (Super Admin)' : `${profile?.name || user?.displayName || user?.email || "Unknown"} (${adminRole || 'Staff'})`
     try {
       const leadRef = doc(db, 'leads', leadId)
       await updateDoc(leadRef, { status: newStatus, updatedAt: serverTimestamp() })

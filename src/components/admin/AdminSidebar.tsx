@@ -56,8 +56,8 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
       return adminRole === "Super Admin"
     }
     if (item.href === "/admin/whatsapp") {
-      // WhatsApp is for HR and Admin (and Super Admin)
-      return adminRole === "Super Admin" || adminRole === "Admin" || adminRole === "HR"
+      // WhatsApp is for Manager and Admin (and Super Admin)
+      return adminRole === "Super Admin" || adminRole === "Admin" || adminRole === "Manager"
     }
     if (item.href === "/admin/settings" || item.href === "/admin/marketing") {
       // Global Settings & Marketing for Super Admin & Admin
