@@ -350,57 +350,39 @@ export function Header() {
   )
 }
 
-
-
 export function Footer() {
   return (
-    <footer className="bg-[#090d16] text-slate-400 pt-16 pb-12 border-t border-slate-900/60 relative overflow-hidden">
-      {/* Footer background glows */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-paytm-blue/5 rounded-full blur-[120px] pointer-events-none" />
+    <footer className="bg-slate-950 text-slate-400 pt-16 pb-8 border-t border-slate-900 relative overflow-hidden">
+      {/* Background glow - subtle */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-64 bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="container px-md-5 px-3 position-relative z-10">
         
-        {/* Disclaimer Section */}
-        <div className="bg-slate-950/60 border border-slate-900 p-5 rounded-[2rem] mb-12 text-[11px] leading-relaxed text-slate-400 shadow-inner">
-          <strong className="text-white font-extrabold">Disclaimer:</strong> Techstar Money Solution is a registered Direct Selling Agent (DSA) and is not a direct lender. All loan products, interest slabs, processing charges, and approval mandates are directly offered by our matched partner banks and RBI-registered NBFCs. Final approvals and disbursements are subject to credit profile checks and documentation verification by respective institutions.
-        </div>
-
-        <div className="row g-5 mb-12">
-          {/* Brand Info */}
-          <div className="col-lg-4 col-md-6 text-start space-y-6">
-            <div>
-              <a href="/" className="d-flex align-items-center gap-2.5 text-white text-decoration-none group">
-                <div className="w-10 h-10 bg-paytm-blue rounded-xl d-flex align-items-center justify-content-center overflow-hidden shadow-sm">
-                  <img src="/img/logo.jpeg" alt="TechStar Logo" className="w-100 h-100 object-cover" />
-                </div>
-                <span className="fs-5 font-black tracking-tight italic text-white group-hover:text-primary transition-colors">
-                  Techstar Money Solution
-                </span>
-              </a>
-              <p className="text-xs font-medium leading-relaxed text-slate-400 mt-4 max-w-sm">
-                Empowering millions of Indian borrowers with transparent, hassle-free, and expert-assisted digital financial solutions.
-              </p>
-            </div>
+        {/* Top Section - Brand and Disclaimer */}
+        <div className="row g-5 mb-10 pb-10 border-b border-slate-900/60">
+          <div className="col-lg-5 col-md-12 text-start">
+            <a href="/" className="d-flex align-items-center gap-3 text-white text-decoration-none group mb-4">
+              <div className="w-12 h-12 bg-white rounded-xl d-flex align-items-center justify-content-center overflow-hidden shadow-sm">
+                <img src="/img/logo.jpeg" alt="TechStar Logo" className="w-100 h-100 object-cover" />
+              </div>
+              <span className="fs-4 font-black tracking-tight italic text-white group-hover:text-primary transition-colors">
+                Techstar Money Solution
+              </span>
+            </a>
+            <p className="text-sm font-medium leading-relaxed text-slate-400 mb-6 max-w-md">
+              Empowering millions of Indian borrowers with transparent, hassle-free, and expert-assisted digital financial solutions.
+            </p>
             
-            <div className="space-y-3 pt-1">
-              <a href="tel:9579005645" className="text-slate-300 text-decoration-none hover:text-primary transition-all d-flex align-items-center gap-3 text-xs font-black group">
-                <div className="w-8 h-8 rounded-xl bg-slate-900 border border-slate-800 d-flex align-items-center justify-content-center group-hover:bg-primary group-hover:border-primary group-hover:text-white transition-all">
-                  <Phone size={12} />
+            <div className="d-flex flex-column gap-3">
+              <a href="tel:9579005645" className="text-slate-300 text-decoration-none hover:text-primary transition-all d-flex align-items-center gap-3 text-sm font-bold group">
+                <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 d-flex align-items-center justify-content-center group-hover:bg-primary group-hover:border-primary group-hover:text-white transition-all">
+                  <Phone size={16} />
                 </div>
                 +91 9579005645
               </a>
-              <a href="mailto:support@techstarsolution.in" className="text-slate-300 text-decoration-none hover:text-primary transition-all d-flex align-items-center gap-3 text-xs font-black group">
-                <div className="w-8 h-8 rounded-xl bg-slate-900 border border-slate-800 d-flex align-items-center justify-content-center group-hover:bg-primary group-hover:border-primary group-hover:text-white transition-all">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                support@techstarsolution.in
-              </a>
-              <div className="text-slate-300 d-flex align-items-center gap-3 text-xs font-black group">
-                <div className="w-8 h-8 rounded-xl bg-slate-900 border border-slate-800 d-flex align-items-center justify-content-center">
-                  <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="text-slate-300 d-flex align-items-center gap-3 text-sm font-bold group">
+                <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 d-flex align-items-center justify-content-center">
+                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
@@ -410,12 +392,20 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Products Column */}
-          <div className="col-lg-2 col-md-3 col-6 text-start">
-            <h5 className="text-white font-black uppercase tracking-widest text-[10px] mb-4">Products</h5>
-            <ul className="list-unstyled space-y-2.5 text-xs font-bold">
+          <div className="col-lg-7 col-md-12">
+            <div className="bg-slate-900/40 border border-slate-800/50 p-6 rounded-2xl text-xs leading-relaxed text-slate-400">
+              <strong className="text-slate-300 font-extrabold block mb-2">Disclaimer:</strong> 
+              Techstar Money Solution is a registered Direct Selling Agent (DSA) and is not a direct lender. All loan products, interest slabs, processing charges, and approval mandates are directly offered by our matched partner banks and RBI-registered NBFCs. Final approvals and disbursements are subject to credit profile checks and documentation verification by respective institutions.
+            </div>
+          </div>
+        </div>
+
+        {/* Links Section */}
+        <div className="row g-4 mb-10">
+          <div className="col-lg-3 col-md-6 col-6 text-start">
+            <h5 className="text-white font-bold text-sm mb-4">Products</h5>
+            <ul className="list-unstyled space-y-3 text-sm font-medium">
               {[
-                { name: "Home", href: "/" },
                 { name: "Personal Loan", href: "/personal-loan" },
                 { name: "Home Loan", href: "/home-loan" },
                 { name: "Business Loan", href: "/business-loan" },
@@ -423,7 +413,7 @@ export function Footer() {
                 { name: "Car Loan", href: "/car-loan" },
               ].map((link) => (
                 <li key={link.name}>
-                  <a href={link.href} className="text-slate-400 hover:text-white hover:translate-x-1 d-inline-block text-decoration-none transition-all">
+                  <a href={link.href} className="text-slate-400 hover:text-white text-decoration-none transition-colors">
                     {link.name}
                   </a>
                 </li>
@@ -431,13 +421,12 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Calculators Column */}
-          <div className="col-lg-2 col-md-3 col-6 text-start">
-            <h5 className="text-white font-black uppercase tracking-widest text-[10px] mb-4">Calculators</h5>
-            <ul className="list-unstyled space-y-2.5 text-xs font-bold">
+          <div className="col-lg-3 col-md-6 col-6 text-start">
+            <h5 className="text-white font-bold text-sm mb-4">Calculators</h5>
+            <ul className="list-unstyled space-y-3 text-sm font-medium">
               {["EMI Calculator", "Eligibility Checker", "SIP Calculator"].map((link) => (
                 <li key={link}>
-                  <a href="/#calculator" className="text-slate-400 hover:text-white hover:translate-x-1 d-inline-block text-decoration-none transition-all">
+                  <a href="/#calculator" className="text-slate-400 hover:text-white text-decoration-none transition-colors">
                     {link}
                   </a>
                 </li>
@@ -445,16 +434,15 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Legal Column */}
-          <div className="col-lg-2 col-md-3 col-6 text-start">
-            <h5 className="text-white font-black uppercase tracking-widest text-[10px] mb-4">Legal</h5>
-            <ul className="list-unstyled space-y-2.5 text-xs font-bold">
+          <div className="col-lg-3 col-md-6 col-6 text-start">
+            <h5 className="text-white font-bold text-sm mb-4">Legal</h5>
+            <ul className="list-unstyled space-y-3 text-sm font-medium">
               {[
                 { name: "Privacy Policy", href: "/privacy" },
                 { name: "Terms & Conditions", href: "/terms" }
               ].map((link) => (
                 <li key={link.name}>
-                  <a href={link.href} className="text-slate-400 hover:text-white hover:translate-x-1 d-inline-block text-decoration-none transition-all">
+                  <a href={link.href} className="text-slate-400 hover:text-white text-decoration-none transition-colors">
                     {link.name}
                   </a>
                 </li>
@@ -462,71 +450,54 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Locations Column */}
-          <div className="col-lg-2 col-md-3 col-6 text-start">
-            <h5 className="text-white font-black uppercase tracking-widest text-[10px] mb-4">Locations</h5>
-            <ul className="list-unstyled space-y-2.5 text-xs font-bold">
+          <div className="col-lg-3 col-md-6 col-6 text-start">
+            <h5 className="text-white font-bold text-sm mb-4">Locations</h5>
+            <ul className="list-unstyled space-y-3 text-sm font-medium">
               <li>
-                <a href="/loan-agent-pune" className="text-slate-400 hover:text-white hover:translate-x-1 d-inline-block text-decoration-none transition-all">
+                <a href="/loan-agent-pune" className="text-slate-400 hover:text-white text-decoration-none transition-colors">
                   Pune Office
                 </a>
               </li>
               <li>
-                <a href="/home-loan-chhatrapati-sambhajianagar" className="text-slate-400 hover:text-white hover:translate-x-1 d-inline-block text-decoration-none transition-all">
-                  Sambhajianagar
+                <a href="/home-loan-chhatrapati-sambhajianagar" className="text-slate-400 hover:text-white text-decoration-none transition-colors">
+                  Sambhajianagar Office
                 </a>
               </li>
             </ul>
           </div>
         </div>
 
-        {/* Service Areas Link Pool for SEO Crawlability */}
+        {/* Service Areas */}
         <div className="border-t border-slate-900/60 pt-8 mb-8 text-start">
-          <div className="row g-4">
-            <div className="col-md-6 col-12">
-              <h6 className="font-black text-slate-400 uppercase tracking-widest text-[9px] mb-3">Pune Directories</h6>
-              <div className="d-flex flex-wrap gap-2">
-                {[
-                  { name: "Personal Loan", href: "/personal-loan-pune" },
-                  { name: "Business Loan", href: "/business-loan-pune" },
-                  { name: "Home Loan", href: "/home-loan-pune" },
-                  { name: "Property Loan", href: "/loan-against-property-pune" },
-                  { name: "DSA Agent", href: "/dsa-loan-pune" },
-                ].map((item, idx) => (
-                  <a key={idx} href={item.href} className="px-3 py-1.5 bg-slate-950 border border-slate-900/80 hover:border-primary/40 text-slate-450 hover:text-white rounded-full text-[10px] font-bold text-decoration-none transition-colors">
-                    {item.name}
-                  </a>
-                ))}
-              </div>
-            </div>
-            
-            <div className="col-md-6 col-12">
-              <h6 className="font-black text-slate-400 uppercase tracking-widest text-[9px] mb-3">Chhatrapati Sambhajianagar Directories</h6>
-              <div className="d-flex flex-wrap gap-2">
-                {[
-                  { name: "Personal Loan", href: "/personal-loan-chhatrapati-sambhajianagar" },
-                  { name: "Business Loan", href: "/business-loan-chhatrapati-sambhajianagar" },
-                  { name: "Home Loan", href: "/home-loan-chhatrapati-sambhajianagar" },
-                  { name: "Property Loan", href: "/loan-against-property-chhatrapati-sambhajianagar" },
-                  { name: "DSA Agent", href: "/dsa-loan-chhatrapati-sambhajianagar" },
-                ].map((item, idx) => (
-                  <a key={idx} href={item.href} className="px-3 py-1.5 bg-slate-950 border border-slate-900/80 hover:border-primary/40 text-slate-450 hover:text-white rounded-full text-[10px] font-bold text-decoration-none transition-colors">
-                    {item.name}
-                  </a>
-                ))}
-              </div>
-            </div>
+          <p className="font-bold text-white text-sm mb-4">Local Directories</p>
+          <div className="d-flex flex-wrap gap-2">
+            {[
+              { name: "Personal Loan Pune", href: "/personal-loan-pune" },
+              { name: "Business Loan Pune", href: "/business-loan-pune" },
+              { name: "Home Loan Pune", href: "/home-loan-pune" },
+              { name: "Property Loan Pune", href: "/loan-against-property-pune" },
+              { name: "DSA Agent Pune", href: "/dsa-loan-pune" },
+              { name: "Personal Loan Sambhajianagar", href: "/personal-loan-chhatrapati-sambhajianagar" },
+              { name: "Business Loan Sambhajianagar", href: "/business-loan-chhatrapati-sambhajianagar" },
+              { name: "Home Loan Sambhajianagar", href: "/home-loan-chhatrapati-sambhajianagar" },
+              { name: "Property Loan Sambhajianagar", href: "/loan-against-property-chhatrapati-sambhajianagar" },
+              { name: "DSA Agent Sambhajianagar", href: "/dsa-loan-chhatrapati-sambhajianagar" },
+            ].map((item, idx) => (
+              <a key={idx} href={item.href} className="text-xs text-slate-500 hover:text-white bg-slate-900/50 hover:bg-slate-800 border border-slate-800/80 rounded-lg px-3 py-1.5 text-decoration-none transition-all">
+                {item.name}
+              </a>
+            ))}
           </div>
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-slate-900/60 pt-8 d-flex flex-column flex-md-row justify-content-between align-items-center gap-4">
-          <p className="text-[10px] font-bold text-slate-500 m-0">
-            © 2026 Techstar Money Solution. All rights reserved. Designed for elite digital finance.
+        <div className="border-t border-slate-900/60 pt-6 d-flex flex-column flex-md-row justify-content-between align-items-center gap-4">
+          <p className="text-xs font-medium text-slate-500 m-0">
+            © {new Date().getFullYear()} Techstar Money Solution. All rights reserved.
           </p>
-          <div className="d-flex gap-4 text-[10px] uppercase font-black tracking-widest">
+          <div className="d-flex gap-4 text-sm font-medium">
             {["Facebook", "Twitter", "LinkedIn"].map((social) => (
-              <a key={social} href="#" className="text-slate-500 hover:text-primary text-decoration-none transition-colors">
+              <a key={social} href="#" className="text-slate-500 hover:text-white text-decoration-none transition-colors">
                 {social}
               </a>
             ))}
@@ -536,5 +507,3 @@ export function Footer() {
     </footer>
   )
 }
-
-
