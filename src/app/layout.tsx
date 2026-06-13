@@ -38,6 +38,7 @@ export const metadata: Metadata = {
     description: "Compare loans, credit cards, and insurance with India's most trusted financial marketplace.",
     images: ["/partners.png"],
   }
+  robots: { index: true, follow: true },
 };
 
 
