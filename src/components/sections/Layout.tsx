@@ -444,10 +444,11 @@ export function Footer() {
 
           <div className="col-lg-3 col-md-6 col-6 text-start">
             <h5 className="text-secondary dark:text-white font-black text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-500"></span> Legal
+              <span className="w-2 h-2 rounded-full bg-amber-500"></span> Company
             </h5>
             <ul className="list-unstyled space-y-3 text-sm font-semibold">
               {[
+                { name: "About Us", href: "/about" },
                 { name: "Privacy Policy", href: "/privacy" },
                 { name: "Terms & Conditions", href: "/terms" },
                 { name: "Become a Partner", href: "/become-dsa-partner" }
