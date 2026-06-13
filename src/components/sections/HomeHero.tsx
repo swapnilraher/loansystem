@@ -125,7 +125,7 @@ export function HomeHero() {
             <h1 className="display-4 font-black tracking-tight text-paytm-navy dark:text-white mb-3 leading-tight">
               Compare & Apply for <br className="d-none d-lg-block" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-600">
-                Loans & Credit Cards
+                Personal, Home & Business Loans
               </span>
             </h1>
 
