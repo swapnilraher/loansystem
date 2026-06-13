@@ -9,12 +9,12 @@ interface AdminHeaderProps {
 
 export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
   return (
-    <header className="h-20 bg-white border-b border-slate-100 px-4 md:px-8 flex items-center justify-between sticky top-0 z-40">
+    <header className="h-20 bg-white/70 backdrop-blur-xl border-b border-white/20 shadow-sm px-4 md:px-8 flex items-center justify-between sticky top-0 z-40 transition-all duration-300">
       <div className="flex items-center gap-4 md:gap-8 flex-1">
         {onMenuClick && (
           <button 
             onClick={onMenuClick} 
-            className="lg:hidden p-2 -ml-2 mr-2 text-slate-500 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer"
+            className="lg:hidden p-2 -ml-2 mr-2 text-slate-500 hover:text-primary hover:bg-white/50 rounded-xl transition-all cursor-pointer shadow-sm border border-transparent hover:border-slate-200"
           >
             <Menu size={20} />
           </button>
@@ -26,7 +26,7 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
           <input
             type="text"
             placeholder="Search leads, users, transactions..."
-            className="block w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            className="block w-full pl-11 pr-4 py-2.5 bg-white/50 backdrop-blur-sm border border-slate-200/60 rounded-2xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary/50 focus:bg-white transition-all shadow-sm"
           />
         </div>
       </div>
