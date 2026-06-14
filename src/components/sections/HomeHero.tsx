@@ -116,9 +116,9 @@ export function HomeHero() {
             </div>
 
             {/* Title */}
-            <h1 className="display-4 font-black tracking-tight text-paytm-navy dark:text-white mb-3 leading-tight">
+            <h1 className="display-3 font-black tracking-tight text-paytm-navy dark:text-white mb-3 leading-none font-outfit">
               💰 One Stop <br className="d-none d-lg-block" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-600">
+              <span className="text-gradient-premium">
                 Loan Solution
               </span>
             </h1>
