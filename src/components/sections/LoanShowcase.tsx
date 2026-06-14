@@ -15,8 +15,11 @@ const showcaseData = [
     ],
     theme: "from-emerald-500 to-green-700",
     icon: Wallet,
-    tagline: "Get your instant Personal loan here",
-    subtagline: "Giving people hope amidst trying times",
+    stats: [
+      { label: "Interest Rate", value: "10.49% p.a." },
+      { label: "Max Amount", value: "₹50 Lakhs" },
+      { label: "Max Tenure", value: "6 Years" }
+    ],
     footerText: "100% Paperless | No Hidden Charges | Low Rate",
     route: "/personal-loan",
     tilt: "-rotate-3"
@@ -31,8 +34,11 @@ const showcaseData = [
     ],
     theme: "from-amber-100 to-amber-300",
     icon: Home,
-    tagline: "Get closer to your dream home with Home Loan",
-    subtagline: "INTEREST RATES AT VERY LOW %",
+    stats: [
+      { label: "Interest Rate", value: "8.50% p.a." },
+      { label: "Max Amount", value: "₹5 Crore" },
+      { label: "Max Tenure", value: "30 Years" }
+    ],
     footerText: "T&C apply",
     route: "/home-loan",
     tilt: "rotate-3",
@@ -48,8 +54,11 @@ const showcaseData = [
     ],
     theme: "from-rose-500 to-red-700",
     icon: Building,
-    tagline: "Unlock the hidden value of your Property",
-    subtagline: "Max Funding with Minimum Hassle",
+    stats: [
+      { label: "Interest Rate", value: "9.50% p.a." },
+      { label: "Max Amount", value: "₹15 Crore" },
+      { label: "Max Tenure", value: "15 Years" }
+    ],
     footerText: "Quick Processing | High LTV | Transparent",
     route: "/loan-against-property",
     tilt: "-rotate-3"
@@ -64,8 +73,11 @@ const showcaseData = [
     ],
     theme: "from-blue-600 to-indigo-800",
     icon: Briefcase,
-    tagline: "Scale your business to new heights",
-    subtagline: "Fuel Your Ambition Today",
+    stats: [
+      { label: "Interest Rate", value: "15.00% p.a." },
+      { label: "Max Amount", value: "₹75 Lakhs" },
+      { label: "Max Tenure", value: "5 Years" }
+    ],
     footerText: "No Collateral | Easy EMI | Minimal Docs",
     route: "/business-loan",
     tilt: "rotate-3"
@@ -140,24 +152,28 @@ export function LoanShowcase() {
                     <div className="absolute inset-0 bg-white opacity-[0.05] pointer-events-none" />
                     
                     {/* Header with Logo */}
-                    <div className="relative z-10 flex items-center mb-3 gap-2">
-                      <img src="/img/logo.jpeg" alt="Logo" className="w-8 h-8 rounded-full object-cover shadow-sm border border-white/20" />
-                      <span className={`font-black tracking-widest text-sm uppercase ${item.textColor || 'text-white'}`}>Techstar</span>
+                    <div className="relative z-10 flex items-center mb-4 gap-3">
+                      <img src="/img/logo.jpeg" alt="Logo" className="w-14 h-14 rounded-full object-cover shadow-md border-2 border-white/30" />
+                      <span className={`font-black tracking-wider text-sm md:text-base uppercase leading-tight max-w-[150px] ${item.textColor || 'text-white'}`}>Techstar Money Solution</span>
                     </div>
 
-                    {/* Middle Content */}
+                    {/* Middle Content (Poster Style) */}
                     <div className="relative z-10 space-y-4">
-                      <h3 className={`text-3xl md:text-4xl font-black leading-tight ${item.textColor || 'text-white'}`}>
-                        {item.tagline.split(item.title)[0]}
-                        <span className="text-yellow-300 block">{item.title}</span>
-                        {item.tagline.split(item.title)[1]}
+                      <h3 className={`text-3xl font-black leading-tight ${item.textColor || 'text-white'}`}>
+                        {item.title}
                       </h3>
-                      <p className={`text-xs font-semibold opacity-90 ${item.textColor || 'text-white/80'}`}>
-                        {item.subtagline}
-                      </p>
                       
-                      <button className="mt-4 bg-black text-white text-xs font-black uppercase tracking-wider px-6 py-3 rounded-full hover:scale-105 transition-transform shadow-lg border border-white/10">
-                        Apply Now
+                      <div className={`space-y-3 pt-2 pb-1 ${item.textColor ? 'border-amber-900/10' : 'border-white/10'} border-t border-b`}>
+                        {item.stats.map((stat, idx) => (
+                          <div key={idx} className="flex justify-between items-center">
+                            <span className={`text-[11px] font-bold uppercase tracking-wider opacity-80 ${item.textColor || 'text-white'}`}>{stat.label}</span>
+                            <span className={`text-sm font-black ${item.textColor || 'text-white'}`}>{stat.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <button className={`mt-4 w-full text-xs font-black uppercase tracking-wider px-6 py-3.5 rounded-xl hover:scale-[1.02] transition-transform shadow-lg border ${item.textColor ? 'bg-amber-900 text-white border-amber-900/20' : 'bg-white text-slate-900 border-white/20'}`}>
+                        Check Eligibility
                       </button>
                     </div>
 

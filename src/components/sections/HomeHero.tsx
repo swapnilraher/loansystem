@@ -38,12 +38,6 @@ export function HomeHero() {
     { value: 500, decimals: 0, suffix: " Cr+", label: "Disbursed Annually", icon: Banknote },
   ]
 
-  const services = [
-    { title: "Home Loan", desc: "Instant approval at lowest interest rates", icon: Home, link: "/home-loan", tag: "Quick Sanction", color: "from-blue-500 to-blue-700", glow: "rgba(59, 130, 246, 0.15)" },
-    { title: "Personal Loan", desc: "Paperless process at low rate", icon: User, link: "/personal-loan", tag: "Quick Disbursal", color: "from-emerald-500 to-teal-700", glow: "rgba(16, 185, 129, 0.15)" },
-    { title: "New Car Loan", desc: "Drive away your dream car today", icon: Car, link: "/car-loan", tag: "Lowest EMI Ride", color: "from-orange-500 to-red-650", glow: "rgba(239, 68, 68, 0.15)" },
-    { title: "Credit Card", desc: "Choose cards from all top banks", icon: CreditCard, link: "/credit-card", tag: "Rewards Unlimited", color: "from-purple-500 to-indigo-700", glow: "rgba(99, 102, 241, 0.15)" },
-  ]
 
   // Lead capture states for the hero tabbed form
   const [activeTab, setActiveTab] = useState("personal")
@@ -374,33 +368,6 @@ export function HomeHero() {
 
       </motion.section>
 
-      {/* Services Grid (Premium layout style) */}
-      <section className="container py-5 mt-4">
-        <div className="row g-4 justify-content-center">
-          {services.map((service, i) => (
-            <div key={i} className="col-lg-3 col-md-6 col-12">
-              <a href={service.link} className="text-decoration-none d-block h-100">
-                <div className="product-premium-card p-4 d-flex flex-column h-100 position-relative overflow-hidden">
-                  <div className={`position-absolute top-0 end-0 px-3 py-1 rounded-bl-2xl bg-gradient-to-r ${service.color} text-white text-[9px] font-black uppercase tracking-widest`}>
-                    {service.tag}
-                  </div>
-                  
-                  <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${service.color} d-flex align-items-center justify-content-center text-white mb-4 shadow-md`}>
-                    <service.icon size={24} />
-                  </div>
-                  
-                  <h4 className="fs-5 font-black text-paytm-navy dark:text-white mb-2">{service.title}</h4>
-                  <p className="text-xs text-slate-500 font-semibold mb-4 flex-grow">{service.desc}</p>
-                  
-                  <div className="d-flex align-items-center gap-1 text-paytm-blue font-black uppercase tracking-widest text-[10px] mt-auto group-hover:text-paytm-navy transition-colors">
-                    Apply Now <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-              </a>
-            </div>
-          ))}
-        </div>
-      </section>
 
     </div>
   )
