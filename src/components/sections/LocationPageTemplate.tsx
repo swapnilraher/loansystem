@@ -321,7 +321,7 @@ export default function LocationPageTemplate({
             </div>
 
             {/* Local NAP Consistency Card */}
-            <div className="p-6 bg-slate-900 rounded-[2.5rem] text-white flex flex-col md:flex-row items-center justify-between gap-4 my-8 relative overflow-hidden">
+            <div className="p-6 bg-slate-900 rounded-3xl text-white flex flex-col md:flex-row items-center justify-between gap-4 my-8 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
               <div className="text-left space-y-2 relative z-10">
                 <h4 className="text-xs font-black uppercase text-primary tracking-widest">Office Contacts</h4>

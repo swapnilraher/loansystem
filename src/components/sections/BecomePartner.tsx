@@ -5,14 +5,16 @@ import { motion } from "framer-motion"
 import { Button } from "@/components/ui/Button"
 import { PremiumCard } from "../ui/PremiumCard"
 import { Award, DollarSign, ShieldCheck, Zap, ArrowRight, UserPlus } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 export function BecomePartner() {
   const [submitted, setSubmitted] = useState(false)
   const [formData, setFormData] = useState({ name: "", mobile: "", city: "Pune" })
+  const router = useRouter()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitted(true)
+    router.push('/partner/register')
   }
 
   const benefits = [

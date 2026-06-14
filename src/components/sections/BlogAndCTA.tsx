@@ -76,7 +76,7 @@ export function BlogAndCTA() {
 
       {/* Floating CTA Banner */}
       <div className="container mx-auto px-4 max-w-7xl my-16">
-        <section className="py-20 bg-primary relative overflow-hidden rounded-[2.5rem] lg:rounded-[3.5rem] shadow-xl shadow-primary/10">
+        <section className="py-20 bg-primary relative overflow-hidden rounded-3xl lg:rounded-3xl shadow-xl shadow-primary/10">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-600 to-teal-800" />
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-[90px] pointer-events-none" />
           

@@ -158,7 +158,7 @@ export function BulkUploadModal({ isOpen, onClose, onSuccess }: { isOpen: boolea
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => !loading && onClose()}></div>
       
-      <div className="bg-white rounded-[2.5rem] w-full max-w-xl shadow-2xl relative z-10 flex flex-col max-h-[90vh]">
+      <div className="bg-white rounded-3xl w-full max-w-xl shadow-2xl relative z-10 flex flex-col max-h-[90vh]">
         <div className="p-6 border-b border-slate-100 flex justify-between items-center shrink-0">
           <div>
             <h3 className="text-xl font-black text-secondary">Bulk Upload Leads</h3>
@@ -259,7 +259,7 @@ export function BulkUploadModal({ isOpen, onClose, onSuccess }: { isOpen: boolea
             <div className="min-h-[300px] flex flex-col items-center justify-center text-center space-y-4 animate-in zoom-in duration-500">
               {loading ? (
                 <>
-                  <div className="w-20 h-20 bg-blue-50 text-primary rounded-[2rem] flex items-center justify-center animate-pulse">
+                  <div className="w-20 h-20 bg-blue-50 text-primary rounded-3xl flex items-center justify-center animate-pulse">
                     <Loader2 size={40} className="animate-spin" />
                   </div>
                   <h3 className="text-xl font-black text-secondary mt-4">Processing Data...</h3>
@@ -267,7 +267,7 @@ export function BulkUploadModal({ isOpen, onClose, onSuccess }: { isOpen: boolea
                 </>
               ) : (
                 <>
-                  <div className="w-20 h-20 bg-emerald-100 text-emerald-500 rounded-[2rem] flex items-center justify-center shadow-inner">
+                  <div className="w-20 h-20 bg-emerald-100 text-emerald-500 rounded-3xl flex items-center justify-center shadow-inner">
                     <CheckCircle2 size={40} />
                   </div>
                   <h3 className="text-xl font-black text-secondary mt-4">Upload Successful!</h3>

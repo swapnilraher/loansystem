@@ -65,26 +65,36 @@ export function Header() {
     <>
       {/* Dynamic Scroll Progress Bar */}
       <motion.div 
-        className="fixed-top h-1 bg-gradient-to-r from-emerald-500 via-cyan-400 to-blue-600 z-[999] origin-left"
-        style={{ scaleX }}
+        className="fixed-top h-1 bg-gradient-to-r from-emerald-500 via-cyan-400 to-blue-600 origin-left"
+        style={{ scaleX, zIndex: 1060 }}
       />
-      <header className={`fixed-top w-full z-50 transition-all duration-300 ${scrolled
-        ? "py-1 bg-white dark:bg-slate-900 border-bottom border-slate-100 dark:border-slate-800"
-        : "py-2 bg-white/70 dark:bg-slate-950/70 border-bottom border-transparent backdrop-blur-md"
-        }`}>
+      <header className={`fixed-top w-full transition-all duration-300 ${scrolled
+        ? "py-2 bg-white/95 dark:bg-slate-900/95 shadow-sm backdrop-blur-xl border-bottom border-slate-200/50 dark:border-slate-800"
+        : "py-3 bg-white/60 dark:bg-slate-950/60 border-bottom border-transparent backdrop-blur-lg"
+        }`} style={{ zIndex: 1030 }}>
         <div className="container-fluid px-md-5 px-3">
-          <div className="d-flex align-items-center justify-content-between">
-            {/* Logo Brand */}
-            <a href="/" className="d-flex align-items-center gap-2 text-decoration-none group">
-              <div className={`bg-paytm-blue d-flex align-items-center justify-content-center text-white rounded-xl shadow-sm overflow-hidden transition-all duration-300 ${scrolled ? "w-8 h-8" : "w-9 h-9"
-                }`}>
-                <img src="/img/logo.jpeg" alt="Techstar Money Solution Logo" className="w-100 h-100 object-cover" />
-              </div>
-              <span className={`font-black tracking-tight italic group-hover:text-primary transition-all duration-300 ${scrolled ? "fs-6" : "fs-5"
-                } ${theme === "dark" ? "text-white" : "text-paytm-navy"}`}>
-                Techstar Money Solution
-              </span>
-            </a>
+          <div className="d-flex align-items-center justify-content-between w-100">
+            <div className="d-flex align-items-center">
+              {/* Mobile Drawer Trigger (Left Side) */}
+              <button
+                onClick={() => setIsOpen(true)}
+                className="d-lg-none btn btn-light dark:bg-slate-800 dark:border-slate-700 border border-slate-100 p-2 rounded-xl text-secondary dark:text-white me-3"
+              >
+                <Menu size={20} />
+              </button>
+
+              {/* Logo Brand */}
+              <a href="/" className="d-flex align-items-center gap-2 text-decoration-none group">
+                <div className={`bg-paytm-blue d-flex align-items-center justify-content-center text-white rounded-xl shadow-sm overflow-hidden transition-all duration-300 ${scrolled ? "w-8 h-8" : "w-10 h-10"
+                  }`}>
+                  <img src="/img/logo.jpeg" alt="Techstar Money Solution Logo" className="w-100 h-100 object-cover" />
+                </div>
+                <span className={`font-black tracking-tight italic group-hover:text-primary transition-all duration-300 ${scrolled ? "fs-6" : "fs-5"
+                  } ${theme === "dark" ? "text-white" : "text-paytm-navy"}`}>
+                  Techstar Money Solution
+                </span>
+              </a>
+            </div>
 
             {/* Desktop Navigation Links */}
             <nav className="d-none d-lg-flex align-items-center gap-4">
@@ -198,14 +208,6 @@ export function Header() {
               >
                 {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
               </button>
-
-              {/* Mobile Drawer Trigger */}
-              <button
-                onClick={() => setIsOpen(true)}
-                className="d-lg-none btn btn-light border border-slate-100 p-2 rounded-xl text-secondary"
-              >
-                <Menu size={20} />
-              </button>
             </div>
           </div>
         </div>
@@ -223,16 +225,18 @@ export function Header() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsOpen(false)}
-              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60]"
+              className="fixed-top h-100 w-100 bg-slate-900/60 backdrop-blur-sm"
+              style={{ zIndex: 1040 }}
             />
             <motion.div
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed top-0 right-0 h-full w-4/5 max-w-sm shadow-2xl z-[70] p-8 flex flex-col justify-between overflow-y-auto border-l border-slate-100/50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl"
+              className="fixed-top bottom-0 start-auto h-100 w-[85%] max-w-[320px] shadow-2xl bg-white dark:bg-slate-900 d-flex flex-column overflow-y-auto border-start border-slate-100/50 dark:border-slate-800"
+              style={{ zIndex: 1050, right: 0 }}
             >
-              <div>
+              <div className="p-4">
                 <div className="flex justify-between items-center mb-10">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white overflow-hidden">
@@ -304,42 +308,49 @@ export function Header() {
                 </div>
               </div>
 
-              <div className="mt-8 space-y-6">
+              <div className="mt-5 d-flex flex-column gap-3">
                 {user ? (
-                  <div className={`p-6 rounded-3xl border border-dashed flex items-center gap-4 ${theme === "dark" ? "bg-slate-800/50 border-slate-700" : "bg-slate-50 border-slate-200"
+                  <div className={`p-4 rounded-3xl border d-flex align-items-center gap-3 ${theme === "dark" ? "bg-slate-800/50 border-slate-700" : "bg-slate-50 border-slate-200 shadow-sm"
                     }`}>
-                    <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center overflow-hidden">
+                    <div className="w-12 h-12 rounded-circle bg-paytm-blue d-flex align-items-center justify-content-center overflow-hidden flex-shrink-0 shadow-sm">
                       {user.photoURL ? (
-                        <img src={user.photoURL} alt={user.displayName || "User"} className="w-full h-full object-cover" />
+                        <img src={user.photoURL} alt={user.displayName || "User"} className="w-100 h-100 object-cover" />
                       ) : (
                         <User size={24} className="text-white" />
                       )}
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-widest">Logged in as</p>
-                      <p className={`text-lg font-black ${theme === "dark" ? "text-white" : "text-secondary"}`}>{user.displayName || "Member"}</p>
-                      <button onClick={() => logout()} className="text-red-500 text-xs font-bold uppercase tracking-widest mt-1">Logout</button>
+                      <p className="text-[10px] text-uppercase font-black text-slate-400 mb-0 tracking-widest">Logged in as</p>
+                      <p className={`fs-5 font-black mb-0 leading-none mt-1 ${theme === "dark" ? "text-white" : "text-paytm-navy"}`}>{user.displayName || "Member"}</p>
+                      <button onClick={() => logout()} className="text-danger text-[10px] font-black text-uppercase tracking-widest mt-1.5 bg-transparent border-0 p-0 text-start">Logout</button>
                     </div>
                   </div>
                 ) : (
-                  <Button
-                    size="lg"
+                  <button
                     onClick={() => { setIsWhatsAppOpen(true); setIsOpen(false); }}
-                    className="w-full h-16 rounded-full text-lg shadow-xl shadow-blue-100 flex gap-3"
+                    className="w-100 btn border-0 rounded-3xl py-3.5 px-4 shadow-md d-flex align-items-center justify-content-center gap-2 hover:shadow-lg transition-all"
+                    style={{ backgroundColor: '#25D366', color: 'white' }}
                   >
-                    <MessageSquare size={20} />
-                    Login with WhatsApp
-                  </Button>
+                    <MessageSquare size={20} className="text-white" />
+                    <span className="font-black fs-6 tracking-wide">Login with WhatsApp</span>
+                  </button>
                 )}
-                <div className={`p-6 rounded-3xl border border-dashed ${theme === "dark" ? "bg-slate-800/50 border-slate-700" : "bg-slate-50 border-slate-200"
+
+                <div className={`p-4 rounded-3xl border ${theme === "dark" ? "bg-slate-800/50 border-slate-700" : "bg-white border-slate-100 shadow-sm"
                   }`}>
-                  <p className="text-[10px] uppercase font-black text-slate-400 mb-2 tracking-widest">Call Expert</p>
-                  <a href="tel:9579005645" className={`text-xl font-black flex items-center gap-2 ${theme === "dark" ? "text-white" : "text-secondary"
+                  <p className="text-[10px] text-uppercase font-black text-slate-400 mb-1 tracking-widest">Call Expert for Help</p>
+                  <a href="tel:9579005645" className={`text-decoration-none fs-4 font-black d-flex align-items-center gap-2 ${theme === "dark" ? "text-white" : "text-paytm-navy hover:text-paytm-blue transition-colors"
                     }`}>
-                    <Phone size={20} className="text-primary" /> 9579005645
+                    <div className="bg-emerald-100 dark:bg-emerald-900/40 p-2 rounded-circle">
+                      <Phone size={18} className="text-emerald-500 animate-pulse" />
+                    </div>
+                    9579005645
                   </a>
                 </div>
-                <Button size="lg" className="w-full h-16 rounded-full text-lg shadow-xl shadow-blue-100">Apply Now</Button>
+
+                <a href="#check-eligibility" onClick={() => setIsOpen(false)} className="w-100 btn bg-paytm-navy text-white rounded-3xl py-3.5 px-4 shadow-lg d-flex align-items-center justify-content-center gap-2 hover:shadow-xl transition-all mt-2 group border-0">
+                  <span className="font-black fs-5 tracking-wide group-hover:scale-105 transition-transform">Apply Now</span>
+                </a>
               </div>
             </motion.div>
 
@@ -354,7 +365,7 @@ export function Footer() {
   return (
     <footer className="bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 pt-16 pb-8 border-t border-slate-200 dark:border-slate-900 relative overflow-hidden transition-colors duration-300">
       {/* Dynamic Background Glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-primary/5 dark:bg-primary/10 rounded-[100%] blur-[120px] pointer-events-none" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-primary/5 dark:bg-primary/10 rounded-3xl blur-[120px] pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-600/5 dark:bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
 
       <div className="container px-md-5 px-3 relative z-10">
@@ -363,7 +374,7 @@ export function Footer() {
         <div className="row g-5 mb-12 pb-12 border-b border-slate-200 dark:border-slate-800/60">
           <div className="col-lg-4 col-md-12 text-start">
             <a href="/" className="d-flex align-items-center gap-3 text-secondary dark:text-white text-decoration-none group mb-4">
-              <div className="w-12 h-12 bg-white rounded-[1rem] d-flex align-items-center justify-content-center overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800 group-hover:border-primary transition-colors">
+              <div className="w-12 h-12 bg-white rounded-3xl d-flex align-items-center justify-content-center overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800 group-hover:border-primary transition-colors">
                 <img src="/img/logo.jpeg" alt="TechStar Logo" className="w-100 h-100 object-cover" />
               </div>
               <span className="fs-4 font-black tracking-tight italic text-secondary dark:text-white group-hover:text-primary dark:group-hover:text-primary transition-colors">
@@ -394,7 +405,7 @@ export function Footer() {
           </div>
 
           <div className="col-lg-8 col-md-12">
-            <div className="bg-white/60 dark:bg-slate-900/50 backdrop-blur-md border border-slate-200 dark:border-slate-800/80 p-6 md:p-8 rounded-[2rem] text-xs leading-relaxed text-slate-500 dark:text-slate-400 shadow-sm dark:shadow-inner h-100 flex flex-col justify-center transition-colors">
+            <div className="bg-white/60 dark:bg-slate-900/50 backdrop-blur-md border border-slate-200 dark:border-slate-800/80 p-6 md:p-8 rounded-3xl text-xs leading-relaxed text-slate-500 dark:text-slate-400 shadow-sm dark:shadow-inner h-100 flex flex-col justify-center transition-colors">
               <div className="flex items-center gap-2 mb-3 text-secondary dark:text-slate-300">
                 <ShieldCheck size={18} className="text-emerald-500" />
                 <strong className="font-black text-sm uppercase tracking-wider text-slate-700 dark:text-slate-300">Regulatory Disclaimer</strong>

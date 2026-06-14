@@ -12,7 +12,7 @@ export function CIBILBanner() {
       <div className="position-absolute end-0 w-[40rem] h-[40rem] bg-warning/5 rounded-circle blur-[128px] pointer-events-none" style={{ bottom: "-10%" }} />
       
       <div className="container py-4 relative z-10">
-        <div className="card border-0 bg-gradient-to-br from-slate-900 via-slate-900 to-paytm-navy p-4 p-md-5 rounded-[3rem] shadow-xl overflow-hidden position-relative">
+        <div className="card border-0 bg-gradient-to-br from-slate-900 via-slate-900 to-paytm-navy p-4 p-md-5 rounded-3xl shadow-xl overflow-hidden position-relative">
           
           <div className="row g-4 align-items-center relative z-10">
             {/* Left Content */}
@@ -60,7 +60,7 @@ export function CIBILBanner() {
                 <motion.div 
                   animate={{ y: [-8, 8, -8] }}
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                  className="position-absolute bg-slate-800/90 backdrop-blur-md border border-slate-700/80 p-3 rounded-[1.5rem] shadow-xl d-flex align-items-center gap-3"
+                  className="position-absolute bg-slate-800/90 backdrop-blur-md border border-slate-700/80 p-3 rounded-3xl shadow-xl d-flex align-items-center gap-3"
                   style={{ top: "-10px", right: "-10px", zIndex: 10 }}
                 >
                   <div className="w-10 h-10 rounded-full bg-emerald-500/20 d-flex align-items-center justify-content-center text-success">
@@ -76,7 +76,7 @@ export function CIBILBanner() {
                 <motion.div 
                   animate={{ y: [8, -8, 8] }}
                   transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                  className="position-absolute bg-slate-800/90 backdrop-blur-md border border-slate-700/80 p-3 rounded-[1.5rem] shadow-xl d-flex align-items-center gap-3"
+                  className="position-absolute bg-slate-800/90 backdrop-blur-md border border-slate-700/80 p-3 rounded-3xl shadow-xl d-flex align-items-center gap-3"
                   style={{ bottom: "-10px", left: "-10px", zIndex: 10 }}
                 >
                   <div className="w-10 h-10 rounded-full bg-paytm-blue/20 d-flex align-items-center justify-content-center text-paytm-blue">
@@ -89,7 +89,7 @@ export function CIBILBanner() {
                 </motion.div>
 
                 {/* Main Score Card */}
-                <div className="bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700 rounded-[2.5rem] p-5 shadow-2xl text-center">
+                <div className="bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700 rounded-3xl p-5 shadow-2xl text-center">
                   <div className="mb-3">
                     <h4 className="fs-6 font-black text-slate-350 m-0">Credit Score Checker</h4>
                     <p className="text-[10px] text-muted m-0">Real-time CIBIL Health</p>

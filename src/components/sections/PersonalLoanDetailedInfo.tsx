@@ -74,7 +74,7 @@ export function PersonalLoanDetailedInfo() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {factors.map((factor, idx) => (
-              <Card key={idx} className="border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20 hover-lift rounded-[1.75rem]">
+              <Card key={idx} className="border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20 hover-lift rounded-3xl">
                 <CardContent className="p-5 space-y-4">
                   <div className={`w-10 h-10 rounded-xl ${factor.color} flex items-center justify-center shrink-0`}>
                     <factor.icon size={20} />

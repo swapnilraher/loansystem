@@ -46,7 +46,7 @@ export function CreditCards() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {cards.map((card, i) => (
-            <div key={i} className="group relative bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-blue-900/5 hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col">
+            <div key={i} className="group relative bg-white rounded-3xl border border-slate-100 shadow-xl shadow-blue-900/5 hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col">
               <div className={`h-56 bg-gradient-to-br ${card.color} p-8 flex flex-col justify-between relative overflow-hidden`}>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2" />
                 <div className="flex justify-between items-start relative z-10">

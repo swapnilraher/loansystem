@@ -118,49 +118,49 @@ export function LocationCoverage() {
               className="border border-slate-150/40 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-soft hover-lift rounded-3xl"
               glowColor="rgba(16, 185, 129, 0.04)"
             >
-              <div className="p-5 flex flex-col justify-between h-full space-y-4 text-left">
+              <div className="p-6 flex flex-col justify-between h-full space-y-5 text-center">
                 {/* Header */}
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-primary shrink-0 shadow-sm">
-                    <MapPin size={20} />
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-50/80 dark:bg-slate-800 flex items-center justify-center text-primary shrink-0 shadow-sm">
+                    <MapPin size={24} />
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-sm text-secondary dark:text-white leading-tight">
+                    <h3 className="font-extrabold text-2xl md:text-3xl text-secondary dark:text-white leading-tight mb-1">
                       {loc.city}
                     </h3>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                    <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">
                       {loc.alias ? `${loc.alias}, ${loc.state}` : loc.state}
                     </p>
                   </div>
                 </div>
 
                 {/* Details */}
-                <div className="grid grid-cols-2 gap-2 py-2 border-t border-b border-slate-100 dark:border-slate-800/60 text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                  <div className="flex items-center gap-1">
-                    <Check size={12} className="text-emerald-500" />
+                <div className="flex justify-center gap-6 py-3 border-t border-b border-slate-100 dark:border-slate-800/60 text-xs font-bold text-slate-600 dark:text-slate-300">
+                  <div className="flex items-center gap-1.5">
+                    <Check size={14} className="text-emerald-500" />
                     <span>{loc.lenders}</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <ShieldCheck size={12} className="text-primary" />
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck size={14} className="text-primary" />
                     <span>{loc.time}</span>
                   </div>
                 </div>
 
                 {/* Quick Action Links */}
-                <div className="space-y-1.5 pt-1">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Quick Links</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2 text-[10px] font-extrabold text-slate-650 dark:text-slate-350">
-                    <a href={loc.routes.personal} className="hover:text-primary transition-colors flex items-center gap-0.5">
-                      Personal Loan <ArrowRight size={10} />
+                <div className="space-y-2 pt-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Quick Links</p>
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-3 text-xs font-extrabold text-blue-600 dark:text-blue-400">
+                    <a href={loc.routes.personal} className="hover:text-primary transition-colors flex items-center justify-center gap-1">
+                      Personal Loan <ArrowRight size={12} />
                     </a>
-                    <a href={loc.routes.business} className="hover:text-primary transition-colors flex items-center gap-0.5">
-                      Business Loan <ArrowRight size={10} />
+                    <a href={loc.routes.business} className="hover:text-primary transition-colors flex items-center justify-center gap-1">
+                      Business Loan <ArrowRight size={12} />
                     </a>
-                    <a href={loc.routes.home} className="hover:text-primary transition-colors flex items-center gap-0.5">
-                      Home Loan <ArrowRight size={10} />
+                    <a href={loc.routes.home} className="hover:text-primary transition-colors flex items-center justify-center gap-1">
+                      Home Loan <ArrowRight size={12} />
                     </a>
-                    <a href={loc.routes.dsa} className="hover:text-primary transition-colors flex items-center gap-0.5">
-                      DSA Partner <ArrowRight size={10} />
+                    <a href="/partners" className="hover:text-primary transition-colors flex items-center justify-center gap-1">
+                      DSA Partner <ArrowRight size={12} />
                     </a>
                   </div>
                 </div>

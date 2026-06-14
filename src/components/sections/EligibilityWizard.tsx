@@ -148,7 +148,8 @@ export function EligibilityWizard() {
                       <button
                         key={type}
                         onClick={() => setLoanType(type as any)}
-                        className={`p-5 rounded-[2rem] border flex flex-col items-center justify-center gap-3 transition-all cursor-pointer ${
+                        style={{ borderRadius: '24px' }}
+                        className={`p-5 border flex flex-col items-center justify-center gap-3 transition-all cursor-pointer ${
                           loanType === type
                             ? "border-primary bg-primary/5 text-primary shadow-md"
                             : "border-slate-150/60 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-500 hover:border-slate-300"
@@ -162,7 +163,7 @@ export function EligibilityWizard() {
                 </div>
 
                 {/* Amount Slider */}
-                <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800">
+                <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
                   <div className="flex justify-between text-sm font-bold mb-4">
                     <span className="text-slate-550 dark:text-slate-400">Required Amount</span>
                     <span className="text-primary font-black bg-white dark:bg-slate-800 px-3 py-1 rounded-pill shadow-sm">₹{(amount / 100000).toFixed(1)} Lacs</span>
@@ -197,7 +198,8 @@ export function EligibilityWizard() {
                       <button
                         key={emp.id}
                         onClick={() => setEmployment(emp.id as any)}
-                        className={`p-6 rounded-[2.5rem] border text-left flex flex-col gap-1.5 transition-all cursor-pointer ${
+                        style={{ borderRadius: '24px' }}
+                        className={`p-6 border text-left flex flex-col gap-1.5 transition-all cursor-pointer ${
                           employment === emp.id
                             ? "border-primary bg-primary/5 text-primary shadow-md"
                             : "border-slate-150/60 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-500 hover:border-slate-350"
@@ -211,7 +213,7 @@ export function EligibilityWizard() {
                 </div>
 
                 {/* Monthly Income Slider */}
-                <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800">
+                <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
                   <div className="flex justify-between text-sm font-bold mb-4">
                     <span className="text-slate-550 dark:text-slate-400">Monthly Net Income</span>
                     <span className="text-primary font-black bg-white dark:bg-slate-800 px-3 py-1 rounded-pill shadow-sm">₹{income.toLocaleString("en-IN")}</span>
@@ -232,7 +234,7 @@ export function EligibilityWizard() {
                 </div>
 
                 {/* Existing EMIs Slider */}
-                <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800">
+                <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
                   <div className="flex justify-between text-sm font-bold mb-4">
                     <span className="text-slate-550 dark:text-slate-400">Existing Monthly EMIs (if any)</span>
                     <span className="text-primary font-black bg-white dark:bg-slate-800 px-3 py-1 rounded-pill shadow-sm">₹{emis.toLocaleString("en-IN")}</span>
@@ -304,7 +306,7 @@ export function EligibilityWizard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                   
                   {/* Result Panel */}
-                  <div className="p-8 bg-slate-50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-850 rounded-[3rem] text-center space-y-4 shadow-inner">
+                  <div className="p-8 bg-slate-50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-850 rounded-3xl text-center space-y-4 shadow-inner">
                     <h4 className="text-xs uppercase font-black tracking-widest text-slate-450">Estimated Eligibility Output</h4>
                     <div>
                       <p className="text-[10px] text-slate-400 font-bold mb-1">Estimated Monthly EMI</p>
@@ -332,7 +334,7 @@ export function EligibilityWizard() {
                     
                     <div className="space-y-3">
                       {matchedLenders.map((lender) => (
-                        <div key={lender.name} className="p-4 bg-white dark:bg-slate-900 border border-slate-150/40 dark:border-slate-800 rounded-[2rem] shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+                        <div key={lender.name} className="p-4 bg-white dark:bg-slate-900 border border-slate-150/40 dark:border-slate-800 rounded-3xl shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
                           <div className="flex items-center gap-3">
                             <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-slate-800 text-primary flex items-center justify-center font-black text-sm shadow-inner">
                               {lender.name.substring(0,2)}

@@ -78,7 +78,7 @@ export function TrustSignals() {
         </div>
 
         {/* Media Mentions & Partners */}
-        <div className="bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-[3rem] p-10 md:p-14 shadow-xl">
+        <div className="bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-3xl p-10 md:p-14 shadow-xl">
           <div className="flex flex-col lg:flex-row items-center gap-12">
             <div className="lg:w-1/3 text-center lg:text-left space-y-4">
               <h3 className="text-2xl font-black text-secondary dark:text-white">As Featured In</h3>

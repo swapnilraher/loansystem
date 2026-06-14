@@ -92,7 +92,7 @@ export default function LoanComparisonTable() {
         </div>
 
         {/* Table Container */}
-        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-2xl overflow-hidden backdrop-blur-xl">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xl overflow-hidden backdrop-blur-xl">
           {/* Desktop Table View */}
           <div className="hidden md:block overflow-x-auto">
             {activeTab !== "cards" ? (

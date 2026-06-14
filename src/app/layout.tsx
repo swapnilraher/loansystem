@@ -59,7 +59,7 @@ export default function RootLayout({
       lang="en"
       className="h-full antialiased transition-colors duration-300"
     >
-      <body className="min-h-full flex flex-col font-inter">
+      <body className="min-h-full flex flex-col font-sans">
         {/* Google Analytics (gtag.js) */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-Y8ZY3SCES2"

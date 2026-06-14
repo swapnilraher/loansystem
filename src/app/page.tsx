@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import { Header, Footer } from "@/components/sections/Layout"
 import { HomeHero } from "@/components/sections/HomeHero"
 import { ProductGrid } from "@/components/sections/ProductGrid"
+import { LoanShowcase } from "@/components/sections/LoanShowcase"
 import { BecomePartner } from "@/components/sections/BecomePartner"
 import { CIBILBanner } from "@/components/sections/CIBILBanner"
 import { EligibilityWizard } from "@/components/sections/EligibilityWizard"
@@ -33,7 +34,7 @@ export default function Home() {
       <Header />
       <main className="relative bg-slate-50/10 dark:bg-slate-900/10 overflow-hidden">
         <HomeHero />
-        <AnimatedSection><ProductGrid /></AnimatedSection>
+        <AnimatedSection><LoanShowcase /></AnimatedSection>
         <AnimatedSection><TrustSignals /></AnimatedSection>
         <AnimatedSection><LoanJourney /></AnimatedSection>
         <AnimatedSection><BecomePartner /></AnimatedSection>

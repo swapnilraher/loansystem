@@ -149,50 +149,53 @@ export function WhatsAppLogin({ isOpen, onClose }: WhatsAppLoginProps) {
       case "login":
         return (
           <div className="space-y-6">
-            {/* WhatsApp Phone Section */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Login with WhatsApp OTP</label>
+            {/* WhatsApp Form Block */}
+            <div className="bg-slate-50/50 dark:bg-slate-800/30 p-2 rounded-3xl border border-slate-100 dark:border-slate-800/50">
+              <div className="p-2 pb-0">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2 mb-2 block">WhatsApp Number</label>
                 <div className="relative group">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-green-500 transition-colors">
-                    <Phone size={18} />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-3 text-slate-400 group-focus-within:text-[#25D366] transition-colors">
+                    <span className="font-black text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-700 pr-3">+91</span>
                   </div>
                   <input
                     type="tel"
-                    placeholder="Enter mobile number"
+                    placeholder="00000 00000"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    className="w-full h-14 pl-12 pr-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-green-500 rounded-2xl outline-none transition-all font-bold"
+                    className="w-full h-14 pl-[4.5rem] pr-4 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 focus:border-[#25D366] rounded-2xl outline-none transition-all font-black text-lg tracking-widest text-slate-800 dark:text-white shadow-sm"
                   />
                 </div>
               </div>
-              <Button
-                onClick={handleSendOTP}
-                disabled={loading || phoneNumber.length < 10}
-                className="w-full h-16 rounded-full bg-green-500 hover:bg-green-600 text-white font-black text-lg shadow-xl shadow-green-100 flex gap-3 transition-all"
-              >
-                {loading ? <Loader2 className="animate-spin" /> : <>Send WhatsApp OTP <ArrowRight size={20} /></>}
-              </Button>
+
+              <div className="p-2 mt-2">
+                <button
+                  onClick={handleSendOTP}
+                  disabled={loading || phoneNumber.length < 10}
+                  className="w-full h-14 rounded-2xl text-white font-black text-lg flex justify-center items-center gap-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:-translate-y-0.5 border-0"
+                  style={{ backgroundColor: '#25D366' }}
+                >
+                  {loading ? <Loader2 className="animate-spin" /> : <>Get OTP via WhatsApp <ArrowRight size={20} /></>}
+                </button>
+              </div>
             </div>
 
             {/* Divider */}
-            <div className="relative py-2">
-              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200 dark:border-slate-700" /></div>
-              <div className="relative flex justify-center text-xs uppercase"><span className="bg-white dark:bg-slate-900 px-4 text-slate-400 font-black tracking-widest">OR</span></div>
+            <div className="relative py-2 px-6">
+              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200 dark:border-slate-800" /></div>
+              <div className="relative flex justify-center"><span className="bg-white dark:bg-slate-900 px-4 text-[10px] text-slate-400 font-black tracking-widest uppercase rounded-full">Or connect with</span></div>
             </div>
 
             {/* Google Login Section */}
-            <div className="space-y-4">
-              <Button
+            <div className="px-2 pb-2">
+              <button
                 onClick={handleGoogleLogin}
-                variant="outline"
                 disabled={loading}
-                className="w-full h-16 rounded-full border-2 border-slate-200 dark:border-slate-700 font-black text-lg flex gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm"
+                className="w-full h-14 rounded-2xl border-2 border-slate-200 dark:border-slate-700 font-black text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 flex justify-center items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm group"
               >
-                <img src="https://www.google.com/favicon.ico" className="w-6 h-6" alt="Google" />
+                <img src="https://www.google.com/favicon.ico" className="w-5 h-5 group-hover:scale-110 transition-transform" alt="Google" />
                 Continue with Google
-              </Button>
-              <p className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-tighter">One-tap secure access to your profile</p>
+              </button>
+              <p className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-4">One-tap secure access to your profile</p>
             </div>
           </div>
         );
@@ -273,21 +276,23 @@ export function WhatsAppLogin({ isOpen, onClose }: WhatsAppLoginProps) {
       {isOpen && (
         <div className="fixed top-0 left-0 w-full h-full z-[9999] flex items-center justify-center p-4">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm cursor-pointer" />
-          <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden">
-            <div className="bg-gradient-to-br from-primary to-blue-700 p-8 text-white relative">
-              <button onClick={onClose} className="absolute top-6 right-6 p-2 hover:bg-white/20 rounded-full transition-colors z-10"><X size={20} /></button>
-              <div className="flex items-center gap-4 mb-2">
-                <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
-                  <ShieldCheck size={24} />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-black italic tracking-tight leading-none">Login / Signup</h2>
-                  <p className="text-white/80 text-sm mt-1">Get instant access to your portal</p>
-                </div>
+          <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800">
+            {/* Header Area */}
+            <div className="pt-10 px-8 pb-4 relative text-center overflow-hidden">
+              <div className="absolute top-[-50px] left-1/2 -translate-x-1/2 w-48 h-48 bg-paytm-blue/10 dark:bg-paytm-blue/20 blur-[50px] rounded-full pointer-events-none" />
+              <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors z-10"><X size={20} /></button>
+              
+              <div className="relative w-20 h-20 mx-auto mb-4 rounded-3xl shadow-xl overflow-hidden border-4 border-white dark:border-slate-800 bg-white flex items-center justify-center transform hover:-translate-y-1 transition-all z-10">
+                <img src="/img/logo.jpeg" alt="Techstar Money Solution Logo" className="w-full h-full object-cover scale-110" />
               </div>
+              <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white leading-tight mb-2 relative z-10">
+                Welcome to <br/>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-paytm-navy to-paytm-blue">Techstar Money Solution</span>
+              </h2>
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1 relative z-10">Secure Login / Signup</p>
             </div>
 
-            <div className="p-8">
+            <div className="p-8 pt-4">
               {error && <p className="text-red-500 text-xs font-bold text-center mb-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-800">{error}</p>}
               {renderStep()}
             </div>

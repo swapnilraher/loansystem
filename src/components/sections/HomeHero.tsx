@@ -108,9 +108,9 @@ export function HomeHero() {
           y: heroY,
           filter: heroBlur
         }}
-        className="container py-5 position-relative z-10"
+        className="container-xl py-5 position-relative z-10 mt-md-4"
       >
-        <div className="row g-5 align-items-center align-items-lg-stretch">
+        <div className="row g-5 align-items-center">
           
           {/* Left Column - Content */}
           <div className="col-lg-6 col-12 text-lg-start text-center space-y-6 d-flex flex-column justify-content-center">
@@ -123,25 +123,88 @@ export function HomeHero() {
 
             {/* Title */}
             <h1 className="display-4 font-black tracking-tight text-paytm-navy dark:text-white mb-3 leading-tight">
-              Compare & Apply for <br className="d-none d-lg-block" />
+              💰 One Stop <br className="d-none d-lg-block" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-600">
-                Personal, Home & Business Loans
+                Loan Solution
               </span>
             </h1>
 
-            {/* Subtitle */}
-            <p className="lead text-slate-500 dark:text-slate-400 max-w-xl mx-auto mx-lg-0 mb-4">
-              Get lowest interest rates with 100% digital, paperless processing and instant approvals from 50+ banking partners.
+            {/* Tagline */}
+            <p className="text-slate-600 dark:text-slate-400 max-w-xl mx-auto mx-lg-0 mb-4 fs-6 fw-medium leading-relaxed">
+              Based on your credit profile and income, we assist you in obtaining a loan from the most suitable banks and NBFCs in the market.
             </p>
 
-            {/* Checkmarks */}
-            <div className="d-flex flex-wrap justify-content-lg-start justify-content-center gap-3 pt-3">
-              {["50+ Banking Partners", "100% Digital Process", "Zero Paperwork"].map((chk, idx) => (
-                <div key={idx} className="text-[11px] font-black text-uppercase text-slate-600 dark:text-slate-300 tracking-wider d-flex align-items-center gap-1.5">
-                  <CheckCircle2 size={14} className="text-success" />
-                  {chk}
+            {/* Subtitle & Features */}
+            <div className="mb-4 d-flex flex-column gap-4 max-w-xl mx-auto mx-lg-0">
+              <h3 className="fs-5 font-black text-paytm-navy dark:text-white m-0 d-flex align-items-center justify-content-center justify-content-lg-start gap-2">
+                <span className="text-emerald-500"><CheckCircle2 size={22} /></span> Loan Solutions Made Easy
+              </h3>
+              
+              {/* Premium 2x2 Grid for Loans */}
+              <div className="row g-3">
+                <div className="col-sm-6 col-12">
+                  <div className="d-flex align-items-center gap-3 bg-white/80 backdrop-blur-md dark:bg-slate-800/80 p-3 rounded-3xl shadow-sm border border-slate-200/60 dark:border-slate-700 transition-all hover:shadow-lg hover:-translate-y-1 group cursor-pointer">
+                    <div className="bg-gradient-to-br from-emerald-100 to-teal-50 dark:from-emerald-900/40 dark:to-teal-900/20 text-emerald-600 dark:text-emerald-400 w-12 h-12 rounded-circle d-flex align-items-center justify-content-center shadow-inner group-hover:scale-110 transition-transform">
+                      <Home size={22} strokeWidth={2.5} />
+                    </div>
+                    <span className="font-bold text-slate-800 dark:text-slate-100 fs-6">Home Loan</span>
+                  </div>
                 </div>
-              ))}
+                <div className="col-sm-6 col-12">
+                  <div className="d-flex align-items-center gap-3 bg-white/80 backdrop-blur-md dark:bg-slate-800/80 p-3 rounded-3xl shadow-sm border border-slate-200/60 dark:border-slate-700 transition-all hover:shadow-lg hover:-translate-y-1 group cursor-pointer">
+                    <div className="bg-gradient-to-br from-blue-100 to-indigo-50 dark:from-blue-900/40 dark:to-indigo-900/20 text-blue-600 dark:text-blue-400 w-12 h-12 rounded-circle d-flex align-items-center justify-content-center shadow-inner group-hover:scale-110 transition-transform">
+                      <Building size={22} strokeWidth={2.5} />
+                    </div>
+                    <span className="font-bold text-slate-800 dark:text-slate-100 fs-6">Business Loan</span>
+                  </div>
+                </div>
+                <div className="col-sm-6 col-12">
+                  <div className="d-flex align-items-center gap-3 bg-white/80 backdrop-blur-md dark:bg-slate-800/80 p-3 rounded-3xl shadow-sm border border-slate-200/60 dark:border-slate-700 transition-all hover:shadow-lg hover:-translate-y-1 group cursor-pointer">
+                    <div className="bg-gradient-to-br from-purple-100 to-pink-50 dark:from-purple-900/40 dark:to-pink-900/20 text-purple-600 dark:text-purple-400 w-12 h-12 rounded-circle d-flex align-items-center justify-content-center shadow-inner group-hover:scale-110 transition-transform">
+                      <User size={22} strokeWidth={2.5} />
+                    </div>
+                    <span className="font-bold text-slate-800 dark:text-slate-100 fs-6">Personal Loan</span>
+                  </div>
+                </div>
+                <div className="col-sm-6 col-12">
+                  <div className="d-flex align-items-center gap-3 bg-white/80 backdrop-blur-md dark:bg-slate-800/80 p-3 rounded-3xl shadow-sm border border-slate-200/60 dark:border-slate-700 transition-all hover:shadow-lg hover:-translate-y-1 group cursor-pointer">
+                    <div className="bg-gradient-to-br from-orange-100 to-amber-50 dark:from-orange-900/40 dark:to-amber-900/20 text-orange-600 dark:text-orange-400 w-12 h-12 rounded-circle d-flex align-items-center justify-content-center shadow-inner group-hover:scale-110 transition-transform">
+                      <Banknote size={22} strokeWidth={2.5} />
+                    </div>
+                    <span className="font-bold text-slate-800 dark:text-slate-100 fs-6 leading-tight">Loan Against Property</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="d-flex flex-wrap justify-content-center justify-content-lg-start gap-2 mt-2">
+                <div className="badge bg-gradient-to-r from-paytm-navy to-blue-800 text-white border-0 px-3 py-2 rounded-pill font-black d-flex align-items-center gap-1.5 shadow-md tracking-wider text-[11px] hover:-translate-y-0.5 transition-transform cursor-default">
+                  <Star size={14} className="text-warning fill-warning" /> Quick Process & Trusted
+                </div>
+                <div className="badge bg-gradient-to-r from-emerald-600 to-teal-500 text-white border-0 px-3 py-2 rounded-pill font-black d-flex align-items-center gap-1.5 shadow-md tracking-wider text-[11px] hover:-translate-y-0.5 transition-transform cursor-default">
+                  <CheckCircle2 size={14} className="text-white" /> Quick Approval & Support
+                </div>
+                <div className="badge bg-gradient-to-r from-orange-500 to-red-500 text-white border-0 px-3 py-2 rounded-pill font-black d-flex align-items-center gap-1.5 shadow-md tracking-wider text-[11px] hover:-translate-y-0.5 transition-transform cursor-default">
+                  <Flame size={14} className="text-white fill-white" /> Lowest Interest Rates
+                </div>
+                <div className="badge bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-0 px-3 py-2 rounded-pill font-black d-flex align-items-center gap-1.5 shadow-md tracking-wider text-[11px] hover:-translate-y-0.5 transition-transform cursor-default">
+                  <Lock size={14} className="text-white" /> 100% Digital & Secure
+                </div>
+              </div>
+
+              <div className="d-flex justify-content-center justify-content-lg-start mt-3">
+                <a href="tel:9421306564" className="text-decoration-none group position-relative d-inline-flex align-items-center justify-content-center gap-3 bg-paytm-navy dark:bg-slate-800 text-white px-5 py-3 rounded-pill shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 overflow-hidden border border-slate-700/50">
+                  <div className="position-absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="position-relative z-10 d-flex align-items-center gap-3">
+                    <div className="bg-white/20 p-2.5 rounded-circle shadow-inner">
+                      <PhoneCall size={22} className="animate-pulse text-white" />
+                    </div>
+                    <div className="d-flex flex-column text-start">
+                      <span className="text-[10px] font-black text-emerald-300 text-uppercase tracking-widest mb-0.5 opacity-90">Call For Instant Approval</span>
+                      <span className="font-black fs-4 tracking-wider leading-none">9421306564</span>
+                    </div>
+                  </div>
+                </a>
+              </div>
             </div>
 
           </div>
@@ -155,7 +218,8 @@ export function HomeHero() {
                 transition={{ duration: 0.8 }}
                 src={bannerImage}
                 alt="Fintech Banner"
-                className="w-100 h-auto object-fit-contain max-h-[500px] lg:max-h-[600px] mix-blend-multiply dark:invert dark:mix-blend-screen"
+                className="w-100 h-auto object-fit-contain max-h-[600px] lg:max-h-[750px] scale-110 mix-blend-multiply dark:invert dark:mix-blend-screen"
+                style={{ filter: 'contrast(1.15) brightness(1.05)' }}
                 draggable="false"
               />
             </div>
@@ -165,134 +229,144 @@ export function HomeHero() {
 
         {/* Row 2 - Horizontal Eligibility Form */}
         <div className="row mt-5 pt-4 position-relative z-20">
-          <div className="col-12 max-w-5xl mx-auto">
-            <div className="card border-0 shadow-xl rounded-[3rem] p-4 p-md-5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-start position-relative overflow-hidden" style={{ boxShadow: '0 25px 50px rgba(0, 41, 112, 0.1)' }}>
-              <div className="position-absolute top-0 start-0 w-100 h-2 bg-gradient-to-r from-emerald-500 via-cyan-400 to-blue-600" />
+          <div className="col-12 col-xl-11 mx-auto">
+            <div className="card border-0 rounded-3xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl text-start position-relative overflow-hidden shadow-2xl" style={{ boxShadow: '0 25px 60px rgba(0, 41, 112, 0.08)' }}>
+              <div className="position-absolute top-0 start-0 w-100 h-[6px] bg-gradient-to-r from-emerald-500 via-cyan-400 to-blue-600" />
               
-              <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-                <div>
-                  <h3 className="fs-5 font-black text-paytm-navy dark:text-white m-0">Check Eligibility</h3>
-                  <p className="text-[10px] text-uppercase font-black text-slate-400 m-0 tracking-widest mt-1">Get instant approval rates</p>
+              <div className="p-4 p-md-5">
+                <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 pb-3 border-bottom border-slate-100 dark:border-slate-800">
+                  <div className="d-flex align-items-center gap-3">
+                    <div className="w-12 h-12 bg-paytm-blue/10 rounded-2xl d-flex align-items-center justify-content-center text-paytm-blue">
+                      <Lock size={24} />
+                    </div>
+                    <div>
+                      <h3 className="fs-4 font-black text-paytm-navy dark:text-white m-0 tracking-tight">Check Eligibility</h3>
+                      <p className="text-[10px] text-uppercase font-black text-slate-400 m-0 tracking-widest mt-1">Get instant approval rates</p>
+                    </div>
+                  </div>
+                  
+                  <span className="badge bg-success/10 text-success px-4 py-2.5 rounded-pill border border-success/20 d-flex align-items-center gap-2 font-black shadow-sm text-xs">
+                    <CheckCircle2 size={16} className="animate-pulse" /> 100% Secure Verification
+                  </span>
                 </div>
-                
-                {/* Tabs removed as per user request */}
 
-                <span className="badge bg-success/10 text-success text-[10px] px-3 py-2 rounded-pill border border-success/20 d-flex align-items-center gap-1.5 font-bold">
-                  <Lock size={12} /> 100% Secure Verification
-                </span>
-              </div>
+                {!leadSuccess ? (
+                  <form onSubmit={handleHeroLeadSubmit} className="row g-3 g-md-4 align-items-end mt-2">
+                    <div className="col-lg-2 col-md-4 col-12">
+                      <label className="text-[11px] text-uppercase font-black text-slate-500 mb-2 d-block ms-1 tracking-wider">Your Name</label>
+                      <input 
+                        type="text" 
+                        placeholder="Enter Full Name" 
+                        className="form-control form-control-lg bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 focus:border-paytm-blue rounded-xl py-3 px-4 text-sm font-bold shadow-sm transition-all"
+                        value={leadName}
+                        onChange={(e) => setLeadName(e.target.value)}
+                        required
+                      />
+                    </div>
 
-              {!leadSuccess ? (
-                <form onSubmit={handleHeroLeadSubmit} className="row g-3 align-items-end mt-2">
-                  <div className="col-lg-2 col-md-4 col-12">
-                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-2 d-block ms-3 tracking-wider">Your Name</label>
-                    <input 
-                      type="text" 
-                      placeholder="Enter Your Name" 
-                      className="form-control rounded-pill py-3 px-4 text-xs shadow-sm"
-                      value={leadName}
-                      onChange={(e) => setLeadName(e.target.value)}
-                      required
-                    />
-                  </div>
+                    <div className="col-lg-2 col-md-4 col-12">
+                      <label className="text-[11px] text-uppercase font-black text-slate-500 mb-2 d-block ms-1 tracking-wider">Mobile Number</label>
+                      <input 
+                        type="tel" 
+                        maxLength={10}
+                        pattern="[0-9]{10}"
+                        title="Please enter a valid 10-digit mobile number"
+                        placeholder="10-digit number" 
+                        className="form-control form-control-lg bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 focus:border-paytm-blue rounded-xl py-3 px-4 text-sm font-bold shadow-sm transition-all"
+                        value={leadMobile}
+                        onChange={(e) => setLeadMobile(e.target.value.replace(/\D/g, ''))}
+                        required
+                      />
+                    </div>
 
-                  <div className="col-lg-2 col-md-4 col-12">
-                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-2 d-block ms-3 tracking-wider">Mobile Number</label>
-                    <input 
-                      type="tel" 
-                      maxLength={10}
-                      pattern="[0-9]{10}"
-                      title="Please enter a valid 10-digit mobile number"
-                      placeholder="10-digit number" 
-                      className="form-control rounded-pill py-3 px-4 text-xs shadow-sm"
-                      value={leadMobile}
-                      onChange={(e) => setLeadMobile(e.target.value.replace(/\D/g, ''))}
-                      required
-                    />
-                  </div>
+                    <div className="col-lg-2 col-md-4 col-12">
+                      <label className="text-[11px] text-uppercase font-black text-slate-500 mb-2 d-block ms-1 tracking-wider">Loan Type</label>
+                      <select 
+                        className="form-select form-select-lg bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 focus:border-paytm-blue rounded-xl py-3 px-4 text-sm font-bold shadow-sm transition-all"
+                        value={activeTab}
+                        onChange={(e) => { setActiveTab(e.target.value); setLeadSuccess(false); }}
+                      >
+                        <option value="personal">Personal Loan</option>
+                        <option value="home">Home Loan</option>
+                        <option value="business">Business Loan</option>
+                        <option value="credit-card">Credit Card</option>
+                        <option value="lap">Property Loan</option>
+                        <option value="education">Education Loan</option>
+                        <option value="car">Car Loan</option>
+                        <option value="gold">Gold Loan</option>
+                      </select>
+                    </div>
 
-                  <div className="col-lg-2 col-md-4 col-12">
-                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-2 d-block ms-3 tracking-wider">Loan Type</label>
-                    <select 
-                      className="form-select rounded-pill py-3 px-4 text-xs shadow-sm"
-                      value={activeTab}
-                      onChange={(e) => { setActiveTab(e.target.value); setLeadSuccess(false); }}
-                    >
-                      <option value="personal">Personal Loan</option>
-                      <option value="home">Home Loan</option>
-                      <option value="business">Business Loan</option>
-                      <option value="credit-card">Credit Card</option>
-                      <option value="lap">Loan Against Property</option>
-                      <option value="education">Education Loan</option>
-                      <option value="car">Car Loan</option>
-                      <option value="gold">Gold Loan</option>
-                    </select>
-                  </div>
+                    <div className="col-lg-2 col-md-4 col-12">
+                      <label className="text-[11px] text-uppercase font-black text-slate-500 mb-2 d-block ms-1 tracking-wider">Amount (₹)</label>
+                      <input 
+                        type="text" 
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="Required amount" 
+                        className="form-control form-control-lg bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 focus:border-paytm-blue rounded-xl py-3 px-4 text-sm font-bold shadow-sm transition-all"
+                        value={leadAmount}
+                        onChange={(e) => setLeadAmount(e.target.value.replace(/\D/g, ''))}
+                        required
+                      />
+                    </div>
 
-                  <div className="col-lg-2 col-md-4 col-12">
-                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-2 d-block ms-3 tracking-wider">Amount (₹)</label>
-                    <input 
-                      type="text" 
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      placeholder="Required amount" 
-                      className="form-control rounded-pill py-3 px-4 text-xs shadow-sm"
-                      value={leadAmount}
-                      onChange={(e) => setLeadAmount(e.target.value.replace(/\D/g, ''))}
-                      required
-                    />
-                  </div>
+                    <div className="col-lg-2 col-md-4 col-12">
+                      <label className="text-[11px] text-uppercase font-black text-slate-500 mb-2 d-block ms-1 tracking-wider">City Name</label>
+                      <input 
+                        type="text" 
+                        placeholder="Enter City Name" 
+                        className="form-control form-control-lg bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 focus:border-paytm-blue rounded-xl py-3 px-4 text-sm font-bold shadow-sm transition-all"
+                        value={leadCity}
+                        onChange={(e) => setLeadCity(e.target.value)}
+                        required
+                      />
+                    </div>
 
-                  <div className="col-lg-2 col-md-4 col-12">
-                    <label className="text-[10px] text-uppercase font-black text-slate-400 mb-2 d-block ms-3 tracking-wider">City Name</label>
-                    <input 
-                      type="text" 
-                      placeholder="Enter City Name" 
-                      className="form-control rounded-pill py-3 px-4 text-xs shadow-sm"
-                      value={leadCity}
-                      onChange={(e) => setLeadCity(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="col-lg-2 col-md-4 col-12">
-                    <button 
-                      type="submit" 
-                      disabled={isLeadSubmitting}
-                      className="w-100 btn btn-paytm rounded-pill py-3 text-[11px] text-uppercase font-black tracking-wider shadow-lg d-flex align-items-center justify-content-center gap-1 hover:-translate-y-1 transition-transform"
-                    >
-                      {isLeadSubmitting ? "Wait..." : `Get Offers`}
-                      <ArrowRight size={14} />
+                    <div className="col-lg-2 col-md-4 col-12">
+                      <button 
+                        type="submit" 
+                        disabled={isLeadSubmitting}
+                        className="w-100 btn btn-paytm btn-lg rounded-xl py-3 text-sm text-uppercase font-black tracking-wider shadow-lg d-flex align-items-center justify-content-center gap-2 hover:-translate-y-1 transition-all border-0"
+                      >
+                        {isLeadSubmitting ? "Wait..." : `Get Offers`}
+                        <ArrowRight size={18} />
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="text-center py-5 space-y-3">
+                    <div className="w-16 h-16 bg-success/10 text-success rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 shadow-sm border border-success/20">
+                      <CheckCircle2 size={32} />
+                    </div>
+                    <h5 className="font-black text-paytm-navy dark:text-white m-0 fs-4">Offers Sent Successfully!</h5>
+                    <p className="text-sm font-bold text-slate-500 m-0 leading-relaxed max-w-md mx-auto">
+                      Our loan advisor will contact you within 15 minutes with verified quotes.
+                    </p>
+                    <button onClick={() => setLeadSuccess(false)} className="btn btn-outline-secondary py-2 px-5 rounded-pill text-sm mt-4 font-bold">
+                      Submit Another Application
                     </button>
                   </div>
-                </form>
-              ) : (
-                <div className="text-center py-4 space-y-3">
-                  <div className="w-12 h-12 bg-success/10 text-success rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2">
-                    <CheckCircle2 size={24} />
-                  </div>
-                  <h5 className="font-black text-paytm-navy dark:text-white m-0">Offers Sent Successfully!</h5>
-                  <p className="text-xs text-slate-500 m-0 leading-relaxed">
-                    Our loan advisor will contact you within 15 minutes with verified quotes.
-                  </p>
-                  <button onClick={() => setLeadSuccess(false)} className="btn btn-outline-secondary btn-sm py-1.5 px-4 rounded-full text-xs mt-3">
-                    Submit Another Application
-                  </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Stats Grid - Bootstrap Columns */}
-        <div className="row g-4 pt-5 mt-5 border-top border-slate-200/50 dark:border-slate-800/30 text-start">
+        <div className="row g-4 pt-5 mt-5 border-top border-slate-200/50 dark:border-slate-800/30 text-start px-xl-4">
           {stats.map((stat, i) => (
             <div key={i} className="col-6 col-md-3">
-              <div className="space-y-1">
-                <p className="fs-3 font-black text-paytm-navy dark:text-white tracking-tight m-0">
-                  <AnimatedCounter value={stat.value} decimals={stat.decimals} suffix={stat.suffix} />
-                </p>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mt-1 m-0">{stat.label}</p>
+              <div className="d-flex align-items-center gap-3">
+                <div className="w-12 h-12 rounded-3xl bg-slate-100 dark:bg-slate-800 d-flex align-items-center justify-content-center text-paytm-blue shadow-sm">
+                  <stat.icon size={24} strokeWidth={2} />
+                </div>
+                <div className="space-y-0.5">
+                  <p className="fs-3 font-black text-paytm-navy dark:text-white tracking-tight m-0 leading-none">
+                    <AnimatedCounter value={stat.value} decimals={stat.decimals} suffix={stat.suffix} />
+                  </p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none m-0 mt-1">{stat.label}</p>
+                </div>
               </div>
             </div>
           ))}

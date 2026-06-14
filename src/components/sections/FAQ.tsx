@@ -40,7 +40,7 @@ export function FAQ() {
           {faqs.map((faq, i) => (
             <div 
               key={i} 
-              className={`group border rounded-[2rem] transition-all duration-300 overflow-hidden ${
+              className={`group border rounded-3xl transition-all duration-300 overflow-hidden ${
                 openIndex === i ? "border-primary bg-blue-50/30 dark:bg-primary/5 shadow-md" : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900"
               }`}
             >

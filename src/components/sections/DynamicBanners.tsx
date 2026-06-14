@@ -97,7 +97,7 @@ export function DynamicBanners() {
           onMouseLeave={() => setIsHovered(false)}
         >
           {/* Main Slider Window */}
-          <div className="overflow-hidden rounded-[2.5rem] bg-white dark:bg-slate-900 shadow-2xl border border-slate-100 dark:border-slate-800">
+          <div className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-100 dark:border-slate-800">
             <motion.div
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}

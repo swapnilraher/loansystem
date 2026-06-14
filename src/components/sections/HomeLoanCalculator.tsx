@@ -38,7 +38,7 @@ export function HomeLoanCalculator() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
           {/* Sliders Side */}
-          <div className="space-y-10 bg-white p-10 rounded-[2.5rem] shadow-xl border border-slate-100">
+          <div className="space-y-10 bg-white p-10 rounded-3xl shadow-xl border border-slate-100">
             {/* Amount */}
             <div className="space-y-6">
               <div className="flex justify-between items-center">
@@ -124,7 +124,7 @@ export function HomeLoanCalculator() {
           </div>
 
           {/* Result Side */}
-          <div className="bg-slate-900 rounded-[3rem] p-12 text-white relative overflow-hidden shadow-2xl">
+          <div className="bg-slate-900 rounded-3xl p-12 text-white relative overflow-hidden shadow-2xl">
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 blur-[100px] rounded-full" />
             <h3 className="text-xl font-bold mb-10 text-slate-400 uppercase tracking-widest">Estimated Monthly EMI</h3>
             <div className="space-y-2 mb-12">

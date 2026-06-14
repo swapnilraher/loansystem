@@ -19,7 +19,7 @@ export function AIDocVerification() {
   const reset = () => setStatus('idle')
 
   return (
-    <div className="w-full max-w-md mx-auto glass-card p-6 rounded-[2rem] relative overflow-hidden">
+    <div className="w-full max-w-md mx-auto glass-card p-6 rounded-3xl relative overflow-hidden">
       {/* Background Pulse */}
       <div className={`absolute inset-0 transition-colors duration-700 ${
         status === 'scanning' ? 'bg-primary/5' : status === 'verified' ? 'bg-emerald-500/5' : 'bg-transparent'

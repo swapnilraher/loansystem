@@ -44,7 +44,7 @@ export function EMICalculator() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-          <Card className="border-none shadow-xl rounded-[3rem] overflow-hidden dark:bg-slate-900">
+          <Card className="border-none shadow-xl rounded-3xl overflow-hidden dark:bg-slate-900">
             <CardContent className="p-8 space-y-8">
               {/* Loan Amount */}
               <div className="space-y-4">
@@ -118,23 +118,23 @@ export function EMICalculator() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6">
-                <div className="p-5 bg-blue-50 dark:bg-blue-900/10 rounded-[2.5rem] text-center border border-blue-100/50 dark:border-blue-900/20">
-                  <p className="text-[10px] font-black text-blue-600 mb-1 uppercase tracking-widest">Monthly EMI</p>
-                  <p className="text-xl font-black text-secondary dark:text-white">{formatCurrency(emi)}</p>
+                <div className="p-5 min-h-[120px] flex flex-col items-center justify-center bg-blue-50 dark:bg-blue-900/10 rounded-[24px] text-center border border-blue-100/50 dark:border-blue-900/20">
+                  <p className="text-[10px] font-black text-blue-600 mb-1 uppercase tracking-widest leading-tight">Monthly<br/>EMI</p>
+                  <p className="text-xl font-black text-secondary dark:text-white mt-1">{formatCurrency(emi)}</p>
                 </div>
-                <div className="p-5 bg-amber-50 dark:bg-amber-900/10 rounded-[2.5rem] text-center border border-amber-100/50 dark:border-amber-900/20">
-                  <p className="text-[10px] font-black text-amber-600 mb-1 uppercase tracking-widest">Total Interest</p>
-                  <p className="text-xl font-black text-secondary dark:text-white">{formatCurrency(totalInterest)}</p>
+                <div className="p-5 min-h-[120px] flex flex-col items-center justify-center bg-amber-50 dark:bg-amber-900/10 rounded-[24px] text-center border border-amber-100/50 dark:border-amber-900/20">
+                  <p className="text-[10px] font-black text-amber-600 mb-1 uppercase tracking-widest leading-tight">Total<br/>Interest</p>
+                  <p className="text-xl font-black text-secondary dark:text-white mt-1">{formatCurrency(totalInterest)}</p>
                 </div>
-                <div className="p-5 bg-slate-900 dark:bg-slate-800 rounded-[2.5rem] text-center shadow-lg">
-                  <p className="text-[10px] font-black text-slate-400 mb-1 uppercase tracking-widest">Total Payment</p>
-                  <p className="text-xl font-black text-white">{formatCurrency(totalPayment)}</p>
+                <div className="p-5 min-h-[120px] flex flex-col items-center justify-center bg-slate-900 dark:bg-slate-800 rounded-[24px] text-center shadow-lg">
+                  <p className="text-[10px] font-black text-slate-400 mb-1 uppercase tracking-widest leading-tight">Total<br/>Payment</p>
+                  <p className="text-xl font-black text-white mt-1">{formatCurrency(totalPayment)}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-xl rounded-[3rem] overflow-hidden h-full dark:bg-slate-900">
+          <Card className="border-none shadow-xl rounded-3xl overflow-hidden h-full dark:bg-slate-900">
             <CardHeader className="pt-10">
               <CardTitle className="text-center font-black text-secondary dark:text-white uppercase tracking-tight">Payment Breakup</CardTitle>
             </CardHeader>

@@ -262,7 +262,7 @@ export function DocumentSupport() {
         </div>
 
         {/* Conversion CTA Block */}
-        <div className="mt-10 md:mt-14 relative overflow-hidden bg-gradient-to-br from-primary to-indigo-650 text-white rounded-[2.5rem] p-6 md:p-10 shadow-2xl border border-white/10 flex flex-col lg:flex-row items-center gap-6 lg:gap-10">
+        <div className="mt-10 md:mt-14 relative overflow-hidden bg-gradient-to-br from-primary to-indigo-650 text-white rounded-3xl p-6 md:p-10 shadow-2xl border border-white/10 flex flex-col lg:flex-row items-center gap-6 lg:gap-10">
           <div className="absolute top-0 right-0 w-[50%] h-full bg-white/5 skew-x-12 translate-x-1/4 pointer-events-none" />
           <div className="flex-1 space-y-4 text-left">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 text-white rounded-lg text-[10px] font-black uppercase tracking-wider">
