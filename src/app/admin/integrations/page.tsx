@@ -68,7 +68,7 @@ export default function IntegrationsPage() {
   const [copied, setCopied] = useState(false)
   const [waEnabled, setWaEnabled] = useState(true)
 
-  const WEBHOOK_URL = "https://your-domain.com/api/whatsapp"
+  const WEBHOOK_URL = "https://your-deployed-domain.com/api/whatsapp/webhook"
   const VERIFY_TOKEN = "swapnil942040020202"
   const PHONE_ID = "1112131761984283"
 
