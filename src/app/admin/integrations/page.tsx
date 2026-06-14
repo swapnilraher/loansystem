@@ -69,7 +69,7 @@ export default function IntegrationsPage() {
   const [waEnabled, setWaEnabled] = useState(true)
 
   const WEBHOOK_URL = "https://your-domain.com/api/whatsapp"
-  const VERIFY_TOKEN = "techstar_verify_2024"
+  const VERIFY_TOKEN = "swapnil942040020202"
   const PHONE_ID = "1112131761984283"
 
   function handleCopy(text: string) {

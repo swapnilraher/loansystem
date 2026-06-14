@@ -4,7 +4,7 @@ const FIREBASE_API_KEY = "AIzaSyDy-zXamx8BB18MgTXWoyWACKRSKvvOBTo";
 const PROJECT_ID = "dsa-loan";
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN || "EAAL6qnWnZABMBRfTVoipikLTEZBzVNQf9YStyNGTSxAGq8kHJ6AXivKPiHcMYxZBO2uuMyh4dCNVZB183wSpqoB0J08pAEsL5rEEqyHWdDfRgD5zxZCYhLX3ZBJW0rcxxQwvztib7jupBBStMxAaISbtrSalquCKiehliYs7ZCBf1VmGZCtqNTS1qhmPTybViZBZCOZBQZDZD";
 const PHONE_ID = process.env.WHATSAPP_PHONE_ID || "1112131761984283";
-const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "techstar_verify_2024";
+const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "swapnil942040020202";
 
 // ─── Loan categories and their flows ──────────────────────────────────────────
 export const LOAN_FLOWS: Record<string, { question: string; field: string; type: string; options?: string[] }[]> = {
