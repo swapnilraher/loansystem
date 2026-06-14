@@ -548,4 +548,77 @@ a {
   transform: translateY(0px) !important;
 }
 
+/* Mobile App Redesign Premium Styles */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+.no-scrollbar {
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  scrollbar-width: none !important;  /* Firefox */
+}
+
+.premium-btn-status {
+  height: 36px !important;
+  border-radius: 9999px !important;
+  padding: 0 16px !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.05em !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 6px !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  border: 1px solid currentColor !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+}
+
+.premium-btn-status:active {
+  transform: scale(0.95) !important;
+}
+
+.premium-btn-action {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 9999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  border: 1px solid transparent !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+}
+
+.premium-btn-action:active {
+  transform: scale(0.9) !important;
+}
+
+.premium-fab {
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 9999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  cursor: pointer !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+.premium-fab-active {
+  background: #1e293b !important; /* slate-800 */
+  box-shadow: 0 10px 25px -5px rgba(30, 41, 59, 0.35) !important;
+}
+
+.premium-fab-inactive {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important; /* Premium Blue Gradient */
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4) !important;
+}
+
+
+
 

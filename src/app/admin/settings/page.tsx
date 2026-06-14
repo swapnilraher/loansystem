@@ -25,8 +25,8 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Sidebar Settings Nav */}
-        <div className="lg:col-span-1 space-y-2">
+        {/* Desktop Sidebar Settings Nav */}
+        <div className="hidden lg:flex flex-col lg:col-span-1 space-y-2">
           {[
             { name: 'Company Profile', icon: Building2, active: true },
             { name: 'Subscription Plan', icon: CreditCard },
@@ -40,7 +40,27 @@ export default function SettingsPage() {
               className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${item.active ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100 hover:text-secondary'}`}
             >
               <item.icon size={18} />
-              {item.name}
+              <span className="truncate">{item.name}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Mobile Horizontal Settings Nav */}
+        <div className="lg:hidden flex overflow-x-auto gap-3 pb-2 no-scrollbar scroll-smooth shrink-0 -mx-4 px-4">
+          {[
+            { name: 'Company Profile', icon: Building2, active: true },
+            { name: 'Subscription Plan', icon: CreditCard },
+            { name: 'Roles & Security', icon: Shield },
+            { name: 'Notification Rules', icon: Bell },
+            { name: 'Webhooks & API', icon: Globe },
+            { name: 'Mobile App (PWA)', icon: Smartphone },
+          ].map((item, i) => (
+            <button 
+              key={i}
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 border ${item.active ? 'bg-primary text-white border-primary shadow-sm' : 'bg-white text-slate-400 hover:bg-slate-50 border-slate-105 hover:text-secondary'}`}
+            >
+              <item.icon size={14} />
+              <span>{item.name}</span>
             </button>
           ))}
         </div>

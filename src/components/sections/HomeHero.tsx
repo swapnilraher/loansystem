@@ -185,16 +185,38 @@ export function HomeHero() {
                 </div>
               </div>
 
-              <div className="d-flex justify-content-center justify-content-lg-start mt-3">
-                <a href="tel:9421306564" className="text-decoration-none group position-relative d-inline-flex align-items-center justify-content-center gap-3 bg-paytm-navy dark:bg-slate-800 text-white px-5 py-3 rounded-pill shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 overflow-hidden border border-slate-700/50">
-                  <div className="position-absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  <div className="position-relative z-10 d-flex align-items-center gap-3">
-                    <div className="bg-white/20 p-2.5 rounded-circle shadow-inner">
-                      <PhoneCall size={22} className="animate-pulse text-white" />
+              <div className="d-flex justify-content-center justify-content-lg-start mt-3 gap-2 gap-sm-3 w-100 max-w-[480px] mx-auto mx-lg-0">
+                <a 
+                  href="tel:7020646007" 
+                  className="flex-1 text-decoration-none group position-relative d-inline-flex align-items-center justify-content-center gap-2 gap-sm-3 bg-paytm-navy dark:bg-slate-800 text-white px-3 py-2.5 sm:px-5 sm:py-3 rounded-pill shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 overflow-hidden border border-slate-700/50"
+                >
+                  <div className="position-absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="position-relative z-10 d-flex align-items-center gap-2 gap-sm-3">
+                    <div className="bg-white/20 p-1.5 sm:p-2.5 rounded-circle shadow-inner">
+                      <PhoneCall size={18} className="animate-pulse text-white sm:w-[22px] sm:h-[22px]" />
                     </div>
                     <div className="d-flex flex-column text-start">
-                      <span className="text-[10px] font-black text-emerald-300 text-uppercase tracking-widest mb-0.5 opacity-90">Call For Instant Approval</span>
-                      <span className="font-black fs-4 tracking-wider leading-none">9421306564</span>
+                      <span className="text-[8px] sm:text-[10px] font-black text-blue-300 text-uppercase tracking-widest mb-0.5 opacity-90 d-none d-sm-block">Call For Instant Approval</span>
+                      <span className="font-black text-sm sm:fs-4 tracking-wider leading-none">7020646007</span>
+                    </div>
+                  </div>
+                </a>
+
+                <a 
+                  href="https://api.whatsapp.com/send?phone=917020646007&text=Hello,%20I%20am%20interested%20in%20applying%20for%20a%20loan." 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 text-decoration-none group position-relative d-inline-flex align-items-center justify-content-center gap-2 gap-sm-3 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2.5 sm:px-5 sm:py-3 rounded-pill shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 overflow-hidden border border-emerald-500/50"
+                >
+                  <div className="position-relative z-10 d-flex align-items-center gap-2 gap-sm-3">
+                    <div className="bg-white/20 p-1.5 sm:p-2.5 rounded-circle shadow-inner">
+                      <svg viewBox="0 0 24 24" fill="currentColor" className="text-white animate-pulse w-[18px] h-[18px] sm:w-[22px] sm:h-[22px]">
+                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.262 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.725 1.45 5.277.002 9.571-4.287 9.575-9.566.001-2.559-1.002-4.966-2.825-6.79C16.3 2.421 13.9 1.419 11.339 1.418c-5.286 0-9.582 4.29-9.587 9.57-.001 1.638.488 3.238 1.42 4.695L2.146 21.94l6.096-1.597c.005.003.01.006.015.008v-.005h-.01c-1.53-.949-1.53-.949 0 0zm11.368-6.19c-.3-.15-1.774-.875-2.05-.975-.274-.1-.475-.15-.675.15-.2.3-.775.975-.95 1.175-.175.2-.35.225-.65.075-3.042-1.516-4.385-2.28-6.218-5.424-.225-.387.225-.362.65-.788.1-.1.2-.225.3-.35.1-.1.15-.175.225-.35.075-.175.037-.325-.018-.425-.056-.1-.475-1.15-.65-1.575-.17-.412-.346-.356-.475-.362-.122-.006-.262-.007-.402-.007s-.367.05-.56.25c-.19.2-.727.708-.727 1.727 0 1.02.74 2.007.84 2.15.1.15 1.46 2.228 3.538 3.125 1.62.7 2.215.797 3.015.698.48-.06 1.475-.6 1.675-1.18.2-.58.2-1.08.14-1.18-.06-.1-.225-.15-.525-.3z"/>
+                      </svg>
+                    </div>
+                    <div className="d-flex flex-column text-start">
+                      <span className="text-[8px] sm:text-[10px] font-black text-emerald-200 text-uppercase tracking-widest mb-0.5 opacity-90 d-none d-sm-block">WhatsApp For Quick Chat</span>
+                      <span className="font-black text-sm sm:fs-4 tracking-wider leading-none">7020646007</span>
                     </div>
                   </div>
                 </a>

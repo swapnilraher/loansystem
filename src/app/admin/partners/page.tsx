@@ -183,119 +183,193 @@ export default function PartnersPage() {
 
       {/* Data Table */}
       <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[800px]">
-            <thead>
-              <tr className="border-b border-slate-50 bg-slate-50/50">
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Partner Profile</th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">DSA Code & Type</th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status / KYC</th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Leads (Total/Disb)</th>
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {partnersLoading ? (
-                Array(5).fill(0).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td colSpan={5} className="px-8 py-6"><div className="h-10 bg-slate-100 rounded-xl" /></td>
+        {partnersLoading ? (
+          <div className="p-8 text-center text-slate-400 font-bold animate-pulse">Loading partners...</div>
+        ) : filteredPartners.length === 0 ? (
+          <div className="p-20 text-center">
+            <Search size={40} className="mx-auto text-slate-200 mb-3" />
+            <p className="text-slate-500 font-bold">No registered partners found.</p>
+          </div>
+        ) : (
+          <>
+            {/* Desktop View - Table */}
+            <div className="overflow-x-auto hidden md:block">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-50 bg-slate-50/50">
+                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Partner Profile</th>
+                    <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">DSA Code & Type</th>
+                    <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status / KYC</th>
+                    <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Leads (Total/Disb)</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
                   </tr>
-                ))
-              ) : filteredPartners.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-8 py-20 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <Search size={40} className="text-slate-200" />
-                      <p className="text-slate-500 font-bold">No registered partners found.</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredPartners.map((partner) => {
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {filteredPartners.map((partner) => {
+                    const partnerName = partner.kycData?.name || partner.panData?.name || "Unknown Partner"
+                    const partnerTotalLeads = leads.filter(l => l.partnerId === partner.id).length
+                    const partnerDisbursedLeads = leads.filter(l => l.partnerId === partner.id && l.status === "Disbursed").length
+                    
+                    return (
+                      <tr key={partner.id} className="hover:bg-slate-50/80 transition-all group">
+                        <td className="px-8 py-6">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl border border-slate-200/50 flex items-center justify-center font-black text-secondary overflow-hidden bg-slate-50 shrink-0">
+                              {partner.kycData?.photoBase64 ? (
+                                <img src={`data:image/jpeg;base64,${partner.kycData.photoBase64}`} alt="Avatar" className="w-full h-full object-cover" />
+                              ) : (
+                                <span>{partnerName.substring(0, 2).toUpperCase()}</span>
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-black text-secondary text-sm">{partnerName}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <p className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
+                                  <Phone size={10} /> {partner.mobileNumber}
+                                </p>
+                                <span className="text-[9px] text-slate-300 font-bold">•</span>
+                                <span className="text-[9px] text-slate-400 font-bold">
+                                  Joined {partner.createdAt?.toDate ? partner.createdAt.toDate().toLocaleDateString('en-GB') : (typeof partner.createdAt === 'string' ? new Date(partner.createdAt).toLocaleDateString('en-GB') : 'NA')}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-6">
+                          <div className="flex flex-col gap-1">
+                            <span className="px-2 py-1 bg-primary/10 text-primary border border-primary/20 rounded-lg text-[10px] font-black uppercase tracking-widest w-max">
+                              {partner.dsaCode || "NO CODE"}
+                            </span>
+                            <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
+                              <Briefcase size={12} /> {partner.businessType || "Individual"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-6">
+                          <div className="flex flex-col gap-2">
+                            <span className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-widest ${partner.dsaStatus === 'Blocked' ? 'text-rose-500' : 'text-emerald-500'}`}>
+                              {partner.dsaStatus === 'Blocked' ? <XCircle size={14} /> : <CheckCircle2 size={14} />} 
+                              {partner.dsaStatus || "Active"}
+                            </span>
+                            <div className="flex gap-2">
+                              <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${partner.kycVerified ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>eKYC</span>
+                              <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${partner.panVerified ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>PAN</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-6">
+                          <div className="flex items-center gap-3">
+                            <div className="flex flex-col items-center justify-center w-11 h-11 bg-slate-50 rounded-xl border border-slate-100 shadow-sm">
+                              <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Total</span>
+                              <span className="font-black text-secondary leading-none">{partnerTotalLeads}</span>
+                            </div>
+                            <div className="flex flex-col items-center justify-center w-11 h-11 bg-emerald-50 rounded-xl border border-emerald-100 shadow-sm">
+                              <span className="text-[7px] font-black text-emerald-600/60 uppercase tracking-widest">Disb</span>
+                              <span className="font-black text-emerald-600 leading-none">{partnerDisbursedLeads}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button 
+                              onClick={() => setSelectedPartner(partner)}
+                              className="p-3 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-2xl transition-all"
+                              title="View Details"
+                            >
+                              <Eye size={18} />
+                            </button>
+                            {adminRole === 'Super Admin' && (
+                              <button className="p-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-2xl transition-all" title="Delete/Block Partner">
+                                <Trash2 size={18} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile View - Cards */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {filteredPartners.map((partner) => {
                 const partnerName = partner.kycData?.name || partner.panData?.name || "Unknown Partner"
                 const partnerTotalLeads = leads.filter(l => l.partnerId === partner.id).length
                 const partnerDisbursedLeads = leads.filter(l => l.partnerId === partner.id && l.status === "Disbursed").length
                 
                 return (
-                  <tr key={partner.id} className="hover:bg-slate-50/80 transition-all group">
-                    <td className="px-8 py-6">
+                  <div key={partner.id} className="p-6 space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl border border-slate-200/50 flex items-center justify-center font-black text-secondary overflow-hidden bg-slate-50 shrink-0">
+                        {partner.kycData?.photoBase64 ? (
+                          <img src={`data:image/jpeg;base64,${partner.kycData.photoBase64}`} alt="Avatar" className="w-full h-full object-cover" />
+                        ) : (
+                          <span>{partnerName.substring(0, 2).toUpperCase()}</span>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-black text-secondary text-sm truncate">{partnerName}</p>
+                        <p className="text-[10px] text-slate-400 font-bold flex items-center gap-1 mt-0.5">
+                          <Phone size={10} /> {partner.mobileNumber}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 text-xs pt-1">
+                      <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">DSA Code & Type</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded text-[9px] font-black uppercase">
+                            {partner.dsaCode || "NO CODE"}
+                          </span>
+                          <span className="text-slate-500 font-bold flex items-center gap-0.5">
+                            <Briefcase size={10} /> {partner.businessType || "Individual"}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">KYC Status</p>
+                        <div className="flex gap-1.5 mt-1">
+                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${partner.kycVerified ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>eKYC</span>
+                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${partner.panVerified ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>PAN</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl border border-slate-200/50 flex items-center justify-center font-black text-secondary overflow-hidden bg-slate-50">
-                          {partner.kycData?.photoBase64 ? (
-                            <img src={`data:image/jpeg;base64,${partner.kycData.photoBase64}`} alt="Avatar" className="w-full h-full object-cover" />
-                          ) : (
-                            <span>{partnerName.substring(0, 2).toUpperCase()}</span>
-                          )}
+                        <div>
+                          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Leads</p>
+                          <p className="font-black text-secondary text-xs">{partnerTotalLeads} <span className="text-[9px] font-bold text-slate-400">Total</span></p>
                         </div>
                         <div>
-                          <p className="font-black text-secondary text-sm">{partnerName}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <p className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
-                              <Phone size={10} /> {partner.mobileNumber}
-                            </p>
-                            <span className="text-[9px] text-slate-300 font-bold">•</span>
-                            <span className="text-[9px] text-slate-400 font-bold">
-                              Joined {partner.createdAt?.toDate ? partner.createdAt.toDate().toLocaleDateString('en-GB') : (typeof partner.createdAt === 'string' ? new Date(partner.createdAt).toLocaleDateString('en-GB') : 'NA')}
-                            </span>
-                          </div>
+                          <p className="text-[8px] font-black text-emerald-650 uppercase tracking-widest">Disbursed</p>
+                          <p className="font-black text-emerald-600 text-xs">{partnerDisbursedLeads} <span className="text-[9px] font-bold text-emerald-600/60">Cases</span></p>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-6">
-                      <div className="flex flex-col gap-1">
-                        <span className="px-2 py-1 bg-primary/10 text-primary border border-primary/20 rounded-lg text-[10px] font-black uppercase tracking-widest w-max">
-                          {partner.dsaCode || "NO CODE"}
-                        </span>
-                        <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
-                          <Briefcase size={12} /> {partner.businessType || "Individual"}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-6">
-                      <div className="flex flex-col gap-2">
-                        <span className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-widest ${partner.dsaStatus === 'Blocked' ? 'text-rose-500' : 'text-emerald-500'}`}>
-                          {partner.dsaStatus === 'Blocked' ? <XCircle size={14} /> : <CheckCircle2 size={14} />} 
-                          {partner.dsaStatus || "Active"}
-                        </span>
-                        <div className="flex gap-2">
-                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${partner.kycVerified ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>eKYC</span>
-                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${partner.panVerified ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>PAN</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-6">
-                      <div className="flex items-center gap-3">
-                        <div className="flex flex-col items-center justify-center w-11 h-11 bg-slate-50 rounded-xl border border-slate-100 shadow-sm">
-                          <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Total</span>
-                          <span className="font-black text-secondary leading-none">{partnerTotalLeads}</span>
-                        </div>
-                        <div className="flex flex-col items-center justify-center w-11 h-11 bg-emerald-50 rounded-xl border border-emerald-100 shadow-sm">
-                          <span className="text-[7px] font-black text-emerald-600/60 uppercase tracking-widest">Disb</span>
-                          <span className="font-black text-emerald-600 leading-none">{partnerDisbursedLeads}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-8 py-6 text-right">
-                      <div className="flex items-center justify-end gap-2">
+
+                      <div className="flex items-center gap-2">
                         <button 
                           onClick={() => setSelectedPartner(partner)}
-                          className="p-3 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-2xl transition-all"
-                          title="View Details"
+                          className="px-4 py-2 bg-primary/5 hover:bg-primary/10 text-primary rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
                         >
-                          <Eye size={18} />
+                          Details
                         </button>
                         {adminRole === 'Super Admin' && (
-                          <button className="p-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-2xl transition-all" title="Delete/Block Partner">
-                            <Trash2 size={18} />
+                          <button className="p-2 text-slate-450 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all">
+                            <Trash2 size={16} />
                           </button>
                         )}
                       </div>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 )
               })}
-            </tbody>
-          </table>
-        </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Slide-over Drawer for Partner Details */}

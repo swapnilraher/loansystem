@@ -130,75 +130,132 @@ export default function PayoutsSettlement() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50 border-b border-slate-100">
-              <tr>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Partner</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer (Lead)</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Disbursed Amt</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Commission</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {loading ? (
-                <tr><td colSpan={6} className="p-8 text-center text-slate-400 font-bold">Loading records...</td></tr>
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={6} className="p-8 text-center text-slate-400 font-bold">No settlements found.</td></tr>
-              ) : (
-                filtered.map(c => (
-                  <tr key={c.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <p className="font-bold text-secondary text-sm">{c.partnerName}</p>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{c.dsaCode}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="font-bold text-secondary text-sm">{c.customerName}</p>
-                      <p className="text-[10px] font-bold text-slate-400">{c.productType}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-sm font-bold text-slate-500 italic">₹{parseInt(c.disbursedAmount || "0").toLocaleString()}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="font-black text-emerald-600 text-sm italic">₹{parseInt(c.commissionAmount || "0").toLocaleString()}</p>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{c.commissionPercentage || '2'}% Slab</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
+        {loading ? (
+          <div className="p-8 text-center text-slate-400 font-bold animate-pulse">Loading records...</div>
+        ) : filtered.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 font-bold">No settlements found.</div>
+        ) : (
+          <>
+            {/* Desktop View - Table */}
+            <div className="overflow-x-auto hidden md:block">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50 border-b border-slate-100">
+                  <tr>
+                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Partner</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer (Lead)</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Disbursed Amt</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Commission</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {filtered.map(c => (
+                    <tr key={c.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <p className="font-bold text-secondary text-sm">{c.partnerName}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{c.dsaCode}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="font-bold text-secondary text-sm">{c.customerName}</p>
+                        <p className="text-[10px] font-bold text-slate-400">{c.productType}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-bold text-slate-500 italic">₹{parseInt(c.disbursedAmount || "0").toLocaleString()}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="font-black text-emerald-600 text-sm italic">₹{parseInt(c.commissionAmount || "0").toLocaleString()}</p>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{c.commissionPercentage || '2'}% Slab</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
+                          c.status === 'Settled' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                          c.status === 'Rejected' ? 'bg-rose-50 text-rose-600 border-rose-105' :
+                          'bg-amber-50 text-amber-600 border-amber-100'
+                        }`}>
+                          {c.status}
+                        </span>
+                        {c.utrNumber && <p className="text-[9px] font-bold text-slate-400 mt-1">UTR: {c.utrNumber}</p>}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {c.status === "Under Settlement" && (
+                          <div className="flex items-center justify-end gap-2">
+                            <button 
+                              onClick={() => setSelectedLedger(c)}
+                              className="px-3 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl text-[10px] font-black uppercase transition-all"
+                            >
+                              Settle
+                            </button>
+                            <button 
+                              onClick={() => handleReject(c.id)}
+                              className="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl text-[10px] font-black uppercase transition-all"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile View - Cards */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {filtered.map(c => (
+                <div key={c.id} className="p-6 space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-black text-secondary text-sm">{c.partnerName}</p>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{c.dsaCode}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border ${
                         c.status === 'Settled' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
                         c.status === 'Rejected' ? 'bg-rose-50 text-rose-600 border-rose-100' :
                         'bg-amber-50 text-amber-600 border-amber-100'
                       }`}>
                         {c.status}
                       </span>
-                      {c.utrNumber && <p className="text-[9px] font-bold text-slate-400 mt-1">UTR: {c.utrNumber}</p>}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      {c.status === "Under Settlement" && (
-                        <div className="flex items-center justify-end gap-2">
-                          <button 
-                            onClick={() => setSelectedLedger(c)}
-                            className="px-3 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl text-[10px] font-black uppercase transition-all"
-                          >
-                            Settle
-                          </button>
-                          <button 
-                            onClick={() => handleReject(c.id)}
-                            className="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl text-[10px] font-black uppercase transition-all"
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                      {c.utrNumber && <p className="text-[9px] font-bold text-slate-400 mt-1 font-mono">UTR: {c.utrNumber}</p>}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Customer (Lead)</p>
+                      <p className="font-bold text-secondary mt-0.5">{c.customerName}</p>
+                      <p className="text-[9px] text-slate-400 font-bold">{c.productType}</p>
+                    </div>
+                    <div>
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Amounts</p>
+                      <p className="text-slate-500 font-bold mt-0.5">Disb: ₹{parseInt(c.disbursedAmount || "0").toLocaleString()}</p>
+                      <p className="font-black text-emerald-600">Comm: ₹{parseInt(c.commissionAmount || "0").toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  {c.status === "Under Settlement" && (
+                    <div className="flex gap-3 pt-2">
+                      <button 
+                        onClick={() => setSelectedLedger(c)}
+                        className="flex-1 py-2.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border border-emerald-100 text-center"
+                      >
+                        Settle Payout
+                      </button>
+                      <button 
+                        onClick={() => handleReject(c.id)}
+                        className="flex-1 py-2.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border border-rose-100 text-center"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {selectedLedger && (

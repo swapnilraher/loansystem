@@ -281,7 +281,8 @@ export default function AnalyticsDashboardPage() {
           </span>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Desktop View - Table */}
+        <div className="overflow-x-auto hidden md:block">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 text-[10px] uppercase font-black tracking-widest text-slate-400 border-b border-slate-100">
@@ -317,6 +318,40 @@ export default function AnalyticsDashboardPage() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View - Cards */}
+        <div className="md:hidden space-y-4">
+          {visitors.map((visitor) => (
+            <div key={visitor.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="font-mono text-secondary text-xs font-black">{visitor.guestId}</span>
+                <span className="text-[10px] font-bold text-slate-400">{visitor.timestamp}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Location</p>
+                  <p className="font-bold text-secondary flex items-center gap-1 mt-0.5"><MapPin size={10} className="text-primary"/>{visitor.city}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Device</p>
+                  <p className="font-bold text-secondary truncate mt-0.5">{visitor.device}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Active Page</p>
+                  <p className="font-mono text-secondary truncate mt-0.5">{visitor.page}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Time Spent</p>
+                  <p className="font-black text-primary mt-0.5">{visitor.duration}</p>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
+                <span className="text-[9px] font-black text-slate-400 uppercase">Traffic Source</span>
+                <span className="px-2 py-0.5 bg-slate-200/60 rounded text-[9px] font-black uppercase text-slate-600">{visitor.source}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

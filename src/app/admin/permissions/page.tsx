@@ -81,7 +81,8 @@ export default function PermissionsPage() {
             Update All
           </button>
         </div>
-        <div className="overflow-x-auto">
+        {/* Desktop View - Table */}
+        <div className="overflow-x-auto hidden md:block">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50/50">
@@ -127,6 +128,37 @@ export default function PermissionsPage() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View - Cards */}
+        <div className="md:hidden divide-y divide-slate-100 p-6 space-y-6">
+          {modules.map((module, i) => (
+            <div key={i} className="pt-6 first:pt-0 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-450 shrink-0">
+                  <Key size={16} />
+                </div>
+                <span className="font-black text-secondary text-sm">{module.name}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                {[
+                  { role: "Super Admin", hasAccess: module.admin },
+                  { role: "Sales Manager", hasAccess: module.manager },
+                  { role: "Agent", hasAccess: module.agent },
+                  { role: "Accountant", hasAccess: module.accountant },
+                ].map((item, j) => (
+                  <div key={j} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
+                    <span className="font-bold text-slate-500">{item.role}</span>
+                    {item.hasAccess ? (
+                      <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">YES</span>
+                    ) : (
+                      <span className="text-[10px] font-black text-slate-450 bg-slate-200/40 px-1.5 py-0.5 rounded">NO</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

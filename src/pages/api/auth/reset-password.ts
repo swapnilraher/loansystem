@@ -18,8 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(404).json({ message: 'User not found' });
   }
   const docRef = snapshot.docs[0].ref;
-  const docSnap = await docRef.get();
-  const data = docSnap.data() as any;
+  const data = snapshot.docs[0].data() as any;
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
   if (data.otpHash !== tokenHash) {
     return res.status(400).json({ message: 'Invalid OTP' });

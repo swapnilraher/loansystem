@@ -139,6 +139,11 @@ export default function UsersPage() {
   }
 
   const handleDeleteAdmin = async (userId: string) => {
+    const userToDelete = adminUsers.find(u => u.id === userId);
+    if (userToDelete?.email === "swapnil.r.aher@gmail.com") {
+      alert("Action Denied: You cannot remove the primary Super Admin.");
+      return;
+    }
     if (!window.confirm("Are you sure you want to remove this team member?")) return
     try {
       await deleteDoc(doc(db, 'admin_users', userId))
@@ -153,6 +158,10 @@ export default function UsersPage() {
     e.preventDefault()
     try {
       if (editingUser) {
+        if (editingUser.email === "swapnil.r.aher@gmail.com" && formData.role !== "Super Admin") {
+          alert("Action Denied: You cannot change the role of the primary Super Admin.");
+          return;
+        }
         const userRef = doc(db, 'admin_users', editingUser.id)
         await updateDoc(userRef, {
           ...formData,
@@ -165,6 +174,23 @@ export default function UsersPage() {
           joinedAt: serverTimestamp(),
           lastLogin: "Never"
         })
+
+        // Send WhatsApp Welcome Message
+        try {
+          await fetch('/api/admin/welcome-whatsapp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              phone: formData.phone,
+              name: formData.name,
+              email: formData.email,
+              password: formData.password,
+              role: formData.role
+            })
+          });
+        } catch(e) {
+          console.error("Failed to send welcome msg:", e);
+        }
       }
       setIsModalOpen(false)
     } catch (error) {
@@ -340,23 +366,23 @@ export default function UsersPage() {
       {isDetailModalOpen && selectedPortalUser && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-[3rem] w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl animate-in zoom-in duration-300 flex flex-col">
-            <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center text-white text-2xl font-black italic">TS</div>
+            <div className="p-4 md:p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-3 md:gap-4">
+                <div className="w-12 h-12 md:w-16 md:h-16 bg-primary rounded-2xl flex items-center justify-center text-white text-xl md:text-2xl font-black italic">TS</div>
                 <div>
-                  <h3 className="text-2xl font-black text-secondary tracking-tight">{selectedPortalUser.panName || selectedPortalUser.displayName}</h3>
+                  <h3 className="text-xl md:text-2xl font-black text-secondary tracking-tight">{selectedPortalUser.panName || selectedPortalUser.displayName}</h3>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Portal Customer Details</p>
                 </div>
               </div>
               <button onClick={() => setIsDetailModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors"><X size={24} className="text-slate-400" /></button>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-8 lg:p-12">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-4 md:p-8 lg:p-12 custom-scrollbar">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
                 {/* Profile Section */}
-                <div className="space-y-8">
+                <div className="space-y-6 md:space-y-8">
                   <h4 className="text-lg font-black flex items-center gap-2"><UserCheck className="text-primary" size={20} /> Personal Profile</h4>
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
                     {[
                       { label: "PAN Name", value: selectedPortalUser.panName || "Not Set" },
                       { label: "PAN Number", value: selectedPortalUser.panNumber || "Not Set" },
@@ -365,16 +391,16 @@ export default function UsersPage() {
                       { label: "City", value: selectedPortalUser.city || "Not Set" },
                       { label: "Created At", value: selectedPortalUser.createdAt ? (new Date(selectedPortalUser.createdAt)).toLocaleDateString() : "Unknown" },
                     ].map((item, i) => (
-                      <div key={i}>
+                      <div key={i} className="min-w-0">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{item.label}</p>
-                        <p className="font-bold text-secondary">{item.value}</p>
+                        <p className="font-bold text-secondary text-sm break-all">{item.value}</p>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Documents Section */}
-                <div className="space-y-8">
+                <div className="space-y-6 md:space-y-8">
                   <h4 className="text-lg font-black flex items-center gap-2"><FileText className="text-primary" size={20} /> Uploaded Documents</h4>
                   <div className="space-y-4">
                     {!selectedPortalUser.docs || Object.keys(selectedPortalUser.docs).length === 0 ? (
@@ -401,7 +427,7 @@ export default function UsersPage() {
               </div>
             </div>
             
-            <div className="p-8 border-t border-slate-100 flex justify-end gap-4 bg-slate-50/30">
+            <div className="p-4 md:p-8 border-t border-slate-100 flex justify-end gap-4 bg-slate-50/30">
               <Button variant="outline" onClick={() => setIsDetailModalOpen(false)}>Close View</Button>
               <Button className="bg-primary text-white">Approve Profile</Button>
             </div>
@@ -417,11 +443,11 @@ export default function UsersPage() {
               <h3 className="text-2xl font-black text-secondary tracking-tight">{editingUser ? 'Edit Team Member' : 'Add Team Member'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors"><X size={20} className="text-slate-400" /></button>
             </div>
-            <form onSubmit={handleSubmitAdmin} className="p-8 space-y-4">
+            <form onSubmit={handleSubmitAdmin} className="p-8 space-y-4 overflow-y-auto overscroll-contain max-h-[80vh] custom-scrollbar">
               <div className="space-y-1.5"><label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label><input type="text" required className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold" placeholder="Enter name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} /></div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5"><label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Email</label><input type="email" required className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} /></div>
-                <div className="space-y-1.5"><label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Phone</label><input type="text" required className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} /></div>
+                <div className="space-y-1.5"><label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Mobile Number</label><input type="text" required pattern="[0-9]{10}" title="Please enter exactly 10 digits" maxLength={10} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value.replace(/\D/g, '')})} placeholder="10 digit mobile" /></div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">

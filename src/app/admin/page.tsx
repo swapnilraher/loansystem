@@ -142,7 +142,7 @@ export default function AdminDashboard() {
               <option>Yearly</option>
             </select>
           </div>
-          <div className="h-[350px] w-full">
+          <div className="h-[250px] md:h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
                 <defs>
@@ -220,8 +220,8 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white/70 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/20 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-shadow">
           <h3 className="text-xl font-black text-secondary mb-8">Loan Type Distribution</h3>
-          <div className="w-full">
-             <ResponsiveContainer width="100%" aspect={2}>
+          <div className="h-[200px] md:h-[300px] w-full">
+             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={loanTypeData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 600}} />

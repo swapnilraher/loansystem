@@ -262,7 +262,8 @@ export default function MarketingPage() {
             </span>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Desktop View - Table */}
+          <div className="overflow-x-auto hidden md:block">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 text-[10px] uppercase font-black tracking-widest text-slate-400 border-b border-slate-100">
@@ -293,6 +294,38 @@ export default function MarketingPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile View - Cards */}
+          <div className="md:hidden space-y-4">
+            {[
+              { path: "/", desc: "Homepage Banner & Quick Check", views: "6,842", uniques: "4,521", time: "2m 45s" },
+              { path: "/personal-loan", desc: "Personal Loan Details & Form", views: "3,124", uniques: "2,015", time: "1m 55s" },
+              { path: "/become-dsa-partner", desc: "DSA registration info", views: "1,856", uniques: "1,142", time: "3m 12s" },
+              { path: "/home-loan", desc: "Home Loan Rates & Form", views: "1,240", uniques: "986", time: "2m 10s" },
+              { path: "/about", desc: "Fintech profile & credentials", views: "845", uniques: "650", time: "1m 20s" },
+              { path: "/business-loan", desc: "Business Loan Details", views: "512", uniques: "398", time: "2m 35s" },
+            ].map((row, i) => (
+              <div key={i} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
+                <div className="flex justify-between items-start">
+                  <div className="min-w-0 flex-1">
+                    <span className="font-mono text-secondary text-xs font-black break-all">{row.path}</span>
+                    <span className="block text-[10px] text-slate-400 font-bold mt-0.5">{row.desc}</span>
+                  </div>
+                  <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-[9px] font-black uppercase shrink-0">{row.time}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-xs pt-2 border-t border-slate-200/60">
+                  <div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Pageviews</p>
+                    <p className="font-black text-secondary mt-0.5">{row.views}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Unique Visitors</p>
+                    <p className="font-bold text-secondary mt-0.5">{row.uniques}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 

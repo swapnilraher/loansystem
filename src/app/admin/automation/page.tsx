@@ -78,7 +78,7 @@ export default function AIAutomationDashboard() {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      <div className="flex justify-between items-end">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-secondary flex items-center gap-3">
             <Sparkles className="text-primary" size={32} />
@@ -86,7 +86,7 @@ export default function AIAutomationDashboard() {
           </h1>
           <p className="text-slate-500 mt-2">Configure automated workflows and artificial intelligence features.</p>
         </div>
-        <button className="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-bold shadow-soft hover-lift">
+        <button className="flex items-center justify-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-bold shadow-soft hover-lift self-start md:self-auto">
           <Settings size={18} /> Global Settings
         </button>
       </div>

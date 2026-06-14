@@ -6,6 +6,8 @@ import { useAuth } from "@/context/AuthContext"
 import { AdminSidebar } from "@/components/admin/AdminSidebar"
 import { AdminHeader } from "@/components/admin/AdminHeader"
 
+import { Loader2, ShieldCheck } from "lucide-react"
+
 export default function AdminLayout({
   children,
 }: {
@@ -34,14 +36,22 @@ export default function AdminLayout({
 
   // Permission verification check
   if (loading || (!adminRole && pathname !== "/admin/login")) {
-    return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400 font-bold">Verifying Permissions...</div>
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-slate-500 font-bold gap-4 animate-in fade-in duration-300">
+        <div className="relative flex items-center justify-center">
+          <Loader2 className="text-primary animate-spin" size={54} />
+          <ShieldCheck className="text-primary absolute" size={24} />
+        </div>
+        <p className="text-sm font-black uppercase tracking-widest text-slate-450 animate-pulse">Verifying Permissions...</p>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50 flex relative overflow-hidden">
+    <div className="h-screen bg-slate-50/50 relative overflow-hidden">
       {/* Background decoration */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 left-[20%] w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="absolute bottom-0 left-[20%] w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[150px] pointer-events-none z-0" />
 
       <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
@@ -53,7 +63,7 @@ export default function AdminLayout({
         />
       )}
 
-      <div className="flex-1 min-w-0 ml-0 lg:ml-72">
+      <div className="min-w-0 ml-0 lg:ml-72 h-screen overflow-y-auto custom-scrollbar relative z-10">
         <AdminHeader onMenuClick={() => setSidebarOpen(true)} />
         <main className="p-4 md:p-8">
           {children}

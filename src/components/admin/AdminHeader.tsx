@@ -1,13 +1,16 @@
 "use client"
 
 import React from "react"
-import { Search, Bell, Moon, Sun, SearchIcon, Grid, User, Menu } from "lucide-react"
+import { Search, Bell, Moon, Sun, SearchIcon, Grid, User, Menu, LogOut } from "lucide-react"
+import { useAuth } from "@/context/AuthContext"
 
 interface AdminHeaderProps {
   onMenuClick?: () => void
 }
 
 export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
+  const { user, profile, adminRole, logout } = useAuth()
+
   return (
     <header className="h-20 bg-white/70 backdrop-blur-xl border-b border-white/20 shadow-sm px-4 md:px-8 flex items-center justify-between sticky top-0 z-40 transition-all duration-300">
       <div className="flex items-center gap-4 md:gap-8 flex-1">
@@ -19,7 +22,7 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
             <Menu size={20} />
           </button>
         )}
-        <div className="relative max-w-md w-full group">
+        <div className="relative max-w-md w-full group hidden md:block">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Search size={18} className="text-slate-400 group-focus-within:text-primary transition-colors" />
           </div>
@@ -45,12 +48,21 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
 
         <div className="flex items-center gap-3 pl-2">
           <div className="text-right hidden sm:block">
-            <p className="text-sm font-black text-secondary">Alex Johnson</p>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Employee #482</p>
+            <p className="text-sm font-black text-secondary">{profile?.name || user?.displayName || user?.email || "Admin User"}</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{adminRole || "Staff"}</p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center border border-slate-200 overflow-hidden">
-            <User size={20} className="text-slate-400" />
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-100 to-indigo-100 flex items-center justify-center font-black text-sm uppercase text-blue-700 border border-blue-200/50">
+            {(profile?.name || user?.displayName || user?.email || "AD").substring(0, 2)}
           </div>
+          
+          {/* Desktop Logout Button */}
+          <button 
+            onClick={logout}
+            title="Logout"
+            className="hidden lg:flex items-center justify-center w-10 h-10 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all border border-transparent hover:border-rose-100 ml-1"
+          >
+            <LogOut size={18} />
+          </button>
         </div>
       </div>
     </header>
