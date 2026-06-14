@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { useState } from "react"
 import { 
   MessageSquare, 
   PhoneCall, 
@@ -12,8 +12,17 @@ import {
   ExternalLink,
   ShieldCheck,
   RefreshCcw,
-  Plus
+  Plus,
+  Bot,
+  ArrowRight,
+  ToggleLeft,
+  ToggleRight,
+  Copy,
+  Eye,
+  EyeOff,
+  Save
 } from "lucide-react"
+import Link from "next/link"
 
 const integrations = [
   {
@@ -23,7 +32,7 @@ const integrations = [
     icon: MessageSquare,
     color: "bg-green-500",
     lastSync: "2 mins ago",
-    features: ["OTP Verification", "Lead Notifications", "Document Upload Reminders"]
+    features: ["OTP Verification", "Lead Notifications", "Document Upload Reminders", "Auto Chat Flows"]
   },
   {
     name: "Call Tracking (Exotel)",
@@ -55,6 +64,20 @@ const integrations = [
 ]
 
 export default function IntegrationsPage() {
+  const [showToken, setShowToken] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [waEnabled, setWaEnabled] = useState(true)
+
+  const WEBHOOK_URL = "https://your-domain.com/api/whatsapp"
+  const VERIFY_TOKEN = "techstar_verify_2024"
+  const PHONE_ID = "1112131761984283"
+
+  function handleCopy(text: string) {
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -68,6 +91,111 @@ export default function IntegrationsPage() {
         </button>
       </div>
 
+      {/* ─── WhatsApp Automation Section ──────────────────────────────────────── */}
+      <div className="bg-gradient-to-br from-[#128C7E] to-[#075E54] rounded-[2.5rem] p-8 text-white relative overflow-hidden">
+        <div className="absolute -top-20 -right-20 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0 backdrop-blur-sm border border-white/20">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-9 h-9 text-white">
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.262 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.725 1.45 5.277.002 9.571-4.287 9.575-9.566.001-2.559-1.002-4.966-2.825-6.79C16.3 2.421 13.9 1.419 11.339 1.418c-5.286 0-9.582 4.29-9.587 9.57-.001 1.638.488 3.238 1.42 4.695L2.146 21.94l6.096-1.597c.005.003.01.006.015.008v-.005h-.01c-1.53-.949-1.53-.949 0 0zm11.368-6.19c-.3-.15-1.774-.875-2.05-.975-.274-.1-.475-.15-.675.15-.2.3-.775.975-.95 1.175-.175.2-.35.225-.65.075-3.042-1.516-4.385-2.28-6.218-5.424-.225-.387.225-.362.65-.788.1-.1.2-.225.3-.35.1-.1.15-.175.225-.35.075-.175.037-.325-.018-.425-.056-.1-.475-1.15-.65-1.575-.17-.412-.346-.356-.475-.362-.122-.006-.262-.007-.402-.007s-.367.05-.56.25c-.19.2-.727.708-.727 1.727 0 1.02.74 2.007.84 2.15.1.15 1.46 2.228 3.538 3.125 1.62.7 2.215.797 3.015.698.48-.06 1.475-.6 1.675-1.18.2-.58.2-1.08.14-1.18-.06-.1-.225-.15-.525-.3z"/>
+                </svg>
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-2xl font-black">WhatsApp Automation</h3>
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${waEnabled ? 'bg-emerald-400/30 text-emerald-200 border border-emerald-400/30' : 'bg-white/10 text-white/60 border border-white/10'}`}>
+                    {waEnabled ? '● Live' : '○ Paused'}
+                  </span>
+                </div>
+                <p className="text-white/70 text-sm mt-1">Auto‑reply and collect lead info from every incoming message</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl cursor-pointer transition-all select-none text-sm font-black ${waEnabled ? 'bg-white text-[#075E54]' : 'bg-white/20 text-white border border-white/20'}`}
+                onClick={() => setWaEnabled(!waEnabled)}
+              >
+                {waEnabled ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+                {waEnabled ? 'Enabled' : 'Disabled'}
+              </div>
+            </div>
+          </div>
+
+          {/* Flow Preview */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+            {['User Messages', 'Bot Greets', 'Collects Info', 'Lead Saved'].map((step, i) => (
+              <div key={i} className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/10 text-center">
+                <div className="text-2xl mb-1">{['💬', '🤖', '📋', '✅'][i]}</div>
+                <div className="text-xs font-black text-white/90">{step}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Config Fields */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/10 p-6 space-y-4">
+            <p className="text-xs font-black uppercase tracking-widest text-white/60 mb-4">Webhook Configuration</p>
+            {/* Webhook URL */}
+            <div>
+              <label className="block text-xs font-bold text-white/60 mb-1.5">Webhook URL (paste in Meta Developer → Webhook)</label>
+              <div className="flex items-center gap-2 bg-white/10 rounded-xl px-4 py-2.5 border border-white/10">
+                <code className="flex-1 text-xs text-emerald-300 font-mono truncate">{WEBHOOK_URL}</code>
+                <button
+                  onClick={() => handleCopy(WEBHOOK_URL)}
+                  className="p-1.5 rounded-lg hover:bg-white/10 transition-colors flex-shrink-0"
+                >
+                  {copied ? <CheckCircle2 size={16} className="text-emerald-300" /> : <Copy size={16} className="text-white/60" />}
+                </button>
+              </div>
+            </div>
+            {/* Verify Token */}
+            <div>
+              <label className="block text-xs font-bold text-white/60 mb-1.5">Verify Token</label>
+              <div className="flex items-center gap-2 bg-white/10 rounded-xl px-4 py-2.5 border border-white/10">
+                <code className="flex-1 text-xs text-yellow-300 font-mono">
+                  {showToken ? VERIFY_TOKEN : '••••••••••••••••••••'}
+                </code>
+                <button onClick={() => setShowToken(!showToken)} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+                  {showToken ? <EyeOff size={16} className="text-white/60" /> : <Eye size={16} className="text-white/60" />}
+                </button>
+                <button onClick={() => handleCopy(VERIFY_TOKEN)} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+                  <Copy size={16} className="text-white/60" />
+                </button>
+              </div>
+            </div>
+            {/* Phone ID */}
+            <div>
+              <label className="block text-xs font-bold text-white/60 mb-1.5">WhatsApp Phone Number ID</label>
+              <div className="flex items-center gap-2 bg-white/10 rounded-xl px-4 py-2.5 border border-white/10">
+                <code className="flex-1 text-xs text-blue-300 font-mono">{PHONE_ID}</code>
+                <button onClick={() => handleCopy(PHONE_ID)} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+                  <Copy size={16} className="text-white/60" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Go to Flow Builder */}
+          <div className="mt-6 flex flex-col sm:flex-row gap-3">
+            <Link
+              href="/admin/integrations/all-auto-chatting"
+              className="flex items-center justify-center gap-2 px-6 py-3.5 bg-white text-[#075E54] rounded-2xl text-sm font-black hover:bg-white/90 transition-all shadow-xl"
+            >
+              <Bot size={18} />
+              Manage Auto Chat Flows
+              <ArrowRight size={16} />
+            </Link>
+            <button className="flex items-center justify-center gap-2 px-6 py-3.5 bg-white/10 border border-white/20 text-white rounded-2xl text-sm font-black hover:bg-white/20 transition-all">
+              <ExternalLink size={16} />
+              Open Meta Developer Console
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Other Integrations */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {integrations.map((item, i) => (
           <div key={i} className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
@@ -134,7 +262,7 @@ export default function IntegrationsPage() {
               </div>
               <div className="flex items-center gap-3 px-6 py-4 bg-white/5 border border-white/10 rounded-2xl">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="font-bold text-sm">Webhook Listeners</span>
+                <span className="font-bold text-sm">WhatsApp Webhook</span>
               </div>
             </div>
           </div>

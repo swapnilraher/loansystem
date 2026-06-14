@@ -21,7 +21,8 @@ import {
   X,
   BarChart3,
   Network,
-  CreditCard
+  CreditCard,
+  Bot
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/context/AuthContext"
@@ -36,6 +37,8 @@ const navItems = [
   { name: "Google Analytics", href: "/admin/analytics", icon: PieChart },
   { name: "Marketing Analytics", href: "/admin/marketing", icon: BarChart3 },
   { name: "Integrations & CRM", href: "/admin/integrations", icon: Building2 },
+  { name: "WhatsApp Automation", href: "/admin/integrations", icon: MessageSquare, badge: "Live" },
+  { name: "All Auto Chatting", href: "/admin/integrations/all-auto-chatting", icon: Bot },
   { name: "Cloud Storage", href: "/admin/storage", icon: HardDrive },
   { name: "Roles & Permissions", href: "/admin/permissions", icon: ShieldCheck },
 ]
@@ -93,10 +96,11 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
       <div className="flex-1 overflow-y-auto scroll-smooth">
         <nav className="p-4 space-y-2">
           {filteredNavItems.map((item) => {
-            const isActive = pathname === item.href
+            const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href))
             const isExternal = item.href.startsWith("http")
             const LinkComponent = isExternal ? "a" : Link
             const extraProps = isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {}
+            const itemAny = item as any
 
             return (
               // @ts-ignore
@@ -114,7 +118,12 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
               >
                 <item.icon size={20} className={cn(isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600 transition-colors")} />
                 <span className="font-bold text-sm truncate">{item.name}</span>
-                {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />}
+                {itemAny.badge && (
+                  <span className="ml-auto px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-100 text-emerald-600 tracking-wider">
+                    {itemAny.badge}
+                  </span>
+                )}
+                {isActive && !itemAny.badge && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />}
               </LinkComponent>
             )
           })}
