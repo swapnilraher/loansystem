@@ -240,7 +240,7 @@ const MSG_ASK_NAME: Record<string, string> = {
 
 const MSG_CAT_PROMPT: Record<string, string> = {
   en: "Nice to meet you, *{name}*! 🎉\n\nPlease select the loan product you're interested in:\n\n{menu}\n\n_Reply with the number (e.g. *1* for Home Loan)_",
-  hi: "आपसे मिलकर अच्छा लगा, *{name}*! 🎉\n\nकृपया उस लोन प्रोडक्ट का चयन करें जिसमें आपकी रुचि है:\n\n{menu}\n\n_नंबर के साथ उत्तर दें (जैसे: होम लोन के लिए *1*)__",
+  hi: "आपसे मिलकर अच्छा लगा, *{name}*! 🎉\n\nकृपया उस लोन -उत्पाद (Product) का चयन करें जिसमें आपकी रुचि है:\n\n{menu}\n\n_नंबर के साथ उत्तर दें (जैसे: होम लोन के लिए *1*)_",
   mr: "तुम्हाला भेटून आनंद झाला, *{name}*! 🎉\n\nकृपया तुम्हाला हव्या असलेल्या लोन प्रोडक्टची निवड करा:\n\n{menu}\n\n_नंबर लिहून उत्तर द्या (उदा. होम लोनसाठी *1*)_"
 };
 
@@ -293,10 +293,11 @@ async function getSession(phone: string) {
     name: doc.fields.name?.stringValue || "",
     responses: JSON.parse(doc.fields.responses?.stringValue || "{}"),
     language: doc.fields.language?.stringValue || "en",
+    leadId: doc.fields.leadId?.stringValue || "",
   };
 }
 
-async function saveSession(phone: string, data: { step: number; category: string; name: string; responses: Record<string, string>; language: string }) {
+async function saveSession(phone: string, data: { step: number; category: string; name: string; responses: Record<string, string>; language: string; leadId: string }) {
   const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/waSession/${phone}?key=${FIREBASE_API_KEY}`;
   await fetch(url, {
     method: 'PATCH',
@@ -308,6 +309,7 @@ async function saveSession(phone: string, data: { step: number; category: string
         name: { stringValue: data.name },
         responses: { stringValue: JSON.stringify(data.responses) },
         language: { stringValue: data.language || "en" },
+        leadId: { stringValue: data.leadId || "" },
         updatedAt: { timestampValue: new Date().toISOString() },
       }
     })
@@ -319,26 +321,54 @@ async function deleteSession(phone: string) {
   await fetch(url, { method: 'DELETE' });
 }
 
-async function saveLead(data: Record<string, string>) {
+async function createLead(data: Record<string, string>): Promise<string> {
   const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/leads?key=${FIREBASE_API_KEY}`;
   const fields: Record<string, any> = {};
   for (const [k, v] of Object.entries(data)) {
     fields[k] = { stringValue: String(v) };
   }
   fields.createdAt = { timestampValue: new Date().toISOString() };
-  
-  if (data.adHeadline) {
-    fields.source = { stringValue: `Meta Ads - ${data.adHeadline}` };
-  } else {
-    fields.source = { stringValue: 'WhatsApp Automation' };
-  }
-  
+  fields.source = { stringValue: data.source || 'WhatsApp Automation' };
   fields.status = { stringValue: 'New Lead' };
-  await fetch(url, {
+  
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ fields }),
   });
+  
+  if (!res.ok) {
+    console.error("Failed to create lead:", await res.text());
+    return "";
+  }
+  const result = await res.json();
+  const name = result.name; // e.g. "projects/dsa-loan/databases/(default)/documents/leads/1WnI8QuvvzU2dFVvD4V5"
+  return name.split("/").pop() || "";
+}
+
+async function updateLead(leadId: string, data: Record<string, string>) {
+  if (!leadId) return;
+  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/leads/${leadId}?key=${FIREBASE_API_KEY}`;
+  
+  const fields: Record<string, any> = {};
+  for (const [k, v] of Object.entries(data)) {
+    fields[k] = { stringValue: String(v) };
+  }
+  
+  const queryParams = Object.keys(fields)
+    .map(key => `updateMask.fieldPaths=${key}`)
+    .join('&');
+    
+  const patchUrl = `${url}&${queryParams}`;
+  
+  const res = await fetch(patchUrl, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields }),
+  });
+  if (!res.ok) {
+    console.error("Failed to update lead:", await res.text());
+  }
 }
 
 async function sendWA(to: string, text: string) {
@@ -390,7 +420,7 @@ export async function POST(request: Request) {
     // Load existing session for this user
     let session = await getSession(from);
 
-    // ── No session: greet and ask language ──
+    // ── No session: greet, create lead, and ask language ──
     if (!session) {
       // Check for Meta Ads referral details in incoming message payload
       const referral = msg.referral;
@@ -401,10 +431,17 @@ export async function POST(request: Request) {
         initialResponses.adBody = referral.body || "";
       }
 
+      // Create initial lead record immediately (with phone and referral details)
+      const leadId = await createLead({
+        phone: from,
+        source: referral ? `Meta Ads - ${referral.headline}` : 'WhatsApp Automation',
+        ...initialResponses
+      });
+
       await sendWA(from,
         `👋 *Welcome to TechStar Money Solutions!*\n\nPlease select your preferred language:\n\n1️⃣ English\n2️⃣ हिंदी (Hindi)\n3️⃣ मराठी (Marathi)\n\n_Reply with the number (e.g. *1* for English)_`
       );
-      await saveSession(from, { step: 1, category: '', name: '', responses: initialResponses, language: 'en' });
+      await saveSession(from, { step: 1, category: '', name: '', responses: initialResponses, language: 'en', leadId });
       return NextResponse.json({ ok: true });
     }
 
@@ -419,6 +456,12 @@ export async function POST(request: Request) {
       }
       const selectedLang = LANGUAGES[langKey];
       const askNameText = MSG_ASK_NAME[selectedLang];
+
+      // Update lead with language choice
+      await updateLead(session.leadId, {
+        language: LANG_NAMES[selectedLang] || "English"
+      });
+
       await sendWA(from, askNameText);
       await saveSession(from, { ...session, step: 2, language: selectedLang });
       return NextResponse.json({ ok: true });
@@ -432,6 +475,9 @@ export async function POST(request: Request) {
       const categoriesList = LOCALIZED_CATEGORIES[lang];
       const menu = categoriesList.map((c, i) => `${i + 1}️⃣ *${c}*`).join('\n');
       
+      // Update lead with name
+      await updateLead(session.leadId, { name });
+
       const promptText = MSG_CAT_PROMPT[lang].replace('{name}', name).replace('{menu}', menu);
       await sendWA(from, promptText);
       await saveSession(from, { ...session, step: 3, name });
@@ -448,6 +494,12 @@ export async function POST(request: Request) {
       const category = LOAN_CATEGORIES[num]; // English name like "Home Loan"
       const categoryLocalized = LOCALIZED_CATEGORIES[lang][num];
       
+      // Update lead with category selection
+      await updateLead(session.leadId, {
+        category: category,
+        type: category
+      });
+
       const introText = MSG_CAT_INTRO[lang].replace('{category}', categoryLocalized);
       const firstQ = LOAN_FLOWS[category][0];
       const questionText = firstQ.question[lang];
@@ -483,6 +535,11 @@ export async function POST(request: Request) {
         }
       }
 
+      // Update lead with current answer
+      await updateLead(session.leadId, {
+        [currentQ.field]: answer
+      });
+
       const updatedResponses = { ...session.responses, [currentQ.field]: answer };
       const nextIndex = questionIndex + 1;
       const nextQ = flow[nextIndex];
@@ -493,16 +550,8 @@ export async function POST(request: Request) {
         await sendWA(from, `*Q${nextIndex + 1}:* ${questionText}`);
         await saveSession(from, { ...session, step: session.step + 1, responses: updatedResponses });
       } else {
-        // All questions answered → save lead and thank user
+        // All questions answered → thank user
         const categoryLocalized = LOCALIZED_CATEGORIES[lang][LOAN_CATEGORIES.indexOf(session.category)];
-        await saveLead({
-          name: session.name,
-          phone: from,
-          type: session.category,
-          category: session.category,
-          language: LANG_NAMES[lang] || "English",
-          ...updatedResponses,
-        });
 
         const thankYouText = MSG_THANK_YOU[lang]
           .replace('{name}', session.name)
