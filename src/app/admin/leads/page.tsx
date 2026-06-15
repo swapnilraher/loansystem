@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useEffect, useMemo, useRef } from "react"
 import { 
   Search, 
   Filter, 
@@ -115,6 +115,67 @@ export default function LeadsPage() {
   const [waTarget, setWaTarget] = useState<any>(null)
   const [waMessage, setWaMessage] = useState("")
   const [isSendingWA, setIsSendingWA] = useState(false)
+  const [chatMessages, setChatMessages] = useState<any[]>([])
+  const chatEndRef = useRef<HTMLDivElement>(null)
+
+  // Real-time WhatsApp Chat History Listener
+  useEffect(() => {
+    if (!showWAModal || !waTarget) {
+      setChatMessages([]);
+      return;
+    }
+
+    const phoneNum = waTarget.phone || waTarget.mobile || "";
+    const cleanPhone = phoneNum.replace(/[^\d]/g, "");
+    const phone10 = cleanPhone.length === 12 && cleanPhone.startsWith('91') ? cleanPhone.substring(2) : cleanPhone;
+
+    if (!phone10) return;
+
+    // Listen to whatsapp_messages where phone matches customer's 10-digit number
+    const q = query(
+      collection(db, "whatsapp_messages"),
+      where("phone", "==", phone10)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const msgs = snapshot.docs.map(doc => {
+        const data = doc.data();
+        let dateObj = new Date();
+        if (data.timestamp) {
+          if (data.timestamp.toDate) {
+            dateObj = data.timestamp.toDate();
+          } else {
+            dateObj = new Date(data.timestamp);
+          }
+        }
+        return {
+          id: doc.id,
+          phone: data.phone,
+          text: data.text,
+          sender: data.sender, // 'customer' | 'bot' | 'staff'
+          userName: data.userName,
+          timestamp: data.timestamp,
+          leadId: data.leadId,
+          dateObj
+        };
+      });
+
+      // Sort in memory by dateObj ascending
+      msgs.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+      setChatMessages(msgs);
+    }, (error) => {
+      console.error("Error listening to WhatsApp messages:", error);
+    });
+
+    return () => unsubscribe();
+  }, [showWAModal, waTarget]);
+
+  // Auto Scroll Chat to Bottom
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages]);
 
   // 📱 Mobile UI States
   const [statusChangeLeadId, setStatusChangeLeadId] = useState<string | null>(null)
@@ -380,15 +441,13 @@ export default function LeadsPage() {
       return;
     }
     
-    const name = lead.panName || lead.fullName || lead.name || 'Customer';
-    const message = `Hello ${name}, this is TechStar. We received your request for a loan. When is a good time to talk?`;
-    
-    const cleanPhone = phoneNum.replace(/[^\d]/g, "");
-    const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+    setWaTarget(lead);
+    setWaMessage("");
+    setShowWAModal(true);
     
     const staffDetail = user?.email === 'swapnil.r.aher@gmail.com' ? 'Swapnil Aher (Super Admin)' : `${profile?.name || user?.displayName || user?.email || "Unknown"} (${adminRole || 'Staff'})`;
     try {
-      await logLeadActivity(lead.id, 'WhatsApp', 'Opened WhatsApp to message customer', staffDetail);
+      await logLeadActivity(lead.id, 'WhatsApp', 'Opened direct WhatsApp chat panel', staffDetail);
       if (lead.status === 'New Lead' || lead.status === 'New') {
         const leadRef = doc(db, 'leads', lead.id);
         await updateDoc(leadRef, { status: 'Contacted', updatedAt: serverTimestamp() });
@@ -396,8 +455,20 @@ export default function LeadsPage() {
     } catch (e) {
       console.error("Error logging WhatsApp activity:", e);
     }
+  };
+
+  const handleOpenExternalWhatsApp = () => {
+    if (!waTarget) return;
+    const phoneNum = waTarget.phone || waTarget.mobile;
+    if (!phoneNum) {
+      alert("No phone number available!");
+      return;
+    }
+    const cleanPhone = phoneNum.replace(/[^\d]/g, "");
+    const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
     
-    const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
+    const textToSend = waMessage || `Hello ${waTarget.panName || waTarget.fullName || waTarget.name || 'Customer'}, this is TechStar. We received your request for a loan. When is a good time to talk?`;
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(textToSend)}`;
     window.open(whatsappUrl, "_blank");
   };
 
@@ -406,40 +477,37 @@ export default function LeadsPage() {
       alert("No phone number available!");
       return;
     }
+    if (!waMessage.trim()) {
+      alert("Please type a message to send!");
+      return;
+    }
     
     setIsSendingWA(true);
     try {
       const phoneNum = waTarget.phone || waTarget.mobile;
-      const cleanPhone = phoneNum.replace(/[^\d]/g, "");
-      const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+      const staffName = user?.email === 'swapnil.r.aher@gmail.com' ? 'Swapnil Aher' : (profile?.name || user?.displayName || user?.email || "Staff");
       
-      const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(waMessage)}`;
-      window.open(whatsappUrl, "_blank");
-      
-      setShowWAModal(false);
-      
-      /*
       const response = await fetch('/api/whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          phone: waTarget.phone || waTarget.mobile, 
-          name: waTarget.panName || waTarget.fullName || waTarget.name,
-          message: waMessage // I should update the API to accept custom message
+          phone: phoneNum, 
+          name: waTarget.panName || waTarget.fullName || waTarget.name || 'Customer',
+          message: waMessage,
+          leadId: waTarget.id,
+          senderName: staffName
         }),
       });
       
       const result = await response.json();
       if (result.success) {
-        alert("Message sent successfully!");
-        setShowWAModal(false);
+        setWaMessage(""); // clear message input
       } else {
-        alert(`Error: ${result.error}`);
+        alert(`त्रुटी: ${result.error || 'मेसेज पाठवता आला नाही'}`);
       }
-      */
     } catch (e) {
       console.error(e);
-      alert("WhatsApp उघडताना त्रुटी आली.");
+      alert("मेसेज पाठवताना त्रुटी आली.");
     }
     setIsSendingWA(false);
   };
@@ -1140,53 +1208,132 @@ export default function LeadsPage() {
         </div>
       )}
 
-      {/* WhatsApp Composer Bottom Sheet */}
+      {/* WhatsApp Chat Modal */}
       {showWAModal && (
-        <div className="fixed inset-0 z-[150] flex items-end justify-center">
+        <div className="fixed inset-0 z-[150] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
           <div 
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" 
             onClick={() => !isSendingWA && setShowWAModal(false)} 
           />
-          <div className="w-full max-w-md bg-white rounded-t-[2.5rem] shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300">
-            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-4 shrink-0" />
-            <div className="px-6 pb-4 border-b border-slate-50 flex items-center gap-3 shrink-0">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
-                <MessageSquare size={20} />
+          <div className="w-full max-w-lg bg-white rounded-t-[2.5rem] md:rounded-[2rem] shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300 max-h-[90vh] md:max-h-[80vh] h-[600px]">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.262 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.725 1.45 5.277.002 9.571-4.287 9.575-9.566.001-2.559-1.002-4.966-2.825-6.79C16.3 2.421 13.9 1.419 11.339 1.418c-5.286 0-9.582 4.29-9.587 9.57-.001 1.638.488 3.238 1.42 4.695L2.146 21.94l6.096-1.597c.005.003.01.006.015.008v-.005h-.01c-1.53-.949-1.53-.949 0 0zm11.368-6.19c-.3-.15-1.774-.875-2.05-.975-.274-.1-.475-.15-.675.15-.2.3-.775.975-.95 1.175-.175.2-.35.225-.65.075-3.042-1.516-4.385-2.28-6.218-5.424-.225-.387.225-.362.65-.788.1-.1.2-.225.3-.35.1-.1.15-.175.225-.35.075-.175.037-.325-.018-.425-.056-.1-.475-1.15-.65-1.575-.17-.412-.346-.356-.475-.362-.122-.006-.262-.007-.402-.007s-.367.05-.56.25c-.19.2-.727.708-.727 1.727 0 1.02.74 2.007.84 2.15.1.15 1.46 2.228 3.538 3.125 1.62.7 2.215.797 3.015.698.48-.06 1.475-.6 1.675-1.18.2-.58.2-1.08.14-1.18-.06-.1-.225-.15-.525-.3z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-800 tracking-tight">WhatsApp चॅटिंग</h3>
+                  <p className="text-slate-500 font-semibold text-[10px]">
+                    ग्राहक: <span className="text-emerald-600 font-bold">{waTarget?.panName || waTarget?.fullName || waTarget?.name}</span>
+                    {waTarget?.phone && <span className="ml-1.5 text-slate-400">({waTarget.phone})</span>}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-base font-black text-slate-800 tracking-tight">WhatsApp पाठवा</h3>
-                <p className="text-slate-500 font-semibold text-[10px]">ग्राहक: <span className="text-emerald-600 font-bold">{waTarget?.panName || waTarget?.fullName || waTarget?.name}</span></p>
-              </div>
-            </div>
-            
-            <div className="p-6 space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">मेसेज</label>
-                <textarea 
-                  className="w-full h-32 bg-slate-50 border-2 border-transparent focus:border-emerald-500 rounded-2xl p-4 font-medium text-xs outline-none transition-all resize-none"
-                  value={waMessage}
-                  onChange={(e) => setWaMessage(e.target.value)}
-                  placeholder="Type your personalized message here..."
-                />
+              <div className="flex items-center gap-2">
+                {/* Launch External Link Button */}
+                <button
+                  onClick={handleOpenExternalWhatsApp}
+                  className="p-2 hover:bg-emerald-50 text-emerald-600 rounded-lg transition-all flex items-center gap-1.5 text-[10px] font-bold border border-emerald-100 hover:border-emerald-200"
+                  title="स्थानिक WhatsApp App मध्ये उघडा"
+                >
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" className="shrink-0 text-emerald-500">
+                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.262 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.725 1.45 5.277.002 9.571-4.287 9.575-9.566.001-2.559-1.002-4.966-2.825-6.79C16.3 2.421 13.9 1.419 11.339 1.418c-5.286 0-9.582 4.29-9.587 9.57-.001 1.638.488 3.238 1.42 4.695L2.146 21.94l6.096-1.597c.005.003.01.006.015.008v-.005h-.01c-1.53-.949-1.53-.949 0 0zm11.368-6.19c-.3-.15-1.774-.875-2.05-.975-.274-.1-.475-.15-.675.15-.2.3-.775.975-.95 1.175-.175.2-.35.225-.65.075-3.042-1.516-4.385-2.28-6.218-5.424-.225-.387.225-.362.65-.788.1-.1.2-.225.3-.35.1-.1.15-.175.225-.35.075-.175.037-.325-.018-.425-.056-.1-.475-1.15-.65-1.575-.17-.412-.346-.356-.475-.362-.122-.006-.262-.007-.402-.007s-.367.05-.56.25c-.19.2-.727.708-.727 1.727 0 1.02.74 2.007.84 2.15.1.15 1.46 2.228 3.538 3.125 1.62.7 2.215.797 3.015.698.48-.06 1.475-.6 1.675-1.18.2-.58.2-1.08.14-1.18-.06-.1-.225-.15-.525-.3z"/>
+                  </svg>
+                  <span className="hidden sm:inline">App मध्ये उघडा</span>
+                </button>
+                <button 
+                  onClick={() => setShowWAModal(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
+                >
+                  <X size={18} />
+                </button>
               </div>
             </div>
 
-            <div className="p-6 border-t border-slate-50 bg-white">
-              <div className="flex gap-3">
-                <button 
+            {/* Chat Messages Panel */}
+            <div className="flex-1 overflow-y-auto p-4 bg-slate-50/50 space-y-4 min-h-0">
+              {chatMessages.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-2 text-slate-400">
+                  <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-300">
+                    <MessageSquare size={24} />
+                  </div>
+                  <p className="text-xs font-semibold">कोणताही जुना संवाद उपलब्ध नाही.</p>
+                  <p className="text-[10px] text-slate-400 max-w-xs">खाली मेसेज लिहून थेट चॅटिंग सुरू करा. सर्व संवाद येथे आणि डेटाबेसमध्ये सेव्ह केला जाईल.</p>
+                </div>
+              ) : (
+                chatMessages.map((msg) => {
+                  const isCustomer = msg.sender === 'customer';
+                  const isBot = msg.sender === 'bot';
+                  const isStaff = msg.sender === 'staff';
+                  
+                  // Timestamp formatter
+                  let timeStr = "";
+                  if (msg.dateObj) {
+                    timeStr = msg.dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  }
+                  
+                  return (
+                    <div 
+                      key={msg.id}
+                      className={`flex flex-col ${isCustomer ? 'items-start' : 'items-end'} w-full`}
+                    >
+                      <div 
+                        className={`max-w-[80%] rounded-2xl px-4 py-2.5 shadow-sm text-xs font-medium ${
+                          isCustomer 
+                            ? 'bg-white text-slate-800 rounded-tl-none border border-slate-100' 
+                            : isBot
+                              ? 'bg-emerald-50 text-emerald-900 border border-emerald-100/50 rounded-tr-none'
+                              : 'bg-indigo-600 text-white rounded-tr-none'
+                        }`}
+                      >
+                        {/* Sender Badge */}
+                        <div className="flex items-center gap-1.5 mb-1 text-[9px] font-black uppercase tracking-wider opacity-60">
+                          {isCustomer && (msg.userName || 'ग्राहक')}
+                          {isBot && '🤖 TechStar Bot'}
+                          {isStaff && `👤 ${msg.userName || 'Staff'}`}
+                        </div>
+                        
+                        {/* Message text */}
+                        <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+                        
+                        {/* Time */}
+                        <div className={`text-[8px] mt-1 text-right ${isStaff ? 'text-white/60' : 'text-slate-400'}`}>
+                          {timeStr}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Composer Footer */}
+            <div className="p-4 border-t border-slate-100 bg-white shrink-0">
+              <div className="flex items-end gap-2">
+                <textarea 
+                  className="flex-1 h-11 min-h-[44px] max-h-[120px] bg-slate-50 border-2 border-transparent focus:border-emerald-500 rounded-xl p-3 font-medium text-xs outline-none transition-all resize-none leading-normal"
+                  value={waMessage}
+                  onChange={(e) => setWaMessage(e.target.value)}
+                  placeholder="मेसेज येथे टाईप करा..."
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      sendWhatsAppMessage();
+                    }
+                  }}
                   disabled={isSendingWA}
-                  onClick={() => setShowWAModal(false)}
-                  className="flex-1 h-12 rounded-xl font-black uppercase text-[10px] text-slate-400 border border-slate-100 hover:bg-slate-50 transition-all"
-                >
-                  रद्द करा
-                </button>
+                />
                 <button 
-                  disabled={isSendingWA}
+                  disabled={isSendingWA || !waMessage.trim()}
                   onClick={sendWhatsAppMessage}
-                  className="flex-[2] h-12 bg-emerald-500 text-white rounded-xl font-black uppercase text-[10px] shadow-md shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  className="h-11 w-11 bg-emerald-500 disabled:bg-slate-100 text-white disabled:text-slate-400 rounded-xl shadow-md shadow-emerald-500/10 hover:scale-[1.05] active:scale-[0.95] transition-all flex items-center justify-center shrink-0"
+                  title="मेसेज पाठवा"
                 >
-                  {isSendingWA ? <Loader2 className="animate-spin" size={14} /> : <Zap size={14} />}
-                  {isSendingWA ? 'पाठवत आहे...' : 'मेसेज पाठवा'}
+                  {isSendingWA ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} />}
                 </button>
               </div>
             </div>

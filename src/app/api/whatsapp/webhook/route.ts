@@ -393,6 +393,53 @@ function generateDetailsText(session: { name: string; category: string; language
   return text;
 }
 
+// ─── Local translations for internally stored Category and Status values ─────────
+function getLocalizedCategory(category: string, lang: string): string {
+  const c = (category || "").toLowerCase().trim();
+  const maps: Record<string, Record<string, string>> = {
+    "home loan": { en: "Home Loan", hi: "होम लोन", mr: "होम लोन" },
+    "personal loan": { en: "Personal Loan", hi: "पर्सनल लोन", mr: "पर्सनल लोन" },
+    "business loan": { en: "Business Loan", hi: "बिजनेस लोन", mr: "बिझनेस लोन" },
+    "loan against property": { en: "Loan Against Property", hi: "प्रॉपर्टी पर लोन", mr: "प्रॉपर्टीवर लोन" },
+    "credit card": { en: "Credit Card", hi: "क्रेडिट कार्ड", mr: "क्रेडिट कार्ड" },
+    "insurance": { en: "Insurance", hi: "बीमा", mr: "विमा" },
+    "landing": { en: "Loan Application", hi: "लोन आवेदन", mr: "कर्ज अर्ज" }
+  };
+  
+  for (const [key, map] of Object.entries(maps)) {
+    if (c === key || c.includes(key)) {
+      return map[lang] || map['en'];
+    }
+  }
+  return { en: "Loan Application", hi: "लोन आवेदन", mr: "कर्ज अर्ज" }[lang] || "Loan Application";
+}
+
+function getLocalizedStatus(status: string, lang: string): string {
+  const s = (status || "").toLowerCase().trim();
+  const maps: Record<string, Record<string, string>> = {
+    "new lead": { en: "Under Review", hi: "समीक्षा के अधीन", mr: "तपासणी सुरू आहे" },
+    "new": { en: "Under Review", hi: "समीक्षा के अधीन", mr: "तपासणी सुरू आहे" },
+    "landing": { en: "Under Review", hi: "समीक्षा के अधीन", mr: "तपासणी सुरू आहे" },
+    "contacted": { en: "Under Process", hi: "प्रक्रिया में", mr: "प्रक्रिया सुरू आहे" },
+    "interested": { en: "Under Process", hi: "प्रक्रिया में", mr: "प्रक्रिया सुरू आहे" },
+    "processed": { en: "Under Process", hi: "प्रक्रिया में", mr: "प्रक्रिया सुरू आहे" },
+    "in progress": { en: "Under Process", hi: "प्रक्रिया में", mr: "प्रक्रिया सुरू आहे" },
+    "under process": { en: "Under Process", hi: "प्रक्रिया में", mr: "प्रक्रिया सुरू आहे" },
+    "approved": { en: "Approved", hi: "स्वीकृत (Approved)", mr: "मंजूर (Approved)" },
+    "sanctioned": { en: "Approved", hi: "स्वीकृत (Approved)", mr: "मंजूर (Approved)" },
+    "disbursed": { en: "Disbursed", hi: "वितरित (Disbursed)", mr: "वितरित (Disbursed)" },
+    "rejected": { en: "Closed", hi: "बंद/अस्वीकृत", mr: "बंद/अमंजूर" },
+    "not interested": { en: "Closed", hi: "बंद/अस्वीकृत", mr: "बंद/अमंजूर" }
+  };
+
+  for (const [key, map] of Object.entries(maps)) {
+    if (s === key || s.includes(key)) {
+      return map[lang] || map['en'];
+    }
+  }
+  return { en: "Under Review", hi: "समीक्षा के अधीन", mr: "तपासणी सुरू आहे" }[lang] || "Under Review";
+}
+
 // ─── Custom Local AI Responder for Loan Info (Private, Fast, Rule-based NLP) ───
 function localLoanAIResponder(userText: string, lang: string): string {
   const lower = userText.toLowerCase().trim();
@@ -422,11 +469,11 @@ function localLoanAIResponder(userText: string, lang: string): string {
     time: "दस्तावेज सही होने पर पर्सनल लोन 24 से 48 घंटे में और होम लोन 3 से 7 दिनों में मंजूर हो जाता है।",
     fee: "लोन प्रोसेसिंग फीस बैंक के अनुसार लोन राशि का 1% से 2% तक होती है।",
     lap: "प्रॉपर्टी पर लोन (Loan Against Property) की दरें 9% से शुरू होती हैं। संपत्ति का बाजार मूल्य और आपकी आय देखकर लोन दिया जाता है।",
-    card: "हम विभिन्न बैंकों के क्रेडिट कार्ड प्रदान करते हैं। आपके सैलरी और सिबिल स्कोर के अनुसार सर्वश्रेष्ठ कार्ड दिया जाएगा।",
+    card: "हम विभिन्न अंकों के क्रेडिट कार्ड प्रदान करते हैं। आपके सैलरी और सिबिल स्कोर के अनुसार सर्वश्रेष्ठ कार्ड दिया जाएगा।",
     insurance: "हम जीवन बीमा (Life Insurance), स्वास्थ्य बीमा (Health Insurance) और वाहन बीमा (Vehicle Insurance) प्रदान करते हैं।",
     contact: "हमसे संपर्क करने के लिए कॉल करें: 7020646007 या 9579005645।",
     tenure: "लोन की अवधि (Tenure):\n- होम लोन (Home Loan): 30 वर्ष तक\n- पर्सनल लोन (Personal Loan): 1 से 5 वर्ष\n- बिजनेस लोन (Business Loan): 1 से 5 वर्ष\n- प्रॉपर्टी पर लोन (LAP): 15 से 20 वर्ष तक",
-    limit: "अधिकतम लोन राशि (Loan Limit):\n- पर्सनल/बिजनेस लोन: ₹50 लाख तक (प्रोफाइल के अनुसार)\n- होम लोन / प्रॉपर्टी पर लोन: संपत्ति के बाजार मूल्य का 80% तक",
+    limit: "अधिकतम लोन राशि (Loan Limit):\n- पर्सनल/बिजनेस लोन: ₹50 लाख तक (प्रोफाइल के अनुसार)\n- होम लोन / प्रॉपर्टी पर लोन: संपत्ति के ब्याज मूल्य का 80% तक",
     cibil: "सिबिल (CIBIL) स्कोर:\n- त्वरित लोन स्वीकृति और कम ब्याज दरों के लिए 700 या उससे अधिक का सिबिल स्कोर होना अच्छा माना जाता है।\n- 700 से कम स्कोर होने पर अतिरिक्त दस्तावेज सत्यापन की आवश्यकता हो सकती है।",
     unknown: "मुझे आपके द्वारा भेजा गया संदेश समझ नहीं आया। कृपया ब्याज दर, दस्तावेज, पात्रता, संपर्क जैसे कीवर्ड्स का उपयोग करें।"
   };
@@ -526,7 +573,7 @@ function localClassifyDropdown(userText: string, question: FlowQuestion): string
   return "Unknown";
 }
 
-// ─── Firestore helpers ─────────────────────────────────────────────────────────
+// ─── Firestore REST helpers ──────────────────────────────────────────────────
 async function getSession(phone: string) {
   const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/waSession/${phone}?key=${FIREBASE_API_KEY}`;
   const res = await fetch(url);
@@ -673,7 +720,37 @@ async function updateLead(leadId: string, data: Record<string, string>) {
   }
 }
 
-async function sendWA(to: string, message: string | any) {
+// Helper: Save WhatsApp Message details to Firestore collection for chat history
+async function saveWAMessage(phone: string, text: string, sender: 'customer' | 'bot' | 'staff', userName: string, leadId: string = "") {
+  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/whatsapp_messages?key=${FIREBASE_API_KEY}`;
+  
+  const fields: Record<string, any> = {
+    phone: { stringValue: phone },
+    text: { stringValue: text },
+    sender: { stringValue: sender },
+    userName: { stringValue: userName },
+    timestamp: { timestampValue: new Date().toISOString() }
+  };
+  
+  if (leadId) {
+    fields.leadId = { stringValue: leadId };
+  }
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields })
+    });
+    if (!res.ok) {
+      console.error("Failed to save WA message to Firestore:", await res.text());
+    }
+  } catch (err) {
+    console.error("Error saving WA message:", err);
+  }
+}
+
+async function sendWA(to: string, message: string | any, leadId: string = "") {
   const finalTo = to.length === 10 ? `91${to}` : to;
   const url = `https://graph.facebook.com/v18.0/${PHONE_ID}/messages`;
   let body: any;
@@ -700,9 +777,21 @@ async function sendWA(to: string, message: string | any) {
     headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
+  
   if (!res.ok) {
     console.error("Failed to send WA message:", await res.text());
   }
+
+  // Auto-save outbound bot message to database
+  let logText = "";
+  if (typeof message === 'string') {
+    logText = message;
+  } else if (message.body?.text) {
+    logText = message.body.text;
+  } else {
+    logText = "[Interactive Menu]";
+  }
+  await saveWAMessage(to, logText, 'bot', 'TechStar Bot', leadId);
 }
 
 // ─── GET: Facebook webhook verification ───────────────────────────────────────
@@ -771,13 +860,26 @@ export async function POST(request: Request) {
         };
         const lang = LANG_NAME_TO_CODE[leadLang] || "en";
         
-        const statusMsg = {
-          en: `👋 Hello *${existingLead.name}*!\n\nWe found your existing application for *${existingLead.category}*.\n\n📊 *Status:* ${existingLead.status}\n\nDo you need any further help? Please type your query (e.g. interest rate, required documents) or reply *new loan* to apply again.`,
-          hi: `👋 नमस्कार *${existingLead.name}*!\n\nहमें आपके *${existingLead.category}* के आवेदन की स्थिति (Status) *${existingLead.status}* मिली है।\n\nक्या आपको और कोई मदद चाहिए? कृपया अपना प्रश्न यहाँ लिखें (जैसे: ब्याज दर, आवश्यक दस्तावेज) या फिर से आवेदन करने के लिए *new loan* लिखें।`,
-          mr: `👋 नमस्कार *${existingLead.name}*!\n\nतुमच्या *${existingLead.category}* च्या कर्जाच्या अर्जाची सद्यस्थिती (Status) *${existingLead.status}* अशी आहे.\n\nतुम्हाला अजून काही मदत पाहिजे का? कृपया तुमचा प्रश्न येथे टाईप करा (उदा. व्याजदर, कागदपत्रे) किंवा नवीन कर्जासाठी *new loan* लिहा.`
-        }[lang] || `👋 Hello *${existingLead.name}*! Your loan status is: ${existingLead.status}\n\nDo you need any further help?`;
+        const locCategory = getLocalizedCategory(existingLead.category, lang);
+        const locStatus = getLocalizedStatus(existingLead.status, lang);
+        const isLanding = (existingLead.category || "").toLowerCase().trim() === "landing" || !(existingLead.category);
         
-        await sendWA(from, statusMsg);
+        let statusMsg = "";
+        if (lang === 'mr') {
+          const categoryPhrase = isLanding ? "कर्जाच्या अर्जाची" : `${locCategory} च्या कर्जाच्या अर्जाची`;
+          statusMsg = `👋 नमस्कार *${existingLead.name}*!\n\nतुमच्या *${categoryPhrase}* सद्यस्थिती (Status) *${locStatus}* अशी आहे.\n\nतुम्हाला अजून काही मदत पाहिजे का? कृपया तुमचा प्रश्न येथे टाईप करा (उदा. व्याजदर, कागदपत्रे) किंवा नवीन कर्जासाठी *new loan* लिहा.`;
+        } else if (lang === 'hi') {
+          const categoryPhrase = isLanding ? "लोन आवेदन" : `${locCategory} के आवेदन`;
+          statusMsg = `👋 नमस्कार *${existingLead.name}*!\n\nहमें आपके *${categoryPhrase}* की स्थिति (Status) *${locStatus}* मिली है।\n\nक्या आपको और कोई मदद चाहिए? कृपया अपना प्रश्न यहाँ लिखें (जैसे: ब्याज दर, आवश्यक दस्तावेज) या फिर से आवेदन करने के लिए *new loan* लिखें।`;
+        } else {
+          const categoryPhrase = isLanding ? "loan application" : `application for *${locCategory}*`;
+          statusMsg = `👋 Hello *${existingLead.name}*!\n\nWe found your existing *${categoryPhrase}*.\n\n📊 *Status:* ${locStatus}\n\nDo you need any further help? Please type your query (e.g. interest rate, required documents) or reply *new loan* to apply again.`;
+        }
+        
+        // Log incoming customer message linked to existing lead
+        await saveWAMessage(from, text, 'customer', existingLead.name, existingLead.id);
+        
+        await sendWA(from, statusMsg, existingLead.id);
         
         // Start session in step 99 (support mode)
         await saveSession(from, {
@@ -815,12 +917,18 @@ export async function POST(request: Request) {
         ...initialResponses
       });
 
-      await sendWA(from, langInteractive);
+      // Log incoming customer message linked to new lead
+      await saveWAMessage(from, text, 'customer', 'Customer', leadId);
+
+      await sendWA(from, langInteractive, leadId);
       await saveSession(from, { step: 1, category: '', name: '', responses: initialResponses, language: 'en', leadId });
       return NextResponse.json({ ok: true });
     }
 
     const lang = session.language || 'en';
+    
+    // Log incoming message for existing session
+    await saveWAMessage(from, text, 'customer', session.name || 'Customer', session.leadId);
 
     // ── Step 99: Existing Lead Support Mode ──
     if (session.step === 99) {
@@ -835,7 +943,7 @@ export async function POST(request: Request) {
           details: generateDetailsText({ name: "", category: "", language: "en", responses: {} })
         });
         
-        await sendWA(from, langInteractive);
+        await sendWA(from, langInteractive, leadId);
         await saveSession(from, { step: 1, category: '', name: '', responses: {}, language: 'en', leadId });
         return NextResponse.json({ ok: true });
       }
@@ -849,7 +957,7 @@ export async function POST(request: Request) {
         mr: `\n\nमी तुम्हाला अजून काही मदत करू शकतो का? (किंवा नवीन कर्जासाठी *new loan* लिहा)`
       }[lang] || `\n\nNeed any more help?`;
 
-      await sendWA(from, `${aiReply}${followUpText}`);
+      await sendWA(from, `${aiReply}${followUpText}`, session.leadId);
       return NextResponse.json({ ok: true });
     }
 
@@ -858,8 +966,8 @@ export async function POST(request: Request) {
       const langKey = text;
       if (langKey !== '1' && langKey !== '2' && langKey !== '3') {
         const aiReply = localLoanAIResponder(text, 'en');
-        await sendWA(from, `${aiReply}\n\n*Please select your language:*`);
-        await sendWA(from, langInteractive);
+        await sendWA(from, `${aiReply}\n\n*Please select your language:*`, session.leadId);
+        await sendWA(from, langInteractive, session.leadId);
         return NextResponse.json({ ok: true });
       }
       const selectedLang = LANGUAGES[langKey];
@@ -878,7 +986,7 @@ export async function POST(request: Request) {
         details: detailsText
       });
 
-      await sendWA(from, askNameText);
+      await sendWA(from, askNameText, session.leadId);
       await saveSession(from, { ...session, step: 2, language: selectedLang });
       return NextResponse.json({ ok: true });
     }
@@ -897,7 +1005,7 @@ export async function POST(request: Request) {
       await updateLead(session.leadId, { name, details: detailsText });
 
       const catPayload = getCategoryListPayload(lang, name);
-      await sendWA(from, catPayload);
+      await sendWA(from, catPayload, session.leadId);
       await saveSession(from, { ...session, step: 3, name });
       return NextResponse.json({ ok: true });
     }
@@ -907,8 +1015,8 @@ export async function POST(request: Request) {
       const num = parseInt(text) - 1;
       if (isNaN(num) || num < 0 || num >= LOAN_CATEGORIES.length) {
         const aiReply = localLoanAIResponder(text, lang);
-        await sendWA(from, aiReply);
-        await sendWA(from, getCategoryListPayload(lang, session.name));
+        await sendWA(from, aiReply, session.leadId);
+        await sendWA(from, getCategoryListPayload(lang, session.name), session.leadId);
         return NextResponse.json({ ok: true });
       }
       const category = LOAN_CATEGORIES[num];
@@ -932,10 +1040,10 @@ export async function POST(request: Request) {
       const questionPayload = getQuestionPayload(lang, firstQ);
       
       if (typeof questionPayload === 'string') {
-        await sendWA(from, `${introText}\n\n${questionPayload}`);
+        await sendWA(from, `${introText}\n\n${questionPayload}`, session.leadId);
       } else {
-        await sendWA(from, introText);
-        await sendWA(from, questionPayload);
+        await sendWA(from, introText, session.leadId);
+        await sendWA(from, questionPayload, session.leadId);
       }
 
       await saveSession(from, { ...session, step: 4, category });
@@ -946,7 +1054,7 @@ export async function POST(request: Request) {
     if (session.step >= 4) {
       const flow = LOAN_FLOWS[session.category];
       if (!flow) {
-        await sendWA(from, MSG_ERROR_WARN[lang]);
+        await sendWA(from, MSG_ERROR_WARN[lang], session.leadId);
         await deleteSession(from);
         return NextResponse.json({ ok: true });
       }
@@ -980,8 +1088,8 @@ export async function POST(request: Request) {
 
       if (!isClassified) {
         const aiReply = localLoanAIResponder(text, lang);
-        await sendWA(from, aiReply);
-        await sendWA(from, getQuestionPayload(lang, currentQ));
+        await sendWA(from, aiReply, session.leadId);
+        await sendWA(from, getQuestionPayload(lang, currentQ), session.leadId);
         return NextResponse.json({ ok: true });
       }
 
@@ -1011,9 +1119,9 @@ export async function POST(request: Request) {
         }[lang] || `Q${nextIndex + 1}: `;
         
         if (typeof questionPayload === 'string') {
-          await sendWA(from, `${questionIndexText}${questionPayload}`);
+          await sendWA(from, `${questionIndexText}${questionPayload}`, session.leadId);
         } else {
-          await sendWA(from, questionPayload);
+          await sendWA(from, questionPayload, session.leadId);
         }
         await saveSession(from, { ...session, step: session.step + 1, responses: updatedResponses });
       } else {
@@ -1023,7 +1131,7 @@ export async function POST(request: Request) {
           .replace('{name}', session.name)
           .replace('{category}', categoryLocalized);
           
-        await sendWA(from, thankYouText);
+        await sendWA(from, thankYouText, session.leadId);
         await deleteSession(from);
       }
 
