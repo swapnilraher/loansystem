@@ -326,7 +326,13 @@ async function saveLead(data: Record<string, string>) {
     fields[k] = { stringValue: String(v) };
   }
   fields.createdAt = { timestampValue: new Date().toISOString() };
-  fields.source = { stringValue: 'WhatsApp Automation' };
+  
+  if (data.adHeadline) {
+    fields.source = { stringValue: `Meta Ads - ${data.adHeadline}` };
+  } else {
+    fields.source = { stringValue: 'WhatsApp Automation' };
+  }
+  
   fields.status = { stringValue: 'New Lead' };
   await fetch(url, {
     method: 'POST',
@@ -386,10 +392,19 @@ export async function POST(request: Request) {
 
     // ── No session: greet and ask language ──
     if (!session) {
+      // Check for Meta Ads referral details in incoming message payload
+      const referral = msg.referral;
+      const initialResponses: Record<string, string> = {};
+      if (referral) {
+        initialResponses.adId = referral.source_id || "";
+        initialResponses.adHeadline = referral.headline || "";
+        initialResponses.adBody = referral.body || "";
+      }
+
       await sendWA(from,
         `👋 *Welcome to TechStar Money Solutions!*\n\nPlease select your preferred language:\n\n1️⃣ English\n2️⃣ हिंदी (Hindi)\n3️⃣ मराठी (Marathi)\n\n_Reply with the number (e.g. *1* for English)_`
       );
-      await saveSession(from, { step: 1, category: '', name: '', responses: {}, language: 'en' });
+      await saveSession(from, { step: 1, category: '', name: '', responses: initialResponses, language: 'en' });
       return NextResponse.json({ ok: true });
     }
 
