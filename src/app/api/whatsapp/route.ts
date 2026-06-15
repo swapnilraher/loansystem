@@ -7,10 +7,14 @@ const TOKEN = process.env.WHATSAPP_TOKEN || "EAAL6qnWnZABMBRfTVoipikLTEZBzVNQf9Y
 // Outbound WhatsApp message sender (for OTP, notifications, manual messages)
 export async function POST(request: Request) {
   try {
-    const { phone, name, message, leadId, senderName } = await request.json();
+    const { phone, name, message, leadId, senderName, mediaType, mediaUrl, filename } = await request.json();
     
-    if (!phone || !message) {
-      return NextResponse.json({ success: false, error: "Phone and message are required" }, { status: 400 });
+    if (!phone) {
+      return NextResponse.json({ success: false, error: "Phone number is required" }, { status: 400 });
+    }
+    
+    if (!message && !mediaUrl) {
+      return NextResponse.json({ success: false, error: "Message or mediaUrl is required" }, { status: 400 });
     }
 
     // Clean phone number
@@ -20,15 +24,31 @@ export async function POST(request: Request) {
 
     const url = `https://graph.facebook.com/v18.0/${PHONE_ID}/messages`;
     
-    const body: any = {
+    let body: any = {
       messaging_product: "whatsapp",
       recipient_type: "individual",
-      to: finalPhone,
-      type: "text",
-      text: {
-        body: message
-      }
+      to: finalPhone
     };
+
+    if (mediaType === 'image' && mediaUrl) {
+      body.type = 'image';
+      body.image = {
+        link: mediaUrl,
+        caption: message || ""
+      };
+    } else if (mediaType === 'document' && mediaUrl) {
+      body.type = 'document';
+      body.document = {
+        link: mediaUrl,
+        filename: filename || "Document",
+        caption: message || ""
+      };
+    } else {
+      body.type = "text";
+      body.text = {
+        body: message
+      };
+    }
 
     let response = await fetch(url, {
       method: 'POST',
@@ -46,19 +66,30 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: result.error?.message || 'Failed to send message' }, { status: response.status });
     }
 
-    // Save message to database
+    // Save message to database & mute bot
     try {
       const db = getAdminDb();
       await db.collection("whatsapp_messages").add({
         phone: phone10,
         leadId: leadId || "",
-        text: message,
+        text: message || (mediaType === 'image' ? "📷 Image" : "📄 Document"),
         sender: "staff",
         userName: senderName || "Staff",
-        timestamp: new Date()
+        timestamp: new Date(),
+        mediaType: mediaType || "",
+        mediaUrl: mediaUrl || "",
+        filename: filename || ""
       });
+
+      // Mute the automated bot for this lead
+      if (leadId) {
+        await db.collection("leads").doc(leadId).update({
+          botMuted: true,
+          updatedAt: new Date()
+        });
+      }
     } catch (dbError) {
-      console.error('Failed to log WhatsApp chat message:', dbError);
+      console.error('Failed to log WhatsApp chat message / mute bot:', dbError);
     }
 
     return NextResponse.json({ success: true, result });

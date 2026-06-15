@@ -34,10 +34,12 @@ import {
   Paperclip,
   Smile,
   Send,
-  MoreVertical
+  MoreVertical,
+  Megaphone
 } from "lucide-react"
 import { useLeads, Lead, logLeadActivity } from "@/lib/hooks/useLeads"
-import { db } from "@/lib/firebase"
+import { db, storage } from "@/lib/firebase"
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { doc, updateDoc, deleteDoc, collection, query, where, orderBy, onSnapshot, serverTimestamp, addDoc } from "firebase/firestore"
 import { useAuth } from "@/context/AuthContext"
 import * as XLSX from 'xlsx'
@@ -119,6 +121,12 @@ export default function LeadsPage() {
   const [waTarget, setWaTarget] = useState<any>(null)
   const [waMessage, setWaMessage] = useState("")
   const [isSendingWA, setIsSendingWA] = useState(false)
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false)
+  const [broadcastMessage, setBroadcastMessage] = useState("")
+  const [isSendingBroadcast, setIsSendingBroadcast] = useState(false)
+  const [broadcastProgress, setBroadcastProgress] = useState<{ sent: number; total: number; statusText: string } | null>(null)
+  const [activeLeadDoc, setActiveLeadDoc] = useState<any>(null)
+  const [isFileUploading, setIsFileUploading] = useState(false)
   const [chatMessages, setChatMessages] = useState<any[]>([])
   const chatEndRef = useRef<HTMLDivElement>(null)
 
@@ -160,6 +168,9 @@ export default function LeadsPage() {
           userName: data.userName,
           timestamp: data.timestamp,
           leadId: data.leadId,
+          mediaType: data.mediaType || "",
+          mediaUrl: data.mediaUrl || "",
+          filename: data.filename || "",
           dateObj
         };
       });
@@ -180,6 +191,22 @@ export default function LeadsPage() {
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [chatMessages]);
+
+  // Listen to active lead document details in real-time
+  useEffect(() => {
+    if (!waTarget || !waTarget.id) {
+      setActiveLeadDoc(null);
+      return;
+    }
+    const unsubscribe = onSnapshot(doc(db, "leads", waTarget.id), (snapshot) => {
+      if (snapshot.exists()) {
+        setActiveLeadDoc({ id: snapshot.id, ...snapshot.data() });
+      }
+    }, (error) => {
+      console.error("Error listening to active lead doc:", error);
+    });
+    return () => unsubscribe();
+  }, [waTarget]);
 
   // 📱 Mobile UI States
   const [statusChangeLeadId, setStatusChangeLeadId] = useState<string | null>(null)
@@ -515,6 +542,127 @@ export default function LeadsPage() {
     }
     setIsSendingWA(false);
   };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsFileUploading(true);
+    setIsSendingWA(true);
+    try {
+      const phoneNum = waTarget.phone || waTarget.mobile;
+      const staffName = user?.email === 'swapnil.r.aher@gmail.com' ? 'Swapnil Aher' : (profile?.name || user?.displayName || user?.email || "Staff");
+      
+      // 1. Upload file to Firebase Storage
+      const storageRef = ref(storage, `whatsapp_media/${Date.now()}_${file.name}`);
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadUrl = await getDownloadURL(snapshot.ref);
+
+      // 2. Determine mediaType
+      let mediaType = "document";
+      if (file.type.startsWith("image/")) {
+        mediaType = "image";
+      }
+
+      // 3. Send message via WhatsApp Cloud API
+      const response = await fetch('/api/whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          phone: phoneNum, 
+          name: waTarget.panName || waTarget.fullName || waTarget.name || 'Customer',
+          message: `Sent attachment: ${file.name}`,
+          leadId: waTarget.id,
+          senderName: staffName,
+          mediaType,
+          mediaUrl: downloadUrl,
+          filename: file.name
+        }),
+      });
+
+      const result = await response.json();
+      if (!result.success) {
+        alert(`फाइल पाठवू शकलो नाही: ${result.error || 'त्रुटी आली'}`);
+      }
+    } catch (e) {
+      console.error("File upload/send error:", e);
+      alert("फाइल पाठवताना त्रुटी आली.");
+    } finally {
+      setIsFileUploading(false);
+      setIsSendingWA(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleSendBroadcast = async () => {
+    if (filteredLeads.length === 0) return;
+    if (!broadcastMessage.trim()) return;
+
+    setIsSendingBroadcast(true);
+    setBroadcastProgress({ sent: 0, total: filteredLeads.length, statusText: "सुरू होत आहे..." });
+
+    const staffName = user?.email === 'swapnil.r.aher@gmail.com' ? 'Swapnil Aher' : (profile?.name || user?.displayName || user?.email || "Staff");
+
+    let sentCount = 0;
+    for (const lead of filteredLeads) {
+      const phoneNum = lead.phone || lead.mobile;
+      if (!phoneNum) {
+        sentCount++;
+        setBroadcastProgress({
+          sent: sentCount,
+          total: filteredLeads.length,
+          statusText: `${lead.name || 'ग्राहक'} चा फोन नंबर उपलब्ध नाही, वगळत आहे...`
+        });
+        continue;
+      }
+
+      const name = lead.panName || lead.fullName || lead.name || 'Customer';
+      const personalizedMessage = broadcastMessage.replace(/\{name\}/g, name);
+
+      try {
+        const response = await fetch('/api/whatsapp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            phone: phoneNum, 
+            name: name,
+            message: personalizedMessage,
+            leadId: lead.id,
+            senderName: staffName
+          }),
+        });
+        const result = await response.json();
+        if (!result.success) {
+          console.error(`Failed to send broadcast to ${name}:`, result.error);
+        }
+      } catch (error) {
+        console.error(`Broadcast error for ${name}:`, error);
+      }
+
+      sentCount++;
+      setBroadcastProgress({
+        sent: sentCount,
+        total: filteredLeads.length,
+        statusText: `${name} ला मेसेज पाठवला...`
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    setBroadcastProgress({
+      sent: filteredLeads.length,
+      total: filteredLeads.length,
+      statusText: "✅ ब्रॉडकास्ट यशस्वीरित्या पूर्ण झाले!"
+    });
+
+    setTimeout(() => {
+      setShowBroadcastModal(false);
+      setBroadcastProgress(null);
+      setBroadcastMessage("");
+      setIsSendingBroadcast(false);
+    }, 1500);
+  };
+
   const exportLeadsCSV = () => {
     const headers = ["Lead ID", "Name", "Phone", "Email", "Type", "Amount", "Status", "Source", "Date"]
     const rows = filteredLeads.map(l => [
@@ -574,6 +722,14 @@ export default function LeadsPage() {
               title="रिफ्रेश करा"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-rotate-cw"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.72 2.78L21 8"/><path d="M21 3v5h-5"/></svg>
+            </button>
+            <button 
+              onClick={() => setShowBroadcastModal(true)}
+              className="premium-btn-action bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl transition-all"
+              title="निवडलेल्या ग्राहकांना ब्रॉडकास्ट पाठवा"
+            >
+              <Megaphone size={14} className="text-primary" />
+              <span className="text-[10px] font-black uppercase tracking-wider hidden sm:inline">ब्रॉडकास्ट ({filteredLeads.length})</span>
             </button>
             <button 
               onClick={() => setShowFilterSheet(true)}
@@ -1265,6 +1421,39 @@ export default function LeadsPage() {
               </div>
             </div>
 
+            {/* Auto-Chat Status Banner */}
+            {activeLeadDoc?.botMuted ? (
+              <div className="bg-amber-50 border-b border-amber-100 px-4 py-2 flex items-center justify-between shrink-0 animate-in slide-in-from-top duration-250 select-none">
+                <div className="flex items-center gap-2 text-amber-850 text-[10px] font-extrabold text-amber-800">
+                  <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-ping shrink-0" />
+                  🤖 ऑटो-चॅट बंद आहे (Auto-chat is Muted)
+                </div>
+                <button 
+                  onClick={async () => {
+                    await updateDoc(doc(db, "leads", waTarget.id), { botMuted: false });
+                  }}
+                  className="px-2 py-0.5 bg-amber-600 text-white rounded-md text-[9px] font-black uppercase tracking-wider hover:bg-amber-700 transition-colors cursor-pointer"
+                >
+                  सुरू करा (Activate)
+                </button>
+              </div>
+            ) : (
+              <div className="bg-emerald-50 border-b border-emerald-100 px-4 py-2 flex items-center justify-between shrink-0 animate-in slide-in-from-top duration-250 select-none">
+                <div className="flex items-center gap-2 text-emerald-850 text-[10px] font-extrabold text-emerald-800">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full shrink-0 animate-pulse" />
+                  🤖 ऑटो-चॅट सुरू आहे (Auto-chat is Active)
+                </div>
+                <button 
+                  onClick={async () => {
+                    await updateDoc(doc(db, "leads", waTarget.id), { botMuted: true });
+                  }}
+                  className="px-2 py-0.5 bg-rose-500 text-white rounded-md text-[9px] font-black uppercase tracking-wider hover:bg-rose-600 transition-colors cursor-pointer"
+                >
+                  बंद करा (Mute)
+                </button>
+              </div>
+            )}
+
             {/* Chat Messages Panel with SVG Doodle Wallpaper overlay */}
             <div 
               className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0 relative select-text"
@@ -1313,6 +1502,39 @@ export default function LeadsPage() {
                           {isStaff && `👤 ${msg.userName || 'Staff'}`}
                         </div>
                         
+                        {/* Media Content */}
+                        {msg.mediaType === 'image' && msg.mediaUrl && (
+                          <div className="mb-2 max-w-full rounded-lg overflow-hidden border border-slate-200/50 bg-slate-50">
+                            <a href={msg.mediaUrl} target="_blank" rel="noopener noreferrer" className="block relative group">
+                              <img src={msg.mediaUrl} alt={msg.text || "Image"} className="w-full max-h-48 object-cover group-hover:opacity-90 transition-opacity" />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Eye size={16} className="text-white" />
+                              </div>
+                            </a>
+                          </div>
+                        )}
+                        
+                        {msg.mediaType === 'document' && msg.mediaUrl && (
+                          <div className="mb-2 bg-black/5 rounded-xl p-2 border border-slate-200/10 flex items-center justify-between gap-3 max-w-[240px]">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <FileText size={20} className="text-red-500 shrink-0" />
+                              <div className="min-w-0">
+                                <p className="text-[9px] font-black text-slate-800 truncate leading-snug">{msg.filename || "दस्तऐवज (Document)"}</p>
+                                <p className="text-[7px] font-extrabold text-slate-400 uppercase tracking-widest mt-0.5">Document</p>
+                              </div>
+                            </div>
+                            <a 
+                              href={msg.mediaUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="p-1 bg-white text-slate-500 hover:text-slate-800 rounded-lg hover:shadow-sm border border-slate-100 transition-all shrink-0 cursor-pointer"
+                              title="डाउनलोड करा"
+                            >
+                              <Download size={12} />
+                            </a>
+                          </div>
+                        )}
+                        
                         {/* Text */}
                         <p className="whitespace-pre-wrap select-text pr-10 text-[11px] leading-normal">{msg.text}</p>
                         
@@ -1341,9 +1563,20 @@ export default function LeadsPage() {
                   <Smile size={20} />
                 </button>
                 {/* Attachment Indicator */}
-                <button className="p-1.5 hover:bg-slate-200/60 rounded-full transition-colors">
-                  <Paperclip size={18} />
-                </button>
+                {isFileUploading ? (
+                  <Loader2 className="animate-spin text-primary p-1" size={18} />
+                ) : (
+                  <label className="p-1.5 hover:bg-slate-200/60 rounded-full transition-colors cursor-pointer relative flex items-center justify-center">
+                    <Paperclip size={18} />
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                      onChange={handleFileUpload}
+                      disabled={isSendingWA}
+                    />
+                  </label>
+                )}
               </div>
 
               {/* Text Area Input */}
@@ -1429,6 +1662,112 @@ export default function LeadsPage() {
                 >
                   {isUploading ? <Loader2 className="animate-spin animate-infinite" size={14} /> : <CheckCircle2 size={14} />}
                   {isUploading ? 'अपलोड होत आहे...' : 'इंपोर्ट सुरू करा'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* WhatsApp Broadcast Modal */}
+      {showBroadcastModal && (
+        <div className="fixed inset-0 z-[150] flex items-end md:items-center justify-center p-0 md:p-4">
+          <div 
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" 
+            onClick={() => !isSendingBroadcast && setShowBroadcastModal(false)} 
+          />
+          <div className="w-full max-w-md bg-white rounded-t-[2.5rem] md:rounded-[2rem] shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300 max-h-[85vh] md:max-h-[80vh]">
+            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-4 shrink-0" />
+            <div className="px-6 pb-4 border-b border-slate-50 shrink-0 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-black text-slate-800 tracking-tight flex items-center gap-1.5">
+                  <Megaphone size={18} className="text-primary animate-pulse" />
+                  WhatsApp ब्रॉडकास्ट
+                </h3>
+                <p className="text-slate-500 font-semibold text-[10px]">
+                  फिल्टर केलेल्या {filteredLeads.length} ग्राहकांना संदेश पाठवा.
+                </p>
+              </div>
+              <button 
+                disabled={isSendingBroadcast} 
+                onClick={() => setShowBroadcastModal(false)} 
+                className="p-1 text-slate-400 hover:bg-slate-50 rounded-full cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+              {/* Target List Preview */}
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                  ग्राहकांची यादी ({filteredLeads.length} जण)
+                </label>
+                <div className="border border-slate-100 rounded-2xl p-3 max-h-24 overflow-y-auto bg-slate-50 flex flex-wrap gap-1.5">
+                  {filteredLeads.map(l => (
+                    <span key={l.id} className="inline-flex items-center px-2 py-0.5 rounded-lg bg-blue-50 border border-blue-100 text-blue-700 text-[9px] font-bold">
+                      {(l as any).panName || (l as any).fullName || l.name || 'ग्राहक'}
+                    </span>
+                  ))}
+                  {filteredLeads.length === 0 && (
+                    <span className="text-[10px] text-slate-400 font-bold">फिल्टरमध्ये कोणताही ग्राहक आढळला नाही.</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Message Input */}
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                  ब्रॉडकास्ट मेसेज (Custom Message)
+                </label>
+                <textarea 
+                  placeholder="ग्राहकांसाठी तुमचा मेसेज येथे लिहा..."
+                  className="w-full p-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-semibold focus:outline-none focus:bg-white focus:border-primary transition-all h-32 outline-none resize-none leading-relaxed text-[#111b21]"
+                  value={broadcastMessage}
+                  onChange={(e) => setBroadcastMessage(e.target.value)}
+                  disabled={isSendingBroadcast}
+                />
+              </div>
+
+              {/* Dynamic Variables Tip */}
+              <div className="bg-blue-50/50 border border-blue-100/50 rounded-2xl p-3 text-[9px] text-blue-800 font-bold leading-relaxed">
+                👉 तुम्ही मेसेजमध्ये <code className="bg-blue-100 px-1 py-0.5 rounded text-[8px] font-mono">{"{name}"}</code> हा व्हेरिएबल वापरू शकता, तो प्रत्येक ग्राहकाच्या नावाने आपोआब बदलला जाईल.
+              </div>
+
+              {/* Progress Panel */}
+              {broadcastProgress && (
+                <div className="space-y-2 bg-slate-50 p-4 border border-slate-100 rounded-2xl animate-in fade-in duration-200">
+                  <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-wider text-slate-500">
+                    <span>प्रगती (Progress)</span>
+                    <span>{broadcastProgress.sent} / {broadcastProgress.total}</span>
+                  </div>
+                  <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-primary h-full transition-all duration-300"
+                      style={{ width: `${(broadcastProgress.sent / broadcastProgress.total) * 100}%` }}
+                    />
+                  </div>
+                  <p className="text-[9px] text-slate-400 font-bold truncate">{broadcastProgress.statusText}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-slate-50 bg-white shrink-0">
+              <div className="flex gap-3">
+                <button 
+                  disabled={isSendingBroadcast}
+                  onClick={() => setShowBroadcastModal(false)}
+                  className="flex-1 h-12 rounded-xl font-black uppercase text-[10px] text-slate-400 border border-slate-100 hover:bg-slate-50 transition-all cursor-pointer"
+                >
+                  रद्द करा
+                </button>
+                <button 
+                  disabled={isSendingBroadcast || filteredLeads.length === 0 || !broadcastMessage.trim()}
+                  onClick={handleSendBroadcast}
+                  className="flex-[2] h-12 bg-primary text-white rounded-xl font-black uppercase text-[10px] shadow-md shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  {isSendingBroadcast ? <Loader2 className="animate-spin animate-infinite" size={14} /> : <Megaphone size={14} />}
+                  {isSendingBroadcast ? 'मेसेज पाठवत आहे...' : 'ब्रॉडकास्ट सुरू करा'}
                 </button>
               </div>
             </div>

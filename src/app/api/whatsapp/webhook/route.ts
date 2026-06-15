@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getAdminStorage } from "@/lib/firebase-admin";
 
 const FIREBASE_API_KEY = "AIzaSyDy-zXamx8BB18MgTXWoyWACKRSKvvOBTo";
 const PROJECT_ID = "dsa-loan";
@@ -661,7 +662,8 @@ async function findExistingLead(phone: string) {
         name: doc.fields?.name?.stringValue || "Customer",
         status: doc.fields?.status?.stringValue || "New Lead",
         category: doc.fields?.category?.stringValue || doc.fields?.type?.stringValue || "Loan Application",
-        language: doc.fields?.language?.stringValue || "English"
+        language: doc.fields?.language?.stringValue || "English",
+        botMuted: doc.fields?.botMuted?.booleanValue === true
       };
     }
   } catch (err) {
@@ -721,7 +723,16 @@ async function updateLead(leadId: string, data: Record<string, string>) {
 }
 
 // Helper: Save WhatsApp Message details to Firestore collection for chat history
-async function saveWAMessage(phone: string, text: string, sender: 'customer' | 'bot' | 'staff', userName: string, leadId: string = "") {
+async function saveWAMessage(
+  phone: string,
+  text: string,
+  sender: 'customer' | 'bot' | 'staff',
+  userName: string,
+  leadId: string = "",
+  mediaType: string = "",
+  mediaUrl: string = "",
+  filename: string = ""
+) {
   const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/whatsapp_messages?key=${FIREBASE_API_KEY}`;
   
   const fields: Record<string, any> = {
@@ -729,7 +740,10 @@ async function saveWAMessage(phone: string, text: string, sender: 'customer' | '
     text: { stringValue: text },
     sender: { stringValue: sender },
     userName: { stringValue: userName },
-    timestamp: { timestampValue: new Date().toISOString() }
+    timestamp: { timestampValue: new Date().toISOString() },
+    mediaType: { stringValue: mediaType || "" },
+    mediaUrl: { stringValue: mediaUrl || "" },
+    filename: { stringValue: filename || "" }
   };
   
   if (leadId) {
@@ -747,6 +761,71 @@ async function saveWAMessage(phone: string, text: string, sender: 'customer' | '
     }
   } catch (err) {
     console.error("Error saving WA message:", err);
+  }
+}
+
+async function isLeadBotMuted(leadId: string): Promise<boolean> {
+  if (!leadId) return false;
+  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/leads/${leadId}?key=${FIREBASE_API_KEY}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return false;
+    const doc = await res.json();
+    return doc.fields?.botMuted?.booleanValue === true;
+  } catch (err) {
+    console.error("Error checking botMuted status:", err);
+    return false;
+  }
+}
+
+async function handleIncomingMedia(mediaId: string, mimeType: string, filename: string, phone: string): Promise<string> {
+  try {
+    const mediaUrlRes = await fetch(`https://graph.facebook.com/v18.0/${mediaId}`, {
+      headers: {
+        Authorization: `Bearer ${WHATSAPP_TOKEN}`
+      }
+    });
+    if (!mediaUrlRes.ok) {
+      throw new Error(`Failed to fetch media details: ${await mediaUrlRes.text()}`);
+    }
+    const mediaDetails = await mediaUrlRes.json();
+    const lookasideUrl = mediaDetails.url;
+    if (!lookasideUrl) {
+      throw new Error("No URL found in media details");
+    }
+
+    const fileRes = await fetch(lookasideUrl, {
+      headers: {
+        Authorization: `Bearer ${WHATSAPP_TOKEN}`
+      }
+    });
+    if (!fileRes.ok) {
+      throw new Error(`Failed to download file from Facebook: ${await fileRes.text()}`);
+    }
+
+    const arrayBuffer = await fileRes.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    const bucket = getAdminStorage().bucket();
+    const folder = "whatsapp_incoming";
+    const extension = mimeType.split("/")[1]?.split(";")[0] || "bin";
+    const destinationPath = `${folder}/${phone}_${mediaId}.${extension}`;
+    const file = bucket.file(destinationPath);
+
+    await file.save(buffer, {
+      metadata: {
+        contentType: mimeType,
+        metadata: {
+          firebaseStorageDownloadTokens: mediaId
+        }
+      }
+    });
+
+    const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(destinationPath)}?alt=media&token=${mediaId}`;
+    return downloadUrl;
+  } catch (error) {
+    console.error("Error in handleIncomingMedia:", error);
+    return "";
   }
 }
 
@@ -841,18 +920,64 @@ export async function POST(request: Request) {
       }
     }
 
-    if (!from || !text) return NextResponse.json({ ok: true });
+    let mediaType = "";
+    let mediaUrl = "";
+    let filename = "";
+
+    if (msg.type === 'image') {
+      mediaType = 'image';
+      const imageInfo = msg.image;
+      const mediaId = imageInfo.id;
+      const mimeType = imageInfo.mime_type || "image/jpeg";
+      text = imageInfo.caption || "📷 Image";
+      mediaUrl = await handleIncomingMedia(mediaId, mimeType, "image", from);
+    } else if (msg.type === 'document') {
+      mediaType = 'document';
+      const docInfo = msg.document;
+      const mediaId = docInfo.id;
+      const mimeType = docInfo.mime_type || "application/pdf";
+      filename = docInfo.filename || "Document";
+      text = docInfo.caption || `📄 ${filename}`;
+      mediaUrl = await handleIncomingMedia(mediaId, mimeType, filename, from);
+    }
+
+    if (!from || (!text && !mediaUrl)) return NextResponse.json({ ok: true });
 
     // Load existing session for this user
     let session = await getSession(from);
 
+    // Determine if bot is muted
+    let isMuted = false;
+    let leadId = "";
+    let leadName = "Customer";
+    let existingLead = null;
+
+    if (session && session.leadId) {
+      leadId = session.leadId;
+      isMuted = await isLeadBotMuted(leadId);
+      leadName = session.name || "Customer";
+    } else {
+      existingLead = await findExistingLead(from);
+      if (existingLead) {
+        leadId = existingLead.id;
+        isMuted = existingLead.botMuted || false;
+        leadName = existingLead.name;
+      }
+    }
+
+    // If bot is muted, log and exit early
+    if (isMuted) {
+      await saveWAMessage(from, text, 'customer', leadName, leadId, mediaType, mediaUrl, filename);
+      return NextResponse.json({ ok: true });
+    }
+
     // ── No session: Greet and check existing lead in CRM ──
     if (!session) {
-      const existingLead = await findExistingLead(from);
+      const lead = existingLead || await findExistingLead(from);
       
-      if (existingLead) {
+      if (lead) {
         // Greet user with their status and ask if they need help
-        const leadLang = existingLead.language || "English";
+        const leadLang = lead.language || "English";
         const LANG_NAME_TO_CODE: Record<string, string> = {
           "English": "en",
           "Hindi": "hi",
@@ -860,35 +985,35 @@ export async function POST(request: Request) {
         };
         const lang = LANG_NAME_TO_CODE[leadLang] || "en";
         
-        const locCategory = getLocalizedCategory(existingLead.category, lang);
-        const locStatus = getLocalizedStatus(existingLead.status, lang);
-        const isLanding = (existingLead.category || "").toLowerCase().trim() === "landing" || !(existingLead.category);
+        const locCategory = getLocalizedCategory(lead.category, lang);
+        const locStatus = getLocalizedStatus(lead.status, lang);
+        const isLanding = (lead.category || "").toLowerCase().trim() === "landing" || !(lead.category);
         
         let statusMsg = "";
         if (lang === 'mr') {
           const categoryPhrase = isLanding ? "कर्जाच्या अर्जाची" : `${locCategory} च्या कर्जाच्या अर्जाची`;
-          statusMsg = `👋 नमस्कार *${existingLead.name}*!\n\nतुमच्या *${categoryPhrase}* सद्यस्थिती (Status) *${locStatus}* अशी आहे.\n\nतुम्हाला अजून काही मदत पाहिजे का? कृपया तुमचा प्रश्न येथे टाईप करा (उदा. व्याजदर, कागदपत्रे) किंवा नवीन कर्जासाठी *new loan* लिहा.`;
+          statusMsg = `👋 नमस्कार *${lead.name}*!\n\nतुमच्या *${categoryPhrase}* सद्यस्थिती (Status) *${locStatus}* अशी आहे.\n\nतुम्हाला अजून काही मदत पाहिजे का? कृपया तुमचा प्रश्न येथे टाईप करा (उदा. व्याजदर, कागदपत्रे) किंवा नवीन कर्जासाठी *new loan* लिहा.`;
         } else if (lang === 'hi') {
           const categoryPhrase = isLanding ? "लोन आवेदन" : `${locCategory} के आवेदन`;
-          statusMsg = `👋 नमस्कार *${existingLead.name}*!\n\nहमें आपके *${categoryPhrase}* की स्थिति (Status) *${locStatus}* मिली है।\n\nक्या आपको और कोई मदद चाहिए? कृपया अपना प्रश्न यहाँ लिखें (जैसे: ब्याज दर, आवश्यक दस्तावेज) या फिर से आवेदन करने के लिए *new loan* लिखें।`;
+          statusMsg = `👋 नमस्कार *${lead.name}*!\n\nहमें आपके *${categoryPhrase}* की स्थिति (Status) *${locStatus}* मिली है।\n\nक्या आपको और कोई मदद चाहिए? कृपया अपना प्रश्न यहाँ लिखें (जैसे: ब्याज दर, आवश्यक दस्तावेज) या फिर से आवेदन करने के लिए *new loan* लिखें।`;
         } else {
           const categoryPhrase = isLanding ? "loan application" : `application for *${locCategory}*`;
-          statusMsg = `👋 Hello *${existingLead.name}*!\n\nWe found your existing *${categoryPhrase}*.\n\n📊 *Status:* ${locStatus}\n\nDo you need any further help? Please type your query (e.g. interest rate, required documents) or reply *new loan* to apply again.`;
+          statusMsg = `👋 Hello *${lead.name}*!\n\nWe found your existing *${categoryPhrase}*.\n\n📊 *Status:* ${locStatus}\n\nDo you need any further help? Please type your query (e.g. interest rate, required documents) or reply *new loan* to apply again.`;
         }
         
         // Log incoming customer message linked to existing lead
-        await saveWAMessage(from, text, 'customer', existingLead.name, existingLead.id);
+        await saveWAMessage(from, text, 'customer', lead.name, lead.id, mediaType, mediaUrl, filename);
         
-        await sendWA(from, statusMsg, existingLead.id);
+        await sendWA(from, statusMsg, lead.id);
         
         // Start session in step 99 (support mode)
         await saveSession(from, {
           step: 99,
-          category: existingLead.category,
-          name: existingLead.name,
-          responses: { leadId: existingLead.id },
+          category: lead.category,
+          name: lead.name,
+          responses: { leadId: lead.id },
           language: lang,
-          leadId: existingLead.id
+          leadId: lead.id
         });
         return NextResponse.json({ ok: true });
       }
@@ -910,7 +1035,7 @@ export async function POST(request: Request) {
       });
 
       // Create initial lead record immediately (with phone and referral details)
-      const leadId = await createLead({
+      const newLeadId = await createLead({
         phone: from,
         source: referral ? `Meta Ads - ${referral.headline}` : 'WhatsApp Automation',
         details: initialDetails,
@@ -918,17 +1043,17 @@ export async function POST(request: Request) {
       });
 
       // Log incoming customer message linked to new lead
-      await saveWAMessage(from, text, 'customer', 'Customer', leadId);
+      await saveWAMessage(from, text, 'customer', 'Customer', newLeadId, mediaType, mediaUrl, filename);
 
-      await sendWA(from, langInteractive, leadId);
-      await saveSession(from, { step: 1, category: '', name: '', responses: initialResponses, language: 'en', leadId });
+      await sendWA(from, langInteractive, newLeadId);
+      await saveSession(from, { step: 1, category: '', name: '', responses: initialResponses, language: 'en', leadId: newLeadId });
       return NextResponse.json({ ok: true });
     }
 
     const lang = session.language || 'en';
     
     // Log incoming message for existing session
-    await saveWAMessage(from, text, 'customer', session.name || 'Customer', session.leadId);
+    await saveWAMessage(from, text, 'customer', session.name || 'Customer', session.leadId, mediaType, mediaUrl, filename);
 
     // ── Step 99: Existing Lead Support Mode ──
     if (session.step === 99) {
