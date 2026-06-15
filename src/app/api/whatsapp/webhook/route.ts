@@ -39,9 +39,9 @@ const LOAN_FLOWS: Record<string, FlowQuestion[]> = {
       type: "dropdown",
       options: ["Salaried", "Self Employed"],
       question: {
-        en: "Are you Salaried or Self Employed?\n1️⃣ Salaried\n2️⃣ Self Employed",
-        hi: "क्या आप वेतनभोगी (Salaried) हैं या स्व-व्यवसायी (Self Employed)?\n1️⃣ वेतनभोगी (Salaried)\n2️⃣ स्व-व्यवसायी (Self Employed)",
-        mr: "तुम्ही पगारदार (Salaried) आहात की स्वयंरोजगार (Self Employed)?\n1️⃣ पगारदार (Salaried)\n2️⃣ स्वयंरोजगार (Self Employed)"
+        en: "Are you Salaried or Self Employed?",
+        hi: "क्या आप वेतनभोगी (Salaried) हैं या स्व-व्यवसायी (Self Employed)?",
+        mr: "तुम्ही पगारदार (Salaried) आहात की स्वयंरोजगार (Self Employed)?"
       }
     },
     {
@@ -69,9 +69,9 @@ const LOAN_FLOWS: Record<string, FlowQuestion[]> = {
       type: "dropdown",
       options: ["Salaried", "Self Employed"],
       question: {
-        en: "Are you Salaried or Self Employed?\n1️⃣ Salaried\n2️⃣ Self Employed",
-        hi: "क्या आप वेतनभोगी (Salaried) हैं या स्व-व्यवसायी (Self Employed)?\n1️⃣ वेतनभोगी (Salaried)\n2️⃣ स्व-व्यवसायी (Self Employed)",
-        mr: "तुम्ही पगारदार (Salaried) आहात की स्वयंरोजगार (Self Employed)?\n1️⃣ पगारदार (Salaried)\n2️⃣ स्वयंरोजगार (Self Employed)"
+        en: "Are you Salaried or Self Employed?",
+        hi: "क्या आप वेतनभोगी (Salaried) हैं या स्व-व्यवसायी (Self Employed)?",
+        mr: "तुम्ही पगारदार (Salaried) आहात की स्वयंरोजगार (Self Employed)?"
       }
     },
     {
@@ -155,9 +155,9 @@ const LOAN_FLOWS: Record<string, FlowQuestion[]> = {
       type: "dropdown",
       options: ["Salaried", "Self Employed"],
       question: {
-        en: "Are you Salaried or Self Employed?\n1️⃣ Salaried\n2️⃣ Self Employed",
-        hi: "क्या आप वेतनभोगी (Salaried) हैं या स्व-व्यवसायी (Self Employed)?\n1️⃣ वेतनभोगी (Salaried)\n2️⃣ स्व-व्यवसायी (Self Employed)",
-        mr: "तुम्ही पगारदार (Salaried) आहात की स्वयंरोजगार (Self Employed)?\n1️⃣ पगारदार (Salaried)\n2️⃣ स्वयंरोजगार (Self Employed)"
+        en: "Are you Salaried or Self Employed?",
+        hi: "क्या आप वेतनभोगी (Salaried) हैं या स्व-व्यवसायी (Self Employed)?",
+        mr: "तुम्ही पगारदार (Salaried) आहात की स्वयंरोजगार (Self Employed)?"
       }
     }
   ],
@@ -176,9 +176,9 @@ const LOAN_FLOWS: Record<string, FlowQuestion[]> = {
       type: "dropdown",
       options: ["Salaried", "Self Employed"],
       question: {
-        en: "Are you Salaried or Self Employed?\n1️⃣ Salaried\n2️⃣ Self Employed",
-        hi: "क्या आप वेतनभोगी (Salaried) हैं या स्व-व्यवसायी (Self Employed)?\n1️⃣ वेतनभोगी (Salaried)\n2️⃣ स्व-व्यवसायी (Self Employed)",
-        mr: "तुम्ही पगारदार (Salaried) आहात की स्वयंरोजगार (Self Employed)?\n1️⃣ पगारदार (Salaried)\n2️⃣ स्वयंरोजगार (Self Employed)"
+        en: "Are you Salaried or Self Employed?",
+        hi: "क्या आप वेतनभोगी (Salaried) हैं या स्व-व्यवसायी (Self Employed)?",
+        mr: "तुम्ही पगारदार (Salaried) आहात की स्वयंरोजगार (Self Employed)?"
       }
     },
     {
@@ -197,9 +197,9 @@ const LOAN_FLOWS: Record<string, FlowQuestion[]> = {
       type: "dropdown",
       options: ["Life Insurance", "Health Insurance", "Vehicle Insurance"],
       question: {
-        en: "What type of insurance are you looking for?\n1️⃣ Life Insurance\n2️⃣ Health Insurance\n3️⃣ Vehicle Insurance",
-        hi: "आप किस प्रकार का बीमा (Insurance) चाहते हैं?\n1️⃣ जीवन बीमा (Life Insurance)\n2️⃣ स्वास्थ्य बीमा (Health Insurance)\n3️⃣ वाहन बीमा (Vehicle Insurance)",
-        mr: "तुम्हाला कोणत्या प्रकारचा विमा (Insurance) हवा आहे?\n1️⃣ जीवन विमा (Life Insurance)\n2️⃣ आरोग्य विमा (Health Insurance)\n3️⃣ वाहन विमा (Vehicle Insurance)"
+        en: "What type of insurance are you looking for?",
+        hi: "आप किस प्रकार का बीमा (Insurance) चाहते हैं?",
+        mr: "तुम्हाला कोणत्या प्रकारचा विमा (Insurance) हवा आहे?"
       }
     },
     {
@@ -280,6 +280,230 @@ const LANG_NAMES: Record<string, string> = {
   "mr": "Marathi"
 };
 
+// ─── WhatsApp Interactive Message Layouts ───────────────────────────────────────
+const langInteractive = {
+  type: "button",
+  body: {
+    text: "👋 *Welcome to TechStar Money Solutions!*\n\nPlease select your preferred language below:\n\nकृपया अपनी पसंदीदा भाषा चुनें:\n\nकृपया तुमची आवडती भाषा निवडा:"
+  },
+  action: {
+    buttons: [
+      { type: "reply", reply: { id: "1", title: "English" } },
+      { type: "reply", reply: { id: "2", title: "हिंदी (Hindi)" } },
+      { type: "reply", reply: { id: "3", title: "मराठी (Marathi)" } }
+    ]
+  }
+};
+
+function getCategoryListPayload(lang: string, name: string) {
+  const categoriesList = LOCALIZED_CATEGORIES[lang];
+  const listTitle = {
+    en: "Select Loan Type",
+    hi: "लोन प्रकार चुनें",
+    mr: "लोनचा प्रकार निवडा"
+  }[lang] || "Select Loan Type";
+
+  const bodyText = {
+    en: `Nice to meet you, *${name}*! 🎉\n\nPlease select the loan product you are interested in:`,
+    hi: `आपसे मिलकर अच्छा लगा, *${name}*! 🎉\n\nकृपया उस लोन प्रकार को चुनें जिसमें आपकी रुचि है:`,
+    mr: `तुम्हाला भेटून आनंद झाला, *${name}*! 🎉\n\nकृपया तुम्हाला हव्या असलेल्या लोन प्रकारची निवड करा:`
+  }[lang] || `Nice to meet you, *${name}*!`;
+
+  return {
+    type: "list",
+    body: { text: bodyText },
+    action: {
+      button: listTitle.length > 20 ? listTitle.substring(0, 20) : listTitle,
+      sections: [
+        {
+          title: listTitle,
+          rows: categoriesList.map((cat, i) => ({
+            id: String(i + 1),
+            title: cat.length > 24 ? cat.substring(0, 24) : cat
+          }))
+        }
+      ]
+    }
+  };
+}
+
+function getDropdownQuestionPayload(lang: string, question: FlowQuestion) {
+  const questionText = question.question[lang];
+  const rawOptions = question.options || [];
+  
+  const localizedOptionsMap: Record<string, Record<string, string>> = {
+    "Salaried": { en: "Salaried", hi: "वेतनभोगी (Salaried)", mr: "पगारदार (Salaried)" },
+    "Self Employed": { en: "Self Employed", hi: "स्व-व्यवसायी", mr: "स्वयंरोजगार" },
+    "Life Insurance": { en: "Life Insurance", hi: "जीवन बीमा", mr: "जीवन विमा" },
+    "Health Insurance": { en: "Health Insurance", hi: "स्वास्थ्य बीमा", mr: "आरोग्य विमा" },
+    "Vehicle Insurance": { en: "Vehicle Insurance", hi: "वाहन बीमा", mr: "वाहन विमा" }
+  };
+
+  const buttons = rawOptions.slice(0, 3).map((opt, i) => {
+    const title = (localizedOptionsMap[opt] && localizedOptionsMap[opt][lang]) || opt;
+    return {
+      type: "reply",
+      reply: {
+        id: String(i + 1),
+        title: title.length > 20 ? title.substring(0, 20) : title
+      }
+    };
+  });
+
+  return {
+    type: "button",
+    body: { text: questionText },
+    action: { buttons }
+  };
+}
+
+function getQuestionPayload(lang: string, currentQ: FlowQuestion) {
+  if (currentQ.type === 'dropdown' && currentQ.options) {
+    return getDropdownQuestionPayload(lang, currentQ);
+  }
+  return `*Q:* ${currentQ.question[lang]}`;
+}
+
+// Helper to compile details into a structured chat summary
+function generateDetailsText(session: { name: string; category: string; language: string; responses: Record<string, string> }): string {
+  let text = `WhatsApp Chat Summary:\n`;
+  text += `----------------------\n`;
+  if (session.language) {
+    text += `Preferred Language: ${LANG_NAMES[session.language] || session.language}\n`;
+  }
+  if (session.name) {
+    text += `Name: ${session.name}\n`;
+  }
+  if (session.category) {
+    text += `Loan Category: ${session.category}\n`;
+  }
+  
+  if (session.responses && Object.keys(session.responses).length > 0) {
+    text += `\nCollected Answers:\n`;
+    for (const [key, value] of Object.entries(session.responses)) {
+      if (key === 'adId' || key === 'adHeadline' || key === 'adBody') continue;
+      const formattedKey = key.replace(/([A-Z])/g, ' $1').trim();
+      text += `- ${formattedKey.toUpperCase()}: ${value}\n`;
+    }
+  }
+  
+  if (session.responses?.adHeadline) {
+    text += `\nReferral Ad: ${session.responses.adHeadline}\n`;
+  }
+  return text;
+}
+
+// ─── Gemini AI Helpers ──────────────────────────────────────────────────────────
+async function callGeminiAPI(prompt: string): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return "";
+  }
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: 150 }
+      })
+    });
+    if (!res.ok) {
+      console.error("Gemini API Error:", await res.text());
+      return "";
+    }
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    return text.trim();
+  } catch (err) {
+    console.error("Failed to call Gemini:", err);
+    return "";
+  }
+}
+
+async function classifyDropdownWithAI(userText: string, question: FlowQuestion): Promise<string> {
+  const options = question.options || [];
+  if (options.length === 0) return "Unknown";
+  
+  const prompt = `Classify the user's chat message into one of these exact options: ${JSON.stringify(options)}.
+User message: "${userText}"
+Return only one of the options from the list if it matches the meaning, otherwise return "Unknown".
+Do not include any explanation or extra text in your response.`;
+
+  const result = await callGeminiAPI(prompt);
+  if (options.includes(result)) {
+    return result;
+  }
+  return "Unknown";
+}
+
+function fallbackAIResponder(userText: string, lang: string): string {
+  const lower = userText.toLowerCase();
+  
+  if (lang === 'mr') {
+    if (lower.includes("व्याज") || lower.includes("दर") || lower.includes("interest") || lower.includes("rate")) {
+      return "आमचा वैयक्तिक कर्ज (Personal Loan) व्याजदर १०.४९% पासून आणि गृह कर्ज (Home Loan) ८.५०% पासून सुरू होतो. व्याजदर तुमच्या क्रेडिट स्कोरवर अवलंबून असेल.";
+    }
+    if (lower.includes("कागद") || lower.includes("document")) {
+      return "कर्जासाठी लागणारी मुख्य कागदपत्रे: पॅन कार्ड, आधार कार्ड, शेवटच्या ३ महिन्यांची सॅलरी स्लिप आणि ६ महिन्यांचे बँक स्टेटमेंट.";
+    }
+    if (lower.includes("पात्रता") || lower.includes("eligibility")) {
+      return "पात्रतेसाठी तुमचे वय २१ ते ६० वर्षे असावे आणि मासिक पगार किमान ₹१५,००० असावा. चांगला क्रेडिट स्कोर असल्यास मंजुरी लवकर मिळते.";
+    }
+    if (lower.includes("वेळ") || lower.includes("time") || lower.includes("किती दिवस")) {
+      return "कागदपत्रे योग्य असल्यास, २४ ते ४८ तासात कर्ज मंजूर केले जाते.";
+    }
+    return "तुमच्या प्रश्नाचे उत्तर मिळवण्यासाठी कृपया खालील पर्यायांमधून तुमचे लोन प्रॉडक्ट निवडा, आमचे अधिकारी तुम्हाला फोन करून अधिक माहिती देतील.";
+  }
+  
+  if (lang === 'hi') {
+    if (lower.includes("ब्याज") || lower.includes("दर") || lower.includes("interest") || lower.includes("rate")) {
+      return "हमारा पर्सनल लोन ब्याज दर 10.49% और होम लोन 8.50% प्रति वर्ष से शुरू होता है। यह आपके सिबिल स्कोर पर निर्भर करता है।";
+    }
+    if (lower.includes("कागजात") || lower.includes("document")) {
+      return "लोन के लिए आवश्यक दस्तावेज: पैन कार्ड, आधार कार्ड, पिछले 3 महीने की सैलरी स्लिप और 6 महीने का बैंक स्टेटमेंट।";
+    }
+    if (lower.includes("पात्रता") || lower.includes("eligibility")) {
+      return "पात्रता के लिए आपकी आयु 21 से 60 वर्ष और न्यूनतम वेतन ₹15,000 होना चाहिए।";
+    }
+    if (lower.includes("समय") || lower.includes("time") || lower.includes("कितने दिन")) {
+      return "सभी दस्तावेज सही होने पर 24 से 48 घंटों में लोन मंजूर हो जाता है।";
+    }
+    return "आपके प्रश्न का उत्तर जानने के लिए कृपया नीचे दिए गए विकल्पों में से अपना लोन प्रकार चुनें, हमारे अधिकारी आपसे संपर्क करेंगे।";
+  }
+
+  if (lower.includes("interest") || lower.includes("rate")) {
+    return "Our Personal Loan rates start at 10.49% p.a. and Home Loan rates start at 8.50% p.a. Final rates depend on your credit score.";
+  }
+  if (lower.includes("document") || lower.includes("paper")) {
+    return "Documents required: PAN Card, Aadhaar Card, last 3 months salary slips, and 6 months bank statements.";
+  }
+  if (lower.includes("eligibility") || lower.includes("criteria")) {
+    return "Eligibility: Age 21-60, minimum salary of ₹15,000, and a good CIBIL score (700+ is preferred).";
+  }
+  if (lower.includes("time") || lower.includes("days") || lower.includes("how long")) {
+    return "Once all documents are submitted, loan processing and approval takes 24 to 48 hours.";
+  }
+  return "To get detailed information, please select your loan product from the menu below, and our executive will contact you shortly.";
+}
+
+async function handleAIQuery(userText: string, lang: string): Promise<string> {
+  const prompt = `You are a helpful customer support AI for "TechStar Money Solutions", a premium loan marketplace in India.
+The customer's preferred language is ${LANG_NAMES[lang]}.
+Answer their query in a polite, helpful, and concise manner (maximum 2-3 sentences).
+If they ask about interest rates, mention that Home Loan starts at 8.5% p.a. and Personal Loan starts at 10.49% p.a.
+If they ask for contact info, mention the phone number 7020646007.
+User Query: "${userText}"
+Response:`;
+
+  const aiRes = await callGeminiAPI(prompt);
+  if (aiRes) {
+    return aiRes;
+  }
+  return fallbackAIResponder(userText, lang);
+}
+
 // ─── Firestore helpers ─────────────────────────────────────────────────────────
 async function getSession(phone: string) {
   const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/waSession/${phone}?key=${FIREBASE_API_KEY}`;
@@ -342,7 +566,7 @@ async function createLead(data: Record<string, string>): Promise<string> {
     return "";
   }
   const result = await res.json();
-  const name = result.name; // e.g. "projects/dsa-loan/databases/(default)/documents/leads/1WnI8QuvvzU2dFVvD4V5"
+  const name = result.name;
   return name.split("/").pop() || "";
 }
 
@@ -371,19 +595,36 @@ async function updateLead(leadId: string, data: Record<string, string>) {
   }
 }
 
-async function sendWA(to: string, text: string) {
+async function sendWA(to: string, message: string | any) {
+  const finalTo = to.length === 10 ? `91${to}` : to;
   const url = `https://graph.facebook.com/v18.0/${PHONE_ID}/messages`;
-  await fetch(url, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+  let body: any;
+  if (typeof message === 'string') {
+    body = {
       messaging_product: 'whatsapp',
       recipient_type: 'individual',
-      to,
+      to: finalTo,
       type: 'text',
-      text: { body: text },
-    }),
+      text: { body: message },
+    };
+  } else {
+    body = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: finalTo,
+      type: 'interactive',
+      interactive: message,
+    };
+  }
+  
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
   });
+  if (!res.ok) {
+    console.error("Failed to send WA message:", await res.text());
+  }
 }
 
 // ─── GET: Facebook webhook verification ───────────────────────────────────────
@@ -412,17 +653,34 @@ export async function POST(request: Request) {
     }
 
     const msg = messages[0];
-    const from: string = msg.from; // sender's phone number (with country code)
-    const text: string = (msg.text?.body || '').trim();
+    const rawFrom: string = msg.from; // sender's phone number
+    
+    // Sanitize number: strip leading 91 (for 10-digit Indian numbers)
+    let cleanPhone = rawFrom.replace(/\D/g, '');
+    if (cleanPhone.startsWith('91') && cleanPhone.length === 12) {
+      cleanPhone = cleanPhone.substring(2);
+    }
+    const from = cleanPhone;
+
+    let text: string = (msg.text?.body || '').trim();
+
+    // Map WhatsApp Cloud API interactive select buttons & lists back to plain text selections
+    if (msg.type === 'interactive') {
+      const interactive = msg.interactive;
+      if (interactive.type === 'button_reply') {
+        text = interactive.button_reply?.id || '';
+      } else if (interactive.type === 'list_reply') {
+        text = interactive.list_reply?.id || '';
+      }
+    }
 
     if (!from || !text) return NextResponse.json({ ok: true });
 
     // Load existing session for this user
     let session = await getSession(from);
 
-    // ── No session: greet, create lead, and ask language ──
+    // ── No session: greet, create lead instantly, and ask language ──
     if (!session) {
-      // Check for Meta Ads referral details in incoming message payload
       const referral = msg.referral;
       const initialResponses: Record<string, string> = {};
       if (referral) {
@@ -431,16 +689,23 @@ export async function POST(request: Request) {
         initialResponses.adBody = referral.body || "";
       }
 
-      // Create initial lead record immediately (with phone and referral details)
+      // Generate early details summary
+      const initialDetails = generateDetailsText({
+        name: "",
+        category: "",
+        language: "en",
+        responses: initialResponses
+      });
+
+      // Create initial lead record immediately
       const leadId = await createLead({
         phone: from,
         source: referral ? `Meta Ads - ${referral.headline}` : 'WhatsApp Automation',
+        details: initialDetails,
         ...initialResponses
       });
 
-      await sendWA(from,
-        `👋 *Welcome to TechStar Money Solutions!*\n\nPlease select your preferred language:\n\n1️⃣ English\n2️⃣ हिंदी (Hindi)\n3️⃣ मराठी (Marathi)\n\n_Reply with the number (e.g. *1* for English)_`
-      );
+      await sendWA(from, langInteractive);
       await saveSession(from, { step: 1, category: '', name: '', responses: initialResponses, language: 'en', leadId });
       return NextResponse.json({ ok: true });
     }
@@ -449,17 +714,26 @@ export async function POST(request: Request) {
     if (session.step === 1) {
       const langKey = text;
       if (langKey !== '1' && langKey !== '2' && langKey !== '3') {
-        await sendWA(from,
-          `❗ Please reply with 1, 2, or 3 to select your language.\n\n1️⃣ English\n2️⃣ हिंदी (Hindi)\n3️⃣ मराठी (Marathi)`
-        );
+        // Run general AI query handler as fallback, then repeat language choice
+        const aiReply = await handleAIQuery(text, 'en');
+        await sendWA(from, `${aiReply}\n\n*Please select your language:*`);
+        await sendWA(from, langInteractive);
         return NextResponse.json({ ok: true });
       }
       const selectedLang = LANGUAGES[langKey];
       const askNameText = MSG_ASK_NAME[selectedLang];
 
-      // Update lead with language choice
+      const detailsText = generateDetailsText({
+        name: "",
+        category: "",
+        language: selectedLang,
+        responses: session.responses
+      });
+
+      // Update lead
       await updateLead(session.leadId, {
-        language: LANG_NAMES[selectedLang] || "English"
+        language: LANG_NAMES[selectedLang] || "English",
+        details: detailsText
       });
 
       await sendWA(from, askNameText);
@@ -472,14 +746,19 @@ export async function POST(request: Request) {
     // ── Step 2: Got name → show loan category menu ──
     if (session.step === 2) {
       const name = text;
-      const categoriesList = LOCALIZED_CATEGORIES[lang];
-      const menu = categoriesList.map((c, i) => `${i + 1}️⃣ *${c}*`).join('\n');
       
-      // Update lead with name
-      await updateLead(session.leadId, { name });
+      const detailsText = generateDetailsText({
+        name: name,
+        category: "",
+        language: lang,
+        responses: session.responses
+      });
 
-      const promptText = MSG_CAT_PROMPT[lang].replace('{name}', name).replace('{menu}', menu);
-      await sendWA(from, promptText);
+      // Update lead with name and updated summary
+      await updateLead(session.leadId, { name, details: detailsText });
+
+      const catPayload = getCategoryListPayload(lang, name);
+      await sendWA(from, catPayload);
       await saveSession(from, { ...session, step: 3, name });
       return NextResponse.json({ ok: true });
     }
@@ -488,23 +767,40 @@ export async function POST(request: Request) {
     if (session.step === 3) {
       const num = parseInt(text) - 1;
       if (isNaN(num) || num < 0 || num >= LOAN_CATEGORIES.length) {
-        await sendWA(from, MSG_INVALID_WARN[lang]);
+        // Run AI query fallback and re-show categories list
+        const aiReply = await handleAIQuery(text, lang);
+        await sendWA(from, aiReply);
+        await sendWA(from, getCategoryListPayload(lang, session.name));
         return NextResponse.json({ ok: true });
       }
-      const category = LOAN_CATEGORIES[num]; // English name like "Home Loan"
+      const category = LOAN_CATEGORIES[num];
       const categoryLocalized = LOCALIZED_CATEGORIES[lang][num];
       
-      // Update lead with category selection
+      const detailsText = generateDetailsText({
+        name: session.name,
+        category: category,
+        language: lang,
+        responses: session.responses
+      });
+
+      // Update lead with category choice
       await updateLead(session.leadId, {
         category: category,
-        type: category
+        type: category,
+        details: detailsText
       });
 
       const introText = MSG_CAT_INTRO[lang].replace('{category}', categoryLocalized);
       const firstQ = LOAN_FLOWS[category][0];
-      const questionText = firstQ.question[lang];
+      const questionPayload = getQuestionPayload(lang, firstQ);
       
-      await sendWA(from, `${introText}\n\n*Q1:* ${questionText}`);
+      if (typeof questionPayload === 'string') {
+        await sendWA(from, `${introText}\n\n${questionPayload}`);
+      } else {
+        await sendWA(from, introText);
+        await sendWA(from, questionPayload);
+      }
+
       await saveSession(from, { ...session, step: 4, category });
       return NextResponse.json({ ok: true });
     }
@@ -526,31 +822,68 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: true });
       }
 
-      // Normalize dropdown answer (accept number or text)
+      // Check option index or use AI classification to normalize dropdown responses
       let answer = text;
+      let isClassified = false;
       if (currentQ.type === 'dropdown' && currentQ.options) {
         const num = parseInt(text) - 1;
         if (!isNaN(num) && num >= 0 && num < currentQ.options.length) {
           answer = currentQ.options[num];
+          isClassified = true;
+        } else {
+          const aiClassified = await classifyDropdownWithAI(text, currentQ);
+          if (aiClassified !== "Unknown") {
+            answer = aiClassified;
+            isClassified = true;
+          }
         }
+      } else {
+        isClassified = true; // Natural text/number questions always accept responses
       }
 
-      // Update lead with current answer
-      await updateLead(session.leadId, {
-        [currentQ.field]: answer
-      });
+      // If cannot be classified or mapped, answer user query and repeat question
+      if (!isClassified) {
+        const aiReply = await handleAIQuery(text, lang);
+        await sendWA(from, aiReply);
+        await sendWA(from, getQuestionPayload(lang, currentQ));
+        return NextResponse.json({ ok: true });
+      }
 
       const updatedResponses = { ...session.responses, [currentQ.field]: answer };
+      
+      const detailsText = generateDetailsText({
+        name: session.name,
+        category: session.category,
+        language: lang,
+        responses: updatedResponses
+      });
+
+      // Update lead in real-time
+      await updateLead(session.leadId, {
+        [currentQ.field]: answer,
+        details: detailsText
+      });
+
       const nextIndex = questionIndex + 1;
       const nextQ = flow[nextIndex];
 
       if (nextQ) {
         // Send next question
-        const questionText = nextQ.question[lang];
-        await sendWA(from, `*Q${nextIndex + 1}:* ${questionText}`);
+        const questionPayload = getQuestionPayload(lang, nextQ);
+        const questionIndexText = {
+          en: `Q${nextIndex + 1}: `,
+          hi: `Q${nextIndex + 1}: `,
+          mr: `Q${nextIndex + 1}: `
+        }[lang] || `Q${nextIndex + 1}: `;
+        
+        if (typeof questionPayload === 'string') {
+          await sendWA(from, `${questionIndexText}${questionPayload}`);
+        } else {
+          await sendWA(from, questionPayload);
+        }
         await saveSession(from, { ...session, step: session.step + 1, responses: updatedResponses });
       } else {
-        // All questions answered → thank user
+        // All questions completed
         const categoryLocalized = LOCALIZED_CATEGORIES[lang][LOAN_CATEGORIES.indexOf(session.category)];
 
         const thankYouText = MSG_THANK_YOU[lang]
