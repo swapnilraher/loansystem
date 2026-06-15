@@ -32,13 +32,14 @@ interface Lead {
 
 const STEP_LABELS: Record<number, string> = {
   0: "Not Started",
-  1: "Asked Name",
-  2: "Chose Category",
-  3: "Q1 Answered",
-  4: "Q2 Answered",
-  5: "Q3 Answered",
-  6: "Q4 Answered",
-  7: "Completed",
+  1: "Selected Language",
+  2: "Asked Name",
+  3: "Chose Category",
+  4: "Q1 Answered",
+  5: "Q2 Answered",
+  6: "Q3 Answered",
+  7: "Q4 Answered",
+  8: "Completed",
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -142,7 +143,7 @@ export default function WAInboxPage() {
       "Home Loan": 4, "Personal Loan": 3, "Business Loan": 4,
       "Loan Against Property": 4, "Credit Card": 3, "Insurance": 3
     }
-    const total = (flowLengths[category] || 4) + 3 // +3 for greeting, name, category steps
+    const total = (flowLengths[category] || 4) + 4 // +4 for language, name, category, and final steps
     return Math.min(Math.round((step / total) * 100), 100)
   }
 
