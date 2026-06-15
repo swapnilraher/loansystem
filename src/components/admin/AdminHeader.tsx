@@ -12,14 +12,14 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
   const { user, profile, adminRole, logout } = useAuth()
 
   return (
-    <header className="h-20 bg-white/70 backdrop-blur-xl border-b border-white/20 shadow-sm px-4 md:px-8 flex items-center justify-between sticky top-0 z-40 transition-all duration-300">
+    <header className="h-16 lg:h-20 bg-white/80 backdrop-blur-md border-b border-slate-100/60 shadow-sm px-4 md:px-8 flex items-center justify-between sticky top-0 z-40 transition-all duration-300">
       <div className="flex items-center gap-4 md:gap-8 flex-1">
         {onMenuClick && (
           <button 
             onClick={onMenuClick} 
             className="lg:hidden p-2 -ml-2 mr-2 text-slate-500 hover:text-primary hover:bg-white/50 rounded-xl transition-all cursor-pointer shadow-sm border border-transparent hover:border-slate-200"
           >
-            <Menu size={20} />
+            <Menu size={18} />
           </button>
         )}
         <div className="relative max-w-md w-full group hidden md:block">
@@ -34,24 +34,24 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        <button className="p-2.5 text-slate-500 hover:bg-slate-50 rounded-xl transition-colors relative">
-          <Bell size={20} />
-          <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 border-2 border-white rounded-full"></span>
+      <div className="flex items-center gap-2 lg:gap-4">
+        <button className="p-2 text-slate-500 hover:bg-slate-50 rounded-xl transition-colors relative">
+          <Bell size={18} />
+          <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-rose-500 border border-white rounded-full"></span>
         </button>
 
-        <button className="p-2.5 text-slate-500 hover:bg-slate-50 rounded-xl transition-colors">
-          <Grid size={20} />
+        <button className="p-2 text-slate-500 hover:bg-slate-50 rounded-xl transition-colors">
+          <Grid size={18} />
         </button>
 
-        <div className="w-px h-8 bg-slate-200 mx-2" />
+        <div className="w-px h-6 lg:h-8 bg-slate-200 mx-1 lg:mx-2" />
 
-        <div className="flex items-center gap-3 pl-2">
+        <div className="flex items-center gap-2 lg:gap-3 pl-1 lg:pl-2">
           <div className="text-right hidden sm:block">
-            <p className="text-sm font-black text-secondary">{profile?.name || user?.displayName || user?.email || "Admin User"}</p>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{adminRole || "Staff"}</p>
+            <p className="text-xs lg:text-sm font-black text-secondary leading-tight">{profile?.name || user?.displayName || user?.email || "Admin User"}</p>
+            <p className="text-[9px] lg:text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-0.5">{adminRole || "Staff"}</p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-100 to-indigo-100 flex items-center justify-center font-black text-sm uppercase text-blue-700 border border-blue-200/50">
+          <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-xl bg-gradient-to-tr from-blue-100 to-indigo-100 flex items-center justify-center font-black text-xs lg:text-sm uppercase text-blue-700 border border-blue-200/50">
             {(profile?.name || user?.displayName || user?.email || "AD").substring(0, 2)}
           </div>
           

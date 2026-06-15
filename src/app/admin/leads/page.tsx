@@ -691,7 +691,7 @@ export default function LeadsPage() {
   return (
     <div className="max-w-7xl mx-auto bg-slate-50/50 min-h-screen relative pb-28 animate-in fade-in duration-500 w-full px-4 sm:px-6 lg:px-8 shadow-sm border-x border-slate-100/50">
       {/* App Top Bar */}
-      <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b border-slate-100 z-50 px-4 py-3.5 flex flex-col md:flex-row md:items-center md:justify-between gap-3 shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
+      <div className="sticky top-16 lg:top-20 bg-white/95 backdrop-blur-md border-b border-slate-100 z-30 px-4 py-3.5 flex flex-col md:flex-row md:items-center md:justify-between gap-3 shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
         <div className="flex justify-between items-center md:gap-4 flex-1">
           <div>
             <h2 className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
@@ -725,7 +725,7 @@ export default function LeadsPage() {
             </button>
             <button 
               onClick={() => setShowBroadcastModal(true)}
-              className="premium-btn-action bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl transition-all"
+              className="h-9 w-9 sm:w-auto px-0 sm:px-3 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shrink-0"
               title="निवडलेल्या ग्राहकांना ब्रॉडकास्ट पाठवा"
             >
               <Megaphone size={14} className="text-primary" />
@@ -1376,7 +1376,7 @@ export default function LeadsPage() {
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" 
             onClick={() => !isSendingWA && setShowWAModal(false)} 
           />
-          <div className="w-full max-w-lg bg-[#efeae2] rounded-t-[2.5rem] md:rounded-[2rem] shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300 max-h-[90vh] md:max-h-[80vh] h-[600px]">
+          <div className="w-full max-w-lg bg-[#efeae2] rounded-t-[2.5rem] md:rounded-[2rem] shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300 max-h-[90vh] md:max-h-[80vh] h-[88vh] md:h-[600px]">
             {/* WhatsApp Header */}
             <div className="px-4 py-2.5 bg-[#f0f2f5] border-b border-[#e9edef] flex items-center justify-between shrink-0 select-none">
               <div className="flex items-center gap-3">

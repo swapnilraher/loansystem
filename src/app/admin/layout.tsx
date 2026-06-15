@@ -1,12 +1,13 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
+import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
 import { AdminSidebar } from "@/components/admin/AdminSidebar"
 import { AdminHeader } from "@/components/admin/AdminHeader"
 
-import { Loader2, ShieldCheck } from "lucide-react"
+import { Loader2, ShieldCheck, LayoutDashboard, Briefcase, Network, Menu } from "lucide-react"
 
 export default function AdminLayout({
   children,
@@ -65,9 +66,50 @@ export default function AdminLayout({
 
       <div className="min-w-0 ml-0 lg:ml-72 h-screen overflow-y-auto custom-scrollbar relative z-10">
         <AdminHeader onMenuClick={() => setSidebarOpen(true)} />
-        <main className="p-4 md:p-8">
+        <main className="p-4 md:p-8 pb-24 lg:pb-8">
           {children}
         </main>
+      </div>
+
+      {/* Sticky Mobile Bottom Navigation Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-200/80 px-2 py-2 flex items-center justify-around z-50 lg:hidden shadow-[0_-4px_16px_rgba(0,0,0,0.04)] select-none">
+        <Link 
+          href="/admin" 
+          className={`flex flex-col items-center justify-center gap-1 py-1 px-3.5 rounded-xl transition-all ${
+            pathname === "/admin" ? "text-primary font-black scale-105" : "text-slate-400 font-bold"
+          }`}
+        >
+          <LayoutDashboard size={20} className={pathname === "/admin" ? "text-primary" : "text-slate-400"} />
+          <span className="text-[10px] tracking-tight">Overview</span>
+        </Link>
+
+        <Link 
+          href="/admin/leads" 
+          className={`flex flex-col items-center justify-center gap-1 py-1 px-3.5 rounded-xl transition-all ${
+            pathname.startsWith("/admin/leads") ? "text-primary font-black scale-105" : "text-slate-400 font-bold"
+          }`}
+        >
+          <Briefcase size={20} className={pathname.startsWith("/admin/leads") ? "text-primary" : "text-slate-400"} />
+          <span className="text-[10px] tracking-tight">Leads</span>
+        </Link>
+
+        <Link 
+          href="/admin/partners" 
+          className={`flex flex-col items-center justify-center gap-1 py-1 px-3.5 rounded-xl transition-all ${
+            pathname.startsWith("/admin/partners") ? "text-primary font-black scale-105" : "text-slate-400 font-bold"
+          }`}
+        >
+          <Network size={20} className={pathname.startsWith("/admin/partners") ? "text-primary" : "text-slate-400"} />
+          <span className="text-[10px] tracking-tight">DSA</span>
+        </Link>
+
+        <button 
+          onClick={() => setSidebarOpen(true)}
+          className="flex flex-col items-center justify-center gap-1 py-1 px-3.5 rounded-xl text-slate-400 font-bold transition-all hover:text-slate-650 cursor-pointer active:scale-95"
+        >
+          <Menu size={20} />
+          <span className="text-[10px] tracking-tight">More</span>
+        </button>
       </div>
     </div>
   )
