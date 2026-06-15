@@ -689,7 +689,7 @@ export default function LeadsPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto bg-slate-50/50 min-h-screen relative pb-28 animate-in fade-in duration-500 w-full px-4 sm:px-6 lg:px-8 shadow-sm border-x border-slate-100/50">
+    <div className="w-full min-h-screen relative pb-28 animate-in fade-in duration-500">
       {/* App Top Bar */}
       <div className="sticky top-16 lg:top-20 bg-white/95 backdrop-blur-md border-b border-slate-100 z-30 px-4 py-3.5 flex flex-col md:flex-row md:items-center md:justify-between gap-3 shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
         <div className="flex justify-between items-center md:gap-4 flex-1">
