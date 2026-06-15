@@ -668,119 +668,123 @@ export default function LeadsPage() {
         </div>
       )}
 
-      {/* Lead Cards List */}
+      {/* Lead Rows List */}
       <div className="px-1 py-2">
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="flex flex-col gap-3">
             {Array(6).fill(0).map((_, i) => (
-              <div key={i} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm h-36 animate-pulse" />
+              <div key={i} className="bg-white p-4 rounded-[1.5rem] border border-slate-100 shadow-sm h-14 animate-pulse" />
             ))}
           </div>
         ) : filteredLeads.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center my-6 mx-1">
+          <div className="bg-white rounded-[1.5rem] border border-slate-100 p-12 text-center my-6 mx-1">
             <Search size={36} className="text-slate-200 mx-auto mb-3" />
             <p className="text-slate-400 font-bold text-sm">माहिती उपलब्ध नाही.</p>
             <p className="text-slate-300 text-xs mt-1">दुसरा फिल्टर निवडून शोधा.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="flex flex-col gap-3">
             {filteredLeads.map((lead) => {
               const panName = lead.panName || lead.fullName || lead.name || "Name Pending";
               return (
                 <div 
                   key={lead.id} 
-                  className="bg-white rounded-[2rem] border border-slate-100/70 pl-6 pr-5 py-4.5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] hover:shadow-md transition-all active:scale-[0.99] flex flex-col gap-3.5 relative overflow-hidden"
+                  className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3.5 pl-5 pr-4 py-3.5 bg-white border border-slate-100/70 rounded-[1.5rem] relative overflow-hidden hover:shadow-md transition-all group shrink-0"
                 >
                   {/* Inset rounded vertical SLA indicator bar */}
-                  <div className={`absolute left-1.5 top-3.5 bottom-3.5 w-1 rounded-full ${
+                  <div className={`absolute left-1.5 top-2.5 bottom-2.5 w-1 rounded-full ${
                     lead.slaStatus === 'Overdue' ? 'bg-rose-500' : 'bg-emerald-500'
                   }`} />
 
-                  <div className="flex justify-between items-start gap-3 pl-1">
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between w-full gap-3 pl-1">
+                    {/* Column 1: Client Info */}
                     <div 
                       onClick={() => setSelectedLead(lead)}
-                      className="flex gap-1.5 cursor-pointer group flex-1 min-w-0"
+                      className="flex-1 min-w-0 cursor-pointer group/item"
                     >
-                      <div className="min-w-0">
-                        <p className="font-extrabold text-slate-800 text-sm group-hover:text-primary transition-colors truncate">
-                          {panName}
-                        </p>
-                        <p className="text-[10px] text-slate-400 font-semibold flex items-center gap-1 mt-0.5">
-                          <Phone size={10} className="text-slate-300" /> {lead.phone || lead.mobile || "No Phone"}
-                        </p>
-                      </div>
+                      <p className="font-extrabold text-slate-800 text-sm group-hover/item:text-primary transition-colors truncate">
+                        {panName}
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-semibold flex items-center gap-1 mt-0.5">
+                        <Phone size={10} className="text-slate-300" /> {lead.phone || lead.mobile || "No Phone"}
+                      </p>
                     </div>
-                    
-                    <div className="text-right shrink-0">
+
+                    {/* Column 2: Source/Category (hidden on mobile) */}
+                    <div className="hidden md:block w-32 shrink-0">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border ${
+                        (lead.category || "Landing") === "Portal" ? "bg-blue-50 text-blue-500 border-blue-100" : 
+                        (lead.category || "Landing") === "Bulk" ? "bg-purple-50 text-purple-500 border-purple-100" : 
+                        (lead.category || "Landing") === "Partner" ? "bg-indigo-50 text-indigo-600 border-indigo-100" : 
+                        "bg-amber-50 text-amber-500 border-amber-100"
+                      }`}>
+                        {lead.category === "Partner" && lead.partnerName ? `Partner: ${lead.partnerName}` : (lead.category || "Landing")}
+                      </span>
+                    </div>
+
+                    {/* Column 3: Loan Details (responsive row layout on mobile, column on desktop) */}
+                    <div className="flex md:flex-col justify-between md:justify-center items-center md:items-start w-full md:w-36 shrink-0 gap-1">
                       <p className="font-black text-slate-400 text-[10px] tracking-wider uppercase">{lead.type}</p>
                       <p className="text-xs font-black text-slate-850 mt-0.5 italic text-slate-800">
                         ₹ {parseInt(lead.amount || "0").toLocaleString()}
                       </p>
                     </div>
-                  </div>
-                  
-                  {/* Meta Tags Row */}
-                  <div className="flex flex-wrap gap-1.5 items-center pl-1">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border ${
-                      (lead.category || "Landing") === "Portal" ? "bg-blue-50 text-blue-500 border-blue-100" : 
-                      (lead.category || "Landing") === "Bulk" ? "bg-purple-50 text-purple-500 border-purple-100" : 
-                      (lead.category || "Landing") === "Partner" ? "bg-indigo-50 text-indigo-600 border-indigo-100" : 
-                      "bg-amber-50 text-amber-500 border-amber-100"
-                    }`}>
-                      {lead.category === "Partner" && lead.partnerName ? `Partner: ${lead.partnerName}` : (lead.category || "Landing")}
-                    </span>
-                    
-                    <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border ${
-                      lead.slaStatus === 'Overdue' ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                    }`}>
-                      {lead.slaStatus || 'Healthy'}
-                    </span>
 
-                    <span className="px-2 py-0.5 bg-slate-50 border border-slate-100 text-slate-400 rounded-full text-[8px] font-bold ml-auto">
-                      {lead.createdAt?.toDate 
-                        ? lead.createdAt.toDate().toLocaleDateString('en-GB') 
-                        : (typeof lead.createdAt === 'string' ? new Date(lead.createdAt).toLocaleDateString('en-GB') : 'NA')}
-                    </span>
-                  </div>
+                    {/* Column 4: SLA & Date (hidden on mobile) */}
+                    <div className="hidden md:flex items-center gap-2 w-36 shrink-0">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border shrink-0 ${
+                        lead.slaStatus === 'Overdue' ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                      }`}>
+                        {lead.slaStatus || 'Healthy'}
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-400 truncate">
+                        {lead.createdAt?.toDate 
+                          ? lead.createdAt.toDate().toLocaleDateString('en-GB') 
+                          : (typeof lead.createdAt === 'string' ? new Date(lead.createdAt).toLocaleDateString('en-GB') : 'NA')}
+                      </span>
+                    </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-100/70 gap-2 shrink-0 pl-1">
-                    <button 
-                      onClick={() => setStatusChangeLeadId(lead.id)}
-                      className={`premium-btn-status ${
-                        STATUS_CONFIG[lead.status]?.color || 'bg-slate-50 text-slate-400 border-slate-200/50'
-                      }`}
-                    >
-                      <span className="truncate">{lead.status || 'New Lead'}</span>
-                      <ChevronDown size={11} className="shrink-0 opacity-80" />
-                    </button>
-
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    {/* Column 5: Status Dropdown & Actions Container */}
+                    <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100/70 shrink-0">
+                      {/* Status Selector */}
                       <button 
-                        onClick={() => handleQuickCall(lead)} 
-                        className="premium-btn-action text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-100/50"
-                        title="कॉल करा"
+                        onClick={() => setStatusChangeLeadId(lead.id)}
+                        className={`premium-btn-status h-8 px-2.5 text-[10px] ${
+                          STATUS_CONFIG[lead.status]?.color || 'bg-slate-50 text-slate-400 border-slate-200/50'
+                        }`}
                       >
-                        <Phone size={14} />
+                        <span className="truncate">{lead.status || 'New Lead'}</span>
+                        <ChevronDown size={11} className="shrink-0 opacity-80" />
                       </button>
-                      {(adminRole === 'Super Admin' || adminRole === 'Admin' || adminRole === 'HR') && (
+
+                      {/* Action Icon buttons */}
+                      <div className="flex items-center gap-1.5 shrink-0">
                         <button 
-                          onClick={() => handleWhatsAppClick(lead)} 
-                          className="premium-btn-action text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100/50 flex items-center justify-center"
-                          title="WhatsApp मेसेज"
+                          onClick={() => handleQuickCall(lead)} 
+                          className="premium-btn-action h-8 w-8 text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-100/50 flex items-center justify-center"
+                          title="कॉल करा"
                         >
-                          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.262 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.725 1.45 5.277.002 9.571-4.287 9.575-9.566.001-2.559-1.002-4.966-2.825-6.79C16.3 2.421 13.9 1.419 11.339 1.418c-5.286 0-9.582 4.29-9.587 9.57-.001 1.638.488 3.238 1.42 4.695L2.146 21.94l6.096-1.597c.005.003.01.006.015.008v-.005h-.01c-1.53-.949-1.53-.949 0 0zm11.368-6.19c-.3-.15-1.774-.875-2.05-.975-.274-.1-.475-.15-.675.15-.2.3-.775.975-.95 1.175-.175.2-.35.225-.65.075-3.042-1.516-4.385-2.28-6.218-5.424-.225-.387.225-.362.65-.788.1-.1.2-.225.3-.35.1-.1.15-.175.225-.35.075-.175.037-.325-.018-.425-.056-.1-.475-1.15-.65-1.575-.17-.412-.346-.356-.475-.362-.122-.006-.262-.007-.402-.007s-.367.05-.56.25c-.19.2-.727.708-.727 1.727 0 1.02.74 2.007.84 2.15.1.15 1.46 2.228 3.538 3.125 1.62.7 2.215.797 3.015.698.48-.06 1.475-.6 1.675-1.18.2-.58.2-1.08.14-1.18-.06-.1-.225-.15-.525-.3z"/>
-                          </svg>
+                          <Phone size={13} />
                         </button>
-                      )}
-                      <button 
-                        onClick={() => setSelectedLead(lead)} 
-                        className="premium-btn-action text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20"
-                        title="तपशील पहा"
-                      >
-                        <Eye size={14} />
-                      </button>
+                        {(adminRole === 'Super Admin' || adminRole === 'Admin' || adminRole === 'HR') && (
+                          <button 
+                            onClick={() => handleWhatsAppClick(lead)} 
+                            className="premium-btn-action h-8 w-8 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100/50 flex items-center justify-center"
+                            title="WhatsApp मेसेज"
+                          >
+                            <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
+                              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.262 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.725 1.45 5.277.002 9.571-4.287 9.575-9.566.001-2.559-1.002-4.966-2.825-6.79C16.3 2.421 13.9 1.419 11.339 1.418c-5.286 0-9.582 4.29-9.587 9.57-.001 1.638.488 3.238 1.42 4.695L2.146 21.94l6.096-1.597c.005.003.01.006.015.008v-.005h-.01c-1.53-.949-1.53-.949 0 0zm11.368-6.19c-.3-.15-1.774-.875-2.05-.975-.274-.1-.475-.15-.675.15-.2.3-.775.975-.95 1.175-.175.2-.35.225-.65.075-3.042-1.516-4.385-2.28-6.218-5.424-.225-.387.225-.362.65-.788.1-.1.2-.225.3-.35.1-.1.15-.175.225-.35.075-.175.037-.325-.018-.425-.056-.1-.475-1.15-.65-1.575-.17-.412-.346-.356-.475-.362-.122-.006-.262-.007-.402-.007s-.367.05-.56.25c-.19.2-.727.708-.727 1.727 0 1.02.74 2.007.84 2.15.1.15 1.46 2.228 3.538 3.125 1.62.7 2.215.797 3.015.698.48-.06 1.475-.6 1.675-1.18.2-.58.2-1.08.14-1.18-.06-.1-.225-.15-.525-.3z"/>
+                            </svg>
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => setSelectedLead(lead)} 
+                          className="premium-btn-action h-8 w-8 text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 flex items-center justify-center"
+                          title="तपशील पहा"
+                        >
+                          <Eye size={13} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
