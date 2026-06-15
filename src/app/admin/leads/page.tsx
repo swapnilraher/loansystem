@@ -30,7 +30,11 @@ import {
   Briefcase,
   Zap,
   Upload,
-  MessageSquare
+  MessageSquare,
+  Paperclip,
+  Smile,
+  Send,
+  MoreVertical
 } from "lucide-react"
 import { useLeads, Lead, logLeadActivity } from "@/lib/hooks/useLeads"
 import { db } from "@/lib/firebase"
@@ -537,10 +541,10 @@ export default function LeadsPage() {
   }
 
   return (
-    <div className="max-w-xl mx-auto bg-slate-50/50 min-h-screen relative pb-28 animate-in fade-in duration-500 w-full px-0 sm:px-4 shadow-2xl border-x border-slate-100/50">
+    <div className="max-w-7xl mx-auto bg-slate-50/50 min-h-screen relative pb-28 animate-in fade-in duration-500 w-full px-4 sm:px-6 lg:px-8 shadow-sm border-x border-slate-100/50">
       {/* App Top Bar */}
-      <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b border-slate-100 z-50 px-4 py-3.5 flex flex-col gap-3 shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
-        <div className="flex justify-between items-center">
+      <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b border-slate-100 z-50 px-4 py-3.5 flex flex-col md:flex-row md:items-center md:justify-between gap-3 shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
+        <div className="flex justify-between items-center md:gap-4 flex-1">
           <div>
             <h2 className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
               लीड्स पाइपलाइन
@@ -549,7 +553,7 @@ export default function LeadsPage() {
               </span>
             </h2>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 animate-in fade-in duration-300">
             <label 
               className="premium-btn-action bg-slate-50 hover:bg-slate-100 border border-slate-200/50 text-slate-600 cursor-pointer flex items-center justify-center"
               title="Excel अपलोड"
@@ -586,7 +590,7 @@ export default function LeadsPage() {
         </div>
 
         {/* Search Input */}
-        <div className="relative w-full">
+        <div className="relative w-full md:max-w-xs shrink-0">
           <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             type="text" 
@@ -607,7 +611,7 @@ export default function LeadsPage() {
       </div>
 
       {/* Quick Horizontal Filter Cards */}
-      <div className="px-4 py-3 flex gap-2 overflow-x-auto pb-2 no-scrollbar snap-x w-full">
+      <div className="px-4 py-3 flex gap-2 overflow-x-auto md:flex-wrap md:overflow-visible pb-2 no-scrollbar snap-x w-full">
         {['All Statuses', 'New Lead', 'Contacted', 'Interested', 'Approved', 'Disbursed', 'Rejected'].map((status) => {
           const count = status === 'All Statuses' 
             ? pipelineLeads.length 
@@ -665,11 +669,13 @@ export default function LeadsPage() {
       )}
 
       {/* Lead Cards List */}
-      <div className="px-3 py-2 space-y-3">
+      <div className="px-1 py-2">
         {loading ? (
-          Array(4).fill(0).map((_, i) => (
-            <div key={i} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm h-32 animate-pulse" />
-          ))
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array(6).fill(0).map((_, i) => (
+              <div key={i} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm h-36 animate-pulse" />
+            ))}
+          </div>
         ) : filteredLeads.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center my-6 mx-1">
             <Search size={36} className="text-slate-200 mx-auto mb-3" />
@@ -677,112 +683,110 @@ export default function LeadsPage() {
             <p className="text-slate-300 text-xs mt-1">दुसरा फिल्टर निवडून शोधा.</p>
           </div>
         ) : (
-          filteredLeads.map((lead) => {
-            const panName = lead.panName || lead.fullName || lead.name || "Name Pending";
-            const initials = panName.substring(0, 2).toUpperCase();
-            return (
-              <div 
-                key={lead.id} 
-                className="bg-white rounded-[2rem] border border-slate-100/70 pl-6 pr-5 py-4.5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] hover:shadow-md transition-all active:scale-[0.99] flex flex-col gap-3.5 relative overflow-hidden"
-              >
-                {/* Inset rounded vertical SLA indicator bar */}
-                <div className={`absolute left-1.5 top-3.5 bottom-3.5 w-1 rounded-full ${
-                  lead.slaStatus === 'Overdue' ? 'bg-rose-500' : 'bg-emerald-500'
-                }`} />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredLeads.map((lead) => {
+              const panName = lead.panName || lead.fullName || lead.name || "Name Pending";
+              return (
+                <div 
+                  key={lead.id} 
+                  className="bg-white rounded-[2rem] border border-slate-100/70 pl-6 pr-5 py-4.5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] hover:shadow-md transition-all active:scale-[0.99] flex flex-col gap-3.5 relative overflow-hidden"
+                >
+                  {/* Inset rounded vertical SLA indicator bar */}
+                  <div className={`absolute left-1.5 top-3.5 bottom-3.5 w-1 rounded-full ${
+                    lead.slaStatus === 'Overdue' ? 'bg-rose-500' : 'bg-emerald-500'
+                  }`} />
 
-                <div className="flex justify-between items-start gap-3 pl-1">
-                  <div 
-                    onClick={() => setSelectedLead(lead)}
-                    className="flex gap-3 cursor-pointer group flex-1 min-w-0"
-                  >
-                    <div className={`w-11 h-11 rounded-full ${getAvatarGradient(lead.status)} flex items-center justify-center font-black uppercase text-xs shrink-0 transition-transform active:scale-95`}>
-                      {initials}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-extrabold text-slate-800 text-sm group-hover:text-primary transition-colors truncate">
-                        {panName}
-                      </p>
-                      <p className="text-[10px] text-slate-400 font-semibold flex items-center gap-1 mt-0.5">
-                        <Phone size={10} className="text-slate-300" /> {lead.phone || lead.mobile || "No Phone"}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="text-right shrink-0">
-                    <p className="font-black text-slate-400 text-[10px] tracking-wider uppercase">{lead.type}</p>
-                    <p className="text-xs font-black text-slate-850 mt-0.5 italic text-slate-800">
-                      ₹ {parseInt(lead.amount || "0").toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-                
-                {/* Meta Tags Row */}
-                <div className="flex flex-wrap gap-1.5 items-center pl-1">
-                  <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border ${
-                    (lead.category || "Landing") === "Portal" ? "bg-blue-50 text-blue-500 border-blue-100" : 
-                    (lead.category || "Landing") === "Bulk" ? "bg-purple-50 text-purple-500 border-purple-100" : 
-                    (lead.category || "Landing") === "Partner" ? "bg-indigo-50 text-indigo-600 border-indigo-100" : 
-                    "bg-amber-50 text-amber-500 border-amber-100"
-                  }`}>
-                    {lead.category === "Partner" && lead.partnerName ? `Partner: ${lead.partnerName}` : (lead.category || "Landing")}
-                  </span>
-                  
-                  <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border ${
-                    lead.slaStatus === 'Overdue' ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                  }`}>
-                    {lead.slaStatus || 'Healthy'}
-                  </span>
-
-                  <span className="px-2 py-0.5 bg-slate-50 border border-slate-100 text-slate-400 rounded-full text-[8px] font-bold ml-auto">
-                    {lead.createdAt?.toDate 
-                      ? lead.createdAt.toDate().toLocaleDateString('en-GB') 
-                      : (typeof lead.createdAt === 'string' ? new Date(lead.createdAt).toLocaleDateString('en-GB') : 'NA')}
-                  </span>
-                </div>
-
-                {/* Symmetrical Action Buttons Dock */}
-                <div className="flex items-center justify-between pt-3 border-t border-slate-100/70 gap-2 shrink-0 pl-1">
-                  <button 
-                    onClick={() => setStatusChangeLeadId(lead.id)}
-                    className={`premium-btn-status ${
-                      STATUS_CONFIG[lead.status]?.color || 'bg-slate-50 text-slate-400 border-slate-200/50'
-                    }`}
-                  >
-                    <span className="truncate">{lead.status || 'New Lead'}</span>
-                    <ChevronDown size={11} className="shrink-0 opacity-80" />
-                  </button>
-
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button 
-                      onClick={() => handleQuickCall(lead)} 
-                      className="premium-btn-action text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-100/50"
-                      title="कॉल करा"
+                  <div className="flex justify-between items-start gap-3 pl-1">
+                    <div 
+                      onClick={() => setSelectedLead(lead)}
+                      className="flex gap-1.5 cursor-pointer group flex-1 min-w-0"
                     >
-                      <Phone size={14} />
+                      <div className="min-w-0">
+                        <p className="font-extrabold text-slate-800 text-sm group-hover:text-primary transition-colors truncate">
+                          {panName}
+                        </p>
+                        <p className="text-[10px] text-slate-400 font-semibold flex items-center gap-1 mt-0.5">
+                          <Phone size={10} className="text-slate-300" /> {lead.phone || lead.mobile || "No Phone"}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="text-right shrink-0">
+                      <p className="font-black text-slate-400 text-[10px] tracking-wider uppercase">{lead.type}</p>
+                      <p className="text-xs font-black text-slate-850 mt-0.5 italic text-slate-800">
+                        ₹ {parseInt(lead.amount || "0").toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Meta Tags Row */}
+                  <div className="flex flex-wrap gap-1.5 items-center pl-1">
+                    <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border ${
+                      (lead.category || "Landing") === "Portal" ? "bg-blue-50 text-blue-500 border-blue-100" : 
+                      (lead.category || "Landing") === "Bulk" ? "bg-purple-50 text-purple-500 border-purple-100" : 
+                      (lead.category || "Landing") === "Partner" ? "bg-indigo-50 text-indigo-600 border-indigo-100" : 
+                      "bg-amber-50 text-amber-500 border-amber-100"
+                    }`}>
+                      {lead.category === "Partner" && lead.partnerName ? `Partner: ${lead.partnerName}` : (lead.category || "Landing")}
+                    </span>
+                    
+                    <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border ${
+                      lead.slaStatus === 'Overdue' ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                    }`}>
+                      {lead.slaStatus || 'Healthy'}
+                    </span>
+
+                    <span className="px-2 py-0.5 bg-slate-50 border border-slate-100 text-slate-400 rounded-full text-[8px] font-bold ml-auto">
+                      {lead.createdAt?.toDate 
+                        ? lead.createdAt.toDate().toLocaleDateString('en-GB') 
+                        : (typeof lead.createdAt === 'string' ? new Date(lead.createdAt).toLocaleDateString('en-GB') : 'NA')}
+                    </span>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-100/70 gap-2 shrink-0 pl-1">
+                    <button 
+                      onClick={() => setStatusChangeLeadId(lead.id)}
+                      className={`premium-btn-status ${
+                        STATUS_CONFIG[lead.status]?.color || 'bg-slate-50 text-slate-400 border-slate-200/50'
+                      }`}
+                    >
+                      <span className="truncate">{lead.status || 'New Lead'}</span>
+                      <ChevronDown size={11} className="shrink-0 opacity-80" />
                     </button>
-                    {(adminRole === 'Super Admin' || adminRole === 'Admin' || adminRole === 'HR') && (
+
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <button 
-                        onClick={() => handleWhatsAppClick(lead)} 
-                        className="premium-btn-action text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100/50 flex items-center justify-center"
-                        title="WhatsApp मेसेज"
+                        onClick={() => handleQuickCall(lead)} 
+                        className="premium-btn-action text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-100/50"
+                        title="कॉल करा"
                       >
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.262 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.725 1.45 5.277.002 9.571-4.287 9.575-9.566.001-2.559-1.002-4.966-2.825-6.79C16.3 2.421 13.9 1.419 11.339 1.418c-5.286 0-9.582 4.29-9.587 9.57-.001 1.638.488 3.238 1.42 4.695L2.146 21.94l6.096-1.597c.005.003.01.006.015.008v-.005h-.01c-1.53-.949-1.53-.949 0 0zm11.368-6.19c-.3-.15-1.774-.875-2.05-.975-.274-.1-.475-.15-.675.15-.2.3-.775.975-.95 1.175-.175.2-.35.225-.65.075-3.042-1.516-4.385-2.28-6.218-5.424-.225-.387.225-.362.65-.788.1-.1.2-.225.3-.35.1-.1.15-.175.225-.35.075-.175.037-.325-.018-.425-.056-.1-.475-1.15-.65-1.575-.17-.412-.346-.356-.475-.362-.122-.006-.262-.007-.402-.007s-.367.05-.56.25c-.19.2-.727.708-.727 1.727 0 1.02.74 2.007.84 2.15.1.15 1.46 2.228 3.538 3.125 1.62.7 2.215.797 3.015.698.48-.06 1.475-.6 1.675-1.18.2-.58.2-1.08.14-1.18-.06-.1-.225-.15-.525-.3z"/>
-                        </svg>
+                        <Phone size={14} />
                       </button>
-                    )}
-                    <button 
-                      onClick={() => setSelectedLead(lead)} 
-                      className="premium-btn-action text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20"
-                      title="तपशील पहा"
-                    >
-                      <Eye size={14} />
-                    </button>
+                      {(adminRole === 'Super Admin' || adminRole === 'Admin' || adminRole === 'HR') && (
+                        <button 
+                          onClick={() => handleWhatsAppClick(lead)} 
+                          className="premium-btn-action text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100/50 flex items-center justify-center"
+                          title="WhatsApp मेसेज"
+                        >
+                          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.262 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.725 1.45 5.277.002 9.571-4.287 9.575-9.566.001-2.559-1.002-4.966-2.825-6.79C16.3 2.421 13.9 1.419 11.339 1.418c-5.286 0-9.582 4.29-9.587 9.57-.001 1.638.488 3.238 1.42 4.695L2.146 21.94l6.096-1.597c.005.003.01.006.015.008v-.005h-.01c-1.53-.949-1.53-.949 0 0zm11.368-6.19c-.3-.15-1.774-.875-2.05-.975-.274-.1-.475-.15-.675.15-.2.3-.775.975-.95 1.175-.175.2-.35.225-.65.075-3.042-1.516-4.385-2.28-6.218-5.424-.225-.387.225-.362.65-.788.1-.1.2-.225.3-.35.1-.1.15-.175.225-.35.075-.175.037-.325-.018-.425-.056-.1-.475-1.15-.65-1.575-.17-.412-.346-.356-.475-.362-.122-.006-.262-.007-.402-.007s-.367.05-.56.25c-.19.2-.727.708-.727 1.727 0 1.02.74 2.007.84 2.15.1.15 1.46 2.228 3.538 3.125 1.62.7 2.215.797 3.015.698.48-.06 1.475-.6 1.675-1.18.2-.58.2-1.08.14-1.18-.06-.1-.225-.15-.525-.3z"/>
+                          </svg>
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => setSelectedLead(lead)} 
+                        className="premium-btn-action text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20"
+                        title="तपशील पहा"
+                      >
+                        <Eye size={14} />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )
-          })
+              );
+            })}
+          </div>
         )}
       </div>
 
@@ -791,12 +795,12 @@ export default function LeadsPage() {
 
       {/* Status Selector Bottom Sheet */}
       {statusChangeLeadId && (
-        <div className="fixed inset-0 z-[150] flex items-end justify-center">
+        <div className="fixed inset-0 z-[150] flex items-end md:items-center justify-center p-0 md:p-4">
           <div 
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
             onClick={() => setStatusChangeLeadId(null)}
           />
-          <div className="w-full max-w-md bg-white rounded-t-[2.5rem] p-6 pb-8 shadow-2xl relative z-10 animate-in slide-in-from-bottom duration-300 max-h-[85vh] overflow-y-auto custom-scrollbar">
+          <div className="w-full max-w-md bg-white rounded-t-[2.5rem] md:rounded-[2rem] p-6 pb-8 shadow-2xl relative z-10 animate-in slide-in-from-bottom duration-300 max-h-[85vh] md:max-h-[80vh] overflow-y-auto custom-scrollbar">
             <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6 shrink-0" />
             <div className="flex justify-between items-center mb-6 shrink-0">
               <h3 className="text-xl font-extrabold text-slate-800">स्टेटस अपडेट करा</h3>
@@ -838,12 +842,12 @@ export default function LeadsPage() {
 
       {/* Advanced Filter Bottom Sheet */}
       {showFilterSheet && (
-        <div className="fixed inset-0 z-[130] flex items-end justify-center">
+        <div className="fixed inset-0 z-[130] flex items-end md:items-center justify-center p-0 md:p-4">
           <div 
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
             onClick={() => setShowFilterSheet(false)}
           />
-          <div className="w-full max-w-md bg-white rounded-t-[2.5rem] p-6 pb-8 shadow-2xl relative z-10 animate-in slide-in-from-bottom duration-300 max-h-[85vh] overflow-y-auto custom-scrollbar">
+          <div className="w-full max-w-md bg-white rounded-t-[2.5rem] md:rounded-[2rem] p-6 pb-8 shadow-2xl relative z-10 animate-in slide-in-from-bottom duration-300 max-h-[85vh] md:max-h-[80vh] overflow-y-auto custom-scrollbar">
             <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6 shrink-0" />
             <div className="flex justify-between items-center mb-6 shrink-0">
               <h3 className="text-xl font-extrabold text-slate-800">फिल्टर्स निवडा</h3>
@@ -968,20 +972,17 @@ export default function LeadsPage() {
 
       {/* Lead Details Bottom Sheet */}
       {selectedLead && (
-        <div className="fixed inset-0 z-[140] flex items-end justify-center">
+        <div className="fixed inset-0 z-[140] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
           <div 
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             onClick={() => setSelectedLead(null)}
           />
-          <div className="w-full max-w-2xl bg-white rounded-t-[2.5rem] shadow-2xl relative z-10 flex flex-col h-[92vh] animate-in slide-in-from-bottom duration-300">
+          <div className="w-full max-w-2xl bg-white rounded-t-[2.5rem] md:rounded-[2rem] shadow-2xl relative z-10 flex flex-col h-[92vh] md:h-[80vh] animate-in slide-in-from-bottom duration-300">
             <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-4 shrink-0" />
             
             {/* Header */}
             <div className="px-6 pb-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-4">
-                <div className={`w-14 h-14 rounded-[1.75rem] ${getAvatarGradient(selectedLead.status)} flex items-center justify-center font-black text-xl uppercase shadow-lg shadow-blue-500/10`}>
-                  {(selectedLead.panName || selectedLead.fullName || selectedLead.name || "L")[0]}
-                </div>
                 <div>
                   <h3 className="text-lg font-black text-slate-800 tracking-tight">
                     {selectedLead.panName || selectedLead.fullName || selectedLead.name || "Name Pending"}
@@ -1208,60 +1209,75 @@ export default function LeadsPage() {
         </div>
       )}
 
-      {/* WhatsApp Chat Modal */}
+      {/* WhatsApp Chat Modal (WhatsApp Web Replica) */}
       {showWAModal && (
         <div className="fixed inset-0 z-[150] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
           <div 
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" 
             onClick={() => !isSendingWA && setShowWAModal(false)} 
           />
-          <div className="w-full max-w-lg bg-white rounded-t-[2.5rem] md:rounded-[2rem] shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300 max-h-[90vh] md:max-h-[80vh] h-[600px]">
-            {/* Header */}
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
+          <div className="w-full max-w-lg bg-[#efeae2] rounded-t-[2.5rem] md:rounded-[2rem] shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300 max-h-[90vh] md:max-h-[80vh] h-[600px]">
+            {/* WhatsApp Header */}
+            <div className="px-4 py-2.5 bg-[#f0f2f5] border-b border-[#e9edef] flex items-center justify-between shrink-0 select-none">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
-                  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.262 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.725 1.45 5.277.002 9.571-4.287 9.575-9.566.001-2.559-1.002-4.966-2.825-6.79C16.3 2.421 13.9 1.419 11.339 1.418c-5.286 0-9.582 4.29-9.587 9.57-.001 1.638.488 3.238 1.42 4.695L2.146 21.94l6.096-1.597c.005.003.01.006.015.008v-.005h-.01c-1.53-.949-1.53-.949 0 0zm11.368-6.19c-.3-.15-1.774-.875-2.05-.975-.274-.1-.475-.15-.675.15-.2.3-.775.975-.95 1.175-.175.2-.35.225-.65.075-3.042-1.516-4.385-2.28-6.218-5.424-.225-.387.225-.362.65-.788.1-.1.2-.225.3-.35.1-.1.15-.175.225-.35.075-.175.037-.325-.018-.425-.056-.1-.475-1.15-.65-1.575-.17-.412-.346-.356-.475-.362-.122-.006-.262-.007-.402-.007s-.367.05-.56.25c-.19.2-.727.708-.727 1.727 0 1.02.74 2.007.84 2.15.1.15 1.46 2.228 3.538 3.125 1.62.7 2.215.797 3.015.698.48-.06 1.475-.6 1.675-1.18.2-.58.2-1.08.14-1.18-.06-.1-.225-.15-.525-.3z"/>
-                  </svg>
+                {/* Clean Contact Avatar Icon */}
+                <div className="w-10 h-10 rounded-full bg-slate-350 bg-slate-300 text-white flex items-center justify-center relative shrink-0">
+                  <User size={22} className="text-slate-500" />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#1fa34c] border-2 border-[#f0f2f5] rounded-full" />
                 </div>
-                <div>
-                  <h3 className="text-sm font-black text-slate-800 tracking-tight">WhatsApp चॅटिंग</h3>
-                  <p className="text-slate-500 font-semibold text-[10px]">
-                    ग्राहक: <span className="text-emerald-600 font-bold">{waTarget?.panName || waTarget?.fullName || waTarget?.name}</span>
-                    {waTarget?.phone && <span className="ml-1.5 text-slate-400">({waTarget.phone})</span>}
+                <div className="min-w-0">
+                  <h3 className="text-xs font-bold text-[#111b21] truncate leading-tight">
+                    {waTarget?.panName || waTarget?.fullName || waTarget?.name || 'Customer'}
+                  </h3>
+                  <p className="text-[#00a884] text-[9px] font-bold mt-0.5 flex items-center gap-1.5">
+                    सक्रिय (Online)
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                {/* Launch External Link Button */}
+              
+              <div className="flex items-center gap-1">
+                {/* Launch External Link Button (WhatsApp Green Logo styling) */}
                 <button
                   onClick={handleOpenExternalWhatsApp}
-                  className="p-2 hover:bg-emerald-50 text-emerald-600 rounded-lg transition-all flex items-center gap-1.5 text-[10px] font-bold border border-emerald-100 hover:border-emerald-200"
+                  className="p-2 hover:bg-slate-200/60 text-[#25D366] rounded-full transition-all flex items-center gap-1 text-[10px] font-extrabold"
                   title="स्थानिक WhatsApp App मध्ये उघडा"
                 >
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" className="shrink-0 text-emerald-500">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" className="shrink-0">
                     <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.262 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.725 1.45 5.277.002 9.571-4.287 9.575-9.566.001-2.559-1.002-4.966-2.825-6.79C16.3 2.421 13.9 1.419 11.339 1.418c-5.286 0-9.582 4.29-9.587 9.57-.001 1.638.488 3.238 1.42 4.695L2.146 21.94l6.096-1.597c.005.003.01.006.015.008v-.005h-.01c-1.53-.949-1.53-.949 0 0zm11.368-6.19c-.3-.15-1.774-.875-2.05-.975-.274-.1-.475-.15-.675.15-.2.3-.775.975-.95 1.175-.175.2-.35.225-.65.075-3.042-1.516-4.385-2.28-6.218-5.424-.225-.387.225-.362.65-.788.1-.1.2-.225.3-.35.1-.1.15-.175.225-.35.075-.175.037-.325-.018-.425-.056-.1-.475-1.15-.65-1.575-.17-.412-.346-.356-.475-.362-.122-.006-.262-.007-.402-.007s-.367.05-.56.25c-.19.2-.727.708-.727 1.727 0 1.02.74 2.007.84 2.15.1.15 1.46 2.228 3.538 3.125 1.62.7 2.215.797 3.015.698.48-.06 1.475-.6 1.675-1.18.2-.58.2-1.08.14-1.18-.06-.1-.225-.15-.525-.3z"/>
                   </svg>
-                  <span className="hidden sm:inline">App मध्ये उघडा</span>
                 </button>
+                
+                {/* Visual Placeholder Settings Icon */}
+                <button className="p-2 hover:bg-slate-200/60 text-[#54656f] rounded-full transition-colors hidden sm:block">
+                  <MoreVertical size={16} />
+                </button>
+                
                 <button 
                   onClick={() => setShowWAModal(false)}
-                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
+                  className="p-2 text-[#54656f] hover:bg-slate-200/60 rounded-full transition-all"
                 >
                   <X size={18} />
                 </button>
               </div>
             </div>
 
-            {/* Chat Messages Panel */}
-            <div className="flex-1 overflow-y-auto p-4 bg-slate-50/50 space-y-4 min-h-0">
+            {/* Chat Messages Panel with SVG Doodle Wallpaper overlay */}
+            <div 
+              className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0 relative select-text"
+              style={{
+                backgroundColor: "#efeae2",
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='%239c92ac' fill-opacity='0.05'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3z'/%3E%3C/g%3E%3C/svg%3E")`
+              }}
+            >
               {chatMessages.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-2 text-slate-400">
-                  <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-300">
-                    <MessageSquare size={24} />
+                <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3 text-slate-500 bg-white/70 rounded-3xl backdrop-blur-sm max-w-sm mx-auto shadow-sm my-12 border border-slate-100">
+                  <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/10">
+                    <MessageSquare size={22} />
                   </div>
-                  <p className="text-xs font-semibold">कोणताही जुना संवाद उपलब्ध नाही.</p>
-                  <p className="text-[10px] text-slate-400 max-w-xs">खाली मेसेज लिहून थेट चॅटिंग सुरू करा. सर्व संवाद येथे आणि डेटाबेसमध्ये सेव्ह केला जाईल.</p>
+                  <p className="text-xs font-extrabold text-slate-800">सध्या कोणताही जुना संवाद नाही.</p>
+                  <p className="text-[10px] text-slate-500 max-w-xs font-semibold leading-relaxed">
+                    खाली मेसेज लिहून थेट संवाद सुरू करा. सर्व संभाषणे डेटाबेसमध्ये जतन केली जातात.
+                  </p>
                 </div>
               ) : (
                 chatMessages.map((msg) => {
@@ -1269,7 +1285,6 @@ export default function LeadsPage() {
                   const isBot = msg.sender === 'bot';
                   const isStaff = msg.sender === 'staff';
                   
-                  // Timestamp formatter
                   let timeStr = "";
                   if (msg.dateObj) {
                     timeStr = msg.dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -1278,30 +1293,33 @@ export default function LeadsPage() {
                   return (
                     <div 
                       key={msg.id}
-                      className={`flex flex-col ${isCustomer ? 'items-start' : 'items-end'} w-full`}
+                      className={`flex ${isCustomer ? 'justify-start' : 'justify-end'} w-full animate-in fade-in zoom-in-95 duration-150`}
                     >
                       <div 
-                        className={`max-w-[80%] rounded-2xl px-4 py-2.5 shadow-sm text-xs font-medium ${
+                        className={`max-w-[85%] rounded-lg px-3.5 py-1.5 text-xs font-medium shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] relative leading-relaxed ${
                           isCustomer 
-                            ? 'bg-white text-slate-800 rounded-tl-none border border-slate-100' 
-                            : isBot
-                              ? 'bg-emerald-50 text-emerald-900 border border-emerald-100/50 rounded-tr-none'
-                              : 'bg-indigo-600 text-white rounded-tr-none'
+                            ? 'bg-white text-[#111b21] rounded-tl-none border border-slate-100/30' 
+                            : 'bg-[#d9fdd3] text-[#111b21] rounded-tr-none'
                         }`}
                       >
-                        {/* Sender Badge */}
-                        <div className="flex items-center gap-1.5 mb-1 text-[9px] font-black uppercase tracking-wider opacity-60">
+                        {/* Sender Label for clarity in admin panel */}
+                        <div className="flex items-center gap-1.5 mb-0.5 text-[8px] font-black uppercase tracking-wider opacity-50">
                           {isCustomer && (msg.userName || 'ग्राहक')}
                           {isBot && '🤖 TechStar Bot'}
                           {isStaff && `👤 ${msg.userName || 'Staff'}`}
                         </div>
                         
-                        {/* Message text */}
-                        <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+                        {/* Text */}
+                        <p className="whitespace-pre-wrap select-text pr-10 text-[11px] leading-normal">{msg.text}</p>
                         
-                        {/* Time */}
-                        <div className={`text-[8px] mt-1 text-right ${isStaff ? 'text-white/60' : 'text-slate-400'}`}>
-                          {timeStr}
+                        {/* Time & Double Checkmark */}
+                        <div className="absolute right-2 bottom-1 flex items-center gap-0.5 text-[8px] text-[#667781] select-none">
+                          <span>{timeStr}</span>
+                          {!isCustomer && (
+                            <span className={isStaff ? 'text-[#53bdeb] font-bold' : 'text-[#8696a0] font-bold'}>
+                              ✓✓
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1311,31 +1329,43 @@ export default function LeadsPage() {
               <div ref={chatEndRef} />
             </div>
 
-            {/* Composer Footer */}
-            <div className="p-4 border-t border-slate-100 bg-white shrink-0">
-              <div className="flex items-end gap-2">
-                <textarea 
-                  className="flex-1 h-11 min-h-[44px] max-h-[120px] bg-slate-50 border-2 border-transparent focus:border-emerald-500 rounded-xl p-3 font-medium text-xs outline-none transition-all resize-none leading-normal"
-                  value={waMessage}
-                  onChange={(e) => setWaMessage(e.target.value)}
-                  placeholder="मेसेज येथे टाईप करा..."
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      sendWhatsAppMessage();
-                    }
-                  }}
-                  disabled={isSendingWA}
-                />
-                <button 
-                  disabled={isSendingWA || !waMessage.trim()}
-                  onClick={sendWhatsAppMessage}
-                  className="h-11 w-11 bg-emerald-500 disabled:bg-slate-100 text-white disabled:text-slate-400 rounded-xl shadow-md shadow-emerald-500/10 hover:scale-[1.05] active:scale-[0.95] transition-all flex items-center justify-center shrink-0"
-                  title="मेसेज पाठवा"
-                >
-                  {isSendingWA ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} />}
+            {/* Composer Footer (WhatsApp Web style) */}
+            <div className="px-4 py-2.5 bg-[#f0f2f5] border-t border-[#e9edef] flex items-center gap-2.5 shrink-0 select-none">
+              <div className="flex items-center text-[#54656f]">
+                {/* Emoji Indicator */}
+                <button className="p-1.5 hover:bg-slate-200/60 rounded-full transition-colors">
+                  <Smile size={20} />
+                </button>
+                {/* Attachment Indicator */}
+                <button className="p-1.5 hover:bg-slate-200/60 rounded-full transition-colors">
+                  <Paperclip size={18} />
                 </button>
               </div>
+
+              {/* Text Area Input */}
+              <textarea 
+                className="flex-1 bg-white border-none rounded-lg px-3.5 py-2 text-xs outline-none shadow-[0_1px_1.5px_rgba(0,0,0,0.06)] min-h-[36px] max-h-[100px] leading-relaxed resize-none text-[#111b21] placeholder-[#667781]"
+                value={waMessage}
+                onChange={(e) => setWaMessage(e.target.value)}
+                placeholder="मेसेज टाईप करा..."
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendWhatsAppMessage();
+                  }
+                }}
+                disabled={isSendingWA}
+              />
+
+              {/* Circular WhatsApp Green Send Button */}
+              <button 
+                disabled={isSendingWA || !waMessage.trim()}
+                onClick={sendWhatsAppMessage}
+                className="w-9 h-9 bg-[#00a884] disabled:bg-slate-350 text-white rounded-full flex items-center justify-center hover:bg-[#008f72] transition-colors active:scale-95 shrink-0 shadow-sm disabled:opacity-40"
+                title="मेसेज पाठवा"
+              >
+                {isSendingWA ? <Loader2 className="animate-spin" size={16} /> : <Send size={15} />}
+              </button>
             </div>
           </div>
         </div>
@@ -1343,12 +1373,12 @@ export default function LeadsPage() {
 
       {/* Excel Mapping Bottom Sheet */}
       {showMappingModal && (
-        <div className="fixed inset-0 z-[150] flex items-end justify-center">
+        <div className="fixed inset-0 z-[150] flex items-end md:items-center justify-center p-0 md:p-4">
           <div 
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" 
             onClick={() => !isUploading && setShowMappingModal(false)} 
           />
-          <div className="w-full max-w-md bg-white rounded-t-[2.5rem] shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300 max-h-[85vh]">
+          <div className="w-full max-w-md bg-white rounded-t-[2.5rem] md:rounded-[2rem] shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300 max-h-[85vh] md:max-h-[80vh]">
             <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-4 shrink-0" />
             <div className="px-6 pb-4 border-b border-slate-50 shrink-0">
               <h3 className="text-base font-black text-slate-800 tracking-tight">Excel कॉलम्स मॅप करा</h3>
