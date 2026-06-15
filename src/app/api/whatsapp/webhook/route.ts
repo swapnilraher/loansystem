@@ -381,7 +381,7 @@ function generateDetailsText(session: { name: string; category: string; language
   if (session.responses && Object.keys(session.responses).length > 0) {
     text += `\nCollected Answers:\n`;
     for (const [key, value] of Object.entries(session.responses)) {
-      if (key === 'adId' || key === 'adHeadline' || key === 'adBody') continue;
+      if (key === 'adId' || key === 'adHeadline' || key === 'adBody' || key === 'leadId') continue;
       const formattedKey = key.replace(/([A-Z])/g, ' $1').trim();
       text += `- ${formattedKey.toUpperCase()}: ${value}\n`;
     }
@@ -393,115 +393,137 @@ function generateDetailsText(session: { name: string; category: string; language
   return text;
 }
 
-// ─── Gemini AI Helpers ──────────────────────────────────────────────────────────
-async function callGeminiAPI(prompt: string): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return "";
+// ─── Custom Local AI Responder for Loan Info (Private, Fast, Rule-based NLP) ───
+function localLoanAIResponder(userText: string, lang: string): string {
+  const lower = userText.toLowerCase().trim();
+  
+  const mrResponses = {
+    greeting: "नमस्कार! मी टेकस्टारचा एआय सहाय्यक आहे. मी तुम्हाला कर्जाविषयी माहिती देऊ शकतो. विचारण्यासाठी कीवर्ड वापरा जसे की: व्याजदर, कागदपत्रे, पात्रता, प्रोसेसिंग फी इ.",
+    rate: "कर्जाचे व्याजदर खालीलप्रमाणे आहेत:\n- गृह कर्ज (Home Loan): ८.५०% पासून सुरू\n- वैयक्तिक कर्ज (Personal Loan): १०.४९% पासून सुरू\n- बिझनेस लोन (Business Loan): १२% पासून सुरू\n\nव्याजदर तुमच्या क्रेडिट स्कोर आणि मासिक उत्पन्नावर अवलंबून असेल.",
+    docs: "कर्जासाठी आवश्यक कागदपत्रे:\n१. पॅन कार्ड आणि आधार कार्ड\n२. शेवटच्या ३ महिन्यांची सॅलरी स्लिप (नोकरी करत असल्यास)\n३. शेवटच्या ६ महिन्यांचे बँक स्टेटमेंट\n४. आयटीआर (व्यवसाय असल्यास)",
+    eligibility: "कर्ज मिळवण्यासाठी पात्रता निकष:\n- तुमचे वय २१ ते ६० वर्षे असावे.\n- नोकरी करत असल्यास मासिक पगार किमान ₹१५,००० असावा.\n- तुमचा क्रेडिट/सिबिल (CIBIL) स्कोर ७००+ असावा.",
+    time: "कागदपत्रे योग्य आणि पूर्ण असल्यास, वैयक्तिक कर्ज २४ ते ४८ तासात आणि गृह कर्ज ३ ते ७ दिवसांत मंजूर केले जाते.",
+    fee: "लोन प्रोसेसिंग फी बँकेनुसार बदलते, साधारणपणे कर्जाच्या रक्कमेच्या १% ते २% पर्यंत असते.",
+    lap: "प्रॉपर्टीवर कर्ज (Loan Against Property) चे व्याजदर ९% ते ११% पर्यंत असून ३० वर्षांपर्यंतची मुदत मिळू शकते. मालमत्तेचे मूल्यांकन आणि उत्पन्न पाहून कर्ज मंजूर केले जाते.",
+    card: "आम्ही अग्रगण्य बँकांचे क्रेडिट कार्ड्स उपलब्ध करून देतो. तुमच्या पगार आणि क्रेडिट स्कोरनुसार कार्ड्स मिळतील. कोणतीही कागदपत्रे ऑनलाईन अपलोड करू शकता.",
+    insurance: "आम्ही जीवन विमा (Life Insurance), आरोग्य विमा (Health Insurance) आणि वाहन विमा (Vehicle Insurance) प्रदान करतो. तुमचे वय आणि गरजेनुसार सर्वोत्तम पॉलिसी निवडली जाईल.",
+    contact: "आमच्याशी थेट बोलण्यासाठी किंवा ऑफलाईन सल्ला घेण्यासाठी संपर्क क्रमांक: ७०२०६४६००७ किंवा ९५७९००५६४५ वर कॉल करा.",
+    tenure: "कर्जाची मुदत (Tenure):\n- गृह कर्ज (Home Loan): ३० वर्षांपर्यंत\n- वैयक्तिक कर्ज (Personal Loan): १ ते ५ वर्षे\n- बिझनेस लोन (Business Loan): १ ते ५ वर्षे\n- प्रॉपर्टीवर कर्ज (LAP): १५ ते २० वर्षांपर्यंत",
+    limit: "कमाल कर्जाची मर्यादा (Loan Limit):\n- वैयक्तिक/बिझनेस लोन: ₹५० लाखांपर्यंत (तुमच्या प्रोफाइलनुसार)\n- गृह कर्ज / प्रॉपर्टीवर कर्ज (LAP): मालमत्तेच्या बाजार मूल्याच्या ८०% पर्यंत",
+    cibil: "सिबिल (CIBIL) स्कोर:\n- त्वरित कर्ज मंजुरी आणि कमी व्याजदरासाठी ७०० किंवा त्याहून अधिक क्रेडिट/सिबिल स्कोर असणे आवश्यक आहे.\n- ७०० पेक्षा कमी स्कोर असल्यास अतिरिक्त कागदपत्रांची पडताळणी होऊ शकते.",
+    unknown: "मला तुमचे बोलणे पूर्णपणे समजले नाही. कृपया कर्जाचे व्याजदर, कागदपत्रे, पात्रता, संपर्क याविषयी विचारण्यासाठी योग्य शब्द वापरा."
+  };
+
+  const hiResponses = {
+    greeting: "नमस्कार! मैं टेकस्टार का एआई सहायक हूँ। मैं आपको लोन के बारे में जानकारी दे सकता हूँ। जैसे: ब्याज दर, दस्तावेज, पात्रता, प्रोसेसिंग फीस आदि।",
+    rate: "लोन की ब्याज दरें इस प्रकार हैं:\n- होम लोन (Home Loan): 8.50% से शुरू\n- पर्सनल लोन (Personal Loan): 10.49% से शुरू\n- बिजनेस लोन (Business Loan): 12% से शुरू\n\nअंतिम ब्याज दर आपके सिबिल स्कोर पर निर्भर करती है।",
+    docs: "लोन के लिए आवश्यक दस्तावेज:\n1. पैन कार्ड और आधार कार्ड\n2. पिछले 3 महीने की सैलरी स्लिप (नौकरी पेशा के लिए)\n3. पिछले 6 महीने का bank statement\n4. आईटीआर (व्यवसाय के लिए)",
+    eligibility: "लोन के लिए पात्रता मानदंड:\n- आपकी आयु 21 से 60 वर्ष होनी चाहिए।\n- न्यूनतम मासिक वेतन ₹15,000 होना चाहिए।\n- सिबिल (CIBIL) स्कोर 700+ होना चाहिए।",
+    time: "दस्तावेज सही होने पर पर्सनल लोन 24 से 48 घंटे में और होम लोन 3 से 7 दिनों में मंजूर हो जाता है।",
+    fee: "लोन प्रोसेसिंग फीस बैंक के अनुसार लोन राशि का 1% से 2% तक होती है।",
+    lap: "प्रॉपर्टी पर लोन (Loan Against Property) की दरें 9% से शुरू होती हैं। संपत्ति का बाजार मूल्य और आपकी आय देखकर लोन दिया जाता है।",
+    card: "हम विभिन्न बैंकों के क्रेडिट कार्ड प्रदान करते हैं। आपके सैलरी और सिबिल स्कोर के अनुसार सर्वश्रेष्ठ कार्ड दिया जाएगा।",
+    insurance: "हम जीवन बीमा (Life Insurance), स्वास्थ्य बीमा (Health Insurance) और वाहन बीमा (Vehicle Insurance) प्रदान करते हैं।",
+    contact: "हमसे संपर्क करने के लिए कॉल करें: 7020646007 या 9579005645।",
+    tenure: "लोन की अवधि (Tenure):\n- होम लोन (Home Loan): 30 वर्ष तक\n- पर्सनल लोन (Personal Loan): 1 से 5 वर्ष\n- बिजनेस लोन (Business Loan): 1 से 5 वर्ष\n- प्रॉपर्टी पर लोन (LAP): 15 से 20 वर्ष तक",
+    limit: "अधिकतम लोन राशि (Loan Limit):\n- पर्सनल/बिजनेस लोन: ₹50 लाख तक (प्रोफाइल के अनुसार)\n- होम लोन / प्रॉपर्टी पर लोन: संपत्ति के बाजार मूल्य का 80% तक",
+    cibil: "सिबिल (CIBIL) स्कोर:\n- त्वरित लोन स्वीकृति और कम ब्याज दरों के लिए 700 या उससे अधिक का सिबिल स्कोर होना अच्छा माना जाता है।\n- 700 से कम स्कोर होने पर अतिरिक्त दस्तावेज सत्यापन की आवश्यकता हो सकती है।",
+    unknown: "मुझे आपके द्वारा भेजा गया संदेश समझ नहीं आया। कृपया ब्याज दर, दस्तावेज, पात्रता, संपर्क जैसे कीवर्ड्स का उपयोग करें।"
+  };
+
+  const enResponses = {
+    greeting: "Hello! I am the Techstar AI Assistant. I can help you with loan information. Ask me about: interest rates, documents, eligibility, processing fee, etc.",
+    rate: "Our current interest rates are:\n- Home Loan: Starts at 8.50% p.a.\n- Personal Loan: Starts at 10.49% p.a.\n- Business Loan: Starts at 12.00% p.a.\n\nFinal rates depend on your credit history and profile.",
+    docs: "Required documents:\n1. PAN Card and Aadhaar Card\n2. Last 3 months' salary slips (for Salaried)\n3. Last 6 months' bank statements\n4. ITR / Business proof (for Self-Employed)",
+    eligibility: "Eligibility Criteria:\n- Age between 21 and 60 years.\n- Minimum monthly salary of ₹15,000.\n- CIBIL score of 700 or above.",
+    time: "Approval turnaround time:\n- Personal Loan: 24 to 48 hours\n- Home Loan: 3 to 7 working days (subject to verification).",
+    fee: "Processing fees range from 1% to 2% of the loan amount, varying by lender bank.",
+    lap: "Loan Against Property interest rates start at 9.00% p.a. with flexible tenure up to 30 years.",
+    card: "We facilitate credit card applications from leading banks. Eligible cards depend on your income and credit profile.",
+    insurance: "We provide Life Insurance, Health Insurance, and Vehicle Insurance policies tailored to your needs.",
+    contact: "For human assistance, call us at 7020646007 or 9579005645.",
+    tenure: "Loan Tenure Options:\n- Home Loan: Up to 30 years\n- Personal Loan: 1 to 5 years (12 to 60 months)\n- Business Loan: 1 to 5 years\n- Loan Against Property (LAP): Up to 15-20 years",
+    limit: "Maximum Loan Limits:\n- Personal/Business Loan: Up to ₹50 Lakhs (based on income and credit profile)\n- Home Loan / LAP: Up to 80% of property market value",
+    cibil: "CIBIL / Credit Score:\n- A credit/CIBIL score of 700 or above is preferred for quick loan approvals at lower interest rates.\n- Scores below 700 may require extra document verification and might attract higher interest rates.",
+    unknown: "I did not get your request. Please ask about interest rates, documents, eligibility, processing fee, or contact details."
+  };
+
+  const resp = lang === 'mr' ? mrResponses : (lang === 'hi' ? hiResponses : enResponses);
+
+  if (lower.includes("hi") || lower.includes("hello") || lower.includes("नमस्कार") || lower.includes("namaskar")) {
+    return resp.greeting;
   }
-  try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 150 }
-      })
-    });
-    if (!res.ok) {
-      console.error("Gemini API Error:", await res.text());
-      return "";
-    }
-    const data = await res.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    return text.trim();
-  } catch (err) {
-    console.error("Failed to call Gemini:", err);
-    return "";
+  if (lower.includes("व्याज") || lower.includes("दर") || lower.includes("interest") || lower.includes("rate") || lower.includes("vyaj") || lower.includes("percent")) {
+    return resp.rate;
   }
+  if (lower.includes("कागद") || lower.includes("document") || lower.includes("paper") || lower.includes("proof")) {
+    return resp.docs;
+  }
+  if (lower.includes("पात्र") || lower.includes("eligibility") || lower.includes("criteria") || lower.includes("salary") || lower.includes("पगार")) {
+    return resp.eligibility;
+  }
+  if (lower.includes("वेळ") || lower.includes("time") || lower.includes("दिवस") || lower.includes("hours") || lower.includes("approval")) {
+    return resp.time;
+  }
+  if (lower.includes("शुल्क") || lower.includes("processing") || lower.includes("fee") || lower.includes("charges") || lower.includes("फी")) {
+    return resp.fee;
+  }
+  if (lower.includes("प्रॉपर्टी") || lower.includes("property") || lower.includes("lap") || lower.includes("तारण")) {
+    return resp.lap;
+  }
+  if (lower.includes("card") || lower.includes("कार्ड") || lower.includes("credit")) {
+    return resp.card;
+  }
+  if (lower.includes("insurance") || lower.includes("विमा") || lower.includes("बीमा") || lower.includes("accident") || lower.includes("medical")) {
+    return resp.insurance;
+  }
+  if (lower.includes("phone") || lower.includes("contact") || lower.includes("call") || lower.includes("संपर्क") || lower.includes("नंबर")) {
+    return resp.contact;
+  }
+  if (lower.includes("tenure") || lower.includes("term") || lower.includes("duration") || lower.includes("varshe") || lower.includes("varsh") || lower.includes("kalavadhi") || lower.includes("मुदत") || lower.includes("वर्ष") || lower.includes("महिने") || lower.includes("कालावधी") || lower.includes("अवधि") || lower.includes("साल") || lower.includes("महीने")) {
+    return resp.tenure;
+  }
+  if (lower.includes("limit") || lower.includes("amount") || lower.includes("max") || lower.includes("maximum") || lower.includes("paryant") || lower.includes("milnar") || lower.includes("रक्कम") || lower.includes("मर्यादा") || lower.includes("मिळणार") || lower.includes("कर्ज") || lower.includes("राशि") || lower.includes("सीमा")) {
+    return resp.limit;
+  }
+  if (lower.includes("cibil") || lower.includes("score") || lower.includes("credit") || lower.includes("सिबिल") || lower.includes("स्कोर") || lower.includes("क्रेडिट")) {
+    return resp.cibil;
+  }
+
+  return resp.unknown;
 }
 
-async function classifyDropdownWithAI(userText: string, question: FlowQuestion): Promise<string> {
+// Local natural language classifier for dropdown fields
+function localClassifyDropdown(userText: string, question: FlowQuestion): string {
+  const lower = userText.toLowerCase().trim();
   const options = question.options || [];
   if (options.length === 0) return "Unknown";
-  
-  const prompt = `Classify the user's chat message into one of these exact options: ${JSON.stringify(options)}.
-User message: "${userText}"
-Return only one of the options from the list if it matches the meaning, otherwise return "Unknown".
-Do not include any explanation or extra text in your response.`;
 
-  const result = await callGeminiAPI(prompt);
-  if (options.includes(result)) {
-    return result;
+  if (question.field === 'employmentType') {
+    const salariedKeywords = ["job", "service", "company", "employ", "salari", "काम करतो", "नोकरी", "पगारदार", "नौकरी", "वेतन", "private", "govt", "सरकारी"];
+    const selfKeywords = ["business", "shop", "self", "own", "proprietor", "व्यवसाय", "धंदा", "दुकान", "स्वतःचा", "व्यापार", "दुकानदार", "धंदेवाईक"];
+    
+    if (salariedKeywords.some(kw => lower.includes(kw))) return "Salaried";
+    if (selfKeywords.some(kw => lower.includes(kw))) return "Self Employed";
   }
+
+  if (question.field === 'insuranceType') {
+    const lifeKeywords = ["life", "term", "family", "जीवन", "आयुष्य", "मुदत"];
+    const healthKeywords = ["health", "medic", "hospital", "doctor", "आरोग्य", "स्वास्थ्य", "वैद्यकीय", "औषध", "आजारी"];
+    const vehicleKeywords = ["vehicle", "car", "bike", "auto", "गाडी", "वाहन", "फोर व्हीलर", "टू व्हीलर"];
+
+    if (lifeKeywords.some(kw => lower.includes(kw))) return "Life Insurance";
+    if (healthKeywords.some(kw => lower.includes(kw))) return "Health Insurance";
+    if (vehicleKeywords.some(kw => lower.includes(kw))) return "Vehicle Insurance";
+  }
+
+  for (const opt of options) {
+    if (lower === opt.toLowerCase()) {
+      return opt;
+    }
+  }
+
   return "Unknown";
-}
-
-function fallbackAIResponder(userText: string, lang: string): string {
-  const lower = userText.toLowerCase();
-  
-  if (lang === 'mr') {
-    if (lower.includes("व्याज") || lower.includes("दर") || lower.includes("interest") || lower.includes("rate")) {
-      return "आमचा वैयक्तिक कर्ज (Personal Loan) व्याजदर १०.४९% पासून आणि गृह कर्ज (Home Loan) ८.५०% पासून सुरू होतो. व्याजदर तुमच्या क्रेडिट स्कोरवर अवलंबून असेल.";
-    }
-    if (lower.includes("कागद") || lower.includes("document")) {
-      return "कर्जासाठी लागणारी मुख्य कागदपत्रे: पॅन कार्ड, आधार कार्ड, शेवटच्या ३ महिन्यांची सॅलरी स्लिप आणि ६ महिन्यांचे बँक स्टेटमेंट.";
-    }
-    if (lower.includes("पात्रता") || lower.includes("eligibility")) {
-      return "पात्रतेसाठी तुमचे वय २१ ते ६० वर्षे असावे आणि मासिक पगार किमान ₹१५,००० असावा. चांगला क्रेडिट स्कोर असल्यास मंजुरी लवकर मिळते.";
-    }
-    if (lower.includes("वेळ") || lower.includes("time") || lower.includes("किती दिवस")) {
-      return "कागदपत्रे योग्य असल्यास, २४ ते ४८ तासात कर्ज मंजूर केले जाते.";
-    }
-    return "तुमच्या प्रश्नाचे उत्तर मिळवण्यासाठी कृपया खालील पर्यायांमधून तुमचे लोन प्रॉडक्ट निवडा, आमचे अधिकारी तुम्हाला फोन करून अधिक माहिती देतील.";
-  }
-  
-  if (lang === 'hi') {
-    if (lower.includes("ब्याज") || lower.includes("दर") || lower.includes("interest") || lower.includes("rate")) {
-      return "हमारा पर्सनल लोन ब्याज दर 10.49% और होम लोन 8.50% प्रति वर्ष से शुरू होता है। यह आपके सिबिल स्कोर पर निर्भर करता है।";
-    }
-    if (lower.includes("कागजात") || lower.includes("document")) {
-      return "लोन के लिए आवश्यक दस्तावेज: पैन कार्ड, आधार कार्ड, पिछले 3 महीने की सैलरी स्लिप और 6 महीने का बैंक स्टेटमेंट।";
-    }
-    if (lower.includes("पात्रता") || lower.includes("eligibility")) {
-      return "पात्रता के लिए आपकी आयु 21 से 60 वर्ष और न्यूनतम वेतन ₹15,000 होना चाहिए।";
-    }
-    if (lower.includes("समय") || lower.includes("time") || lower.includes("कितने दिन")) {
-      return "सभी दस्तावेज सही होने पर 24 से 48 घंटों में लोन मंजूर हो जाता है।";
-    }
-    return "आपके प्रश्न का उत्तर जानने के लिए कृपया नीचे दिए गए विकल्पों में से अपना लोन प्रकार चुनें, हमारे अधिकारी आपसे संपर्क करेंगे।";
-  }
-
-  if (lower.includes("interest") || lower.includes("rate")) {
-    return "Our Personal Loan rates start at 10.49% p.a. and Home Loan rates start at 8.50% p.a. Final rates depend on your credit score.";
-  }
-  if (lower.includes("document") || lower.includes("paper")) {
-    return "Documents required: PAN Card, Aadhaar Card, last 3 months salary slips, and 6 months bank statements.";
-  }
-  if (lower.includes("eligibility") || lower.includes("criteria")) {
-    return "Eligibility: Age 21-60, minimum salary of ₹15,000, and a good CIBIL score (700+ is preferred).";
-  }
-  if (lower.includes("time") || lower.includes("days") || lower.includes("how long")) {
-    return "Once all documents are submitted, loan processing and approval takes 24 to 48 hours.";
-  }
-  return "To get detailed information, please select your loan product from the menu below, and our executive will contact you shortly.";
-}
-
-async function handleAIQuery(userText: string, lang: string): Promise<string> {
-  const prompt = `You are a helpful customer support AI for "TechStar Money Solutions", a premium loan marketplace in India.
-The customer's preferred language is ${LANG_NAMES[lang]}.
-Answer their query in a polite, helpful, and concise manner (maximum 2-3 sentences).
-If they ask about interest rates, mention that Home Loan starts at 8.5% p.a. and Personal Loan starts at 10.49% p.a.
-If they ask for contact info, mention the phone number 7020646007.
-User Query: "${userText}"
-Response:`;
-
-  const aiRes = await callGeminiAPI(prompt);
-  if (aiRes) {
-    return aiRes;
-  }
-  return fallbackAIResponder(userText, lang);
 }
 
 // ─── Firestore helpers ─────────────────────────────────────────────────────────
@@ -543,6 +565,62 @@ async function saveSession(phone: string, data: { step: number; category: string
 async function deleteSession(phone: string) {
   const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/waSession/${phone}?key=${FIREBASE_API_KEY}`;
   await fetch(url, { method: 'DELETE' });
+}
+
+// CRM Helper: Checks if a lead with this phone number already exists
+async function findExistingLead(phone: string) {
+  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery?key=${FIREBASE_API_KEY}`;
+  
+  const getQueryForPhone = (ph: string) => ({
+    structuredQuery: {
+      from: [{ collectionId: "leads" }],
+      where: {
+        fieldFilter: {
+          field: { fieldPath: "phone" },
+          op: "EQUAL",
+          value: { stringValue: ph }
+        }
+      },
+      limit: 1
+    }
+  });
+
+  try {
+    let res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(getQueryForPhone(phone))
+    });
+    if (!res.ok) return null;
+    let result = await res.json();
+    
+    // Fallback: If not found and phone is 10 digits, search with "91" prefix for legacy leads
+    if ((!result || result.length === 0 || !result[0].document) && phone.length === 10) {
+      const legacyPhone = "91" + phone;
+      res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(getQueryForPhone(legacyPhone))
+      });
+      if (res.ok) {
+        result = await res.json();
+      }
+    }
+
+    if (result && result.length > 0 && result[0].document) {
+      const doc = result[0].document;
+      return {
+        id: doc.name.split("/").pop() || "",
+        name: doc.fields?.name?.stringValue || "Customer",
+        status: doc.fields?.status?.stringValue || "New Lead",
+        category: doc.fields?.category?.stringValue || doc.fields?.type?.stringValue || "Loan Application",
+        language: doc.fields?.language?.stringValue || "English"
+      };
+    }
+  } catch (err) {
+    console.error("Error finding existing lead in CRM:", err);
+  }
+  return null;
 }
 
 async function createLead(data: Record<string, string>): Promise<string> {
@@ -664,7 +742,7 @@ export async function POST(request: Request) {
 
     let text: string = (msg.text?.body || '').trim();
 
-    // Map WhatsApp Cloud API interactive select buttons & lists back to plain text selections
+    // Map WhatsApp Cloud API interactive replies back to plain text keys
     if (msg.type === 'interactive') {
       const interactive = msg.interactive;
       if (interactive.type === 'button_reply') {
@@ -679,8 +757,41 @@ export async function POST(request: Request) {
     // Load existing session for this user
     let session = await getSession(from);
 
-    // ── No session: greet, create lead instantly, and ask language ──
+    // ── No session: Greet and check existing lead in CRM ──
     if (!session) {
+      const existingLead = await findExistingLead(from);
+      
+      if (existingLead) {
+        // Greet user with their status and ask if they need help
+        const leadLang = existingLead.language || "English";
+        const LANG_NAME_TO_CODE: Record<string, string> = {
+          "English": "en",
+          "Hindi": "hi",
+          "Marathi": "mr"
+        };
+        const lang = LANG_NAME_TO_CODE[leadLang] || "en";
+        
+        const statusMsg = {
+          en: `👋 Hello *${existingLead.name}*!\n\nWe found your existing application for *${existingLead.category}*.\n\n📊 *Status:* ${existingLead.status}\n\nDo you need any further help? Please type your query (e.g. interest rate, required documents) or reply *new loan* to apply again.`,
+          hi: `👋 नमस्कार *${existingLead.name}*!\n\nहमें आपके *${existingLead.category}* के आवेदन की स्थिति (Status) *${existingLead.status}* मिली है।\n\nक्या आपको और कोई मदद चाहिए? कृपया अपना प्रश्न यहाँ लिखें (जैसे: ब्याज दर, आवश्यक दस्तावेज) या फिर से आवेदन करने के लिए *new loan* लिखें।`,
+          mr: `👋 नमस्कार *${existingLead.name}*!\n\nतुमच्या *${existingLead.category}* च्या कर्जाच्या अर्जाची सद्यस्थिती (Status) *${existingLead.status}* अशी आहे.\n\nतुम्हाला अजून काही मदत पाहिजे का? कृपया तुमचा प्रश्न येथे टाईप करा (उदा. व्याजदर, कागदपत्रे) किंवा नवीन कर्जासाठी *new loan* लिहा.`
+        }[lang] || `👋 Hello *${existingLead.name}*! Your loan status is: ${existingLead.status}\n\nDo you need any further help?`;
+        
+        await sendWA(from, statusMsg);
+        
+        // Start session in step 99 (support mode)
+        await saveSession(from, {
+          step: 99,
+          category: existingLead.category,
+          name: existingLead.name,
+          responses: { leadId: existingLead.id },
+          language: lang,
+          leadId: existingLead.id
+        });
+        return NextResponse.json({ ok: true });
+      }
+
+      // No existing lead: Start fresh flow
       const referral = msg.referral;
       const initialResponses: Record<string, string> = {};
       if (referral) {
@@ -689,7 +800,6 @@ export async function POST(request: Request) {
         initialResponses.adBody = referral.body || "";
       }
 
-      // Generate early details summary
       const initialDetails = generateDetailsText({
         name: "",
         category: "",
@@ -697,7 +807,7 @@ export async function POST(request: Request) {
         responses: initialResponses
       });
 
-      // Create initial lead record immediately
+      // Create initial lead record immediately (with phone and referral details)
       const leadId = await createLead({
         phone: from,
         source: referral ? `Meta Ads - ${referral.headline}` : 'WhatsApp Automation',
@@ -710,12 +820,44 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    const lang = session.language || 'en';
+
+    // ── Step 99: Existing Lead Support Mode ──
+    if (session.step === 99) {
+      const restartKeywords = ["new loan", "apply", "start again", "restart", "नवीन कर्ज", "नया लोन", "आवेदन", "पुन्हा सुरू करा"];
+      if (restartKeywords.some(kw => text.toLowerCase().includes(kw))) {
+        await deleteSession(from);
+        
+        // Start fresh flow
+        const leadId = await createLead({
+          phone: from,
+          source: 'WhatsApp Automation',
+          details: generateDetailsText({ name: "", category: "", language: "en", responses: {} })
+        });
+        
+        await sendWA(from, langInteractive);
+        await saveSession(from, { step: 1, category: '', name: '', responses: {}, language: 'en', leadId });
+        return NextResponse.json({ ok: true });
+      }
+
+      // Parse request using the local AI/loan info responder
+      const aiReply = localLoanAIResponder(text, lang);
+      
+      const followUpText = {
+        en: `\n\nIs there anything else I can help you with? (Or reply *new loan* to apply again)`,
+        hi: `\n\nक्या मैं आपकी किसी और चीज़ में सहायता कर सकता हूँ? (या दोबारा आवेदन करने के लिए *new loan* लिखें)`,
+        mr: `\n\nमी तुम्हाला अजून काही मदत करू शकतो का? (किंवा नवीन कर्जासाठी *new loan* लिहा)`
+      }[lang] || `\n\nNeed any more help?`;
+
+      await sendWA(from, `${aiReply}${followUpText}`);
+      return NextResponse.json({ ok: true });
+    }
+
     // ── Step 1: Wait for language selection ──
     if (session.step === 1) {
       const langKey = text;
       if (langKey !== '1' && langKey !== '2' && langKey !== '3') {
-        // Run general AI query handler as fallback, then repeat language choice
-        const aiReply = await handleAIQuery(text, 'en');
+        const aiReply = localLoanAIResponder(text, 'en');
         await sendWA(from, `${aiReply}\n\n*Please select your language:*`);
         await sendWA(from, langInteractive);
         return NextResponse.json({ ok: true });
@@ -741,8 +883,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    const lang = session.language || 'en';
-
     // ── Step 2: Got name → show loan category menu ──
     if (session.step === 2) {
       const name = text;
@@ -754,7 +894,6 @@ export async function POST(request: Request) {
         responses: session.responses
       });
 
-      // Update lead with name and updated summary
       await updateLead(session.leadId, { name, details: detailsText });
 
       const catPayload = getCategoryListPayload(lang, name);
@@ -767,8 +906,7 @@ export async function POST(request: Request) {
     if (session.step === 3) {
       const num = parseInt(text) - 1;
       if (isNaN(num) || num < 0 || num >= LOAN_CATEGORIES.length) {
-        // Run AI query fallback and re-show categories list
-        const aiReply = await handleAIQuery(text, lang);
+        const aiReply = localLoanAIResponder(text, lang);
         await sendWA(from, aiReply);
         await sendWA(from, getCategoryListPayload(lang, session.name));
         return NextResponse.json({ ok: true });
@@ -783,7 +921,6 @@ export async function POST(request: Request) {
         responses: session.responses
       });
 
-      // Update lead with category choice
       await updateLead(session.leadId, {
         category: category,
         type: category,
@@ -822,7 +959,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: true });
       }
 
-      // Check option index or use AI classification to normalize dropdown responses
+      // Check option index or use local natural-language classification
       let answer = text;
       let isClassified = false;
       if (currentQ.type === 'dropdown' && currentQ.options) {
@@ -831,19 +968,18 @@ export async function POST(request: Request) {
           answer = currentQ.options[num];
           isClassified = true;
         } else {
-          const aiClassified = await classifyDropdownWithAI(text, currentQ);
-          if (aiClassified !== "Unknown") {
-            answer = aiClassified;
+          const localClassified = localClassifyDropdown(text, currentQ);
+          if (localClassified !== "Unknown") {
+            answer = localClassified;
             isClassified = true;
           }
         }
       } else {
-        isClassified = true; // Natural text/number questions always accept responses
+        isClassified = true;
       }
 
-      // If cannot be classified or mapped, answer user query and repeat question
       if (!isClassified) {
-        const aiReply = await handleAIQuery(text, lang);
+        const aiReply = localLoanAIResponder(text, lang);
         await sendWA(from, aiReply);
         await sendWA(from, getQuestionPayload(lang, currentQ));
         return NextResponse.json({ ok: true });
@@ -858,7 +994,6 @@ export async function POST(request: Request) {
         responses: updatedResponses
       });
 
-      // Update lead in real-time
       await updateLead(session.leadId, {
         [currentQ.field]: answer,
         details: detailsText
@@ -868,7 +1003,6 @@ export async function POST(request: Request) {
       const nextQ = flow[nextIndex];
 
       if (nextQ) {
-        // Send next question
         const questionPayload = getQuestionPayload(lang, nextQ);
         const questionIndexText = {
           en: `Q${nextIndex + 1}: `,
@@ -883,7 +1017,6 @@ export async function POST(request: Request) {
         }
         await saveSession(from, { ...session, step: session.step + 1, responses: updatedResponses });
       } else {
-        // All questions completed
         const categoryLocalized = LOCALIZED_CATEGORIES[lang][LOAN_CATEGORIES.indexOf(session.category)];
 
         const thankYouText = MSG_THANK_YOU[lang]
