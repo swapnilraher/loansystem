@@ -46,9 +46,9 @@ export default function PermissionsPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {roles.map((role, i) => (
-          <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
+          <div key={i} className="bg-white p-5 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
             <div className="absolute -top-4 -right-4 w-16 h-16 bg-primary/5 rounded-full group-hover:scale-150 transition-transform" />
             <div className="relative z-10">
               <div className="w-12 h-12 bg-blue-50 text-primary rounded-2xl flex items-center justify-center mb-4 border border-blue-100">
@@ -71,8 +71,8 @@ export default function PermissionsPage() {
       </div>
 
       {/* Permission Matrix */}
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-8 border-b border-slate-50 flex items-center justify-between">
+      <div className="bg-white rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-5 sm:p-8 border-b border-slate-50 flex items-center justify-between">
           <div>
             <h3 className="text-xl font-black text-secondary">Module Access Matrix</h3>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Granular control per role</p>
@@ -164,7 +164,7 @@ export default function PermissionsPage() {
 
       {/* Security Settings */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="p-8 bg-gradient-to-br from-indigo-900 to-slate-900 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden">
+        <div className="p-5 sm:p-8 bg-gradient-to-br from-indigo-900 to-slate-900 rounded-2xl sm:rounded-[2.5rem] text-white shadow-xl relative overflow-hidden">
           <div className="absolute bottom-0 right-0 w-64 h-64 bg-primary/20 blur-[100px] rounded-full" />
           <div className="relative z-10 flex items-start gap-6">
             <div className="w-16 h-16 bg-white/10 rounded-[1.5rem] flex items-center justify-center border border-white/10">
@@ -180,7 +180,7 @@ export default function PermissionsPage() {
           </div>
         </div>
 
-        <div className="p-8 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm flex items-start gap-6">
+        <div className="p-5 sm:p-8 bg-white border border-slate-100 rounded-2xl sm:rounded-[2.5rem] shadow-sm flex items-start gap-6">
           <div className="w-16 h-16 bg-blue-50 rounded-[1.5rem] flex items-center justify-center border border-blue-100">
             <Lock size={32} className="text-primary" />
           </div>

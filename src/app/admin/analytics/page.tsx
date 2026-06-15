@@ -123,7 +123,7 @@ export default function AnalyticsDashboardPage() {
       </div>
 
       {/* Property Details Panel */}
-      <div className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
+      <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-6">
           <div className="flex items-start gap-3">
             <div className="w-12 h-12 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center shrink-0">
@@ -164,7 +164,7 @@ export default function AnalyticsDashboardPage() {
           { label: "Avg. Stay Duration", value: "2m 34s", change: "Optimal user conversion", icon: Clock, color: "indigo" },
           { label: "Bounce Rate", value: "34.2%", change: "-4.1% reduction (good)", icon: Compass, color: "amber" }
         ].map((card, i) => (
-          <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between text-start">
+          <div key={i} className="bg-white p-5 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between text-start">
             <div className="flex justify-between items-start mb-4">
               <div className={`p-3 rounded-2xl bg-${card.color}-50 text-${card.color}-600`}>
                 <card.icon size={22} className={card.color === 'emerald' ? 'animate-pulse' : ''} />
@@ -183,7 +183,7 @@ export default function AnalyticsDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* City distribution (कोणता युझर कुठल्या शहरातून आला?) */}
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
+        <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
           <div className="text-start border-b border-slate-100 pb-4">
             <h3 className="text-xl font-black text-secondary">Audience Locations</h3>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">कोठून आले युजर्स? (City distribution)</p>
@@ -210,7 +210,7 @@ export default function AnalyticsDashboardPage() {
         </div>
 
         {/* Device breakdown (कोणत्या डिव्हाईसवरून आला?) */}
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
+        <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
           <div className="text-start border-b border-slate-100 pb-4">
             <h3 className="text-xl font-black text-secondary">Device Breakdown</h3>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">डिव्हाईस वर्गीकरण (Device breakdown)</p>
@@ -239,7 +239,7 @@ export default function AnalyticsDashboardPage() {
         </div>
 
         {/* Pages Stay Duration (कोणत्या पेजवर किती वेळ थांबला?) */}
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
+        <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
           <div className="text-start border-b border-slate-100 pb-4">
             <h3 className="text-xl font-black text-secondary">Top Visited Pages</h3>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">पेजवर थांबण्याचा वेळ (Avg. Stay Duration)</p>
@@ -270,7 +270,7 @@ export default function AnalyticsDashboardPage() {
       </div>
 
       {/* Live Visitors Audit Log */}
-      <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6 text-start">
+      <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6 text-start">
         <div className="flex justify-between items-center border-b border-slate-100 pb-4">
           <div>
             <h3 className="text-xl font-black text-secondary">Live Visitor Activity Log</h3>

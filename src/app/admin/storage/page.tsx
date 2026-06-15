@@ -148,7 +148,7 @@ export default function StoragePage() {
       </div>
 
       {/* File Explorer */}
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Folder className="text-primary" size={20} />
@@ -185,7 +185,7 @@ export default function StoragePage() {
                   {(file.type === 'zip' || file.type === 'rar') && <FileArchive size={20} />}
                   {!['pdf', 'jpg', 'png', 'jpeg', 'mp4', 'mov', 'zip', 'rar'].includes(file.type) && <File size={20} />}
                 </div>
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                   <button onClick={() => handleDelete(file.name)} className="p-1.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg">
                     <Trash2 size={16} />
                   </button>

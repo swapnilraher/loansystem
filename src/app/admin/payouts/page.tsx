@@ -81,7 +81,7 @@ export default function PayoutsSettlement() {
 
       {/* Finance KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
+        <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
           <div className="absolute -right-4 -top-4 w-32 h-32 bg-emerald-50 rounded-full blur-3xl group-hover:bg-emerald-100 transition-colors" />
           <div className="relative z-10">
             <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl w-fit mb-4">
@@ -92,7 +92,7 @@ export default function PayoutsSettlement() {
           </div>
         </div>
 
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
+        <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
           <div className="absolute -right-4 -top-4 w-32 h-32 bg-amber-50 rounded-full blur-3xl group-hover:bg-amber-100 transition-colors" />
           <div className="relative z-10">
             <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl w-fit mb-4">
@@ -103,7 +103,7 @@ export default function PayoutsSettlement() {
           </div>
         </div>
 
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
+        <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
           <div className="absolute -right-4 -top-4 w-32 h-32 bg-blue-50 rounded-full blur-3xl group-hover:bg-blue-100 transition-colors" />
           <div className="relative z-10">
             <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl w-fit mb-4">
@@ -115,8 +115,8 @@ export default function PayoutsSettlement() {
         </div>
       </div>
 
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-5 sm:p-8 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <h3 className="text-xl font-black text-secondary">Commission Breakdown</h3>
           <div className="relative w-64">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16}/>

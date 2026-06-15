@@ -110,7 +110,7 @@ export default function AdminDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, i) => (
-          <div key={i} className="bg-white/70 backdrop-blur-xl p-6 rounded-[2rem] border border-white/20 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all group">
+          <div key={i} className="bg-white/70 backdrop-blur-xl p-5 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-white/20 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all group">
             <div className="flex justify-between items-start mb-4">
               <div className={`p-3 rounded-2xl bg-${stat.color}-50/50 text-${stat.color}-600 shadow-inner group-hover:bg-${stat.color}-50 transition-colors`}>
                 <stat.icon size={24} />
@@ -130,7 +130,7 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Revenue Chart */}
-        <div className="lg:col-span-2 bg-white/70 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/20 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-shadow">
+        <div className="lg:col-span-2 bg-white/70 backdrop-blur-xl p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] border border-white/20 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-shadow">
           <div className="flex items-center justify-between mb-8">
             <div>
               <h3 className="text-xl font-black text-secondary">Revenue & Lead Trends</h3>
@@ -181,7 +181,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Recent Activity */}
-        <div className="bg-white/70 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/20 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-shadow">
+        <div className="bg-white/70 backdrop-blur-xl p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] border border-white/20 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-shadow">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-xl font-black text-secondary">Recent Leads</h3>
             <button className="text-primary text-sm font-bold hover:underline">View All</button>
@@ -218,7 +218,7 @@ export default function AdminDashboard() {
 
       {/* Second Row: Distribution and Employee Performance */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white/70 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/20 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-shadow">
+        <div className="bg-white/70 backdrop-blur-xl p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] border border-white/20 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-shadow">
           <h3 className="text-xl font-black text-secondary mb-8">Loan Type Distribution</h3>
           <div className="h-[200px] md:h-[300px] w-full">
              <ResponsiveContainer width="100%" height="100%">
@@ -239,7 +239,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden flex flex-col justify-between">
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] text-white shadow-xl relative overflow-hidden flex flex-col justify-between">
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 blur-[100px] rounded-full" />
           <div>
             <h3 className="text-xl font-black mb-1 relative z-10">Team Performance</h3>

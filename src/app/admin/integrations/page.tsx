@@ -92,7 +92,7 @@ export default function IntegrationsPage() {
       </div>
 
       {/* ─── WhatsApp Automation Section ──────────────────────────────────────── */}
-      <div className="bg-gradient-to-br from-[#128C7E] to-[#075E54] rounded-[2.5rem] p-8 text-white relative overflow-hidden">
+      <div className="bg-gradient-to-br from-[#128C7E] to-[#075E54] rounded-2xl sm:rounded-[2.5rem] p-5 sm:p-8 text-white relative overflow-hidden">
         <div className="absolute -top-20 -right-20 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10">
@@ -198,8 +198,8 @@ export default function IntegrationsPage() {
       {/* Other Integrations */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {integrations.map((item, i) => (
-          <div key={i} className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-            <div className="p-8 flex-1">
+          <div key={i} className="bg-white rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+            <div className="p-5 sm:p-8 flex-1">
               <div className="flex items-start justify-between mb-6">
                 <div className={`w-14 h-14 ${item.color} rounded-2xl flex items-center justify-center text-white shadow-lg`}>
                   <item.icon size={28} />
@@ -233,7 +233,7 @@ export default function IntegrationsPage() {
               </div>
             </div>
 
-            <div className="px-8 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+            <div className="px-5 sm:px-8 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
               <button className="text-xs font-black text-primary hover:underline flex items-center gap-1">
                 Configure <Settings2 size={14} />
               </button>
@@ -246,7 +246,7 @@ export default function IntegrationsPage() {
       </div>
 
       {/* Global Integration Settings */}
-      <div className="bg-slate-900 rounded-[3rem] p-10 text-white relative overflow-hidden">
+      <div className="bg-slate-900 rounded-2xl sm:rounded-[3rem] p-5 sm:p-10 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 blur-[150px] rounded-full" />
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-12 items-center">
           <div className="lg:col-span-2 space-y-6">

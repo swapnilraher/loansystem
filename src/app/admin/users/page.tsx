@@ -445,11 +445,11 @@ export default function UsersPage() {
             </div>
             <form onSubmit={handleSubmitAdmin} className="p-8 space-y-4 overflow-y-auto overscroll-contain max-h-[80vh] custom-scrollbar">
               <div className="space-y-1.5"><label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label><input type="text" required className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold" placeholder="Enter name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} /></div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5"><label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Email</label><input type="email" required className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} /></div>
                 <div className="space-y-1.5"><label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Mobile Number</label><input type="text" required pattern="[0-9]{10}" title="Please enter exactly 10 digits" maxLength={10} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value.replace(/\D/g, '')})} placeholder="10 digit mobile" /></div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Role</label>
                   <select 

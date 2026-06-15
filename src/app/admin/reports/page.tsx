@@ -71,7 +71,7 @@ export default function ReportsPage() {
 
       {/* Revenue Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
+        <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-[5rem] -mr-8 -mt-8 group-hover:scale-110 transition-transform" />
           <div className="relative z-10">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Monthly Revenue</p>
@@ -84,7 +84,7 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
+        <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-bl-[5rem] -mr-8 -mt-8 group-hover:scale-110 transition-transform" />
           <div className="relative z-10">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Commission Earned</p>
@@ -97,7 +97,7 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
+        <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-rose-50 rounded-bl-[5rem] -mr-8 -mt-8 group-hover:scale-110 transition-transform" />
           <div className="relative z-10">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Projected Revenue</p>
@@ -113,7 +113,7 @@ export default function ReportsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Revenue Growth Chart */}
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+        <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-sm">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-xl font-black text-secondary">Revenue Growth</h3>
             <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl">
@@ -135,7 +135,7 @@ export default function ReportsPage() {
         </div>
 
         {/* Revenue by Product */}
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+        <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-sm">
           <h3 className="text-xl font-black text-secondary mb-8">Revenue by Product</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div className="h-[250px]">
@@ -174,14 +174,14 @@ export default function ReportsPage() {
       </div>
 
       {/* Export Reports */}
-      <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+      <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-sm">
         <div className="flex items-center justify-between mb-8">
           <h3 className="text-xl font-black text-secondary">Export & Downloads</h3>
           <button className="text-primary text-sm font-bold hover:underline">View All Files</button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {reportTemplates.map((report, i) => (
-            <div key={i} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 hover:border-primary/30 transition-all group">
+            <div key={i} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-primary/30 transition-all group">
               <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-slate-400 group-hover:text-primary mb-4 shadow-sm transition-colors">
                 <FileText size={24} />
               </div>

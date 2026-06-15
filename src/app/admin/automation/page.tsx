@@ -77,7 +77,7 @@ export default function AIAutomationDashboard() {
   ]
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-8 w-full">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-secondary flex items-center gap-3">

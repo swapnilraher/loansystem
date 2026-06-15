@@ -182,7 +182,7 @@ export default function PartnersPage() {
       </div>
 
       {/* Data Table */}
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden">
+      <div className="bg-white rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden">
         {partnersLoading ? (
           <div className="p-8 text-center text-slate-400 font-bold animate-pulse">Loading partners...</div>
         ) : filteredPartners.length === 0 ? (
@@ -378,7 +378,7 @@ export default function PartnersPage() {
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-500" onClick={() => setSelectedPartner(null)} />
           <div className="w-full max-w-xl bg-white h-full relative z-10 shadow-2xl flex flex-col animate-in slide-in-from-right duration-500">
             {/* Drawer Header */}
-            <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+            <div className="p-5 md:p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-5">
                 <div className="w-16 h-16 rounded-[2rem] bg-white border border-slate-200 text-secondary flex items-center justify-center font-black text-2xl uppercase shadow-sm overflow-hidden">
                   {selectedPartner.kycData?.photoBase64 ? (
@@ -435,7 +435,7 @@ export default function PartnersPage() {
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-5 md:p-8 custom-scrollbar">
               {activeTab === 'overview' && (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 pb-10">
                   {/* Basic Info */}
