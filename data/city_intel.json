@@ -1,0 +1,128 @@
+{
+  "Pune": {
+    "industry": "IT hubs (Hinjewadi, Magarpatta, Kharadi)",
+    "fast_approval_tips": "Salaried IT professionals get approvals within 24 hrs",
+    "approval_time": "24 hrs",
+    "local_banks": ["HDFC", "ICICI", "Axis", "Kotak"]
+  },
+  "Mumbai": {
+    "industry": "Financial services, Bollywood, Manufacturing",
+    "fast_approval_tips": "Self-employed with 3-yr GST returns see fast credit",
+    "approval_time": "24 hrs",
+    "local_banks": ["SBI", "Kotak", "Standard Chartered", "HDFC"]
+  },
+  "Nagpur": {
+    "industry": "Manufacturing & Logistics",
+    "fast_approval_tips": "Factory owners benefit from quick disbursal",
+    "approval_time": "24-48 hrs",
+    "local_banks": ["ICICI", "Bank of Baroda", "Union Bank"]
+  },
+  "Nashik": {
+    "industry": "Wine & Agro-industry",
+    "fast_approval_tips": "Agri-entrepreneurs get fast processing",
+    "approval_time": "24-48 hrs",
+    "local_banks": ["Punjab National Bank", "Axis", "Yes Bank"]
+  },
+  "Thane": {
+    "industry": "IT Services & Real Estate",
+    "fast_approval_tips": "Real-estate developers receive instant offers",
+    "approval_time": "24 hrs",
+    "local_banks": ["HDFC", "IDFC", "Canara Bank"]
+  },
+  "Aurangabad": {
+    "industry": "Industrial & Heritage tourism",
+    "fast_approval_tips": "Industrial projects get priority processing",
+    "approval_time": "24-48 hrs",
+    "local_banks": ["Bank of Maharashtra", "SBI", "Kotak"]
+  },
+  "Kolhapur": {
+    "industry": "Agriculture & Education",
+    "fast_approval_tips": "Education loans processed swiftly",
+    "approval_time": "48 hrs",
+    "local_banks": ["SBI", "ICICI", "Federal Bank"]
+  },
+  "Solapur": {
+    "industry": "Textiles & Power",
+    "fast_approval_tips": "Textile firms receive rapid funding",
+    "approval_time": "48 hrs",
+    "local_banks": ["Canara Bank", "Union Bank", "Axis"]
+  },
+  "Amravati": {
+    "industry": "Agriculture & Trade",
+    "fast_approval_tips": "Trade financing approved within 24 hrs",
+    "approval_time": "24-48 hrs",
+    "local_banks": ["Bank of Baroda", "SBI", "Yes Bank"]
+  },
+  "Jalgaon": {
+    "industry": "Food Processing",
+    "fast_approval_tips": "Food processing units enjoy fast loans",
+    "approval_time": "48 hrs",
+    "local_banks": ["Punjab National Bank", "ICICI", "Kotak"]
+  },
+  "Ahmednagar": {
+    "industry": "Manufacturing & Education",
+    "fast_approval_tips": "Manufacturing loans have quick turnaround",
+    "approval_time": "48 hrs",
+    "local_banks": ["SBI", "Bandhan Bank", "IDFC"]
+  },
+  "Akola": {
+    "industry": "Agriculture & Healthcare",
+    "fast_approval_tips": "Healthcare startups get priority",
+    "approval_time": "48 hrs",
+    "local_banks": ["HDFC", "Axis", "Bank of Maharashtra"]
+  },
+  "Chandrapur": {
+    "industry": "Mining & Power",
+    "fast_approval_tips": "Mining projects receive fast credit",
+    "approval_time": "48 hrs",
+    "local_banks": ["Union Bank", "SBI", "ICICI"]
+  },
+  "Sangli": {
+    "industry": "Sugar & Education",
+    "fast_approval_tips": "Sugar mill owners approved quickly",
+    "approval_time": "48 hrs",
+    "local_banks": ["Bank of Baroda", "Yes Bank", "Kotak"]
+  },
+  "Satara": {
+    "industry": "Tourism & Agriculture",
+    "fast_approval_tips": "Tourism projects enjoy fast processing",
+    "approval_time": "48 hrs",
+    "local_banks": ["SBI", "HDFC", "IDFC"]
+  },
+  "Latur": {
+    "industry": "Agriculture & Education",
+    "fast_approval_tips": "Education loans get quick approval",
+    "approval_time": "48 hrs",
+    "local_banks": ["Axis", "Punjab National Bank", "Union Bank"]
+  },
+  "Nanded": {
+    "industry": "Healthcare & Manufacturing",
+    "fast_approval_tips": "Healthcare firms receive rapid funding",
+    "approval_time": "48 hrs",
+    "local_banks": ["SBI", "Bank of Maharashtra", "ICICI"]
+  },
+  "Ratnagiri": {
+    "industry": "Coastal Tourism",
+    "fast_approval_tips": "Tourism projects approved fast",
+    "approval_time": "48 hrs",
+    "local_banks": ["Kotak", "HDFC", "Yes Bank"]
+  },
+  "Yavatmal": {
+    "industry": "Agriculture & Textile",
+    "fast_approval_tips": "Textile units get swift loans",
+    "approval_time": "48 hrs",
+    "local_banks": ["Punjab National Bank", "SBI", "IDFC"]
+  },
+  "Wardha": {
+    "industry": "Industrial & Education",
+    "fast_approval_tips": "Industrial parks receive fast credit",
+    "approval_time": "48 hrs",
+    "local_banks": ["Bank of Baroda", "Axis", "Federal Bank"]
+  },
+  "Chhatrapati Sambhajianagar": {
+    "industry": "Industrial & Heritage tourism",
+    "fast_approval_tips": "Industrial projects get priority processing",
+    "approval_time": "24-48 hrs",
+    "local_banks": ["Bank of Maharashtra", "SBI", "Kotak", "ICICI"]
+  }
+}
