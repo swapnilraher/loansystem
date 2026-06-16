@@ -94,8 +94,8 @@ export default function AdminLayout({
         if (change.type === "added") {
           const data = change.doc.data();
           sendPushNotification(
-            "🌟 नवीन लीड दाखल!",
-            `नाव: ${data.name || "अपरिचित"}\nकर्ज प्रकार: ${data.type || "N/A"}\nरक्कम: ₹${data.amount || "0"}`
+            "🌟 New Lead Received!",
+            `Name: ${data.name || "Unknown"}\nLoan Type: ${data.type || "N/A"}\nAmount: ₹${data.amount || "0"}`
           );
         }
       });
@@ -114,7 +114,7 @@ export default function AdminLayout({
         if (change.type === "added" || change.type === "modified") {
           const data = change.doc.data();
           const id = change.doc.id;
-          const partnerName = data.kycData?.name || data.panData?.name || data.name || "नवीन भागीदार";
+          const partnerName = data.kycData?.name || data.panData?.name || data.name || "New Partner";
           const step = data.onboardingStep;
           
           // Prevent duplicate alerts in the current session
@@ -127,23 +127,23 @@ export default function AdminLayout({
 
           if (step === 1) {
             sendPushNotification(
-              "🤝 DSA नोंदणी: मोबाईल पडताळणी!",
-              `नाव: ${partnerName}\nमोबाईल: ${data.mobileNumber || "N/A"}\nटप्पा १ यशस्वीरित्या पूर्ण केला.`
+              "🤝 DSA Onboarding: Mobile Verified!",
+              `Name: ${partnerName}\nMobile: ${data.mobileNumber || "N/A"}\nCompleted onboarding Step 1 (Mobile Verification).`
             );
           } else if (step === 2) {
             sendPushNotification(
-              "🛡️ DSA नोंदणी: आधार KYC!",
-              `नाव: ${partnerName}\nमोबाईल: ${data.mobileNumber || "N/A"}\nटप्पा २ (आधार) यशस्वीरित्या पूर्ण केला.`
+              "🛡️ DSA Onboarding: Aadhaar eKYC Done!",
+              `Name: ${partnerName}\nMobile: ${data.mobileNumber || "N/A"}\nCompleted onboarding Step 2 (Aadhaar KYC).`
             );
           } else if (step === 3) {
             sendPushNotification(
-              "💳 DSA नोंदणी: पॅन पडताळणी!",
-              `नाव: ${partnerName}\nमोबाईल: ${data.mobileNumber || "N/A"}\nटप्पा ३ (पॅन) यशस्वीरित्या पूर्ण केला.`
+              "💳 DSA Onboarding: PAN Match Done!",
+              `Name: ${partnerName}\nMobile: ${data.mobileNumber || "N/A"}\nCompleted onboarding Step 3 (PAN Verification).`
             );
           } else if (step === 4 || data.dsaStatus === "Active") {
             sendPushNotification(
-              "🎉 नवीन DSA भागीदार नोंदणी पूर्ण!",
-              `नाव: ${partnerName}\nDSA कोड: ${data.dsaCode || "N/A"}\nमोबाईल: ${data.mobileNumber || "N/A"}\nनोंदणी यशस्वीरित्या पूर्ण झाली!`
+              "🎉 New DSA Partner Onboarding Complete!",
+              `Name: ${partnerName}\nDSA Code: ${data.dsaCode || "N/A"}\nMobile: ${data.mobileNumber || "N/A"}\nOnboarding completed successfully!`
             );
           }
         }
