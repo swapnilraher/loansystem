@@ -18,15 +18,15 @@ import { StickyMobileCTA } from "@/components/ui/StickyMobileCTA"
 import LoanComparisonTable from "@/components/ui/LoanComparisonTable"
 import { PersonalLoanDetailedInfo } from "@/components/sections/PersonalLoanDetailedInfo"
 export const metadata: Metadata = {
-  title: "Instant Personal Loan Up to ₹50 Lakhs | Competitive Rates | TechStar",
-  description: "Apply for a personal loan online with TechStar. Compare top banks, check eligibility in 2 minutes, and get quick approval with minimal documentation. Rates start at 10.50% p.a.",
-  keywords: "personal loan, instant loan, low interest loan, compare loans, online loan application, eligibility calculator, EMI calculator",
+  title: "Personal Loan – Instant Approval Up to ₹50 Lakhs | Techstar Money Solution",
+  description: "Need urgent funds? Apply for Personal Loan online. Compare rates from 50+ banks, check eligibility in 2 mins, get approval within 24 hrs & funds in your account fast.",
+  keywords: "personal loan, instant personal loan, low interest personal loan, personal loan compare, personal loan eligibility, personal loan emi calculator",
   alternates: {
     canonical: "https://techstarsolution.in/personal-loan"
   },
   openGraph: {
-    title: "Instant Personal Loan Up to ₹50 Lakhs | TechStar",
-    description: "Compare and apply for personal loans from 100+ lenders. Instant approval & quick disbursal.",
+    title: "Personal Loan – Instant Approval Up to ₹50 Lakhs | Techstar Money Solution",
+    description: "Compare and apply for personal loans from 50+ banks. Instant approval & quick disbursal within 24 hrs.",
     type: "website",
     url: "https://techstarsolution.in/personal-loan",
   },

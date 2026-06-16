@@ -13,12 +13,12 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://techstarsolution.in"),
-  title: "Techstar Money Solution | Premium Fintech Loan Marketplace & DSA",
-  description: "Compare loans, credit cards, and insurance with Techstar Money Solution - India's most trusted financial loan marketplace.",
-  keywords: "loan dsa, personal loan, business loan, home loan, loan agent, mortgage loan, finance service",
+  title: "Techstar Money Solution – Instant Loans, Best Rates & DSA Partner",
+  description: "Apply for Personal, Home, Business & LAP loans with instant approval. Compare 50+ banks, check eligibility in 2 minutes & get quick disbursal. Trusted by thousands across India.",
+  keywords: "instant loan, personal loan, home loan, business loan, loan against property, loan dsa, low interest loan, loan agent india",
   openGraph: {
-    title: "Techstar Money Solution | Premium Fintech Loan Marketplace & DSA",
-    description: "Compare loans, credit cards, and insurance with Techstar Money Solution - India's most trusted financial loan marketplace.",
+    title: "Techstar Money Solution – Instant Loans, Best Rates & DSA Partner",
+    description: "Apply for Personal, Home, Business & LAP loans with instant approval. Compare 50+ banks, check eligibility in 2 minutes & get quick disbursal. Trusted by thousands across India.",
     url: "https://techstarsolution.in",
     siteName: "Techstar Money Solution",
     images: [
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
         url: "/partners.png",
         width: 1200,
         height: 630,
-        alt: "Techstar Money Solution Fintech Marketplace"
+        alt: "Techstar Money Solution – India's Trusted Loan Marketplace"
       }
     ],
     locale: "en_IN",
@@ -34,8 +34,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Techstar Money Solution | Premium Fintech Loan Marketplace & DSA",
-    description: "Compare loans, credit cards, and insurance with India's most trusted financial marketplace.",
+    title: "Techstar Money Solution – Instant Loans, Best Rates & DSA Partner",
+    description: "Compare 50+ banks. Personal, Home, Business & LAP loans with quick approval & low interest rates.",
     images: ["/partners.png"],
   },
   robots: { index: true, follow: true },

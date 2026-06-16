@@ -3,12 +3,18 @@ import { Metadata } from "next"
 import LocationPageTemplate from "@/components/sections/LocationPageTemplate"
 
 export const metadata: Metadata = {
-  title: "Best Loan Agent in Pune | Financial Services Advisory | TechStar",
-  description: "Consult with Techstar's certified Loan Agents in Pune. Find personalized guidance, documentation verification, and fast approval rates for your personal, business, or home loans.",
-  keywords: "loan agent pune, best loan agent pune, financial advisor pune, mortgage agent pune, home loan agent pune",
+  title: "Loan Agent in Pune – Expert DSA for All Loans | Techstar Money Solution",
+  description: "Connect with certified Loan Agents in Pune. Personal, Home, Business & LAP loans – compare 50+ banks, get paperwork assistance & fastest approval. Doorstep service across Pune.",
+  keywords: "loan agent pune, best loan agent pune, dsa loan pune, financial advisor pune, home loan agent pune, personal loan agent pune, business loan agent pune",
   alternates: {
     canonical: "https://techstarsolution.in/loan-agent-pune"
-  }
+  },
+  openGraph: {
+    title: "Loan Agent in Pune – Expert DSA for All Loans | Techstar Money Solution",
+    description: "Certified Loan Agents in Pune. All loan types. Compare 50+ banks. Doorstep service.",
+    type: "website",
+    url: "https://techstarsolution.in/loan-agent-pune",
+  },
 }
 
 export default function Page() {

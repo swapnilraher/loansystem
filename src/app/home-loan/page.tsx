@@ -26,11 +26,18 @@ import { Card, CardContent } from "@/components/ui/Card"
 import { StickyMobileCTA } from "@/components/ui/StickyMobileCTA"
 
 export const metadata = {
-  title: "Home Loans 2026: Compare Rates from 50+ Banks | TechStar",
-  description: "Get comprehensive information on home loans, tax benefits, eligibility, and documentation. Apply now for the lowest interest rates starting 8.40%.",
+  title: "Home Loan – Rates from 8.40% | Compare 50+ Banks | Techstar Money Solution",
+  description: "Planning to buy a home? Get Home Loan at rates starting 8.40% p.a. Compare 50+ banks, save up to ₹3.5L in tax, instant sanction letter & zero processing fee*.",
+  keywords: "home loan, best home loan rates, home loan emi calculator, compare home loans, sbi home loan, hdfc home loan, pmay subsidy",
   alternates: {
     canonical: "https://techstarsolution.in/home-loan"
-  }
+  },
+  openGraph: {
+    title: "Home Loan – Rates from 8.40% | Compare 50+ Banks | Techstar Money Solution",
+    description: "Home Loan at 8.40% p.a. Instant sanction. Save up to ₹3.5L tax. Flexible tenure up to 30 years.",
+    type: "website",
+    url: "https://techstarsolution.in/home-loan",
+  },
 }
 
 export default function HomeLoanPage() {

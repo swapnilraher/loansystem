@@ -3,12 +3,18 @@ import { Metadata } from "next"
 import LocationPageTemplate from "@/components/sections/LocationPageTemplate"
 
 export const metadata: Metadata = {
-  title: "Loan Against Property in Chhatrapati Sambhajianagar | Mortgage Loan | TechStar",
-  description: "Get a Loan Against Property (LAP) in Chhatrapati Sambhajianagar (Aurangabad). High valuation, lowest rates starting at 9.00% p.a., and local guidance.",
-  keywords: "loan against property chhatrapati sambhajianagar, loan against property aurangabad, mortgage loan chhatrapati sambhajianagar, lap loan aurangabad",
+  title: "Loan Against Property in Chhatrapati Sambhajianagar – 9.00% | Techstar Money Solution",
+  description: "Mortgage your property in Chhatrapati Sambhajianagar (Aurangabad) and get LAP up to ₹15 Cr at 9.00% p.a. Residential & commercial properties. Fast multi-bank approval & expert guidance.",
+  keywords: "loan against property chhatrapati sambhajianagar, LAP aurangabad, mortgage loan aurangabad, property loan sambhajianagar, lap agent aurangabad",
   alternates: {
     canonical: "https://techstarsolution.in/loan-against-property-chhatrapati-sambhajianagar"
-  }
+  },
+  openGraph: {
+    title: "Loan Against Property in Chhatrapati Sambhajianagar – 9.00% | Techstar Money Solution",
+    description: "LAP up to ₹15 Cr in Sambhajianagar. 9.00% p.a. Fast approval. Expert DSA support.",
+    type: "website",
+    url: "https://techstarsolution.in/loan-against-property-chhatrapati-sambhajianagar",
+  },
 }
 
 export default function Page() {
