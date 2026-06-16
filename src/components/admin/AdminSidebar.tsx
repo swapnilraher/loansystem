@@ -70,27 +70,26 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
 
   return (
     <aside className={cn(
-      "fixed left-0 top-0 bottom-0 h-screen w-72 bg-white text-slate-900 border-r border-slate-200 flex flex-col z-50 transition-transform duration-300 lg:translate-x-0 shadow-[4px_0_24px_rgba(0,0,0,0.02)]",
+      "fixed left-0 top-0 bottom-0 h-screen w-72 bg-white text-slate-900 border-r border-slate-200 flex flex-col z-[200] transition-transform duration-300 lg:translate-x-0 shadow-[4px_0_24px_rgba(0,0,0,0.02)]",
       isOpen ? "translate-x-0" : "-translate-x-full"
     )}>
-      <div className="p-6 md:p-8 flex justify-between items-center border-b border-slate-100/50">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm p-1">
-            <img src="/img/logo.jpeg" alt="TechStar Logo" className="w-full h-full object-cover rounded-full" />
-          </div>
-          <div>
-            <h1 className="font-black text-xl tracking-tight text-slate-900">TECHSTAR</h1>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Staff Portal</p>
-          </div>
-        </div>
+      <div className="p-6 flex flex-col items-center justify-center border-b border-slate-100/50 relative">
         {onClose && (
           <button 
             onClick={onClose} 
-            className="lg:hidden p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+            className="lg:hidden absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+            title="Close Sidebar"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         )}
+        <div className="flex flex-col items-center text-center">
+          <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-slate-100 shadow-md p-1 mb-3.5 hover:scale-105 transition-transform duration-300">
+            <img src="/img/logo.jpeg" alt="TechStar Logo" className="w-full h-full object-cover rounded-full" />
+          </div>
+          <h1 className="font-black text-xl tracking-wider text-slate-900 leading-none mb-1.5">TECHSTAR</h1>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Staff Portal</p>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto scroll-smooth">

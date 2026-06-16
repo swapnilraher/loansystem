@@ -35,7 +35,9 @@ import {
   Smile,
   Send,
   MoreVertical,
-  Megaphone
+  Megaphone,
+  ArrowLeft,
+  Video
 } from "lucide-react"
 import { useLeads, Lead, logLeadActivity } from "@/lib/hooks/useLeads"
 import { db, storage } from "@/lib/firebase"
@@ -121,6 +123,7 @@ export default function LeadsPage() {
   const [waTarget, setWaTarget] = useState<any>(null)
   const [waMessage, setWaMessage] = useState("")
   const [isSendingWA, setIsSendingWA] = useState(false)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [showBroadcastModal, setShowBroadcastModal] = useState(false)
   const [broadcastMessage, setBroadcastMessage] = useState("")
   const [isSendingBroadcast, setIsSendingBroadcast] = useState(false)
@@ -691,67 +694,59 @@ export default function LeadsPage() {
   return (
     <div className="w-full min-h-screen relative pb-28 animate-in fade-in duration-500">
       {/* App Top Bar */}
-      <div className="sticky top-16 lg:top-20 bg-white/95 backdrop-blur-md border-b border-slate-100 z-30 px-4 py-3.5 flex flex-col md:flex-row md:items-center md:justify-between gap-3 shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
-        <div className="flex justify-between items-center md:gap-4 flex-1">
-          <div>
-            <h2 className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
-              लीड्स पाइपलाइन
-              <span className="bg-primary/10 text-primary text-[10px] font-black px-2 py-0.5 rounded-full">
-                {leads.length}
-              </span>
-            </h2>
-          </div>
-          <div className="flex items-center gap-1.5 animate-in fade-in duration-300">
-            <label 
-              className="premium-btn-action bg-slate-50 hover:bg-slate-100 border border-slate-200/50 text-slate-600 cursor-pointer flex items-center justify-center"
-              title="Excel अपलोड"
-            >
-              <Upload size={14} />
-              <input type="file" className="hidden" accept=".xlsx, .csv" onChange={handleExcelUpload} />
-            </label>
-            <button 
-              onClick={exportLeadsCSV}
-              className="premium-btn-action bg-slate-50 hover:bg-slate-100 border border-slate-200/50 text-slate-600 flex items-center justify-center"
-              title="Excel एक्सपोर्ट"
-            >
-              <Download size={14} />
-            </button>
-            <button 
-              onClick={() => window.location.reload()}
-              className="premium-btn-action bg-slate-50 hover:bg-slate-100 border border-slate-200/50 text-slate-600 flex items-center justify-center"
-              title="रिफ्रेश करा"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-rotate-cw"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.72 2.78L21 8"/><path d="M21 3v5h-5"/></svg>
-            </button>
-            <button 
-              onClick={() => setShowBroadcastModal(true)}
-              className="h-9 w-9 sm:w-auto px-0 sm:px-3 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shrink-0"
-              title="निवडलेल्या ग्राहकांना ब्रॉडकास्ट पाठवा"
-            >
-              <Megaphone size={14} className="text-primary" />
-              <span className="text-[10px] font-black uppercase tracking-wider hidden sm:inline">ब्रॉडकास्ट ({filteredLeads.length})</span>
-            </button>
-            <button 
-              onClick={() => setShowFilterSheet(true)}
-              className="premium-btn-action bg-slate-50 hover:bg-slate-100 border border-slate-200/50 text-slate-600 relative flex items-center justify-center"
-              title="फिल्टर्स निवडा"
-            >
-              <Filter size={15} />
-              {/* Badge if filters active */}
-              {(categoryFilter !== "All Sources" || partnerFilter !== "All Partners" || datePreset !== "All Time" || statusFilter !== "All Statuses" || typeFilter !== "All Types") && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full border border-white" />
-              )}
-            </button>
-          </div>
+      <div className="sticky top-16 lg:top-20 bg-white/95 backdrop-blur-md border-b border-slate-100 z-30 px-4 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
+        
+        {/* Action buttons row: scrollable on mobile */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 -mx-4 px-4 sm:mx-0 sm:px-0 scroll-smooth shrink-0 animate-in fade-in duration-300">
+          <label 
+            className="premium-btn-action bg-slate-50 hover:bg-slate-100 border border-slate-200/50 text-slate-600 cursor-pointer flex items-center justify-center shrink-0"
+            title="Excel अपलोड"
+          >
+            <Upload size={14} />
+            <input type="file" className="hidden" accept=".xlsx, .csv" onChange={handleExcelUpload} />
+          </label>
+          <button 
+            onClick={exportLeadsCSV}
+            className="premium-btn-action bg-slate-50 hover:bg-slate-100 border border-slate-200/50 text-slate-600 flex items-center justify-center shrink-0"
+            title="Excel एक्सपोर्ट"
+          >
+            <Download size={14} />
+          </button>
+          <button 
+            onClick={() => window.location.reload()}
+            className="premium-btn-action bg-slate-50 hover:bg-slate-100 border border-slate-200/50 text-slate-600 flex items-center justify-center shrink-0"
+            title="रिफ्रेश करा"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-rotate-cw shrink-0"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.72 2.78L21 8"/><path d="M21 3v5h-5"/></svg>
+          </button>
+          <button 
+            onClick={() => setShowBroadcastModal(true)}
+            className="h-9 px-3.5 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shrink-0"
+            title="निवडलेल्या ग्राहकांना ब्रॉडकास्ट पाठवा"
+          >
+            <Megaphone size={14} className="text-primary shrink-0" />
+            <span className="text-[10px] font-black uppercase tracking-wider shrink-0">ब्रॉडकास्ट ({filteredLeads.length})</span>
+          </button>
+          <button 
+            onClick={() => setShowFilterSheet(true)}
+            className="premium-btn-action bg-slate-50 hover:bg-slate-100 border border-slate-200/50 text-slate-600 relative flex items-center justify-center shrink-0"
+            title="फिल्टर्स निवडा"
+          >
+            <Filter size={15} />
+            {/* Badge if filters active */}
+            {(categoryFilter !== "All Sources" || partnerFilter !== "All Partners" || datePreset !== "All Time" || statusFilter !== "All Statuses" || typeFilter !== "All Types") && (
+              <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full border border-white" />
+            )}
+          </button>
         </div>
 
         {/* Search Input */}
-        <div className="relative w-full md:max-w-xs shrink-0">
+        <div className="relative w-full sm:max-w-xs shrink-0">
           <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             type="text" 
             placeholder="नाव, फोन किंवा लोन प्रकार शोधा..." 
-            className="w-full pl-9 pr-10 py-2.5 bg-slate-100/60 border border-slate-100/80 rounded-2xl text-xs focus:outline-none focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all font-semibold text-slate-700 placeholder-slate-400"
+            className="w-full pl-9 pr-10 py-2 bg-slate-100/60 border border-slate-100/80 rounded-2xl text-xs focus:outline-none focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all font-semibold text-slate-700 placeholder-slate-400"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -845,45 +840,48 @@ export default function LeadsPage() {
               return (
                 <div 
                   key={lead.id} 
-                  className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3.5 pl-5 pr-4 py-3.5 bg-white border border-slate-100/70 rounded-[1.5rem] relative overflow-hidden hover:shadow-md transition-all group shrink-0"
+                  className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2.5 md:gap-3.5 pl-4 pr-3 py-2.5 md:pl-5 md:pr-4 md:py-3.5 bg-white border border-slate-100/70 rounded-[1.5rem] relative overflow-hidden hover:shadow-md transition-all group shrink-0"
                 >
                   {/* Inset rounded vertical SLA indicator bar */}
-                  <div className={`absolute left-1.5 top-2.5 bottom-2.5 w-1 rounded-full ${
+                  <div className={`absolute left-1.5 top-2 bottom-2 w-1 rounded-full ${
                     lead.slaStatus === 'Overdue' ? 'bg-rose-500' : 'bg-emerald-500'
                   }`} />
 
-                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between w-full gap-3 pl-1">
-                    {/* Column 1: Client Info */}
-                    <div 
-                      onClick={() => setSelectedLead(lead)}
-                      className="flex-1 min-w-0 cursor-pointer group/item"
-                    >
-                      <p className="font-extrabold text-slate-800 text-sm group-hover/item:text-primary transition-colors truncate">
-                        {panName}
-                      </p>
-                      <p className="text-[10px] text-slate-400 font-semibold flex items-center gap-1 mt-0.5">
-                        <Phone size={10} className="text-slate-300" /> {lead.phone || lead.mobile || "No Phone"}
-                      </p>
-                    </div>
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between w-full gap-2 md:gap-3 pl-1">
+                    {/* Container for Column 1 & 3: side-by-side on mobile, contents on desktop */}
+                    <div className="flex md:contents justify-between items-start w-full md:w-auto gap-4">
+                      {/* Column 1: Client Info */}
+                      <div 
+                        onClick={() => setSelectedLead(lead)}
+                        className="flex-1 md:flex-none md:w-48 min-w-0 cursor-pointer group/item"
+                      >
+                        <p className="font-extrabold text-slate-800 text-sm group-hover/item:text-primary transition-colors truncate">
+                          {panName}
+                        </p>
+                        <p className="text-[10px] text-slate-400 font-semibold flex items-center gap-1 mt-0.5">
+                          <Phone size={10} className="text-slate-300" /> {lead.phone || lead.mobile || "No Phone"}
+                        </p>
+                      </div>
 
-                    {/* Column 2: Source/Category (hidden on mobile) */}
-                    <div className="hidden md:block w-32 shrink-0">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border ${
-                        (lead.category || "Landing") === "Portal" ? "bg-blue-50 text-blue-500 border-blue-100" : 
-                        (lead.category || "Landing") === "Bulk" ? "bg-purple-50 text-purple-500 border-purple-100" : 
-                        (lead.category || "Landing") === "Partner" ? "bg-indigo-50 text-indigo-600 border-indigo-100" : 
-                        "bg-amber-50 text-amber-500 border-amber-100"
-                      }`}>
-                        {lead.category === "Partner" && lead.partnerName ? `Partner: ${lead.partnerName}` : (lead.category || "Landing")}
-                      </span>
-                    </div>
+                      {/* Column 2: Source/Category (hidden on mobile) */}
+                      <div className="hidden md:block w-32 shrink-0">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border ${
+                          (lead.category || "Landing") === "Portal" ? "bg-blue-50 text-blue-500 border-blue-100" : 
+                          (lead.category || "Landing") === "Bulk" ? "bg-purple-50 text-purple-500 border-purple-100" : 
+                          (lead.category || "Landing") === "Partner" ? "bg-indigo-50 text-indigo-600 border-indigo-100" : 
+                          "bg-amber-50 text-amber-500 border-amber-100"
+                        }`}>
+                          {lead.category === "Partner" && lead.partnerName ? `Partner: ${lead.partnerName}` : (lead.category || "Landing")}
+                        </span>
+                      </div>
 
-                    {/* Column 3: Loan Details (responsive row layout on mobile, column on desktop) */}
-                    <div className="flex md:flex-col justify-between md:justify-center items-center md:items-start w-full md:w-36 shrink-0 gap-1">
-                      <p className="font-black text-slate-400 text-[10px] tracking-wider uppercase">{lead.type}</p>
-                      <p className="text-xs font-black text-slate-850 mt-0.5 italic text-slate-800">
-                        ₹ {parseInt(lead.amount || "0").toLocaleString()}
-                      </p>
+                      {/* Column 3: Loan Details */}
+                      <div className="flex flex-col md:justify-center items-end md:items-start md:w-36 shrink-0 gap-0.5 text-right md:text-left">
+                        <p className="font-black text-slate-400 text-[9px] tracking-wider uppercase leading-none">{lead.type}</p>
+                        <p className="text-xs font-black text-slate-850 mt-0.5 italic text-slate-800 leading-none">
+                          ₹ {parseInt(lead.amount || "0").toLocaleString()}
+                        </p>
+                      </div>
                     </div>
 
                     {/* Column 4: SLA & Date (hidden on mobile) */}
@@ -901,15 +899,15 @@ export default function LeadsPage() {
                     </div>
 
                     {/* Column 5: Status Dropdown & Actions Container */}
-                    <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100/70 shrink-0">
+                    <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-3 mt-1.5 md:mt-0 shrink-0">
                       {/* Status Selector */}
                       <button 
                         onClick={() => setStatusChangeLeadId(lead.id)}
-                        className={`premium-btn-status h-8 px-2.5 text-[10px] ${
+                        className={`premium-btn-status h-8 px-2.5 text-[10px] max-w-[130px] sm:max-w-[180px] md:max-w-none ${
                           STATUS_CONFIG[lead.status]?.color || 'bg-slate-50 text-slate-400 border-slate-200/50'
                         }`}
                       >
-                        <span className="truncate">{lead.status || 'New Lead'}</span>
+                        <span className="block truncate max-w-[90px] sm:max-w-[140px] md:max-w-none">{lead.status || 'New Lead'}</span>
                         <ChevronDown size={11} className="shrink-0 opacity-80" />
                       </button>
 
@@ -923,15 +921,31 @@ export default function LeadsPage() {
                           <Phone size={13} />
                         </button>
                         {(adminRole === 'Super Admin' || adminRole === 'Admin' || adminRole === 'HR') && (
-                          <button 
-                            onClick={() => handleWhatsAppClick(lead)} 
-                            className="premium-btn-action h-8 w-8 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100/50 flex items-center justify-center"
-                            title="WhatsApp मेसेज"
-                          >
-                            <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
-                              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.262 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.725 1.45 5.277.002 9.571-4.287 9.575-9.566.001-2.559-1.002-4.966-2.825-6.79C16.3 2.421 13.9 1.419 11.339 1.418c-5.286 0-9.582 4.29-9.587 9.57-.001 1.638.488 3.238 1.42 4.695L2.146 21.94l6.096-1.597c.005.003.01.006.015.008v-.005h-.01c-1.53-.949-1.53-.949 0 0zm11.368-6.19c-.3-.15-1.774-.875-2.05-.975-.274-.1-.475-.15-.675.15-.2.3-.775.975-.95 1.175-.175.2-.35.225-.65.075-3.042-1.516-4.385-2.28-6.218-5.424-.225-.387.225-.362.65-.788.1-.1.2-.225.3-.35.1-.1.15-.175.225-.35.075-.175.037-.325-.018-.425-.056-.1-.475-1.15-.65-1.575-.17-.412-.346-.356-.475-.362-.122-.006-.262-.007-.402-.007s-.367.05-.56.25c-.19.2-.727.708-.727 1.727 0 1.02.74 2.007.84 2.15.1.15 1.46 2.228 3.538 3.125 1.62.7 2.215.797 3.015.698.48-.06 1.475-.6 1.675-1.18.2-.58.2-1.08.14-1.18-.06-.1-.225-.15-.525-.3z"/>
-                            </svg>
-                          </button>
+                          <>
+                            {/* Button 1: Internal WhatsApp Chat */}
+                            <button 
+                              onClick={() => handleWhatsAppClick(lead)} 
+                              className="premium-btn-action h-8 w-8 text-indigo-650 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100/50 flex items-center justify-center text-indigo-600"
+                              title="अंतर्गत WhatsApp चॅट (Internal Chat)"
+                            >
+                              <MessageSquare size={13} />
+                            </button>
+                            {/* Button 2: External WhatsApp App */}
+                            <button 
+                              onClick={() => {
+                                const phoneNum = lead.phone || lead.mobile || "";
+                                const cleanPhone = phoneNum.replace(/[^\d]/g, "");
+                                const phoneWithCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+                                window.open(`https://wa.me/${phoneWithCountry}`, '_blank');
+                              }} 
+                              className="premium-btn-action h-8 w-8 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100/50 flex items-center justify-center"
+                              title="थेट WhatsApp उघडा (Open in WhatsApp App)"
+                            >
+                              <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+                                <path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232"/>
+                              </svg>
+                            </button>
+                          </>
                         )}
                         <button 
                           onClick={() => setSelectedLead(lead)} 
@@ -1172,9 +1186,9 @@ export default function LeadsPage() {
             <div className="px-6 py-3 shrink-0 bg-white border-b border-slate-100">
               <div className="flex bg-slate-100/60 p-1 rounded-2xl gap-1">
                 {[
-                  { id: 'details', label: 'माहिती (Details)', icon: User },
-                  { id: 'timeline', label: 'क्रिया (Timeline)', icon: History },
-                  { id: 'documents', label: 'डॉक्युमेंट्स (Storage)', icon: FileText },
+                  { id: 'details', labelMar: 'माहिती', labelEng: 'Details', icon: User },
+                  { id: 'timeline', labelMar: 'क्रिया', labelEng: 'Timeline', icon: History },
+                  { id: 'documents', labelMar: 'डॉक्युमेंट्स', labelEng: 'Storage', icon: FileText },
                 ].map((tab) => {
                   const isActive = activeTab === tab.id;
                   return (
@@ -1188,7 +1202,10 @@ export default function LeadsPage() {
                       }`}
                     >
                       <tab.icon size={12} strokeWidth={isActive ? 2.5 : 2} />
-                      <span>{tab.label}</span>
+                      <span>
+                        {tab.labelMar}
+                        <span className="hidden sm:inline"> ({tab.labelEng})</span>
+                      </span>
                     </button>
                   );
                 })}
@@ -1377,46 +1394,56 @@ export default function LeadsPage() {
             onClick={() => !isSendingWA && setShowWAModal(false)} 
           />
           <div className="w-full max-w-lg bg-[#efeae2] rounded-t-[2.5rem] md:rounded-[2rem] shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300 max-h-[90vh] md:max-h-[80vh] h-[88vh] md:h-[600px]">
-            {/* WhatsApp Header */}
-            <div className="px-4 py-2.5 bg-[#f0f2f5] border-b border-[#e9edef] flex items-center justify-between shrink-0 select-none">
-              <div className="flex items-center gap-3">
+            {/* WhatsApp Header (WhatsApp Mobile App Style) */}
+            <div className="px-3 py-2.5 bg-[#008069] text-white flex items-center justify-between shrink-0 select-none shadow-md">
+              <div className="flex items-center gap-1.5">
+                {/* Back Button */}
+                <button 
+                  onClick={() => setShowWAModal(false)}
+                  className="p-1 hover:bg-white/10 rounded-full transition-colors cursor-pointer flex items-center justify-center shrink-0"
+                  title="बंद करा"
+                >
+                  <ArrowLeft size={20} className="text-white" />
+                </button>
+
                 {/* Clean Contact Avatar Icon */}
-                <div className="w-10 h-10 rounded-full bg-slate-350 bg-slate-300 text-white flex items-center justify-center relative shrink-0">
-                  <User size={22} className="text-slate-500" />
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#1fa34c] border-2 border-[#f0f2f5] rounded-full" />
+                <div className="w-9 h-9 rounded-full bg-white/20 text-white flex items-center justify-center relative shrink-0">
+                  <User size={20} className="text-white" />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#1fa34c] border-2 border-[#008069] rounded-full" />
                 </div>
-                <div className="min-w-0">
-                  <h3 className="text-xs font-bold text-[#111b21] truncate leading-tight">
+                
+                <div className="min-w-0 ml-1">
+                  <h3 className="text-xs font-bold text-white truncate leading-tight">
                     {waTarget?.panName || waTarget?.fullName || waTarget?.name || 'Customer'}
                   </h3>
-                  <p className="text-[#00a884] text-[9px] font-bold mt-0.5 flex items-center gap-1.5">
-                    सक्रिय (Online)
+                  <p className="text-white/80 text-[9px] mt-0.5 leading-none">
+                    online
                   </p>
                 </div>
               </div>
               
-              <div className="flex items-center gap-1">
-                {/* Launch External Link Button (WhatsApp Green Logo styling) */}
+              <div className="flex items-center gap-1.5 text-white">
+                {/* Launch External Link Button (WhatsApp Brand Logo) */}
                 <button
                   onClick={handleOpenExternalWhatsApp}
-                  className="p-2 hover:bg-slate-200/60 text-[#25D366] rounded-full transition-all flex items-center gap-1 text-[10px] font-extrabold"
-                  title="स्थानिक WhatsApp App मध्ये उघडा"
+                  className="p-2 hover:bg-white/10 text-white rounded-full transition-all flex items-center justify-center shrink-0"
+                  title="थेट WhatsApp ॲप मध्ये उघडा"
                 >
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" className="shrink-0">
-                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.262 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.725 1.45 5.277.002 9.571-4.287 9.575-9.566.001-2.559-1.002-4.966-2.825-6.79C16.3 2.421 13.9 1.419 11.339 1.418c-5.286 0-9.582 4.29-9.587 9.57-.001 1.638.488 3.238 1.42 4.695L2.146 21.94l6.096-1.597c.005.003.01.006.015.008v-.005h-.01c-1.53-.949-1.53-.949 0 0zm11.368-6.19c-.3-.15-1.774-.875-2.05-.975-.274-.1-.475-.15-.675.15-.2.3-.775.975-.95 1.175-.175.2-.35.225-.65.075-3.042-1.516-4.385-2.28-6.218-5.424-.225-.387.225-.362.65-.788.1-.1.2-.225.3-.35.1-.1.15-.175.225-.35.075-.175.037-.325-.018-.425-.056-.1-.475-1.15-.65-1.575-.17-.412-.346-.356-.475-.362-.122-.006-.262-.007-.402-.007s-.367.05-.56.25c-.19.2-.727.708-.727 1.727 0 1.02.74 2.007.84 2.15.1.15 1.46 2.228 3.538 3.125 1.62.7 2.215.797 3.015.698.48-.06 1.475-.6 1.675-1.18.2-.58.2-1.08.14-1.18-.06-.1-.225-.15-.525-.3z"/>
+                  <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" className="shrink-0 text-white">
+                    <path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232"/>
                   </svg>
                 </button>
-                
-                {/* Visual Placeholder Settings Icon */}
-                <button className="p-2 hover:bg-slate-200/60 text-[#54656f] rounded-full transition-colors hidden sm:block">
+                {/* Visual Settings Option */}
+                <button className="p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer shrink-0">
                   <MoreVertical size={16} />
                 </button>
-                
-                <button 
-                  onClick={() => setShowWAModal(false)}
-                  className="p-2 text-[#54656f] hover:bg-slate-200/60 rounded-full transition-all"
+                {/* Close Button */}
+                <button
+                  onClick={() => !isSendingWA && setShowWAModal(false)}
+                  className="p-2 hover:bg-white/10 text-white rounded-full transition-colors cursor-pointer flex items-center justify-center shrink-0"
+                  title="बंद करा (Close)"
                 >
-                  <X size={18} />
+                  <X size={18} className="text-white" />
                 </button>
               </div>
             </div>
@@ -1555,18 +1582,43 @@ export default function LeadsPage() {
               <div ref={chatEndRef} />
             </div>
 
+            {/* Emoji Picker Popover - positioned above footer */}
+            {showEmojiPicker && (
+              <div className="absolute bottom-16 left-4 bg-white border border-slate-200 rounded-2xl p-2.5 shadow-xl z-20 grid grid-cols-7 gap-1.5 max-w-[280px] animate-in slide-in-from-bottom-2 duration-150 select-none">
+                {['😀','😂','🤣','😊','😇','🙂','😉','😍','😘','😜','🤔','👍','👎','👏','🙏','💪','🔥','🎉','❤️','✨','📞','💬','💼','💰','💵','📅','⏰','❌'].map(emoji => (
+                  <button
+                    key={emoji}
+                    onClick={() => {
+                      if (emoji === '❌') {
+                        setShowEmojiPicker(false);
+                      } else {
+                        setWaMessage(prev => prev + emoji);
+                      }
+                    }}
+                    className="w-8 h-8 flex items-center justify-center text-lg hover:bg-slate-100 rounded-lg transition-colors cursor-pointer active:scale-90"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Composer Footer (WhatsApp Web style) */}
-            <div className="px-4 py-2.5 bg-[#f0f2f5] border-t border-[#e9edef] flex items-center gap-2.5 shrink-0 select-none">
-              <div className="flex items-center text-[#54656f]">
+            <div className="px-4 py-2.5 bg-[#f0f2f5] border-t border-[#e9edef] flex items-center gap-2.5 shrink-0 select-none relative">
+              <div className="flex items-center text-[#54656f] shrink-0">
                 {/* Emoji Indicator */}
-                <button className="p-1.5 hover:bg-slate-200/60 rounded-full transition-colors">
+                <button 
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  className={`p-1.5 rounded-full transition-colors cursor-pointer shrink-0 ${showEmojiPicker ? 'bg-slate-200 text-[#008069]' : 'hover:bg-slate-200/60'}`}
+                  title="Emoji निवडा"
+                >
                   <Smile size={20} />
                 </button>
                 {/* Attachment Indicator */}
                 {isFileUploading ? (
-                  <Loader2 className="animate-spin text-primary p-1" size={18} />
+                  <Loader2 className="animate-spin text-primary p-1 shrink-0" size={18} />
                 ) : (
-                  <label className="p-1.5 hover:bg-slate-200/60 rounded-full transition-colors cursor-pointer relative flex items-center justify-center">
+                  <label className="p-1.5 hover:bg-slate-200/60 rounded-full transition-colors cursor-pointer relative flex items-center justify-center shrink-0">
                     <Paperclip size={18} />
                     <input 
                       type="file" 
@@ -1581,7 +1633,7 @@ export default function LeadsPage() {
 
               {/* Text Area Input */}
               <textarea 
-                className="flex-1 bg-white border-none rounded-lg px-3.5 py-2 text-xs outline-none shadow-[0_1px_1.5px_rgba(0,0,0,0.06)] min-h-[36px] max-h-[100px] leading-relaxed resize-none text-[#111b21] placeholder-[#667781]"
+                className="flex-1 bg-white border border-[#e9edef] rounded-2xl px-4 py-2 text-xs outline-none shadow-[0_1px_1.5px_rgba(0,0,0,0.06)] min-h-[36px] max-h-[100px] leading-relaxed resize-none text-[#111b21] placeholder-[#667781] focus:ring-1 focus:ring-[#008069]/30 transition-all"
                 value={waMessage}
                 onChange={(e) => setWaMessage(e.target.value)}
                 placeholder="मेसेज टाईप करा..."

@@ -109,15 +109,15 @@ export default function AdminLoginPage() {
       
       <div className="w-full max-w-[420px] relative z-10">
         <div className="text-center mb-8">
-          {/* Logo container - Border removed, fully rounded */}
-          <div className="mx-auto w-24 h-24 mb-6 relative group">
-            <div className="absolute inset-0 bg-blue-200 rounded-full blur-xl opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
-            <div className="relative w-full h-full bg-white rounded-full flex items-center justify-center shadow-xl overflow-hidden">
+          {/* Logo container - Enlarged to w-32 h-32 (128px) */}
+          <div className="mx-auto w-32 h-32 mb-6 relative group select-none">
+            <div className="absolute inset-0 bg-blue-200 rounded-full blur-2xl opacity-70 group-hover:opacity-90 transition-opacity duration-500" />
+            <div className="relative w-full h-full bg-white rounded-full flex items-center justify-center shadow-2xl overflow-hidden border-4 border-white transition-transform duration-300 group-hover:scale-105">
               <img src="/img/logo.jpeg" alt="Techstar Money Solution Logo" className="w-[85%] h-[85%] object-cover rounded-full" />
             </div>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-2">Techstar Money Solution</h1>
-          <p className="text-slate-500 text-sm font-medium uppercase tracking-wider">Staff Portal</p>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2">Techstar Money Solution</h1>
+          <p className="text-slate-400 text-xs font-black uppercase tracking-widest">Staff Portal</p>
         </div>
 
         {/* Main Card - Extra rounded */}
