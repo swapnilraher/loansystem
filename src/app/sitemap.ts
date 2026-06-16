@@ -2,51 +2,55 @@ import { MetadataRoute } from 'next'
 import fs from 'fs'
 import path from 'path'
 
-// ── Parse CSV to get all published programmatic pages ─────────────────────────
+const BASE = 'https://techstarsolution.in'
+const NOW  = new Date()
+
+// ── Parse CSV for programmatic SEO pages ─────────────────────────────────────
 function getCsvRows() {
   try {
     const csv = fs.readFileSync(path.join(process.cwd(), 'data', 'loan_pages.csv'), 'utf8')
     const lines = csv.trim().split(/\r?\n/)
     const header = lines[0].split(',')
     return lines.slice(1).map(line => {
-      const values: string[] = []
+      const vals: string[] = []
       let cur = '', inQ = false
       for (const ch of line) {
         if (ch === '"') { inQ = !inQ; continue }
-        if (ch === ',' && !inQ) { values.push(cur); cur = '' }
+        if (ch === ',' && !inQ) { vals.push(cur); cur = '' }
         else { cur += ch }
       }
-      values.push(cur)
+      vals.push(cur)
       const obj: Record<string, string> = {}
-      header.forEach((h, i) => { obj[h.trim()] = (values[i] ?? '').trim() })
+      header.forEach((h, i) => { obj[h.trim()] = (vals[i] ?? '').trim() })
       return obj
-    }).filter(r => r.Status === 'published')
-  } catch {
-    return []
-  }
+    }).filter(r => r.Status === 'published' && r.URL_Slug)
+  } catch { return [] }
 }
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://techstarsolution.in'
 
-  // ── Static core pages (highest priority) ─────────────────────────────────────
-  const coreRoutes: MetadataRoute.Sitemap = [
-    { url: `${baseUrl}/`,                   priority: 1.0, changeFrequency: 'daily',   lastModified: new Date() },
-    { url: `${baseUrl}/personal-loan`,      priority: 0.9, changeFrequency: 'weekly',  lastModified: new Date() },
-    { url: `${baseUrl}/home-loan`,          priority: 0.9, changeFrequency: 'weekly',  lastModified: new Date() },
-    { url: `${baseUrl}/business-loan`,      priority: 0.9, changeFrequency: 'weekly',  lastModified: new Date() },
-    { url: `${baseUrl}/loan-against-property`, priority: 0.9, changeFrequency: 'weekly', lastModified: new Date() },
-    { url: `${baseUrl}/car-loan`,           priority: 0.8, changeFrequency: 'weekly',  lastModified: new Date() },
-    { url: `${baseUrl}/cibil-score`,        priority: 0.8, changeFrequency: 'weekly',  lastModified: new Date() },
-    { url: `${baseUrl}/become-dsa-partner`, priority: 0.8, changeFrequency: 'monthly', lastModified: new Date() },
-    { url: `${baseUrl}/about`,              priority: 0.6, changeFrequency: 'monthly', lastModified: new Date() },
-    { url: `${baseUrl}/blog/improve-credit-score`, priority: 0.7, changeFrequency: 'monthly', lastModified: new Date() },
-    { url: `${baseUrl}/privacy`,            priority: 0.3, changeFrequency: 'yearly',  lastModified: new Date() },
-    { url: `${baseUrl}/terms`,              priority: 0.3, changeFrequency: 'yearly',  lastModified: new Date() },
+  // ── 1. Homepage ──────────────────────────────────────────────────────────────
+  const home: MetadataRoute.Sitemap = [
+    { url: `${BASE}/`, lastModified: NOW, changeFrequency: 'daily', priority: 1.0 },
   ]
 
-  // ── Static city pages (dedicated routes) ─────────────────────────────────────
-  const cityRoutes: MetadataRoute.Sitemap = [
+  // ── 2. Core loan product pages ───────────────────────────────────────────────
+  const loanProducts: MetadataRoute.Sitemap = [
+    '/personal-loan',
+    '/home-loan',
+    '/business-loan',
+    '/loan-against-property',
+    '/car-loan',
+    '/cibil-score',
+  ].map(r => ({ url: `${BASE}${r}`, lastModified: NOW, changeFrequency: 'weekly' as const, priority: 0.95 }))
+
+  // ── 3. DSA / Partner acquisition pages ──────────────────────────────────────
+  const dsaPages: MetadataRoute.Sitemap = [
+    '/become-dsa-partner',
+  ].map(r => ({ url: `${BASE}${r}`, lastModified: NOW, changeFrequency: 'monthly' as const, priority: 0.85 }))
+
+  // ── 4. City-specific dedicated pages (Pune + Sambhajianagar) ────────────────
+  const cityPages: MetadataRoute.Sitemap = [
     '/personal-loan-pune',
     '/personal-loan-chhatrapati-sambhajianagar',
     '/home-loan-pune',
@@ -59,24 +63,48 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/loan-agent-chhatrapati-sambhajianagar',
     '/dsa-loan-pune',
     '/dsa-loan-chhatrapati-sambhajianagar',
-  ].map(route => ({
-    url: `${baseUrl}${route}`,
-    priority: 0.85,
-    changeFrequency: 'weekly' as const,
-    lastModified: new Date(),
-  }))
+  ].map(r => ({ url: `${BASE}${r}`, lastModified: NOW, changeFrequency: 'weekly' as const, priority: 0.88 }))
 
-  // ── Programmatic SEO pages from CSV ──────────────────────────────────────────
+  // ── 5. Blog / Content pages ──────────────────────────────────────────────────
+  const blogPages: MetadataRoute.Sitemap = [
+    '/blog/improve-credit-score',
+  ].map(r => ({ url: `${BASE}${r}`, lastModified: NOW, changeFrequency: 'monthly' as const, priority: 0.75 }))
+
+  // ── 6. About / Legal pages ───────────────────────────────────────────────────
+  const infoPages: MetadataRoute.Sitemap = [
+    '/about',
+    '/privacy',
+    '/terms',
+  ].map(r => ({ url: `${BASE}${r}`, lastModified: NOW, changeFrequency: 'yearly' as const, priority: 0.40 }))
+
+  // ── 7. Programmatic SEO pages from CSV (all published rows) ─────────────────
   const csvRows = getCsvRows()
-  const csvRoutes: MetadataRoute.Sitemap = csvRows.map(row => {
+  const csvPages: MetadataRoute.Sitemap = csvRows.map(row => {
     const ctr = parseFloat(row.CTR ?? '0')
     return {
-      url: `${baseUrl}/${row.URL_Slug}`,
-      priority: ctr >= 2.0 ? 0.9 : ctr >= 1.5 ? 0.8 : 0.7,
+      url:             `${BASE}/${row.URL_Slug}`,
+      lastModified:    NOW,
       changeFrequency: 'weekly' as const,
-      lastModified: new Date(),
+      priority:        ctr >= 2.5 ? 0.92
+                     : ctr >= 1.5 ? 0.85
+                     : 0.75,
     }
   })
 
-  return [...coreRoutes, ...cityRoutes, ...csvRoutes]
+  // ── EXCLUDED from sitemap (private / auth / dashboard) ──────────────────────
+  // /admin/*        → private (admin.techstarsolution.in subdomain)
+  // /partner/*      → private (partner.techstarsolution.in subdomain)
+  // /dashboard      → requires auth
+  // /auth           → login page, no SEO value
+  // /api/*          → API routes
+
+  return [
+    ...home,
+    ...loanProducts,
+    ...dsaPages,
+    ...cityPages,
+    ...blogPages,
+    ...infoPages,
+    ...csvPages,
+  ]
 }
