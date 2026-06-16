@@ -30,12 +30,43 @@ export default function AdminLayout({
       Notification.requestPermission();
     }
 
-    const sendPushNotification = (title: string, body: string) => {
-      if (Notification.permission === "granted") {
+    // Register service worker for mobile notifications compatibility
+    if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").then((reg) => {
+        console.log("Notification Service Worker registered:", reg.scope);
+      }).catch((e) => {
+        console.error("Notification Service Worker registration failed:", e);
+      });
+    }
+
+    const showFallbackNotification = (title: string, body: string) => {
+      try {
         new Notification(title, {
           body,
           icon: "/img/logo.jpeg",
         });
+      } catch (e) {
+        console.error("Standard Notification constructor failed:", e);
+      }
+    };
+
+    const sendPushNotification = (title: string, body: string) => {
+      if (Notification.permission === "granted") {
+        // Try showing via Service Worker first (best compatibility for mobile and background)
+        if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+          navigator.serviceWorker.ready.then((reg) => {
+            reg.showNotification(title, {
+              body,
+              icon: "/img/logo.jpeg",
+              badge: "/img/logo.jpeg",
+            });
+          }).catch((err) => {
+            console.error("SW Notification failed, trying fallback:", err);
+            showFallbackNotification(title, body);
+          });
+        } else {
+          showFallbackNotification(title, body);
+        }
         
         // Play notification sound
         try {
