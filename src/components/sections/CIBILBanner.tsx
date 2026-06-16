@@ -3,6 +3,7 @@ import React from "react"
 import { Button } from "@/components/ui/Button"
 import { TrendingUp, ShieldCheck, Award, Zap, CheckCircle2, ArrowRight } from "lucide-react"
 import { motion } from "framer-motion"
+import Link from "next/link"
 
 export function CIBILBanner() {
   return (
@@ -36,9 +37,9 @@ export function CIBILBanner() {
               </p>
               
               <div className="d-flex flex-wrap align-items-center gap-3 pt-3">
-                <button className="btn btn-warning py-3 px-5 font-black rounded-pill text-xs uppercase tracking-wider text-slate-950 shadow-lg d-flex align-items-center gap-2 hover-lift">
+                <Link href="/cibil-score" className="btn btn-warning py-3 px-5 font-black rounded-pill text-xs uppercase tracking-wider text-slate-950 shadow-lg d-flex align-items-center gap-2 hover-lift decoration-none">
                   Check Free Score <ArrowRight size={16} />
-                </button>
+                </Link>
                 
                 <div className="text-[10px] font-bold text-slate-500 d-flex flex-column gap-1 ms-lg-2 mt-3 mt-lg-0">
                   <div className="d-flex align-items-center gap-1.5"><CheckCircle2 size={12} className="text-success"/> No impact on score</div>
