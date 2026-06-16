@@ -47,6 +47,20 @@ export function proxy(req: NextRequest) {
       url.pathname = `/partner${pathname}`
       return NextResponse.rewrite(url)
     }
+    return NextResponse.next()
+  }
+
+  // ── Main domain: block /partner/* — redirect to subdomain ──────────────────
+  // techstarsolution.in/partner/login → partner.techstarsolution.in/login
+  if (
+    (hostname === 'techstarsolution.in' || hostname === 'www.techstarsolution.in') &&
+    pathname.startsWith('/partner')
+  ) {
+    const subPath = pathname.replace('/partner', '') || '/'
+    return NextResponse.redirect(
+      `https://partner.techstarsolution.in${subPath}`,
+      308  // 308 = Permanent Redirect (preserves POST method)
+    )
   }
 
   return NextResponse.next()
