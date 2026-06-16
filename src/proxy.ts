@@ -1,9 +1,18 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const url = req.nextUrl
   const hostname = req.headers.get('host') || ''
+
+  // Explicit safety check: API routes, static files, and assets must NEVER be rewritten
+  if (
+    url.pathname.startsWith('/api') ||
+    url.pathname.startsWith('/_next') ||
+    url.pathname.includes('.')
+  ) {
+    return NextResponse.next()
+  }
 
   // Subdomain routing for partner portal
   if (

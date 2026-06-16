@@ -24,12 +24,25 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
     ? `data:image/jpeg;base64,${profile.kycData.photoBase64}` 
     : user?.photoURL || "";
 
-  // Redirect to login if not authenticated
+  // Redirect checks:
+  // 1. If not authenticated, redirect to partner login
+  // 2. If authenticated but role is not partner or dsaStatus is not Active, redirect to partner register to complete onboarding
   useEffect(() => {
-    if (!loading && !user && !pathname.startsWith('/partner/register') && pathname !== '/partner/login') {
-      router.push('/partner/login')
+    if (loading) return;
+    
+    const onRegisterOrLogin = pathname.startsWith('/partner/register') || pathname === '/partner/login';
+    
+    if (!user) {
+      if (!onRegisterOrLogin) {
+        router.push('/partner/login');
+      }
+    } else if (profile) {
+      const isRegisteredAndActive = profile.role === "partner" && profile.dsaStatus === "Active";
+      if (!isRegisteredAndActive && !onRegisterOrLogin) {
+        router.push('/partner/register');
+      }
     }
-  }, [user, loading, pathname, router])
+  }, [user, profile, loading, pathname, router])
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>

@@ -85,16 +85,45 @@ export default function AdminLayout({
         return;
       }
       snapshot.docChanges().forEach((change) => {
-        if (change.type === "added") {
+        if (change.type === "added" || change.type === "modified") {
           const data = change.doc.data();
-          const createdAt = data.createdAt;
-          const docTime = createdAt?.toMillis ? createdAt.toMillis() : (createdAt?.seconds ? createdAt.seconds * 1000 : Date.now());
+          const id = change.doc.id;
+          const updatedAt = data.updatedAt;
+          const docTime = updatedAt?.toMillis ? updatedAt.toMillis() : (updatedAt?.seconds ? updatedAt.seconds * 1000 : Date.now());
+          
           if (docTime > sessionStartTime - 5000) {
             const partnerName = data.kycData?.name || data.panData?.name || data.name || "नवीन भागीदार";
-            sendPushNotification(
-              "🤝 नवीन DSA भागीदार नोंदणी!",
-              `नाव: ${partnerName}\nमोबाईल: ${data.mobileNumber || data.phone || "N/A"}`
-            );
+            const step = data.onboardingStep;
+            
+            // Prevent duplicate alerts in the current session
+            const sessionKey = `${id}_step_${step}`;
+            if (!(window as any)._notifiedSteps) {
+              (window as any)._notifiedSteps = new Set();
+            }
+            if ((window as any)._notifiedSteps.has(sessionKey)) return;
+            (window as any)._notifiedSteps.add(sessionKey);
+
+            if (step === 1) {
+              sendPushNotification(
+                "🤝 DSA नोंदणी: मोबाईल पडताळणी!",
+                `नाव: ${partnerName}\nमोबाईल: ${data.mobileNumber || "N/A"}\nटप्पा १ यशस्वीरित्या पूर्ण केला.`
+              );
+            } else if (step === 2) {
+              sendPushNotification(
+                "🛡️ DSA नोंदणी: आधार KYC!",
+                `नाव: ${partnerName}\nमोबाईल: ${data.mobileNumber || "N/A"}\nटप्पा २ (आधार) यशस्वीरित्या पूर्ण केला.`
+              );
+            } else if (step === 3) {
+              sendPushNotification(
+                "💳 DSA नोंदणी: पॅन पडताळणी!",
+                `नाव: ${partnerName}\nमोबाईल: ${data.mobileNumber || "N/A"}\nटप्पा ३ (पॅन) यशस्वीरित्या पूर्ण केला.`
+              );
+            } else if (step === 4 || data.dsaStatus === "Active") {
+              sendPushNotification(
+                "🎉 नवीन DSA भागीदार नोंदणी पूर्ण!",
+                `नाव: ${partnerName}\nDSA कोड: ${data.dsaCode || "N/A"}\nमोबाईल: ${data.mobileNumber || "N/A"}\nनोंदणी यशस्वीरित्या पूर्ण झाली!`
+              );
+            }
           }
         }
       });

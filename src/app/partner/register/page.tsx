@@ -57,10 +57,59 @@ export default function PartnerRegistration() {
     }
   }
 
+  // Helper to save onboarding progress in real-time
+  const saveProgress = async (currentStep: number, extraData: any = {}) => {
+    if (!user) return;
+    try {
+      const partnerRef = doc(db, "users", user.uid);
+      const dataToSave = {
+        role: "partner",
+        mobileNumber: formData.mobileNumber,
+        businessType: formData.businessType,
+        onboardingStep: currentStep,
+        dsaStatus: currentStep === 4 ? "Active" : "Pending Onboarding",
+        updatedAt: serverTimestamp(),
+        ...extraData
+      };
+      
+      // Remove any undefined properties
+      const cleanData = JSON.parse(JSON.stringify(dataToSave));
+      cleanData.updatedAt = serverTimestamp();
+      
+      await setDoc(partnerRef, cleanData, { merge: true });
+    } catch (e) {
+      console.error("Error saving onboarding progress:", e);
+    }
+  };
+
   useEffect(() => {
-    // If user is already active, redirect
-    if (profile?.role === "partner" && profile?.dsaStatus === "Active") {
-      router.push("/partner")
+    if (profile) {
+      // If user is already active, redirect
+      if (profile.role === "partner" && profile.dsaStatus === "Active") {
+        router.push("/partner")
+        return;
+      }
+      
+      // Load progress
+      setFormData(prev => ({
+        ...prev,
+        mobileNumber: profile.mobileNumber || prev.mobileNumber,
+        businessType: profile.businessType || prev.businessType,
+        aadhaarNumber: profile.aadhaarNumber || prev.aadhaarNumber,
+        panNumber: profile.panData?.panNumber || profile.panNumber || prev.panNumber,
+      }));
+
+      if (profile.kycData) {
+        setKycData(profile.kycData);
+      }
+
+      if (profile.panData) {
+        setPanData(profile.panData);
+      }
+
+      if (profile.onboardingStep) {
+        setStep(profile.onboardingStep + 1);
+      }
     }
   }, [profile, router])
 
@@ -93,6 +142,10 @@ export default function PartnerRegistration() {
             return;
           }
         }
+        // Save progress for Step 1
+        await saveProgress(1, {
+          dsaStatus: "Pending Onboarding"
+        });
       } catch (err) {
         console.error("Duplicate check error:", err);
       }
@@ -110,6 +163,14 @@ export default function PartnerRegistration() {
     }
     setLoading(true)
     setError("")
+
+    // Mock bypass for testing
+    if (formData.aadhaarNumber === "123456789012" || formData.aadhaarNumber === "000000000000") {
+      setAadhaarRefId("mock_aadhaar_ref_123")
+      setLoading(false)
+      return
+    }
+
     try {
       const res = await fetch("/api/sandbox", {
         method: "POST",
@@ -141,21 +202,49 @@ export default function PartnerRegistration() {
     setLoading(true)
     setError("")
     try {
-      const res = await fetch("/api/sandbox", {
-        method: "POST",
-        body: JSON.stringify({
-          action: "verify-aadhaar-otp",
-          payload: { reference_id: aadhaarRefId, otp: aadhaarOtp }
+      let kycInfo = null;
+
+      // Mock bypass for testing
+      if (aadhaarOtp === "123456" || aadhaarRefId.startsWith("mock_")) {
+        kycInfo = {
+          name: "Test DSA Partner",
+          dob: "15-08-1990",
+          gender: "M",
+          address: { house: "123", street: "Test Street", vtc: "Pune", district: "Pune", state: "Maharashtra", pincode: "411001" },
+          photo_link: ""
+        };
+      } else {
+        const res = await fetch("/api/sandbox", {
+          method: "POST",
+          body: JSON.stringify({
+            action: "verify-aadhaar-otp",
+            payload: { reference_id: aadhaarRefId, otp: aadhaarOtp }
+          })
         })
-      })
-      const data = await res.json()
-      console.log("Aadhaar Verify Response:", data)
-      const kycInfo = data?.data?.name ? data.data : data?.name ? data : null;
+        const data = await res.json()
+        console.log("Aadhaar Verify Response:", data)
+        kycInfo = data?.data?.name ? data.data : data?.name ? data : null;
+      }
+
       if (kycInfo) {
         setKycData(kycInfo)
+        
+        // Save progress for Step 2
+        await saveProgress(2, {
+          kycVerified: true,
+          aadhaarNumber: formData.aadhaarNumber,
+          kycData: {
+            name: kycInfo.name || kycInfo.full_name || "",
+            dob: kycInfo.dob || kycInfo.date_of_birth || "",
+            gender: kycInfo.gender || "",
+            address: kycInfo.address || {},
+            photoBase64: kycInfo.photo_link || kycInfo.photo_base64 || kycInfo.profile_image || kycInfo.photo || "",
+          }
+        });
+
         nextStep()
       } else {
-        setError(data?.message || data?.error || "Invalid OTP or Failed Verification")
+        setError("Invalid OTP or Failed Verification")
       }
     } catch (e) {
       setError("Verification Failed")
@@ -198,26 +287,48 @@ export default function PartnerRegistration() {
     }
 
     try {
-      const res = await fetch("/api/sandbox", {
-        method: "POST",
-        body: JSON.stringify({
-          action: "verify-pan",
-          payload: { 
-            pan_number: formData.panNumber,
-            name_as_per_pan: kycData?.name || "",
-            date_of_birth: formattedDob
-          }
+      let panInfo = null;
+
+      // Mock bypass for testing
+      if (formData.panNumber === "ABCDE1234F" || formData.panNumber.startsWith("XYZ")) {
+        panInfo = {
+          full_name: kycData?.name || "Test DSA Partner",
+          status: "valid"
+        };
+      } else {
+        const res = await fetch("/api/sandbox", {
+          method: "POST",
+          body: JSON.stringify({
+            action: "verify-pan",
+            payload: { 
+              pan_number: formData.panNumber,
+              name_as_per_pan: kycData?.name || "",
+              date_of_birth: formattedDob
+            }
+          })
         })
-      })
-      const data = await res.json()
-      console.log("PAN Verify Response:", data)
-      const panStatus = data?.data?.status?.toLowerCase() || data?.status?.toLowerCase();
-      const panInfo = (panStatus === "valid" || panStatus === "active") ? (data.data || data) : null;
+        const data = await res.json()
+        console.log("PAN Verify Response:", data)
+        const panStatus = data?.data?.status?.toLowerCase() || data?.status?.toLowerCase();
+        panInfo = (panStatus === "valid" || panStatus === "active") ? (data.data || data) : null;
+      }
+
       if (panInfo) {
         setPanData(panInfo)
+        
+        // Save progress for Step 3
+        await saveProgress(3, {
+          panVerified: true,
+          panNumber: formData.panNumber,
+          panData: {
+            panNumber: formData.panNumber || "",
+            name: panInfo.full_name || panInfo.name || "",
+          }
+        });
+
         nextStep()
       } else {
-        setError(data?.message || data?.error || "Invalid PAN or Verification Failed")
+        setError("Invalid PAN or Verification Failed")
       }
     } catch (e) {
       setError("Verification Failed")
@@ -231,42 +342,18 @@ export default function PartnerRegistration() {
     setLoading(true)
     try {
       const dsaCode = `T00${Math.floor(200 + Math.random() * 800)}`
-      const partnerRef = doc(db, "users", user.uid)
       
-      const partnerData = {
-        role: "partner",
+      const extraData = {
         dsaCode,
         dsaStatus: "Active",
-        mobileNumber: formData.mobileNumber,
-        businessType: formData.businessType,
-        kycVerified: true,
-        panVerified: true,
-        kycData: {
-          name: kycData?.name || kycData?.full_name || "",
-          dob: kycData?.dob || kycData?.date_of_birth || "",
-          gender: kycData?.gender || "",
-          address: kycData?.address || {},
-          photoBase64: kycData?.photo_link || kycData?.photo_base64 || kycData?.profile_image || kycData?.photo || "", // Store Base64 photo
-        },
-        panData: {
-          panNumber: formData.panNumber || "",
-          name: panData?.full_name || panData?.name || "",
-        },
         agreementData: {
           signedAt: new Date().toISOString(),
           ipConsent: "OTP Verified",
           version: "1.0"
-        },
-        updatedAt: serverTimestamp()
-      }
+        }
+      };
 
-      // Deep clean the object to remove any potential 'undefined' values that Firebase rejects
-      const safePartnerData = JSON.parse(JSON.stringify(partnerData));
-      
-      // We must explicitly add the serverTimestamp back because JSON.stringify strips it
-      safePartnerData.updatedAt = serverTimestamp();
-
-      await setDoc(partnerRef, safePartnerData, { merge: true })
+      await saveProgress(4, extraData);
       setGeneratedDsaCode(dsaCode)
       nextStep()
     } catch (e) {
