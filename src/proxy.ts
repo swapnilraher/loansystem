@@ -2,43 +2,64 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function proxy(req: NextRequest) {
-  const url = req.nextUrl
+  const url      = req.nextUrl.clone()
   const hostname = req.headers.get('host') || ''
+  const pathname = url.pathname
 
-  // Explicit safety check: API routes, static files, and assets must NEVER be rewritten
+  // ── Safety: never rewrite API routes, static files, or assets ──────────────
   if (
-    url.pathname.startsWith('/api') ||
-    url.pathname.startsWith('/_next') ||
-    url.pathname.includes('.')
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/_next') ||
+    pathname.includes('.')
   ) {
     return NextResponse.next()
   }
 
-  // Subdomain routing for partner portal
+  // ── Admin subdomain: admin.techstarsolution.in ──────────────────────────────
   if (
-    hostname.startsWith('partner.') || 
+    hostname.startsWith('admin.') ||
+    hostname === 'admin.techstarsolution.in' ||
+    hostname === 'admin.localhost:3000'
+  ) {
+    // Already prefixed with /admin → pass through
+    if (pathname.startsWith('/admin')) {
+      return NextResponse.next()
+    }
+
+    // Root / → redirect to /admin/login
+    if (pathname === '/' || pathname === '') {
+      url.pathname = '/admin/login'
+      return NextResponse.redirect(url)
+    }
+
+    // /login → /admin/login, /leads → /admin/leads, etc.
+    url.pathname = '/admin' + pathname
+    return NextResponse.rewrite(url)
+  }
+
+  // ── Partner subdomain: partner.techstarsolution.in ─────────────────────────
+  if (
+    hostname.startsWith('partner.') ||
     hostname === 'partner.techstarsolution.in' ||
     hostname === 'partner.localhost:3000'
   ) {
-    // If the path doesn't already start with /partner, rewrite it
-    if (!url.pathname.startsWith('/partner')) {
-      url.pathname = `/partner${url.pathname}`
+    if (!pathname.startsWith('/partner')) {
+      url.pathname = `/partner${pathname}`
       return NextResponse.rewrite(url)
     }
   }
 
-  // Also allow direct access via /partner if they are not using the subdomain (fallback)
   return NextResponse.next()
 }
 
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
+     * Match all request paths except:
      * - api (API routes)
      * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
+     * - _next/image (image optimisation)
+     * - favicon.ico
      */
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
