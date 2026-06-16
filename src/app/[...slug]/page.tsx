@@ -109,7 +109,8 @@ export async function generateMetadata({ params }: { params: { slug: string[] } 
   return {
     title:       generateTitle(row),
     description: generateMeta(row),
-    robots:      robotsMeta(row),
+    // Always index,follow — let Google crawl first, apply CTR pruning later via GSC
+    robots: { index: true, follow: true },
     openGraph: {
       title:       generateTitle(row),
       description: generateMeta(row),
