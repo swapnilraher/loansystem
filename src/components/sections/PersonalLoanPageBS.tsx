@@ -1287,6 +1287,224 @@ function ProcessSection() {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   ANIMATED POSTERS SECTION (1080x1350)
+───────────────────────────────────────────────────────────────────────────── */
+function AnimatedPostersSection() {
+  const posters = [
+    {
+      imgSrc: "/img/instant-personal-loan-approval.png",
+      alt: "Apply for instant personal loan online with quick 2 hours approval - Techstar Money Solution",
+      title: "Instant Approval in 2 Hours",
+      desc: "Get fast approval on your personal loan application with our fully digital validation process.",
+    },
+    {
+      imgSrc: "/img/low-interest-personal-loan-rates.png",
+      alt: "Check low interest personal loan rates starting at 10.49 percent - Techstar Money Solution",
+      title: "Rates Starting at 10.49% p.a.",
+      desc: "Get low interest rates from 50+ leading partner banks & NBFCs tailored to your income profile.",
+    },
+    {
+      imgSrc: "/img/personal-loan-eligibility-documents.png",
+      alt: "Documents required for instant personal loan Aadhaar and PAN check - Techstar Money Solution",
+      title: "100% Paperless Process",
+      desc: "No physical documentation required. Just upload your PAN, Aadhaar, and bank statements online.",
+    },
+    {
+      imgSrc: "/img/paperless-digital-loan-disbursal.png",
+      alt: "Enjoy paperless digital personal loan disbursal directly to bank account - Techstar Money Solution",
+      title: "Swift 24-Hour Disbursal",
+      desc: "Once approved, the loan amount is transferred directly to your bank account within 24 hours.",
+    },
+  ];
+
+  return (
+    <>
+      <style>{`
+        /* ── POSTERS CAROUSEL / GRID ── */
+        .posters-section {
+          padding: 100px 0;
+          background: #f8fafc;
+          border-top: 1px solid #f1f5f9;
+          border-bottom: 1px solid #f1f5f9;
+          overflow: hidden;
+        }
+        .posters-container {
+          max-width: 1560px;
+          margin: 0 auto;
+          padding: 0 15px;
+        }
+        .posters-slider-container {
+          display: flex;
+          overflow-x: auto;
+          scroll-snap-type: x mandatory;
+          gap: 28px;
+          padding: 20px 5px 35px 5px;
+          scrollbar-width: none; /* Hide scrollbar Firefox */
+        }
+        .posters-slider-container::-webkit-scrollbar {
+          display: none; /* Hide scrollbar Chrome/Safari */
+        }
+        
+        @keyframes floatPoster {
+          0% { transform: translateY(0px); }
+          50% { transform: translateY(-8px); }
+          100% { transform: translateY(0px); }
+        }
+
+        .poster-card-wrapper {
+          min-width: 290px;
+          flex: 1 0 auto;
+          scroll-snap-align: center;
+          background: #fff;
+          border-radius: 24px;
+          padding: 24px;
+          box-shadow: 0 8px 30px rgba(0,0,0,0.03);
+          border: 1px solid #f1f5f9;
+          transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease, border-color 0.4s ease;
+          animation: floatPoster 6s ease-in-out infinite;
+        }
+        
+        .poster-card-wrapper:nth-child(1) { animation-delay: 0s; }
+        .poster-card-wrapper:nth-child(2) { animation-delay: 1.5s; }
+        .poster-card-wrapper:nth-child(3) { animation-delay: 3s; }
+        .poster-card-wrapper:nth-child(4) { animation-delay: 4.5s; }
+
+        .poster-image-container {
+          aspect-ratio: 1080 / 1350;
+          width: 100%;
+          border-radius: 16px;
+          overflow: hidden;
+          background: #e2e8f0;
+          position: relative;
+        }
+        .poster-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .poster-card-wrapper:hover {
+          animation-play-state: paused;
+          transform: translateY(-20px) scale(1.03);
+          box-shadow: 0 30px 60px rgba(2, 132, 199, 0.15), 0 0 0 1px rgba(2, 132, 199, 0.1);
+          border-color: rgba(2, 132, 199, 0.2);
+        }
+        .poster-card-wrapper:hover .poster-image {
+          transform: scale(1.08);
+        }
+        .poster-h3 {
+          font-size: 1.35rem;
+          font-weight: 800;
+          color: #0F172A;
+          margin-bottom: 10px;
+          line-height: 1.4;
+          margin-top: 20px;
+          transition: color 0.3s ease;
+        }
+        .poster-card-wrapper:hover .poster-h3 {
+          color: #0284c7;
+        }
+        .poster-desc {
+          font-size: 0.95rem;
+          color: #64748B;
+          margin: 0;
+          line-height: 1.6;
+        }
+        .seo-linking-box {
+          background: #fff;
+          border-radius: 20px;
+          padding: 30px 40px;
+          border: 1px solid #f1f5f9;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+          margin-top: 50px;
+        }
+        .seo-linking-text {
+          font-size: 1.05rem;
+          color: #475569;
+          line-height: 1.8;
+          margin: 0;
+        }
+        .seo-link {
+          color: #0284c7;
+          text-decoration: none;
+          font-weight: 700;
+          border-bottom: 2px dashed rgba(2, 132, 199, 0.4);
+          transition: color 0.2s, border-color 0.2s;
+        }
+        .seo-link:hover {
+          color: #0369a1;
+          border-bottom-style: solid;
+          border-bottom-color: #0369a1;
+        }
+        @media (min-width: 992px) {
+          .posters-container {
+            padding: 0 40px;
+          }
+          .posters-slider-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 32px;
+            overflow-x: visible;
+            scroll-snap-type: none;
+            padding-bottom: 0;
+          }
+          .poster-card-wrapper {
+            min-width: 0;
+          }
+        }
+      `}</style>
+
+      <section id="loan-posters" className="posters-section">
+        <div className="posters-container">
+          <div className="text-center mb-5" data-reveal="up">
+            <span className="section-chip">✨ Direct Benefits</span>
+            <h2 className="pl-section-title">Instant Personal Loan Benefits & Features</h2>
+            <p className="pl-section-sub">
+              Explore why thousands of borrowers choose Techstar Money Solution for the best personal loan online.
+            </p>
+          </div>
+
+          {/* Responsive Grid / Swiper */}
+          <div className="posters-slider-container">
+            {posters.map((p, idx) => (
+              <div key={idx} className="poster-card-wrapper" data-reveal="up" data-delay={String(idx + 1)}>
+                <div className="poster-image-container">
+                  <img
+                    src={p.imgSrc}
+                    alt={p.alt}
+                    className="poster-image"
+                    width={1080}
+                    height={1350}
+                    loading="lazy"
+                  />
+                </div>
+                <div className="poster-content text-center">
+                  <h3 className="poster-h3">{p.title}</h3>
+                  <p className="poster-desc">{p.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Internal Linking and SEO Content */}
+          <div className="seo-linking-box mt-5 text-center" data-reveal="up">
+            <p className="seo-linking-text">
+              Looking for local personal loan services? We cover major cities including{" "}
+              <a href="/personal-loan/maharashtra/mumbai-city" className="seo-link">Mumbai</a>,{" "}
+              <a href="/personal-loan-pune" className="seo-link">Pune</a>, and{" "}
+              <a href="/personal-loan/maharashtra/navi-mumbai" className="seo-link">Navi Mumbai</a>. 
+              Need other financing options? Compare our low-interest <a href="/home-loan" className="seo-link">Home Loans</a> and{" "}
+              <a href="/loan-against-property" className="seo-link">Loans Against Property</a> today.
+            </p>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    EXPERT TIPS SECTION — STANDALONE PREMIUM
 ───────────────────────────────────────────────────────────────────────────── */
 function ExpertTipsSection() {
@@ -1760,6 +1978,7 @@ export default function PersonalLoanPageContent() {
       <PurposeSection />
       <EligibilitySection />
       <ProcessSection />
+      <AnimatedPostersSection />
       <TestimonialsSection />
       <TrustSection />
       <FAQSection />
