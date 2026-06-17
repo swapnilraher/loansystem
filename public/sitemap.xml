@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Home -->
+  <url>
+    <loc>https://techstarsolution.in/</loc>
+    <lastmod>{{BUILD_DATE_ISO}}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <!-- Static pages -->
+  <url><loc>https://techstarsolution.in/about</loc><lastmod>{{BUILD_DATE_ISO}}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://techstarsolution.in/partner</loc><lastmod>{{BUILD_DATE_ISO}}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://techstarsolution.in/privacy</loc><lastmod>{{BUILD_DATE_ISO}}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://techstarsolution.in/terms</loc><lastmod>{{BUILD_DATE_ISO}}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <!-- Loan type landing pages -->
+  <url><loc>https://techstarsolution.in/personal-loan</loc><lastmod>{{BUILD_DATE_ISO}}</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://techstarsolution.in/home-loan</loc><lastmod>{{BUILD_DATE_ISO}}</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://techstarsolution.in/lap-loan</loc><lastmod>{{BUILD_DATE_ISO}}</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://techstarsolution.in/business-loan</loc><lastmod>{{BUILD_DATE_ISO}}</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://techstarsolution.in/car-loan</loc><lastmod>{{BUILD_DATE_ISO}}</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <!-- Example city pages -->
+  <url><loc>https://techstarsolution.in/personal-loan/maharashtra/mumbai</loc><lastmod>{{BUILD_DATE_ISO}}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://techstarsolution.in/personal-loan/maharashtra/pune</loc><lastmod>{{BUILD_DATE_ISO}}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://techstarsolution.in/personal-loan/maharashtra/nashik</loc><lastmod>{{BUILD_DATE_ISO}}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <!-- Blog index -->
+  <url><loc>https://techstarsolution.in/blog</loc><lastmod>{{BUILD_DATE_ISO}}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <!-- Example blog post -->
+  <url><loc>https://techstarsolution.in/blog/how-to-improve-cibil-score</loc><lastmod>{{BUILD_DATE_ISO}}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+</urlset>
