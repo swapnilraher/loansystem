@@ -112,10 +112,10 @@ export function ProcessAndTips() {
             </CardContent>
           </Card>
 
-          <Card className="border-none bg-primary text-white">
-            <CardContent className="p-8">
+          <Card className="border-none bg-primary text-white flex flex-col">
+            <CardContent className="p-8 flex-grow flex flex-col">
               <h3 className="text-xl font-bold mb-6">Expert Tips for Fast Approval</h3>
-              <ul className="space-y-4">
+              <ul className="space-y-4 mb-8 flex-grow">
                 {[
                   "Maintain a CIBIL score of 750 or above.",
                   "Reduce existing debt-to-income ratio.",
@@ -132,6 +132,13 @@ export function ProcessAndTips() {
                   </li>
                 ))}
               </ul>
+              
+              <div className="p-4 bg-white/10 rounded-lg border border-white/20 mt-auto">
+                <p className="text-sm font-medium flex items-start gap-2 leading-relaxed">
+                  <Info className="shrink-0 mt-0.5" size={18} />
+                  <span>We compare multiple Banks & NBFCs to ensure you get the best loan offer, saving you from applying everywhere.</span>
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>
