@@ -12,7 +12,7 @@ export const maharashtraCities = [
   'Phaltan', 'Poladpur', 'Pune', 'Purandar', 'Radhanagari', 'Roha', 'Sangli', 'Satara', 
   'Shahuwadi', 'Shirala', 'Shirol', 'Shirur', 'Shrivardhan', 'Solapur', 'Sudhagad', 'Tala', 
   'Talasari', 'Tasgaon', 'Thane', 'Udgir', 'Ulhasnagar', 'Uran', 'Vada', 'Vasai-Virar', 
-  'Velhe', 'Vikramgad', 'Wai', 'Walwa', 'Wardha', 'Washim', 'Yavatmal',
+  'Vashi', 'Velhe', 'Vikramgad', 'Wai', 'Walwa', 'Wardha', 'Washim', 'Yavatmal',
   // Districts
   'Ahmednagar', 'Akola', 'Amravati', 'Aurangabad', 'Beed', 'Bhandara', 'Buldhana', 
   'Chandrapur', 'Dhule', 'Gadchiroli', 'Gondia', 'Hingoli', 'Jalgaon', 'Jalna', 'Kolhapur', 
