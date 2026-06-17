@@ -457,7 +457,7 @@ const GlobalStyles = () => (
 /* ─────────────────────────────────────────────────────────────────────────────
    HERO SECTION
 ───────────────────────────────────────────────────────────────────────────── */
-function HeroSection() {
+function HeroSection({ city }: { city?: string }) {
   const [step, setStep] = useState<1 | 3>(1)
   const [progress, setProgress] = useState(0)
   const [submitting, setSubmitting] = useState(false)
@@ -507,6 +507,7 @@ function HeroSection() {
             <h1 className="hero-h1 mb-3">
               Get Instant{" "}
               <span className="accent-blue">Personal Loan</span>
+              {city && <span> in {city.replace(/-/g, ' ')}</span>}
               <br />Up to <span className="accent-green">₹50 Lakhs</span>
             </h1>
             <p style={{ color: "#475569", fontSize: ".95rem", lineHeight: 1.6, maxWidth: 500, marginBottom: 24, fontWeight: 500 }}>
@@ -1359,8 +1360,8 @@ function AnimatedPostersSection() {
           border-radius: 24px;
           padding: 24px;
           box-shadow: 0 8px 30px rgba(0,0,0,0.03);
-          border: 1px solid #f1f5f9;
-          transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease, border-color 0.4s ease;
+          border: none;
+          transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
           animation: floatPoster 6s ease-in-out infinite;
         }
         
@@ -1387,8 +1388,7 @@ function AnimatedPostersSection() {
         .poster-card-wrapper:hover {
           animation-play-state: paused;
           transform: translateY(-20px) scale(1.03);
-          box-shadow: 0 30px 60px rgba(2, 132, 199, 0.15), 0 0 0 1px rgba(2, 132, 199, 0.1);
-          border-color: rgba(2, 132, 199, 0.2);
+          box-shadow: 0 30px 60px rgba(2, 132, 199, 0.15);
         }
         .poster-card-wrapper:hover .poster-image {
           transform: scale(1.08);
@@ -1963,12 +1963,12 @@ function MobileStickyApply() {
 /* ─────────────────────────────────────────────────────────────────────────────
    ROOT EXPORT
 ───────────────────────────────────────────────────────────────────────────── */
-export default function PersonalLoanPageContent() {
+export default function PersonalLoanPageContent({ city }: { city?: string }) {
   useScrollReveal()
   return (
     <div className="pl-page">
       <GlobalStyles />
-      <HeroSection />
+      <HeroSection city={city} />
       <PartnersStrip />
       <StatsStrip />
       <OverviewSection />

@@ -1,7 +1,7 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
-import { Header, Footer } from '@/components/sections/Layout';
-import { StickyMobileCTA } from '@/components/ui/StickyMobileCTA';
+import PersonalLoanPageContent from '@/components/sections/PersonalLoanPageBS';
+
 import { maharashtraCities } from '@/lib/maharashtraCities';
 
 /**
@@ -34,13 +34,8 @@ export default function CityLoanPage({ params }: { params: { loan: string; state
   const loanName = loan.replace(/-/g, ' ');
   const cityName = state.replace(/-/g, ' ');
   return (
-    <main style={{ padding: '2rem', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui, sans-serif' }}>
-      <Header />
-      <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>{loanName} in {cityName}</h1>
-      <p>Get your {loanName.toLowerCase()} in {cityName} with instant approval, minimal documentation, and competitive rates.</p>
-      {/* Placeholder for actual loan form component */}
-      <StickyMobileCTA targetId="loan-form" label="Apply Now" />
-      <Footer />
-    </main>
+    <>
+      <PersonalLoanPageContent />
+    </>
   );
 }
