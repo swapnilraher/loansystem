@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef, useCallback } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { leadFormSchema, LeadFormData } from "@/lib/schemas"
+import { maharashtraCities } from "@/lib/maharashtraCities"
+import Confetti from "react-confetti"
 
 /* ─────────────────────────────────────────────────────────────────────────────
    SCROLL-REVEAL HOOK
@@ -90,7 +92,7 @@ const GlobalStyles = () => (
     /* ── HERO ── */
     .pl-hero {
       background: #f8fafc;
-      padding: 60px 0 50px;
+      padding: 140px 0 50px;
       position: relative; overflow: hidden;
     }
     .pl-hero::before {
@@ -390,7 +392,7 @@ const GlobalStyles = () => (
 
     /* ── MOBILE RESPONSIVE ── */
     @media (max-width:991.98px) {
-      .pl-hero { padding:90px 0 56px; }
+      .pl-hero { padding:120px 0 56px; }
       .hero-h1 { font-size:clamp(1.7rem,5vw,2.4rem); }
       .form-card { margin-top:40px; }
       .pl-section { padding:56px 0; }
@@ -399,7 +401,7 @@ const GlobalStyles = () => (
       .step-line { display:none; }
     }
     @media (max-width:575.98px) {
-      .pl-hero { padding:80px 0 48px; }
+      .pl-hero { padding:100px 0 48px; }
       .stat-num { font-size:1.6rem; }
       .stat-card-dark { padding:20px 12px; }
       .feat-card { padding:20px 18px; }
@@ -463,6 +465,12 @@ function HeroSection() {
   const { register, handleSubmit, watch, setValue, formState: { errors } } =
     useForm<LeadFormData>({ resolver: zodResolver(leadFormSchema) })
   const vals = watch()
+
+  const [showCityDropdown, setShowCityDropdown] = useState(false)
+  const citySearch = vals.city || ""
+  const filteredCities = citySearch.length >= 3 
+    ? maharashtraCities.filter(c => c.toLowerCase().includes(citySearch.toLowerCase())) 
+    : []
 
   useEffect(() => {
     try { const s = localStorage.getItem("_pld"); if (s) { const p = JSON.parse(s); Object.keys(p).forEach(k => setValue(k as any, p[k])) } } catch (_) {}
@@ -568,7 +576,17 @@ function HeroSection() {
                       </div>
                       <div className="mb-3">
                         <label className="fl-label">Mobile Number</label>
-                        <input className={`fl-input${errors.mobileNumber ? " has-err" : ""}`} placeholder="10-digit mobile" {...register("mobileNumber")} />
+                        <input 
+                          type="tel"
+                          maxLength={10}
+                          className={`fl-input${errors.mobileNumber ? " has-err" : ""}`} 
+                          placeholder="10-digit mobile" 
+                          {...register("mobileNumber", {
+                            onChange: (e) => {
+                              e.target.value = e.target.value.replace(/[^0-9]/g, '').slice(0, 10);
+                            }
+                          })} 
+                        />
                         {errors.mobileNumber && <p className="fl-error">{errors.mobileNumber.message}</p>}
                       </div>
                       <div className="row g-3 mb-3">
@@ -585,15 +603,38 @@ function HeroSection() {
                           </select>
                         </div>
                       </div>
-                      <div className="mb-3">
+                      <div className="mb-4" style={{ position: "relative" }}>
                         <label className="fl-label">City</label>
-                        <input className={`fl-input${errors.city ? " has-err" : ""}`} placeholder="Your city" {...register("city")} />
+                        <input 
+                          className={`fl-input${errors.city ? " has-err" : ""}`} 
+                          placeholder="Your city" 
+                          {...register("city")} 
+                          onFocus={() => setShowCityDropdown(true)}
+                          onBlur={() => setTimeout(() => setShowCityDropdown(false), 200)}
+                          autoComplete="off"
+                        />
+                        {showCityDropdown && filteredCities.length > 0 && (
+                          <ul style={{
+                            position: "absolute", top: "100%", left: 0, right: 0, 
+                            background: "#fff", border: "1px solid #E5E9EF", 
+                            borderRadius: 8, marginTop: 4, zIndex: 50, 
+                            maxHeight: 200, overflowY: "auto", padding: 0, 
+                            listStyle: "none", boxShadow: "0 10px 25px rgba(0,0,0,0.1)"
+                          }}>
+                            {filteredCities.map(c => (
+                              <li 
+                                key={c} 
+                                style={{ padding: "10px 14px", cursor: "pointer", fontSize: ".88rem", borderBottom: "1px solid #F1F5F9", color: "#111827" }}
+                                onMouseDown={() => { setValue("city", c, { shouldValidate: true }); setShowCityDropdown(false) }}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = "#F8FBFF")}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                              >
+                                {c}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                         {errors.city && <p className="fl-error">{errors.city.message}</p>}
-                      </div>
-                      <div className="mb-4">
-                        <label className="fl-label">Loan Amount Required</label>
-                        <input type="number" className={`fl-input${errors.loanAmount ? " has-err" : ""}`} placeholder="₹ Required amount" {...register("loanAmount")} />
-                        {errors.loanAmount && <p className="fl-error">{errors.loanAmount.message}</p>}
                       </div>
                       <button type="submit" className="btn-apply" disabled={submitting}>
                         {submitting ? <><span className="spinner-border spinner-border-sm me-2" />Processing...</> : "Get Free Loan Quotes →"}
@@ -612,13 +653,10 @@ function HeroSection() {
                 </>
               ) : (
                 <div style={{ padding: "48px 32px", textAlign: "center" }}>
+                  <Confetti width={typeof window !== "undefined" ? window.innerWidth : 300} height={typeof window !== "undefined" ? window.innerHeight : 800} recycle={false} numberOfPieces={500} />
                   <div style={{ width: 96, height: 96, borderRadius: "50%", background: "linear-gradient(135deg,#E8FBF7,#D1FAE5)", margin: "0 auto 24px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "3rem" }}>✅</div>
-                  <h3 style={{ fontSize: "1.7rem", fontWeight: 900, color: "#0A1628", marginBottom: 8 }}>Application Submitted!</h3>
+                  <h3 style={{ fontSize: "1.7rem", fontWeight: 900, color: "#0A1628", marginBottom: 8 }}>Inquiry Submitted!</h3>
                   <p style={{ color: "#6B7280", marginBottom: 20 }}>Our loan expert will call you within <strong>15 minutes</strong>.</p>
-                  <div style={{ background: "#F8FBFF", border: "1.5px solid #BFD7FF", borderRadius: 16, padding: "16px 24px", marginBottom: 20 }}>
-                    <p style={{ fontSize: ".65rem", fontWeight: 800, color: "#6B7280", textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 4 }}>Application ID</p>
-                    <p style={{ fontSize: "1.5rem", fontWeight: 900, color: "#0A1628", margin: 0, fontFamily: "monospace" }}>{appId.current}</p>
-                  </div>
                   <button onClick={() => setStep(1)} style={{ width: "100%", background: "#0066FF", color: "#fff", border: "none", borderRadius: 12, padding: "13px", fontWeight: 800, cursor: "pointer", fontSize: ".9rem" }}>
                     Done
                   </button>
@@ -1035,13 +1073,11 @@ function FeaturesSection() {
               key={f.title}
               className="col-12 col-sm-6 col-lg-3"
             >
-              <div
-                className="feat-card"
-                style={{
-                  "--feat-accent": f.accent,
-                  "--feat-bg": f.bg,
-                  "--feat-shadow": f.shadow,
-                } as React.CSSProperties}
+              <div className="feat-card" data-reveal="up" style={{
+                "--feat-accent": f.accent,
+                "--feat-bg": f.bg,
+                "--feat-shadow": f.shadow,
+              } as React.CSSProperties}
               >
                 {/* Number badge */}
                 <div className="feat-num">{String(i + 1).padStart(2, "0")}</div>

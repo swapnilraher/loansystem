@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 import fs from 'fs'
 import path from 'path'
-
+import { maharashtraCities } from '@/lib/maharashtraCities';
 const BASE = 'https://techstarsolution.in'
 const NOW  = new Date()
 
@@ -50,20 +50,37 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ].map(r => ({ url: `${BASE}${r}`, lastModified: NOW, changeFrequency: 'monthly' as const, priority: 0.85 }))
 
   // ── 4. City-specific dedicated pages (Pune + Sambhajianagar) ────────────────
-  const cityPages: MetadataRoute.Sitemap = [
-    '/personal-loan-pune',
-    '/personal-loan-chhatrapati-sambhajianagar',
-    '/home-loan-pune',
-    '/home-loan-chhatrapati-sambhajianagar',
-    '/business-loan-pune',
-    '/business-loan-chhatrapati-sambhajianagar',
-    '/loan-against-property-pune',
-    '/loan-against-property-chhatrapati-sambhajianagar',
-    '/loan-agent-pune',
-    '/loan-agent-chhatrapati-sambhajianagar',
-    '/dsa-loan-pune',
-    '/dsa-loan-chhatrapati-sambhajianagar',
-  ].map(r => ({ url: `${BASE}${r}`, lastModified: NOW, changeFrequency: 'weekly' as const, priority: 0.88 }))
+const loanTypes = [
+  { slug: 'personal-loan', priority: 0.95 },
+  { slug: 'home-loan', priority: 0.95 },
+  { slug: 'business-loan', priority: 0.88 },
+  { slug: 'loan-against-property', priority: 0.88 },
+];
+
+// ── 7. Programmatic SEO pages from CSV (all published rows) ─────────────────
+const csvRows = getCsvRows()
+const csvPages: MetadataRoute.Sitemap = csvRows.map(row => {
+  const ctr = parseFloat(row.CTR ?? '0')
+  return {
+    url:             `${BASE}/${row.URL_Slug}`,
+    lastModified:    NOW,
+    changeFrequency: 'weekly' as const,
+    priority:        ctr >= 2.5 ? 0.92
+                   : ctr >= 1.5 ? 0.85
+                   : 0.75,
+  }
+})
+
+// Generate city‑specific URLs using loanTypes and maharashtraCities
+const cityPages: MetadataRoute.Sitemap = loanTypes.flatMap(lt =>
+  maharashtraCities.map(city => ({
+    url: `${BASE}/${lt.slug}-${city.toLowerCase().replace(/ /g, '-')}`,
+    lastModified: NOW,
+    changeFrequency: 'weekly' as const,
+    priority: lt.priority,
+  }))
+);
+
 
   // ── 5. Blog / Content pages ──────────────────────────────────────────────────
   const blogPages: MetadataRoute.Sitemap = [
@@ -77,19 +94,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/terms',
   ].map(r => ({ url: `${BASE}${r}`, lastModified: NOW, changeFrequency: 'yearly' as const, priority: 0.40 }))
 
-  // ── 7. Programmatic SEO pages from CSV (all published rows) ─────────────────
-  const csvRows = getCsvRows()
-  const csvPages: MetadataRoute.Sitemap = csvRows.map(row => {
-    const ctr = parseFloat(row.CTR ?? '0')
-    return {
-      url:             `${BASE}/${row.URL_Slug}`,
-      lastModified:    NOW,
-      changeFrequency: 'weekly' as const,
-      priority:        ctr >= 2.5 ? 0.92
-                     : ctr >= 1.5 ? 0.85
-                     : 0.75,
-    }
-  })
+
 
   // ── EXCLUDED from sitemap (private / auth / dashboard) ──────────────────────
   // /admin/*        → private (admin.techstarsolution.in subdomain)

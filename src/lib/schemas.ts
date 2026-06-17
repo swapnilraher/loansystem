@@ -6,7 +6,7 @@ export const leadFormSchema = z.object({
   monthlyIncome: z.string().min(1, "Income is required"),
   employmentType: z.enum(["Salaried", "Self-Employed"]),
   city: z.string().min(2, "City is required"),
-  loanAmount: z.string().min(1, "Loan amount is required"),
+  loanAmount: z.string().optional(),
 });
 
 export type LeadFormData = z.infer<typeof leadFormSchema>;
