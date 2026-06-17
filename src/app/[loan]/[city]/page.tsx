@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: { params: { loan: string; cit
 
 export default function CityLoanPage({ params }: { params: { loan: string; city: string } }) {
   const { loan, city } = params;
-  const validLoans = ['personal-loan', 'home-loan'];
+  const validLoans = ['personal-loan', 'home-loan', 'lap-loan'];
   if (!validLoans.includes(loan)) notFound();
   const citySlug = city.toLowerCase();
   if (!maharashtraCities.map(c => c.toLowerCase().replace(/ /g, '-')).includes(citySlug)) notFound();
