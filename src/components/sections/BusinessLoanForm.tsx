@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { ShieldCheck, Lock, ArrowRight, CheckCircle2, Briefcase } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { maharashtraCities } from "@/lib/maharashtraCities"
 
 export function BusinessLoanForm() {
   const [step, setStep] = useState(1) // 1: Form, 3: Success
   const [progress, setProgress] = useState(0)
+  const [showCityDropdown, setShowCityDropdown] = useState(false)
 
   const {
     register,
@@ -24,6 +26,10 @@ export function BusinessLoanForm() {
   })
 
   const formValues = watch()
+  const citySearch = formValues.city || ""
+  const filteredCities = citySearch.length >= 3
+    ? maharashtraCities.filter(c => c.toLowerCase().includes(citySearch.toLowerCase()))
+    : []
 
   // Auto-save & Progress Calculation
   useEffect(() => {
@@ -135,12 +141,41 @@ export function BusinessLoanForm() {
               </div>
             </div>
 
-            <Input
-              label="City"
-              placeholder="Enter your city"
-              {...register("city")}
-              error={errors.city?.message}
-            />
+            <div className="mb-3" style={{ position: "relative" }}>
+              <label className="text-sm font-bold text-slate-700 mb-1.5 block">City</label>
+              <input
+                className={cn(
+                  "flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm",
+                  errors.city && "border-red-500"
+                )}
+                placeholder="Enter your city"
+                {...register("city")}
+                onFocus={() => setShowCityDropdown(true)}
+                onBlur={() => setTimeout(() => setShowCityDropdown(false), 200)}
+                autoComplete="off"
+              />
+              {showCityDropdown && filteredCities.length > 0 && (
+                <ul style={{
+                  position: "absolute", top: "100%", left: 0, right: 0,
+                  background: "#fff", border: "1px solid #E5E9EF",
+                  borderRadius: 12, marginTop: 4, zIndex: 50,
+                  maxHeight: 200, overflowY: "auto", padding: 0,
+                  listStyle: "none", boxShadow: "0 10px 25px rgba(0,0,0,0.1)"
+                }}>
+                  {filteredCities.map(c => (
+                    <li key={c}
+                      style={{ padding: "10px 14px", cursor: "pointer", fontSize: ".88rem", borderBottom: "1px solid #F1F5F9", color: "#111827" }}
+                      onMouseDown={() => { setValue("city", c, { shouldValidate: true }); setShowCityDropdown(false) }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "#F8FBFF")}
+                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                    >
+                      {c}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {errors.city && <p className="text-[10px] text-red-500 mt-1">{errors.city.message}</p>}
+            </div>
 
             <Input
               label="Required Capital"
