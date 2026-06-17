@@ -39,10 +39,12 @@ const varPool     = JSON.parse(fs.readFileSync(VARIATION_PATH,  'utf8')) as {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
 
-function findRow(slugParts: string[]) {
+function findRow(slugParts?: string[]) {
+  if (!slugParts) return undefined;
   const slug = slugParts.join('/');
   return rows.find(r => r.URL_Slug === slug && r.Status !== 'draft');
 }
+
 
 function buildNarrative(row: Record<string, string>) {
   const ci = cityIntel[row.City] || {};
