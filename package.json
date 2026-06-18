@@ -1,7 +1,7 @@
 {
   "name": "personal-loan-portal",
   "version": "0.1.0",
-  "type": "module",
+  "private": true,
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",

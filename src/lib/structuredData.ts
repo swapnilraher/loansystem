@@ -30,7 +30,7 @@ export function generateOrganizationLD() {
   };
 }
 
-export function generateFinancialServiceLD({ city, loanType, url }) {
+export function generateFinancialServiceLD({ city, loanType, url }: { city: string; loanType: string; url: string }) {
   return {
     "@context": "https://schema.org",
     "@type": "FinancialService",
@@ -45,8 +45,7 @@ export function generateFinancialServiceLD({ city, loanType, url }) {
   };
 }
 
-export function generateBreadcrumbLD(breadcrumbs) {
-  // breadcrumbs: [{ name, url }]
+export function generateBreadcrumbLD(breadcrumbs: { name: string; url: string }[]) {
   const itemListElement = breadcrumbs.map((bc, idx) => ({
     "@type": "ListItem",
     position: idx + 1,
@@ -60,8 +59,7 @@ export function generateBreadcrumbLD(breadcrumbs) {
   };
 }
 
-export function generateFAQLD(faqs) {
-  // faqs: [{ question, answer }]
+export function generateFAQLD(faqs: { question: string; answer: string }[]) {
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
