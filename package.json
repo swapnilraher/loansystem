@@ -1,12 +1,14 @@
 {
   "name": "personal-loan-portal",
   "version": "0.1.0",
-  "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "generate:sitemaps": "node scripts/generate-sitemaps.js",
+    "submit:sitemap": "node scripts/submit-sitemap.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /partner/
+Disallow: /login/
+Disallow: /auth/
+Disallow: /dashboard/
+
+Sitemap: https://techstarsolution.in/sitemap.xml
