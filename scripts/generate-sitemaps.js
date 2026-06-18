@@ -21,7 +21,7 @@ function entry(loc, lastmod, changefreq, priority) {
   return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
 }
 function wrap(entries) {
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${entries}\n</urlset>`;
 }
 function hasPage(dir) {
   return existsSync(join(dir, 'page.tsx')) || existsSync(join(dir, 'page.jsx'));
@@ -36,7 +36,33 @@ function dirs(parent) {
 
 // ─── 1. Static pages ───
 const staticPaths = ['/', '/about', '/partner', '/privacy', '/terms', '/blog', '/become-dsa-partner', '/cibil-score'];
-const staticEntries = staticPaths.map((p) => entry(`${BASE}${p}`, TODAY, 'weekly', p === '/' ? '1.0' : '0.8')).join('\n');
+const staticEntries = staticPaths.map((p) => {
+  if (p === '/') {
+    return `  <url>
+    <loc>${BASE}/</loc>
+    <lastmod>${TODAY}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>${BASE}/img/1.png</image:loc>
+      <image:title>Instant Personal Loan Approval</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>${BASE}/img/2.png</image:loc>
+      <image:title>Low Interest Personal Loan Rates</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>${BASE}/img/3.png</image:loc>
+      <image:title>Personal Loan Eligibility Documents</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>${BASE}/img/4.png</image:loc>
+      <image:title>Paperless Digital Loan Disbursal</image:title>
+    </image:image>
+  </url>`;
+  }
+  return entry(`${BASE}${p}`, TODAY, 'weekly', '0.8');
+}).join('\n');
 
 // ─── 2. Loan-type landing pages ───
 const loanTypes = ['personal-loan', 'home-loan', 'lap-loan', 'business-loan', 'car-loan', 'loan-against-property'];

@@ -1,10 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://techstarsolution.in/</loc>
     <lastmod>2026-06-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://techstarsolution.in/img/1.png</image:loc>
+      <image:title>Instant Personal Loan Approval</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://techstarsolution.in/img/2.png</image:loc>
+      <image:title>Low Interest Personal Loan Rates</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://techstarsolution.in/img/3.png</image:loc>
+      <image:title>Personal Loan Eligibility Documents</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://techstarsolution.in/img/4.png</image:loc>
+      <image:title>Paperless Digital Loan Disbursal</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://techstarsolution.in/about</loc>
