@@ -21,7 +21,7 @@ function entry(loc, lastmod, changefreq, priority) {
   return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
 }
 function wrap(entries) {
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>`;
 }
 function hasPage(dir) {
   return existsSync(join(dir, 'page.tsx')) || existsSync(join(dir, 'page.jsx'));
@@ -143,7 +143,7 @@ writeFileSync(join(OUT_DIR, 'sitemap-blog.xml'), wrap(blogEntries.join('\n')));
 
 // Master sitemap index
 const indexContent = `<?xml version="1.0" encoding="UTF-8"?>
-<sitemapindex xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap><loc>${BASE}/sitemap-static.xml</loc><lastmod>${TODAY}</lastmod></sitemap>
   <sitemap><loc>${BASE}/sitemap-loan.xml</loc><lastmod>${TODAY}</lastmod></sitemap>
   <sitemap><loc>${BASE}/sitemap-city.xml</loc><lastmod>${TODAY}</lastmod></sitemap>
