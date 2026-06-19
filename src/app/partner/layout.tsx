@@ -118,7 +118,7 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto pb-24 md:pb-0 relative w-full overflow-x-hidden">
-        <div className="max-w-4xl mx-auto w-full p-4 md:p-8">
+        <div className="max-w-4xl mx-auto w-full px-2 py-3 md:p-8">
           {profile?.dsaStatus && profile.dsaStatus !== "Active" && (
             <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3">
               <AlertCircle className="text-rose-500 mt-0.5 shrink-0" size={20} />

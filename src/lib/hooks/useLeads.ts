@@ -35,6 +35,15 @@ export interface Lead {
   updatedAt?: any;
   notes?: string;
   tags?: string[];
+  category?: string;
+  partnerName?: string;
+  partnerId?: string;
+  disbursedAmount?: string | number;
+  dsaCode?: string;
+  fullName?: string;
+  mobile?: string;
+  panName?: string;
+  lastActivityNote?: string;
 }
 
 export function useLeads() {
@@ -75,6 +84,16 @@ export const logLeadActivity = async (leadId: string, type: string, note: string
       note,
       userName,
       timestamp: serverTimestamp()
+    });
+
+    // Sync last activity info to the lead document
+    const leadRef = doc(db, 'leads', leadId);
+    await updateDoc(leadRef, {
+      lastActivityNote: note,
+      lastActivityType: type,
+      lastActivityUser: userName,
+      lastActivityTime: serverTimestamp(),
+      updatedAt: serverTimestamp()
     });
   } catch (error) {
     console.error("Error logging activity:", error);

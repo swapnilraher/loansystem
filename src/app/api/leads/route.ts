@@ -44,9 +44,72 @@ export async function POST(request: Request) {
       throw new Error(result.error?.message || 'Firestore REST API Error');
     }
 
+    const newLeadId = result.name.split('/').pop();
+
+    // Send welcome WhatsApp message if phone is present
+    const phone = data.mobileNumber || data.phone;
+    if (phone) {
+      try {
+        const cleanPhone = phone.replace(/\D/g, '');
+        const finalPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+        const phone10 = finalPhone.startsWith('91') && finalPhone.length === 12 ? finalPhone.substring(2) : finalPhone;
+
+        const name = data.fullName || data.name || 'Customer';
+        const loanType = data.type || (data.source?.includes('Home') ? 'Home Loan' : 'Personal Loan');
+
+        const message = `👋 *नमस्कार ${name}!*\nTechStar Money Solutions मध्ये आपले स्वागत आहे. \n\nतुमचा *${loanType}* चा अर्ज आम्हाला मिळाला आहे. आमचे loan advisor लवकरच तुम्हाला संपर्क करतील.\n\nआम्ही market मधील top banks आणि NBFCs सोबत official partner आहोत. आम्ही तुमची profile बघून कोणती बँक किंवा NBFC तुम्हाला जास्तीत जास्त (maximum) loan, कमीत कमी (minimum) interest rate मध्ये देऊ शकते, हे शोधून देतो.\n\nधन्यवाद!`;
+
+        const PHONE_ID = process.env.WHATSAPP_PHONE_ID || "1112131761984283";
+        const TOKEN = process.env.WHATSAPP_TOKEN || "EAAL6qnWnZABMBRfTVoipikLTEZBzVNQf9YStyNGTSxAGq8kHJ6AXivKPiHcMYxZBO2uuMyh4dCNVZB183wSpqoB0J08pAEsL5rEEqyHWdDfRgD5zxZCYhLX3ZBJW0rcxxQwvztib7jupBBStMxAaISbtrSalquCKiehliYs7ZCBf1VmGZCtqNTS1qhmPTybViZBZCOZBQZDZD";
+
+        const url = `https://graph.facebook.com/v18.0/${PHONE_ID}/messages`;
+        const body = {
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: finalPhone,
+          type: "text",
+          text: { body: message }
+        };
+
+        const waResponse = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+        });
+
+        if (waResponse.ok) {
+          // Log message to firebase firestore
+          const firestoreUrlMsg = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/whatsapp_messages?key=${FIREBASE_API_KEY}`;
+          const msgData = {
+            fields: {
+              phone: { stringValue: phone10 },
+              leadId: { stringValue: newLeadId || "" },
+              text: { stringValue: message },
+              sender: { stringValue: "staff" },
+              userName: { stringValue: "System" },
+              timestamp: { timestampValue: new Date().toISOString() },
+              mediaType: { stringValue: "" },
+              mediaUrl: { stringValue: "" },
+              filename: { stringValue: "" }
+            }
+          };
+          await fetch(firestoreUrlMsg, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(msgData)
+          });
+        }
+      } catch (waError) {
+        console.error('Failed to send welcome WhatsApp message:', waError);
+      }
+    }
+
     return NextResponse.json({ 
       success: true, 
-      id: result.name.split('/').pop() 
+      id: newLeadId 
     }, { status: 201 });
 
   } catch (error: any) {
