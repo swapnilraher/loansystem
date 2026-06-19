@@ -133,6 +133,13 @@ export default function LeadsPage() {
   const [chatMessages, setChatMessages] = useState<any[]>([])
   const chatEndRef = useRef<HTMLDivElement>(null)
 
+  // 💬 Follow-up Prompt states
+  const [showFollowUpPrompt, setShowFollowUpPrompt] = useState(false)
+  const [promptLeadId, setPromptLeadId] = useState("")
+  const [promptType, setPromptType] = useState("")
+  const [followUpRemarkText, setFollowUpRemarkText] = useState("")
+  const [isSavingPromptFollowUp, setIsSavingPromptFollowUp] = useState(false)
+
   // Real-time WhatsApp Chat History Listener
   useEffect(() => {
     if (!showWAModal || !waTarget) {
@@ -449,6 +456,57 @@ export default function LeadsPage() {
     setIsLogging(false)
   }
 
+  // 🕒 Listen to window focus for automated follow-up remark prompts
+  useEffect(() => {
+    const handleFocus = () => {
+      const pendingStr = localStorage.getItem('pendingFollowUp');
+      if (pendingStr) {
+        try {
+          const pending = JSON.parse(pendingStr);
+          // Only show popup if it was clicked within the last 10 minutes
+          if (Date.now() - pending.time < 10 * 60 * 1000) {
+            setPromptLeadId(pending.leadId);
+            setPromptType(pending.type);
+            setFollowUpRemarkText("");
+            setShowFollowUpPrompt(true);
+          }
+        } catch (e) {
+          console.error("Error parsing pendingFollowUp:", e);
+        }
+        localStorage.removeItem('pendingFollowUp');
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [leads]);
+
+  const handleSavePromptFollowUp = async () => {
+    if (!promptLeadId || !followUpRemarkText.trim()) {
+      alert("कृपया रिमार्क टाईप करा!");
+      return;
+    }
+    setIsSavingPromptFollowUp(true);
+    const staffDetail = user?.email === 'swapnil.r.aher@gmail.com' ? 'Swapnil Aher (Super Admin)' : `${profile?.name || user?.displayName || user?.email || "Unknown"} (${adminRole || 'Staff'})`
+    try {
+      await logLeadActivity(promptLeadId, promptType, followUpRemarkText, staffDetail);
+      
+      // Auto-update status to Contacted if it's currently New
+      const targetLead = leads.find(l => l.id === promptLeadId);
+      if (targetLead && (targetLead.status === 'New Lead' || targetLead.status === 'New')) {
+        const leadRef = doc(db, 'leads', promptLeadId);
+        await updateDoc(leadRef, { status: 'Contacted', updatedAt: serverTimestamp() });
+      }
+
+      setShowFollowUpPrompt(false);
+      setFollowUpRemarkText("");
+      alert("रिमार्क सेव्ह झाला!");
+    } catch (e) {
+      console.error("Error saving prompt follow-up:", e);
+      alert("Failed to save follow-up.");
+    }
+    setIsSavingPromptFollowUp(false);
+  };
+
   const handleQuickCall = async (lead: Lead) => {
     const phoneNum = lead.phone || (lead as any).mobile
     if (!phoneNum) {
@@ -462,6 +520,7 @@ export default function LeadsPage() {
         const leadRef = doc(db, 'leads', lead.id)
         await updateDoc(leadRef, { status: 'Contacted', updatedAt: serverTimestamp() })
       }
+      localStorage.setItem('pendingFollowUp', JSON.stringify({ leadId: lead.id, time: Date.now(), type: 'Call' }));
       window.location.href = `tel:${phoneNum}`
     } catch (e) {
       console.error("Error logging call:", e)
@@ -503,6 +562,8 @@ export default function LeadsPage() {
     
     const textToSend = waMessage || `Hello ${waTarget.panName || waTarget.fullName || waTarget.name || 'Customer'}, this is TechStar. We received your request for a loan. When is a good time to talk?`;
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(textToSend)}`;
+    
+    localStorage.setItem('pendingFollowUp', JSON.stringify({ leadId: waTarget.id, time: Date.now(), type: 'WhatsApp' }));
     window.open(whatsappUrl, "_blank");
   };
 
@@ -820,7 +881,7 @@ export default function LeadsPage() {
       )}
 
       {/* Lead Rows List */}
-      <div className="px-1 py-2">
+      <div className="px-0 py-1.5 md:px-1 md:py-2">
         {loading ? (
           <div className="flex flex-col gap-3">
             {Array(6).fill(0).map((_, i) => (
@@ -837,17 +898,22 @@ export default function LeadsPage() {
           <div className="flex flex-col gap-3">
             {filteredLeads.map((lead) => {
               const panName = lead.panName || lead.fullName || lead.name || "Name Pending";
+              const isUntouched = (lead.status === 'New Lead' || lead.status === 'New') && !lead.lastActivityNote;
               return (
+                <>
+                {/* Desktop Card (hidden on mobile) */}
                 <div 
-                  key={lead.id} 
-                  className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2.5 md:gap-3.5 pl-4 pr-3 py-2.5 md:pl-5 md:pr-4 md:py-3.5 bg-white border border-slate-100/70 rounded-[1.5rem] relative overflow-hidden hover:shadow-md transition-all group shrink-0"
+                  key={`desktop-${lead.id}`} 
+                  className={`hidden md:flex items-center justify-between gap-3.5 pl-5 pr-4 py-3.5 bg-white border rounded-[1.5rem] relative overflow-hidden hover:shadow-md transition-all group shrink-0 ${
+                    isUntouched ? 'border-rose-200 bg-rose-50/5 shadow-[inset_0_0_12px_rgba(244,63,94,0.02)]' : 'border-slate-100/70'
+                  }`}
                 >
                   {/* Inset rounded vertical SLA indicator bar */}
-                  <div className={`absolute left-1.5 top-2 bottom-2 w-1 rounded-full ${
+                  <div className={`absolute left-1 top-1.5 bottom-1.5 w-1 rounded-full ${
                     lead.slaStatus === 'Overdue' ? 'bg-rose-500' : 'bg-emerald-500'
                   }`} />
 
-                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between w-full gap-2 md:gap-3 pl-1">
+                  <div className="flex items-center justify-between w-full gap-3 pl-1.5">
                     {/* Container for Column 1 & 3: side-by-side on mobile, contents on desktop */}
                     <div className="flex md:contents justify-between items-start w-full md:w-auto gap-4">
                       {/* Column 1: Client Info */}
@@ -855,20 +921,32 @@ export default function LeadsPage() {
                         onClick={() => setSelectedLead(lead)}
                         className="flex-1 md:flex-none md:w-48 min-w-0 cursor-pointer group/item"
                       >
-                        <p className="font-extrabold text-slate-800 text-sm group-hover/item:text-primary transition-colors truncate">
+                        <p className="font-extrabold text-slate-800 text-sm group-hover/item:text-primary transition-colors truncate flex items-center gap-1.5">
+                          {isUntouched && (
+                            <span className="relative flex h-2 w-2 shrink-0">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.8)]"></span>
+                            </span>
+                          )}
                           {panName}
                         </p>
                         <p className="text-[10px] text-slate-400 font-semibold flex items-center gap-1 mt-0.5">
                           <Phone size={10} className="text-slate-300" /> {lead.phone || lead.mobile || "No Phone"}
                         </p>
+                        {lead.lastActivityNote && (
+                          <p className="text-[10px] text-indigo-600 bg-indigo-50 border border-indigo-100/60 rounded-lg px-2 py-0.5 font-bold mt-1.5 inline-block max-w-[200px] truncate" title={lead.lastActivityNote}>
+                            💬 {lead.lastActivityNote}
+                          </p>
+                        )}
                       </div>
 
-                      {/* Column 2: Source/Category (hidden on mobile) */}
-                      <div className="hidden md:block w-32 shrink-0">
+                      {/* Column 2: Source/Category */}
+                      <div className="w-32 shrink-0">
                         <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border ${
                           (lead.category || "Landing") === "Portal" ? "bg-blue-50 text-blue-500 border-blue-100" : 
                           (lead.category || "Landing") === "Bulk" ? "bg-purple-50 text-purple-500 border-purple-100" : 
                           (lead.category || "Landing") === "Partner" ? "bg-indigo-50 text-indigo-600 border-indigo-100" : 
+                          (lead.category || "Landing")?.toLowerCase() === "whatsapp ads" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
                           "bg-amber-50 text-amber-500 border-amber-100"
                         }`}>
                           {lead.category === "Partner" && lead.partnerName ? `Partner: ${lead.partnerName}` : (lead.category || "Landing")}
@@ -876,7 +954,7 @@ export default function LeadsPage() {
                       </div>
 
                       {/* Column 3: Loan Details */}
-                      <div className="flex flex-col md:justify-center items-end md:items-start md:w-36 shrink-0 gap-0.5 text-right md:text-left">
+                      <div className="flex flex-col justify-center items-start w-36 shrink-0 gap-0.5 text-left">
                         <p className="font-black text-slate-400 text-[9px] tracking-wider uppercase leading-none">{lead.type}</p>
                         <p className="text-xs font-black text-slate-850 mt-0.5 italic text-slate-800 leading-none">
                           ₹ {parseInt(lead.amount || "0").toLocaleString()}
@@ -884,8 +962,8 @@ export default function LeadsPage() {
                       </div>
                     </div>
 
-                    {/* Column 4: SLA & Date (hidden on mobile) */}
-                    <div className="hidden md:flex items-center gap-2 w-36 shrink-0">
+                    {/* Column 4: SLA & Date */}
+                    <div className="flex items-center gap-2 w-36 shrink-0">
                       <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border shrink-0 ${
                         lead.slaStatus === 'Overdue' ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
                       }`}>
@@ -899,15 +977,15 @@ export default function LeadsPage() {
                     </div>
 
                     {/* Column 5: Status Dropdown & Actions Container */}
-                    <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-3 mt-1.5 md:mt-0 shrink-0">
+                    <div className="flex items-center justify-end w-auto gap-3 shrink-0">
                       {/* Status Selector */}
                       <button 
                         onClick={() => setStatusChangeLeadId(lead.id)}
-                        className={`premium-btn-status h-8 px-2.5 text-[10px] max-w-[130px] sm:max-w-[180px] md:max-w-none ${
+                        className={`premium-btn-status h-8 px-2.5 text-[10px] ${
                           STATUS_CONFIG[lead.status]?.color || 'bg-slate-50 text-slate-400 border-slate-200/50'
                         }`}
                       >
-                        <span className="block truncate max-w-[90px] sm:max-w-[140px] md:max-w-none">{lead.status || 'New Lead'}</span>
+                        <span>{lead.status || 'New Lead'}</span>
                         <ChevronDown size={11} className="shrink-0 opacity-80" />
                       </button>
 
@@ -922,7 +1000,6 @@ export default function LeadsPage() {
                         </button>
                         {(adminRole === 'Super Admin' || adminRole === 'Admin' || adminRole === 'HR') && (
                           <>
-                            {/* Button 1: Internal WhatsApp Chat */}
                             <button 
                               onClick={() => handleWhatsAppClick(lead)} 
                               className="premium-btn-action h-8 w-8 text-indigo-650 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100/50 flex items-center justify-center text-indigo-600"
@@ -930,12 +1007,12 @@ export default function LeadsPage() {
                             >
                               <MessageSquare size={13} />
                             </button>
-                            {/* Button 2: External WhatsApp App */}
                             <button 
                               onClick={() => {
                                 const phoneNum = lead.phone || lead.mobile || "";
                                 const cleanPhone = phoneNum.replace(/[^\d]/g, "");
                                 const phoneWithCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+                                localStorage.setItem('pendingFollowUp', JSON.stringify({ leadId: lead.id, time: Date.now(), type: 'WhatsApp' }));
                                 window.open(`https://wa.me/${phoneWithCountry}`, '_blank');
                               }} 
                               className="premium-btn-action h-8 w-8 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100/50 flex items-center justify-center"
@@ -958,6 +1035,152 @@ export default function LeadsPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Mobile Card (visible only on mobile) */}
+                <div 
+                  key={`mobile-${lead.id}`}
+                  className={`flex md:hidden flex-col gap-2.5 px-3.5 py-3.5 bg-white border rounded-2xl relative overflow-hidden transition-all hover:shadow-md ${
+                    isUntouched ? 'border-rose-200 bg-rose-50/5 shadow-[inset_0_0_12px_rgba(244,63,94,0.01)]' : 'border-slate-100/70 shadow-sm shadow-slate-100/40'
+                  }`}
+                >
+                  {/* Left SLA indicator bar */}
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${
+                    lead.slaStatus === 'Overdue' ? 'bg-rose-500' : 'bg-emerald-500'
+                  }`} />
+
+                  {/* Header Row: Client Name & Amount */}
+                  <div className="flex justify-between items-start w-full gap-2 pl-1.5">
+                    <div 
+                      onClick={() => setSelectedLead(lead)}
+                      className="cursor-pointer flex-1 min-w-0"
+                    >
+                      <h4 className="font-extrabold text-slate-800 text-sm flex items-center gap-1.5 truncate">
+                        {isUntouched && (
+                          <span className="relative flex h-2 w-2 shrink-0">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                          </span>
+                        )}
+                        {panName}
+                      </h4>
+                      <p className="text-[10px] text-slate-400 font-semibold flex items-center gap-1 mt-0.5">
+                        <Phone size={10} className="text-slate-300" /> {lead.phone || lead.mobile || "No Phone"}
+                      </p>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-black text-slate-800">
+                        ₹ {parseInt(lead.amount || "0").toLocaleString()}
+                      </p>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mt-0.5">{lead.type || 'General'}</p>
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="h-px bg-slate-100/60 my-0.5 ml-1.5" />
+
+                  {/* Category & SLA/Date */}
+                  <div className="flex justify-between items-center w-full pl-1.5">
+                    <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border ${
+                      (lead.category || "Landing") === "Portal" ? "bg-blue-50 text-blue-500 border-blue-100" : 
+                      (lead.category || "Landing") === "Bulk" ? "bg-purple-50 text-purple-500 border-purple-100" : 
+                      (lead.category || "Landing") === "Partner" ? "bg-indigo-50 text-indigo-600 border-indigo-100" : 
+                      (lead.category || "Landing")?.toLowerCase() === "whatsapp ads" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                      "bg-amber-50 text-amber-500 border-amber-100"
+                    }`}>
+                      {lead.category === "Partner" && lead.partnerName ? `Partner: ${lead.partnerName}` : (lead.category || "Landing")}
+                    </span>
+
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border shrink-0 ${
+                        lead.slaStatus === 'Overdue' ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                      }`}>
+                        {lead.slaStatus || 'Healthy'}
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-400">
+                        {lead.createdAt?.toDate 
+                          ? lead.createdAt.toDate().toLocaleDateString('en-GB') 
+                          : (typeof lead.createdAt === 'string' ? new Date(lead.createdAt).toLocaleDateString('en-GB') : 'NA')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Comment Banner */}
+                  {lead.lastActivityNote ? (
+                    <div className="bg-indigo-50/50 border border-indigo-100/40 rounded-xl px-2.5 py-1.5 mt-1 ml-1.5 flex items-start gap-1.5">
+                      <span className="text-xs shrink-0 mt-0.5">💬</span>
+                      <p className="text-[10px] text-indigo-600 font-bold leading-normal line-clamp-2" title={lead.lastActivityNote}>
+                        {lead.lastActivityNote}
+                      </p>
+                    </div>
+                  ) : (
+                    isUntouched && (
+                      <div className="bg-rose-50/30 border border-rose-100/45 rounded-xl px-2.5 py-1.5 mt-1 ml-1.5 flex items-center gap-1.5 animate-pulse">
+                        <span className="text-xs shrink-0">⚠️</span>
+                        <p className="text-[9px] text-rose-500 font-black tracking-wide uppercase">
+                          Action Pending
+                        </p>
+                      </div>
+                    )
+                  )}
+
+                  {/* Action Row */}
+                  <div className="flex items-center justify-between w-full mt-1.5 pl-1.5 gap-2">
+                    <button 
+                      onClick={() => setStatusChangeLeadId(lead.id)}
+                      className={`premium-btn-status h-8 px-3 text-[10px] ${
+                        STATUS_CONFIG[lead.status]?.color || 'bg-slate-50 text-slate-400 border-slate-200/50'
+                      }`}
+                    >
+                      <span className="block truncate max-w-[90px]">{lead.status || 'New Lead'}</span>
+                      <ChevronDown size={11} className="shrink-0 opacity-80" />
+                    </button>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button 
+                        onClick={() => handleQuickCall(lead)} 
+                        className="premium-btn-action h-8 w-8 text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-100/50 flex items-center justify-center"
+                        title="कॉल करा"
+                      >
+                        <Phone size={13} />
+                      </button>
+                      {(adminRole === 'Super Admin' || adminRole === 'Admin' || adminRole === 'HR') && (
+                        <>
+                          <button 
+                            onClick={() => handleWhatsAppClick(lead)} 
+                            className="premium-btn-action h-8 w-8 text-indigo-650 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100/50 flex items-center justify-center text-indigo-600"
+                            title="अंतर्गत WhatsApp चॅट (Internal Chat)"
+                          >
+                            <MessageSquare size={13} />
+                          </button>
+                          <button 
+                            onClick={() => {
+                              const phoneNum = lead.phone || lead.mobile || "";
+                              const cleanPhone = phoneNum.replace(/[^\d]/g, "");
+                              const phoneWithCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+                              localStorage.setItem('pendingFollowUp', JSON.stringify({ leadId: lead.id, time: Date.now(), type: 'WhatsApp' }));
+                              window.open(`https://wa.me/${phoneWithCountry}`, '_blank');
+                            }} 
+                            className="premium-btn-action h-8 w-8 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100/50 flex items-center justify-center"
+                            title="थेट WhatsApp उघडा (Open in WhatsApp App)"
+                          >
+                            <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+                              <path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232"/>
+                            </svg>
+                          </button>
+                        </>
+                      )}
+                      <button 
+                        onClick={() => setSelectedLead(lead)} 
+                        className="premium-btn-action h-8 w-8 text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 flex items-center justify-center"
+                        title="तपशील पहा"
+                      >
+                        <Eye size={13} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                </>
               );
             })}
           </div>
@@ -1098,6 +1321,7 @@ export default function LeadsPage() {
                   <option>Portal</option>
                   <option>Bulk</option>
                   <option>Chatbot</option>
+                  <option value="Whatsapp ads">Whatsapp ads</option>
                 </select>
               </div>
 
@@ -1820,6 +2044,55 @@ export default function LeadsPage() {
                 >
                   {isSendingBroadcast ? <Loader2 className="animate-spin animate-infinite" size={14} /> : <Megaphone size={14} />}
                   {isSendingBroadcast ? 'मेसेज पाठवत आहे...' : 'ब्रॉडकास्ट सुरू करा'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ⚠️ Quick Follow-up Popup Prompt */}
+      {showFollowUpPrompt && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowFollowUpPrompt(false)}></div>
+          <div className="bg-white rounded-[2rem] w-full max-w-md p-6 shadow-2xl relative z-10 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center">
+                <Clock size={20} className="animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Follow-up / Remark नोंदा</h3>
+                <p className="text-[10px] text-slate-400 font-bold mt-0.5">कस्टमरला केलेल्या {promptType === 'Call' ? 'कॉल' : 'WhatsApp'} बाबत माहिती लिहा</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5 block">रिमार्क (Remark) / चर्चा</label>
+                <textarea
+                  placeholder="उदा. ग्राहक उद्या बोलण्यास सांगितले, डॉक्युमेंट्स पाठवणार आहे, इ."
+                  className="w-full bg-slate-50 border-2 border-slate-100 focus:border-rose-350 focus:bg-white rounded-2xl p-4 text-xs font-bold shadow-sm transition-all focus:outline-none min-h-[100px]"
+                  value={followUpRemarkText}
+                  onChange={(e) => setFollowUpRemarkText(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowFollowUpPrompt(false)}
+                  className="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-200 transition-all"
+                >
+                  रद्द करा
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingPromptFollowUp || !followUpRemarkText.trim()}
+                  onClick={handleSavePromptFollowUp}
+                  className="flex-[2] py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-rose-200/50 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  {isSavingPromptFollowUp ? "सेव्ह होत आहे..." : "रिमार्क सेव्ह करा"}
                 </button>
               </div>
             </div>

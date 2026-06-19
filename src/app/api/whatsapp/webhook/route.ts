@@ -586,7 +586,7 @@ async function getSession(phone: string) {
     category: doc.fields.category?.stringValue || "",
     name: doc.fields.name?.stringValue || "",
     responses: JSON.parse(doc.fields.responses?.stringValue || "{}"),
-    language: doc.fields.language?.stringValue || "en",
+    language: doc.fields.language?.stringValue || "mr",
     leadId: doc.fields.leadId?.stringValue || "",
   };
 }
@@ -602,7 +602,7 @@ async function saveSession(phone: string, data: { step: number; category: string
         category: { stringValue: data.category },
         name: { stringValue: data.name },
         responses: { stringValue: JSON.stringify(data.responses) },
-        language: { stringValue: data.language || "en" },
+        language: { stringValue: data.language || "mr" },
         leadId: { stringValue: data.leadId || "" },
         updatedAt: { timestampValue: new Date().toISOString() },
       }
@@ -661,7 +661,7 @@ async function findExistingLead(phone: string) {
         id: doc.name.split("/").pop() || "",
         name: doc.fields?.name?.stringValue || "Customer",
         status: doc.fields?.status?.stringValue || "New Lead",
-        category: doc.fields?.category?.stringValue || doc.fields?.type?.stringValue || "Loan Application",
+        category: doc.fields?.type?.stringValue || doc.fields?.category?.stringValue || "Loan Application",
         language: doc.fields?.language?.stringValue || "English",
         botMuted: doc.fields?.botMuted?.booleanValue === true
       };
@@ -983,7 +983,7 @@ export async function POST(request: Request) {
           "Hindi": "hi",
           "Marathi": "mr"
         };
-        const lang = LANG_NAME_TO_CODE[leadLang] || "en";
+        const lang = LANG_NAME_TO_CODE[leadLang] || "mr";
         
         const locCategory = getLocalizedCategory(lead.category, lang);
         const locStatus = getLocalizedStatus(lead.status, lang);
@@ -1030,7 +1030,7 @@ export async function POST(request: Request) {
       const initialDetails = generateDetailsText({
         name: "",
         category: "",
-        language: "en",
+        language: "mr",
         responses: initialResponses
       });
 
@@ -1038,19 +1038,22 @@ export async function POST(request: Request) {
       const newLeadId = await createLead({
         phone: from,
         source: referral ? `Meta Ads - ${referral.headline}` : 'WhatsApp Automation',
+        category: 'Whatsapp ads',
         details: initialDetails,
+        language: 'Marathi',
         ...initialResponses
       });
 
       // Log incoming customer message linked to new lead
       await saveWAMessage(from, text, 'customer', 'Customer', newLeadId, mediaType, mediaUrl, filename);
 
-      await sendWA(from, langInteractive, newLeadId);
-      await saveSession(from, { step: 1, category: '', name: '', responses: initialResponses, language: 'en', leadId: newLeadId });
+      const welcomeMsg = `👋 *TechStar Money Solutions मध्ये आपले स्वागत आहे!* \n\nआम्ही market मधील top banks आणि NBFCs सोबत official partner आहोत. आम्ही तुमची profile बघून कोणती बँक किंवा NBFC तुम्हाला जास्तीत जास्त (maximum) loan, कमीत कमी (minimum) interest rate मध्ये देऊ शकते, हे शोधून देतो.\n\nतुमच्यासाठी सर्वोत्तम लोन ऑफर्स शोधण्यासाठी, कृपया तुमचे *पूर्ण नाव (Full Name)* टाईप करा:`;
+      await sendWA(from, welcomeMsg, newLeadId);
+      await saveSession(from, { step: 2, category: '', name: '', responses: initialResponses, language: 'mr', leadId: newLeadId });
       return NextResponse.json({ ok: true });
     }
 
-    const lang = session.language || 'en';
+    const lang = session.language || 'mr';
     
     // Log incoming message for existing session
     await saveWAMessage(from, text, 'customer', session.name || 'Customer', session.leadId, mediaType, mediaUrl, filename);
@@ -1065,22 +1068,25 @@ export async function POST(request: Request) {
         const leadId = await createLead({
           phone: from,
           source: 'WhatsApp Automation',
-          details: generateDetailsText({ name: "", category: "", language: "en", responses: {} })
+          category: 'Whatsapp ads',
+          details: generateDetailsText({ name: "", category: "", language: "mr", responses: {} }),
+          language: 'Marathi'
         });
         
-        await sendWA(from, langInteractive, leadId);
-        await saveSession(from, { step: 1, category: '', name: '', responses: {}, language: 'en', leadId });
+        const welcomeMsg = `👋 *TechStar Money Solutions मध्ये आपले स्वागत आहे!* \n\nआम्ही market मधील top banks आणि NBFCs सोबत official partner आहोत. आम्ही तुमची profile बघून कोणती बँक किंवा NBFC तुम्हाला जास्तीत जास्त (maximum) loan, कमीत कमी (minimum) interest rate मध्ये देऊ शकते, हे शोधून देतो.\n\nतुमच्यासाठी सर्वोत्तम लोन ऑफर्स शोधण्यासाठी, कृपया तुमचे *पूर्ण नाव (Full Name)* टाईप करा:`;
+        await sendWA(from, welcomeMsg, leadId);
+        await saveSession(from, { step: 2, category: '', name: '', responses: {}, language: 'mr', leadId });
         return NextResponse.json({ ok: true });
       }
 
       // Parse request using the local AI/loan info responder
       const aiReply = localLoanAIResponder(text, lang);
       
-      const followUpText = {
+      const followUpText = ( {
         en: `\n\nIs there anything else I can help you with? (Or reply *new loan* to apply again)`,
         hi: `\n\nक्या मैं आपकी किसी और चीज़ में सहायता कर सकता हूँ? (या दोबारा आवेदन करने के लिए *new loan* लिखें)`,
         mr: `\n\nमी तुम्हाला अजून काही मदत करू शकतो का? (किंवा नवीन कर्जासाठी *new loan* लिहा)`
-      }[lang] || `\n\nNeed any more help?`;
+      } as Record<string, string> )[lang] || `\n\nNeed any more help?`;
 
       await sendWA(from, `${aiReply}${followUpText}`, session.leadId);
       return NextResponse.json({ ok: true });
@@ -1155,7 +1161,6 @@ export async function POST(request: Request) {
       });
 
       await updateLead(session.leadId, {
-        category: category,
         type: category,
         details: detailsText
       });
@@ -1237,11 +1242,11 @@ export async function POST(request: Request) {
 
       if (nextQ) {
         const questionPayload = getQuestionPayload(lang, nextQ);
-        const questionIndexText = {
+        const questionIndexText = ( {
           en: `Q${nextIndex + 1}: `,
           hi: `Q${nextIndex + 1}: `,
           mr: `Q${nextIndex + 1}: `
-        }[lang] || `Q${nextIndex + 1}: `;
+        } as Record<string, string> )[lang] || `Q${nextIndex + 1}: `;
         
         if (typeof questionPayload === 'string') {
           await sendWA(from, `${questionIndexText}${questionPayload}`, session.leadId);

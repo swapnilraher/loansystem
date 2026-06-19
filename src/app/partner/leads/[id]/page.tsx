@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react"
 import { useAuth } from "@/context/AuthContext"
 import { db } from "@/lib/firebase"
-import { doc, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore"
+import { doc, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, updateDoc } from "firebase/firestore"
 import { useParams, useRouter } from "next/navigation"
 import { 
   ArrowLeft, 
@@ -29,6 +29,12 @@ export default function LeadCRMView() {
   const [newRemark, setNewRemark] = useState("")
   const [loading, setLoading] = useState(true)
   const [sendingRemark, setSendingRemark] = useState(false)
+
+  // 💬 Follow-up Prompt states
+  const [showFollowUpPrompt, setShowFollowUpPrompt] = useState(false)
+  const [promptType, setPromptType] = useState("")
+  const [followUpRemarkText, setFollowUpRemarkText] = useState("")
+  const [isSavingPromptFollowUp, setIsSavingPromptFollowUp] = useState(false)
 
   // Fetch Lead & Remarks
   useEffect(() => {
@@ -71,6 +77,17 @@ export default function LeadCRMView() {
         addedBy: user.uid,
         createdAt: serverTimestamp()
       })
+
+      // Update parent lead document for quick remark display
+      const leadRef = doc(db, 'leads', id as string);
+      await updateDoc(leadRef, {
+        lastActivityNote: newRemark,
+        lastActivityType: "Note",
+        lastActivityUser: user.displayName || user.email || "Partner",
+        lastActivityTime: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+
       setNewRemark("")
     } catch (err) {
       console.error(err)
@@ -82,17 +99,88 @@ export default function LeadCRMView() {
   const trackAction = async (type: "Call" | "WhatsApp" | "Email") => {
     if (!user) return
     try {
+      const remarkNote = `Partner initiated ${type}`;
       const remarksRef = collection(db, `leads/${id}/remarks`)
       await addDoc(remarksRef, {
-        note: `Partner initiated ${type}`,
+        note: remarkNote,
         type: type,
         addedBy: user.uid,
         createdAt: serverTimestamp()
       })
+
+      // Update parent lead document
+      const leadRef = doc(db, 'leads', id as string);
+      await updateDoc(leadRef, {
+        lastActivityNote: remarkNote,
+        lastActivityType: type,
+        lastActivityUser: user.displayName || user.email || "Partner",
+        lastActivityTime: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
     } catch (err) {
       console.error(err)
     }
   }
+
+  // 🕒 Listen to window focus for automated follow-up remark prompts
+  useEffect(() => {
+    const handleFocus = () => {
+      const pendingStr = localStorage.getItem('pendingFollowUp');
+      if (pendingStr) {
+        try {
+          const pending = JSON.parse(pendingStr);
+          if (pending.leadId === id && Date.now() - pending.time < 10 * 60 * 1000) {
+            setPromptType(pending.type);
+            setFollowUpRemarkText("");
+            setShowFollowUpPrompt(true);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+        localStorage.removeItem('pendingFollowUp');
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [id]);
+
+  const handleSavePromptFollowUp = async () => {
+    if (!followUpRemarkText.trim() || !user) return;
+    setIsSavingPromptFollowUp(true);
+    try {
+      const remarkNote = followUpRemarkText.trim();
+      const remarksRef = collection(db, `leads/${id}/remarks`)
+      await addDoc(remarksRef, {
+        note: remarkNote,
+        type: promptType,
+        addedBy: user.uid,
+        createdAt: serverTimestamp()
+      });
+
+      // Update parent lead document
+      const leadRef = doc(db, 'leads', id as string);
+      const updatePayload: any = {
+        lastActivityNote: remarkNote,
+        lastActivityType: promptType,
+        lastActivityUser: user.displayName || user.email || "Partner",
+        lastActivityTime: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+      
+      if (lead.status === 'New Lead' || lead.status === 'New') {
+        updatePayload.status = 'Contacted';
+      }
+      await updateDoc(leadRef, updatePayload);
+
+      setShowFollowUpPrompt(false);
+      setFollowUpRemarkText("");
+      alert("रिमार्क सेव्ह झाला!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save follow-up");
+    }
+    setIsSavingPromptFollowUp(false);
+  };
 
   if (loading) {
     return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>
@@ -205,7 +293,10 @@ export default function LeadCRMView() {
       <div className="grid grid-cols-3 gap-4">
         <a 
           href={`tel:${lead.mobile}`}
-          onClick={() => trackAction("Call")}
+          onClick={() => {
+            trackAction("Call");
+            localStorage.setItem('pendingFollowUp', JSON.stringify({ leadId: lead.id, time: Date.now(), type: 'Call' }));
+          }}
           className="flex flex-col items-center justify-center gap-2 p-4 bg-white border border-slate-100 rounded-[1.5rem] hover:border-blue-200 hover:bg-blue-50 transition-all group"
         >
           <div className="w-12 h-12 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -216,7 +307,10 @@ export default function LeadCRMView() {
         <a 
           href={`https://wa.me/91${lead.mobile}?text=Hello ${lead.name},`}
           target="_blank" rel="noreferrer"
-          onClick={() => trackAction("WhatsApp")}
+          onClick={() => {
+            trackAction("WhatsApp");
+            localStorage.setItem('pendingFollowUp', JSON.stringify({ leadId: lead.id, time: Date.now(), type: 'WhatsApp' }));
+          }}
           className="flex flex-col items-center justify-center gap-2 p-4 bg-white border border-slate-100 rounded-[1.5rem] hover:border-emerald-200 hover:bg-emerald-50 transition-all group"
         >
           <div className="w-12 h-12 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -302,6 +396,55 @@ export default function LeadCRMView() {
           </form>
         </div>
       </div>
+
+      {/* ⚠️ Quick Follow-up Popup Prompt */}
+      {showFollowUpPrompt && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowFollowUpPrompt(false)}></div>
+          <div className="bg-white rounded-[2rem] w-full max-w-md p-6 shadow-2xl relative z-10 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center">
+                <Clock size={20} className="animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Follow-up / Remark नोंदा</h3>
+                <p className="text-[10px] text-slate-400 font-bold mt-0.5">ग्राहकाला केलेल्या {promptType === 'Call' ? 'कॉल' : 'WhatsApp'} बाबत माहिती लिहा</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5 block">रिमार्क (Remark) / चर्चा</label>
+                <textarea
+                  placeholder="उदा. ग्राहक उद्या बोलण्यास सांगितले, डॉक्युमेंट्स पाठवणार आहे, इ."
+                  className="w-full bg-slate-50 border-2 border-slate-100 focus:border-rose-350 focus:bg-white rounded-2xl p-4 text-xs font-bold shadow-sm transition-all focus:outline-none min-h-[100px]"
+                  value={followUpRemarkText}
+                  onChange={(e) => setFollowUpRemarkText(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowFollowUpPrompt(false)}
+                  className="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-200 transition-all"
+                >
+                  रद्द करा
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingPromptFollowUp || !followUpRemarkText.trim()}
+                  onClick={handleSavePromptFollowUp}
+                  className="flex-[2] py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-rose-200/50 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  {isSavingPromptFollowUp ? "सेव्ह होत आहे..." : "रिमार्क सेव्ह करा"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

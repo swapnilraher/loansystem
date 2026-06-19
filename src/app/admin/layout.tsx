@@ -93,6 +93,9 @@ export default function AdminLayout({
       snapshot.docChanges().forEach((change) => {
         if (change.type === "added") {
           const data = change.doc.data();
+          const createdAt = data.createdAt?.toDate ? data.createdAt.toDate().getTime() : (data.createdAt?.seconds ? data.createdAt.seconds * 1000 : 0);
+          if (createdAt && createdAt < sessionStartTime - 10000) return;
+
           sendPushNotification(
             "🌟 New Lead Received!",
             `Name: ${data.name || "Unknown"}\nLoan Type: ${data.type || "N/A"}\nAmount: ₹${data.amount || "0"}`
@@ -114,6 +117,12 @@ export default function AdminLayout({
         if (change.type === "added" || change.type === "modified") {
           const data = change.doc.data();
           const id = change.doc.id;
+
+          const updatedAt = data.updatedAt?.toDate ? data.updatedAt.toDate().getTime() : (data.updatedAt?.seconds ? data.updatedAt.seconds * 1000 : 0);
+          const createdAt = data.createdAt?.toDate ? data.createdAt.toDate().getTime() : (data.createdAt?.seconds ? data.createdAt.seconds * 1000 : 0);
+          const eventTime = updatedAt || createdAt;
+          if (eventTime && eventTime < sessionStartTime - 10000) return;
+
           const partnerName = data.kycData?.name || data.panData?.name || data.name || "New Partner";
           const step = data.onboardingStep;
           
@@ -206,7 +215,7 @@ export default function AdminLayout({
       {/* Removed relative z-10 to allow fixed modals inside children to stack on top of bottom navigation bar */}
       <div className="min-w-0 ml-0 lg:ml-72 h-screen overflow-y-auto custom-scrollbar relative">
         <AdminHeader onMenuClick={() => setSidebarOpen(true)} />
-        <main className="p-4 md:p-8 pb-24 lg:pb-8">
+        <main className="px-2 py-3 md:p-8 pb-24 lg:pb-8">
           {children}
         </main>
       </div>
