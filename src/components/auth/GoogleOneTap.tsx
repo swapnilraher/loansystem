@@ -48,17 +48,27 @@ export function GoogleOneTap() {
       }
     };
 
-    // Load Google Script if not already loaded
-    if (!document.getElementById("google-client-script")) {
-      const script = document.createElement("script");
-      script.id = "google-client-script";
-      script.src = "https://accounts.google.com/gsi/client";
-      script.async = true;
-      script.defer = true;
-      script.onload = initializeGoogleOneTap;
-      document.head.appendChild(script);
-    } else {
-      initializeGoogleOneTap();
+    // Load Google Script if not already loaded, deferred until browser is idle
+    const loadGoogleScript = () => {
+      if (!document.getElementById("google-client-script")) {
+        const script = document.createElement("script");
+        script.id = "google-client-script";
+        script.src = "https://accounts.google.com/gsi/client";
+        script.async = true;
+        script.defer = true;
+        script.onload = initializeGoogleOneTap;
+        document.head.appendChild(script);
+      } else {
+        initializeGoogleOneTap();
+      }
+    };
+
+    if (typeof window !== "undefined") {
+      if ("requestIdleCallback" in window) {
+        window.requestIdleCallback(() => loadGoogleScript());
+      } else {
+        setTimeout(loadGoogleScript, 3000);
+      }
     }
 
     return () => {
