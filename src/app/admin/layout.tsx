@@ -6,8 +6,9 @@ import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
 import { AdminSidebar } from "@/components/admin/AdminSidebar"
 import { AdminHeader } from "@/components/admin/AdminHeader"
-import { db } from "@/lib/firebase"
-import { collection, query, where, onSnapshot, orderBy, limit } from "firebase/firestore"
+import { db, messaging } from "@/lib/firebase"
+import { collection, query, where, onSnapshot, orderBy, limit, doc, updateDoc, arrayUnion } from "firebase/firestore"
+import { getToken, onMessage } from "firebase/messaging"
 import { motion, AnimatePresence } from "framer-motion"
 
 import { Loader2, ShieldCheck, LayoutDashboard, Briefcase, Network, Menu } from "lucide-react"
@@ -37,7 +38,7 @@ export default function AdminLayout({
     return () => clearTimeout(timer);
   }, [activeNotification]);
 
-  // Real-time browser push notifications for new leads and new DSA partners
+  // Real-time browser push notifications for new leads and new DSA partners via FCM
   useEffect(() => {
     if (typeof window === "undefined" || !("Notification" in window) || !user || !adminRole) return;
 
@@ -46,183 +47,64 @@ export default function AdminLayout({
       Notification.requestPermission();
     }
 
-    // Register service worker for mobile notifications compatibility
+    // Register service worker for mobile notifications compatibility and FCM background
     if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").then((reg) => {
-        console.log("Notification Service Worker registered:", reg.scope);
+      navigator.serviceWorker.register("/firebase-messaging-sw.js").then((reg) => {
+        console.log("FCM Service Worker registered:", reg.scope);
+        
+        // If we have messaging initialized, get token and listen for messages
+        if (messaging && Notification.permission === "granted") {
+          getToken(messaging, { 
+            vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+            serviceWorkerRegistration: reg
+          }).then((currentToken) => {
+            if (currentToken) {
+              console.log("FCM Token retrieved.");
+              // Save token to admin user document
+              const userRef = doc(db, "users", user.uid);
+              updateDoc(userRef, {
+                fcmTokens: arrayUnion(currentToken)
+              }).catch(err => console.error("Error saving FCM token:", err));
+            } else {
+              console.log("No registration token available. Request permission to generate one.");
+            }
+          }).catch((err) => {
+            console.log("An error occurred while retrieving token. ", err);
+          });
+          
+          // Listen for foreground messages
+          const unsubscribeOnMessage = onMessage(messaging, (payload) => {
+            console.log("Message received. ", payload);
+            const title = payload.notification?.title || "New Notification";
+            const body = payload.notification?.body || "";
+            const type = payload.data?.type === 'partner' ? 'partner' : 'lead';
+            
+            // Trigger premium in-app toast
+            setActiveNotification({
+              id: Math.random().toString(),
+              title,
+              body,
+              type
+            });
+            
+            // Play notification sound
+            try {
+              const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/911/911-200.mp3");
+              audio.volume = 0.4;
+              audio.play();
+            } catch (e) {
+              console.log("Audio play blocked by browser autoplay policy");
+            }
+          });
+
+          return () => {
+            unsubscribeOnMessage();
+          };
+        }
       }).catch((e) => {
-        console.error("Notification Service Worker registration failed:", e);
+        console.error("FCM Service Worker registration failed:", e);
       });
     }
-
-    const showFallbackNotification = (title: string, body: string) => {
-      try {
-        new Notification(title, {
-          body,
-          icon: "/img/logo.jpeg",
-        });
-      } catch (e) {
-        console.error("Standard Notification constructor failed:", e);
-      }
-    };
-
-    const sendPushNotification = (title: string, body: string, type: 'lead' | 'partner') => {
-      if (Notification.permission === "granted") {
-        // Try showing via Service Worker first (best compatibility for mobile and background)
-        if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
-          navigator.serviceWorker.ready.then((reg) => {
-            reg.showNotification(title, {
-              body,
-              icon: "/img/logo.jpeg",
-              badge: "/img/logo.jpeg",
-            });
-          }).catch((err) => {
-            console.error("SW Notification failed, trying fallback:", err);
-            showFallbackNotification(title, body);
-          });
-        } else {
-          showFallbackNotification(title, body);
-        }
-      }
-      
-      // Play notification sound
-      try {
-        const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/911/911-200.mp3");
-        audio.volume = 0.4;
-        audio.play();
-      } catch (e) {
-        console.log("Audio play blocked by browser autoplay policy");
-      }
-
-      // Trigger premium in-app toast
-      setActiveNotification({
-        id: Math.random().toString(),
-        title,
-        body,
-        type
-      });
-    };
-
-    const sessionStartTime = Date.now();
-
-    // 1. Listen to new leads created after session start (with a 5-minute buffer)
-    const sessionStartTimestamp = new Date(sessionStartTime - 5 * 60 * 1000);
-    const qLeads = query(
-      collection(db, "leads"),
-      where("createdAt", ">=", sessionStartTimestamp),
-      orderBy("createdAt", "desc")
-    );
-    const unsubLeads = onSnapshot(qLeads, (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === "added") {
-          const data = change.doc.data();
-          
-          let createdAt = 0;
-          if (data.createdAt) {
-            if (typeof data.createdAt.toDate === "function") {
-              createdAt = data.createdAt.toDate().getTime();
-            } else if (data.createdAt.seconds) {
-              createdAt = data.createdAt.seconds * 1000;
-            } else {
-              createdAt = new Date(data.createdAt).getTime();
-            }
-          }
-
-          // Skip if the lead was created before the admin session started (minus 10s buffer)
-          if (!createdAt || createdAt < sessionStartTime - 10000) return;
-
-          sendPushNotification(
-            "🌟 New Lead Received!",
-            `Name: ${data.name || "Unknown"}\nLoan Type: ${data.type || "N/A"}\nAmount: ₹${data.amount || "0"}`,
-            "lead"
-          );
-        }
-      });
-    }, (err) => {
-      console.error("Error listening to leads for notifications:", err);
-    });
-
-    // 2. Listen to new DSA partners
-    const qPartners = query(collection(db, "users"), where("role", "==", "partner"));
-    const unsubPartners = onSnapshot(qPartners, (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === "added" || change.type === "modified") {
-          const data = change.doc.data();
-          const id = change.doc.id;
-
-          let updatedAt = 0;
-          if (data.updatedAt) {
-            if (typeof data.updatedAt.toDate === "function") {
-              updatedAt = data.updatedAt.toDate().getTime();
-            } else if (data.updatedAt.seconds) {
-              updatedAt = data.updatedAt.seconds * 1000;
-            } else {
-              updatedAt = new Date(data.updatedAt).getTime();
-            }
-          }
-
-          let createdAt = 0;
-          if (data.createdAt) {
-            if (typeof data.createdAt.toDate === "function") {
-              createdAt = data.createdAt.toDate().getTime();
-            } else if (data.createdAt.seconds) {
-              createdAt = data.createdAt.seconds * 1000;
-            } else {
-              createdAt = new Date(data.createdAt).getTime();
-            }
-          }
-
-          const eventTime = updatedAt || createdAt;
-
-          // Skip if the event happened before our session started
-          if (!eventTime || eventTime < sessionStartTime - 10000) return;
-
-          const partnerName = data.kycData?.name || data.panData?.name || data.name || "New Partner";
-          const step = data.onboardingStep;
-          
-          // Prevent duplicate alerts in the current session
-          const sessionKey = `${id}_step_${step}`;
-          if (!(window as any)._notifiedSteps) {
-            (window as any)._notifiedSteps = new Set();
-          }
-          if ((window as any)._notifiedSteps.has(sessionKey)) return;
-          (window as any)._notifiedSteps.add(sessionKey);
-
-          if (step === 1) {
-            sendPushNotification(
-              "🤝 DSA Onboarding: Mobile Verified!",
-              `Name: ${partnerName}\nMobile: ${data.mobileNumber || "N/A"}\nCompleted onboarding Step 1 (Mobile Verification).`,
-              "partner"
-            );
-          } else if (step === 2) {
-            sendPushNotification(
-              "🛡️ DSA Onboarding: Aadhaar eKYC Done!",
-              `Name: ${partnerName}\nMobile: ${data.mobileNumber || "N/A"}\nCompleted onboarding Step 2 (Aadhaar KYC).`,
-              "partner"
-            );
-          } else if (step === 3) {
-            sendPushNotification(
-              "💳 DSA Onboarding: PAN Match Done!",
-              `Name: ${partnerName}\nMobile: ${data.mobileNumber || "N/A"}\nCompleted onboarding Step 3 (PAN Verification).`,
-              "partner"
-            );
-          } else if (step === 4 || data.dsaStatus === "Active") {
-            sendPushNotification(
-              "🎉 New DSA Partner Onboarding Complete!",
-              `Name: ${partnerName}\nDSA Code: ${data.dsaCode || "N/A"}\nMobile: ${data.mobileNumber || "N/A"}\nOnboarding completed successfully!`,
-              "partner"
-            );
-          }
-        }
-      });
-    }, (err) => {
-      console.error("Error listening to partners for notifications:", err);
-    });
-
-    return () => {
-      unsubLeads();
-      unsubPartners();
-    };
   }, [user, adminRole]);
 
   useEffect(() => {

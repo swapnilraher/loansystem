@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminStorage } from "@/lib/firebase-admin";
+import { sendLeadNotificationToAdmins } from "@/lib/notificationService";
 
 const FIREBASE_API_KEY = "AIzaSyDy-zXamx8BB18MgTXWoyWACKRSKvvOBTo";
 const PROJECT_ID = "dsa-loan";
@@ -693,8 +694,17 @@ async function createLead(data: Record<string, string>): Promise<string> {
     return "";
   }
   const result = await res.json();
-  const name = result.name;
-  return name.split("/").pop() || "";
+  const leadName = result.name;
+  const leadId = leadName.split("/").pop() || "";
+  
+  // Trigger FCM push notification for the new lead
+  try {
+    sendLeadNotificationToAdmins({ id: leadId, ...data }).catch(console.error);
+  } catch (err) {
+    console.error("Error triggering push notification:", err);
+  }
+  
+  return leadId;
 }
 
 async function updateLead(leadId: string, data: Record<string, string>) {

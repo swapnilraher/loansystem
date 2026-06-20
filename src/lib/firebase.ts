@@ -2,6 +2,7 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore, initializeFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAuth } from "firebase/auth";
+import { getMessaging, isSupported } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDy-zXamx8BB18MgTXWoyWACKRSKvvOBTo",
@@ -24,4 +25,14 @@ const db = initializeFirestore(app, {
 const storage = getStorage(app);
 const auth = getAuth(app);
 
-export { app, db, storage, auth };
+// Initialize Messaging only on the client side when supported
+let messaging: any = null;
+if (typeof window !== "undefined") {
+  isSupported().then((supported) => {
+    if (supported) {
+      messaging = getMessaging(app);
+    }
+  });
+}
+
+export { app, db, storage, auth, messaging };

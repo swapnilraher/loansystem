@@ -1039,7 +1039,7 @@ export default function LeadsPage() {
                 {/* Mobile Card (visible only on mobile) */}
                 <div 
                   key={`mobile-${lead.id}`}
-                  className={`flex md:hidden flex-col gap-2.5 px-3.5 py-3.5 bg-white border rounded-2xl relative overflow-hidden transition-all hover:shadow-md ${
+                  className={`flex md:hidden flex-col gap-1.5 px-3 py-2 bg-white border rounded-2xl relative overflow-hidden transition-all hover:shadow-md ${
                     isUntouched ? 'border-rose-200 bg-rose-50/5 shadow-[inset_0_0_12px_rgba(244,63,94,0.01)]' : 'border-slate-100/70 shadow-sm shadow-slate-100/40'
                   }`}
                 >
@@ -1077,7 +1077,7 @@ export default function LeadsPage() {
                   </div>
 
                   {/* Divider */}
-                  <div className="h-px bg-slate-100/60 my-0.5 ml-1.5" />
+                  <div className="h-px bg-slate-100/60 my-0 ml-1.5" />
 
                   {/* Category & SLA/Date */}
                   <div className="flex justify-between items-center w-full pl-1.5">
@@ -1107,17 +1107,17 @@ export default function LeadsPage() {
 
                   {/* Comment Banner */}
                   {lead.lastActivityNote ? (
-                    <div className="bg-indigo-50/50 border border-indigo-100/40 rounded-xl px-2.5 py-1.5 mt-1 ml-1.5 flex items-start gap-1.5">
-                      <span className="text-xs shrink-0 mt-0.5">💬</span>
-                      <p className="text-[10px] text-indigo-600 font-bold leading-normal line-clamp-2" title={lead.lastActivityNote}>
+                    <div className="bg-indigo-50/50 border border-indigo-100/40 rounded-lg px-2 py-1 mt-0.5 ml-1.5 flex items-start gap-1">
+                      <span className="text-[10px] shrink-0 mt-0.5">💬</span>
+                      <p className="text-[9.5px] text-indigo-600 font-bold leading-normal line-clamp-2" title={lead.lastActivityNote}>
                         {lead.lastActivityNote}
                       </p>
                     </div>
                   ) : (
                     isUntouched && (
-                      <div className="bg-rose-50/30 border border-rose-100/45 rounded-xl px-2.5 py-1.5 mt-1 ml-1.5 flex items-center gap-1.5 animate-pulse">
-                        <span className="text-xs shrink-0">⚠️</span>
-                        <p className="text-[9px] text-rose-500 font-black tracking-wide uppercase">
+                      <div className="bg-rose-50/30 border border-rose-100/45 rounded-lg px-2 py-1 mt-0.5 ml-1.5 flex items-center gap-1 animate-pulse">
+                        <span className="text-[10px] shrink-0">⚠️</span>
+                        <p className="text-[8.5px] text-rose-500 font-black tracking-wide uppercase">
                           Action Pending
                         </p>
                       </div>
@@ -1125,7 +1125,7 @@ export default function LeadsPage() {
                   )}
 
                   {/* Action Row */}
-                  <div className="flex items-center justify-between w-full mt-1.5 pl-1.5 gap-2">
+                  <div className="flex items-center justify-between w-full mt-0.5 pl-1.5 gap-2">
                     <button 
                       onClick={() => setStatusChangeLeadId(lead.id)}
                       className={`premium-btn-status h-8 px-3 text-[10px] ${

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { sendLeadNotificationToAdmins } from "@/lib/notificationService";
 
 const FIREBASE_API_KEY = "AIzaSyDy-zXamx8BB18MgTXWoyWACKRSKvvOBTo";
 const PROJECT_ID = "dsa-loan";
@@ -45,6 +46,18 @@ export async function POST(request: Request) {
     }
 
     const newLeadId = result.name.split('/').pop();
+
+    // Trigger FCM push notification for the new lead
+    try {
+      sendLeadNotificationToAdmins({ 
+        id: newLeadId, 
+        name: data.fullName || data.name || 'N/A', 
+        type: data.type || (data.source?.includes('Home') ? 'Home Loan' : 'Personal Loan'),
+        amount: data.loanAmount || data.amount || '0'
+      }).catch(console.error);
+    } catch (err) {
+      console.error("Error triggering push notification:", err);
+    }
 
     // Send welcome WhatsApp message if phone is present
     const phone = data.mobileNumber || data.phone;
