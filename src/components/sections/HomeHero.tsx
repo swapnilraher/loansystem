@@ -29,7 +29,7 @@ export function HomeHero() {
   }, [])
 
   // Single static banner image configuration
-  const bannerImage = "/img/homepagebanner.png"
+  const bannerImage = "/img/homepagebanner.webp"
 
   const stats = [
     { value: 5000, decimals: 0, suffix: "+", label: "Customers", icon: Users },

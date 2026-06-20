@@ -51,8 +51,7 @@ function Counter({ end, prefix = "", suffix = "", duration = 1800 }: { end: numb
 const GlobalStyles = () => (
   <style>{`
     /* ── RESET & FONTS ── */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-    .pl-page { font-family: 'Inter', system-ui, sans-serif; color: #1a1a2e; }
+    .pl-page { font-family: var(--font-inter), system-ui, sans-serif; color: #1a1a2e; }
 
     /* ── CSS TOKENS ── */
     .pl-page {
@@ -1303,25 +1302,25 @@ function ProcessSection() {
 function AnimatedPostersSection() {
   const posters = [
     {
-      imgSrc: "/img/instant-personal-loan-approval.png",
+      imgSrc: "/img/instant-personal-loan-approval.webp",
       alt: "Apply for instant personal loan online with quick 2 hours approval - Techstar Money Solution",
       title: "Instant Approval in 2 Hours",
       desc: "Get fast approval on your personal loan application with our fully digital validation process.",
     },
     {
-      imgSrc: "/img/low-interest-personal-loan-rates.png",
+      imgSrc: "/img/low-interest-personal-loan-rates.webp",
       alt: "Check low interest personal loan rates starting at 10.49 percent - Techstar Money Solution",
       title: "Rates Starting at 10.49% p.a.",
       desc: "Get low interest rates from 50+ leading partner banks & NBFCs tailored to your income profile.",
     },
     {
-      imgSrc: "/img/personal-loan-eligibility-documents.png",
+      imgSrc: "/img/personal-loan-eligibility-documents.webp",
       alt: "Documents required for instant personal loan Aadhaar and PAN check - Techstar Money Solution",
       title: "100% Paperless Process",
       desc: "No physical documentation required. Just upload your PAN, Aadhaar, and bank statements online.",
     },
     {
-      imgSrc: "/img/paperless-digital-loan-disbursal.png",
+      imgSrc: "/img/paperless-digital-loan-disbursal.webp",
       alt: "Enjoy paperless digital personal loan disbursal directly to bank account - Techstar Money Solution",
       title: "Swift 24-Hour Disbursal",
       desc: "Once approved, the loan amount is transferred directly to your bank account within 24 hours.",

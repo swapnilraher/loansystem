@@ -1,7 +1,36 @@
 import type { Metadata, Viewport } from "next";
+import { Plus_Jakarta_Sans, Outfit, Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import Script from "next/script";
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  variable: "--font-jakarta",
+  display: "swap",
+});
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  variable: "--font-outfit",
+  display: "swap",
+});
+
+const playfairDisplay = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  variable: "--font-playfair",
+  display: "swap",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const viewport: Viewport = {
   themeColor: "#059669",
@@ -57,7 +86,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className="h-full antialiased transition-colors duration-300"
+      className={`${plusJakartaSans.variable} ${outfit.variable} ${playfairDisplay.variable} ${inter.variable} h-full antialiased transition-colors duration-300`}
     >
       <body className="min-h-full flex flex-col font-sans">
         {/* Google Analytics (gtag.js) */}
