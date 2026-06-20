@@ -237,9 +237,22 @@ export function AIChatbot() {
                 </div>
                 <button 
                   onClick={() => setIsOpen(false)} 
-                  className="bg-white/10 hover:bg-white/20 backdrop-blur-md p-2 rounded-full transition-all relative z-10 hover:scale-105 active:scale-95"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: 'none',
+                    borderRadius: '9999px',
+                    padding: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '34px',
+                    height: '34px',
+                    outline: 'none',
+                    boxShadow: 'none'
+                  }}
+                  className="hover:bg-white/20 transition-all relative z-10 hover:scale-105 active:scale-95"
                 >
-                  <X size={18} />
+                  <X size={18} className="text-white" />
                 </button>
               </div>
 
@@ -259,10 +272,28 @@ export function AIChatbot() {
                     transition={{ type: "spring", stiffness: 260, damping: 22 }}
                     className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div className={`max-w-[85%] rounded-2xl p-3.5 text-sm shadow-sm leading-relaxed ${msg.sender === 'user'
-                        ? 'bg-gradient-to-tr from-[#0046be] to-[#005be0] text-white rounded-tr-none shadow-[0_4px_14px_rgba(0,70,190,0.18)]'
-                        : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/80 text-secondary dark:text-slate-200 rounded-tl-none font-medium'
-                      }`}>
+                    <div 
+                      style={msg.sender === 'user' ? {
+                        background: 'linear-gradient(135deg, #0046be 0%, #005be0 100%)',
+                        color: 'white',
+                        borderRadius: '16px',
+                        borderTopRightRadius: '0px',
+                        boxShadow: '0 4px 14px rgba(0, 70, 190, 0.18)',
+                        padding: '14px',
+                        fontSize: '14px',
+                        lineHeight: '1.5'
+                      } : {
+                        background: '#FFFFFF',
+                        border: '1px solid #E2E8F0',
+                        borderRadius: '16px',
+                        borderTopLeftRadius: '0px',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                        padding: '14px',
+                        fontSize: '14px',
+                        lineHeight: '1.5',
+                        color: '#0F172A'
+                      }}
+                    >
                       {msg.text}
                     </div>
                   </motion.div>
@@ -274,7 +305,19 @@ export function AIChatbot() {
                     animate={{ opacity: 1 }}
                     className="flex justify-start"
                   >
-                    <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/80 rounded-2xl rounded-tl-none px-4 py-3.5 shadow-sm flex items-center gap-1.5">
+                    <div 
+                      style={{
+                        background: '#FFFFFF',
+                        border: '1px solid #E2E8F0',
+                        borderRadius: '16px',
+                        borderTopLeftRadius: '0px',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                        padding: '12px 16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
                       <span className="w-2 h-2 bg-primary/65 rounded-full animate-bounce" style={{ animationDuration: '0.9s' }} />
                       <span className="w-2 h-2 bg-primary/65 rounded-full animate-bounce" style={{ animationDelay: '0.2s', animationDuration: '0.9s' }} />
                       <span className="w-2 h-2 bg-primary/65 rounded-full animate-bounce" style={{ animationDelay: '0.4s', animationDuration: '0.9s' }} />
@@ -286,22 +329,56 @@ export function AIChatbot() {
                 <div className="mt-auto pt-6 space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
-                    <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-center">थेट संपर्क साधा</p>
+                    <p style={{ color: '#94A3B8', fontSize: '9px', fontWeight: '900', letterSpacing: '1.5px', textTransform: 'uppercase', textAlign: 'center', margin: '0' }}>थेट संपर्क साधा</p>
                     <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3.5">
                     <a 
                       href="tel:9579005645" 
-                      className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-850 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-[0_4px_12px_rgba(0,0,0,0.06)] hover:scale-[1.02] active:scale-[0.98]"
+                      style={{
+                        background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+                        border: 'none',
+                        borderRadius: '14px',
+                        color: 'white',
+                        padding: '12px 16px',
+                        fontWeight: '800',
+                        textTransform: 'uppercase',
+                        fontSize: '11px',
+                        letterSpacing: '1px',
+                        boxShadow: '0 4px 15px rgba(15, 23, 42, 0.15)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        textDecoration: 'none'
+                      }}
+                      className="hover:scale-[1.02] active:scale-[0.98] transition-all"
                     >
-                      <Phone size={14} className="text-primary dark:text-primary-dark" /> Call Us
+                      <Phone size={14} className="text-white" /> Call Us
                     </a>
                     <a 
                       href="https://wa.me/919579005645" 
                       target="_blank" 
                       rel="noopener noreferrer" 
-                      className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#128C7E] to-[#25D366] text-white py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-[0_4px_12px_rgba(37,211,102,0.2)] hover:shadow-[0_6px_20px_rgba(37,211,102,0.3)] hover:scale-[1.02] active:scale-[0.98]"
+                      style={{
+                        background: 'linear-gradient(135deg, #128C7E 0%, #25D366 100%)',
+                        border: 'none',
+                        borderRadius: '14px',
+                        color: 'white',
+                        padding: '12px 16px',
+                        fontWeight: '800',
+                        textTransform: 'uppercase',
+                        fontSize: '11px',
+                        letterSpacing: '1px',
+                        boxShadow: '0 4px 15px rgba(37, 211, 102, 0.25)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        textDecoration: 'none'
+                      }}
+                      className="hover:scale-[1.02] active:scale-[0.98] transition-all"
                     >
                       <MessageCircle size={14} /> WhatsApp
                     </a>
@@ -333,7 +410,19 @@ export function AIChatbot() {
                           show: { opacity: 1, y: 0, scale: 1 }
                         }}
                         onClick={() => handleSend(reply)}
-                        className="whitespace-nowrap bg-slate-100/60 dark:bg-slate-800/60 hover:bg-primary/5 dark:hover:bg-primary/10 border border-slate-200/50 dark:border-slate-700/50 text-slate-700 dark:text-slate-300 hover:text-primary dark:hover:text-blue-400 px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all hover:scale-[1.02] active:scale-[0.98]"
+                        style={{
+                          background: 'rgba(0, 70, 190, 0.05)',
+                          border: '1px solid rgba(0, 70, 190, 0.12)',
+                          borderRadius: '9999px',
+                          padding: '6px 14px',
+                          fontSize: '11px',
+                          fontWeight: '700',
+                          color: '#0046be',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          outline: 'none'
+                        }}
+                        className="hover:bg-primary/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
                       >
                         {reply}
                       </motion.button>
@@ -341,18 +430,54 @@ export function AIChatbot() {
                   </motion.div>
                 )}
 
-                <div className="p-4">
-                  <form onSubmit={(e) => { e.preventDefault(); handleSend(input); }} className="relative flex items-center w-full bg-slate-100/80 dark:bg-slate-950/40 border border-slate-200/50 dark:border-slate-850 rounded-2xl focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/5 transition-all p-1">
+                <div className="p-4 bg-white dark:bg-slate-900">
+                  <form 
+                    onSubmit={(e) => { e.preventDefault(); handleSend(input); }} 
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      width: '100%',
+                      background: '#F8FAFC',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '16px',
+                      padding: '4px',
+                      position: 'relative'
+                    }}
+                  >
                     <input
                       type="text"
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       placeholder="तुमचा प्रश्न येथे विचारा..."
-                      className="w-full bg-transparent border-none py-2.5 pl-3.5 pr-12 text-sm focus:outline-none dark:text-white font-medium placeholder:text-slate-400"
+                      style={{
+                        width: '100%',
+                        background: 'transparent',
+                        border: 'none',
+                        outline: 'none',
+                        padding: '10px 14px',
+                        paddingRight: '50px',
+                        fontSize: '14px',
+                        color: '#0F172A'
+                      }}
                     />
                     <button
                       type="submit"
-                      className="absolute right-2 p-2 bg-[#0046be] text-white rounded-xl hover:bg-[#003cb3] transition-all hover:scale-105 active:scale-95 flex items-center justify-center w-9 h-9 shadow-sm"
+                      style={{
+                        background: '#0046be',
+                        border: 'none',
+                        borderRadius: '12px',
+                        width: '36px',
+                        height: '36px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 10px rgba(0, 70, 190, 0.2)',
+                        position: 'absolute',
+                        right: '6px'
+                      }}
+                      className="hover:scale-105 active:scale-95 transition-all"
                     >
                       <Send size={14} />
                     </button>
@@ -396,19 +521,22 @@ export function AIChatbot() {
               setIsOpen(!isOpen)
               setShowTooltip(false)
             }}
-            className="relative z-[100] border-0 outline-none overflow-visible bg-transparent flex items-center justify-center cursor-pointer select-none"
+            className={`relative z-[100] border-0 outline-none overflow-visible bg-transparent flex items-center justify-center cursor-pointer select-none transition-all duration-300 ${
+              isOpen ? "w-12 h-12 sm:w-16 sm:h-16" : "w-auto h-auto"
+            }`}
           >
             {isOpen ? (
-              <div className="w-16 h-16 rounded-full bg-slate-900/95 dark:bg-slate-800/95 backdrop-blur-md text-white flex items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.25)] border border-white/10 relative overflow-hidden group">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-slate-900/95 dark:bg-slate-800/95 backdrop-blur-md text-white flex items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.25)] border border-white/10 relative overflow-hidden group">
                 <motion.div
                   whileHover={{ rotate: 90 }}
                   transition={{ type: "spring", stiffness: 220 }}
                 >
-                  <X size={26} />
+                  <X size={20} className="block sm:hidden" />
+                  <X size={26} className="hidden sm:block" />
                 </motion.div>
               </div>
             ) : (
-              <div className="flex items-center gap-3.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white px-5 py-3.5 rounded-[24px] shadow-[0_16px_36px_rgba(16,185,129,0.25)] hover:shadow-[0_20px_48px_rgba(16,185,129,0.4)] border border-white/15 border-t-white/30 border-l-white/30 select-none transition-all duration-300 relative overflow-hidden group">
+              <div className="flex items-center gap-2 sm:gap-2.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-[18px] sm:rounded-[24px] shadow-[0_12px_28px_rgba(16,185,129,0.2)] sm:shadow-[0_16px_36px_rgba(16,185,129,0.25)] hover:shadow-[0_20px_48px_rgba(16,185,129,0.4)] border border-white/15 border-t-white/30 border-l-white/30 select-none transition-all duration-300 relative overflow-hidden group">
                 {/* Metallic sweep shine effect */}
                 <motion.div
                   animate={{
@@ -424,8 +552,8 @@ export function AIChatbot() {
                 />
                 
                 {/* Agent Avatar */}
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500/10 to-white/5 border-2 border-white/95 overflow-hidden flex items-center justify-center shrink-0 shadow-md relative">
-                  <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-9 h-9">
+                <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-blue-500/10 to-white/5 border-2 border-white/95 overflow-hidden flex items-center justify-center shrink-0 shadow-md relative">
+                  <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
                     <defs>
                       <linearGradient id="avatarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                         <stop offset="0%" stopColor="#1E3A8A" />
@@ -456,15 +584,15 @@ export function AIChatbot() {
                   </svg>
                   
                   {/* Glowing Active Ring */}
-                  <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[#10B981] border-2 border-white flex items-center justify-center">
+                  <span className="absolute bottom-0 right-0 w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-[#10B981] border-2 border-white flex items-center justify-center">
                     <span className="absolute inset-0 rounded-full bg-[#10B981] opacity-75 animate-ping" />
                   </span>
                 </div>
                 
                 {/* Text Group */}
                 <div className="text-left shrink-0 pr-1 relative z-10">
-                  <div className="text-[13px] font-black leading-tight tracking-wider uppercase text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)]">Chat With Us</div>
-                  <div className="text-[9px] text-[#A7F3D0] font-black tracking-widest uppercase leading-none mt-1">Live Support Online</div>
+                  <div className="text-xs sm:text-[15px] font-black leading-tight tracking-wider uppercase text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)]">Chat With Us</div>
+                  <div className="text-[8px] sm:text-[10px] text-[#A7F3D0] font-black tracking-widest uppercase leading-none mt-0.5 sm:mt-1">Live Support Online</div>
                 </div>
               </div>
             )}
