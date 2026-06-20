@@ -1124,7 +1124,9 @@ export async function POST(request: Request) {
 
     // ── Step 2: Got name → show loan category menu ──
     if (session.step === 2) {
-      const name = text;
+      // Limit to first 4 words to handle potential automated away/auto-responses
+      const nameWords = text.trim().split(/\s+/);
+      const name = nameWords.slice(0, 4).join(" ");
       
       const detailsText = generateDetailsText({
         name: name,

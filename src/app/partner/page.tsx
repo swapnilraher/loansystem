@@ -177,7 +177,7 @@ export default function PartnerDashboard() {
                     {lead.status || 'New'}
                   </span>
                   <p className="text-[9px] font-bold text-slate-400 mt-1">
-                    {lead.createdAt?.toDate ? lead.createdAt.toDate().toLocaleDateString('en-GB') : 'Just now'}
+                    {lead.createdAt?.toDate ? `${lead.createdAt.toDate().toLocaleDateString('en-GB')} ${lead.createdAt.toDate().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}` : 'Just now'}
                   </p>
                 </div>
               </div>

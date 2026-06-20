@@ -971,8 +971,8 @@ export default function LeadsPage() {
                       </span>
                       <span className="text-[10px] font-bold text-slate-400 truncate">
                         {lead.createdAt?.toDate 
-                          ? lead.createdAt.toDate().toLocaleDateString('en-GB') 
-                          : (typeof lead.createdAt === 'string' ? new Date(lead.createdAt).toLocaleDateString('en-GB') : 'NA')}
+                          ? `${lead.createdAt.toDate().toLocaleDateString('en-GB')} ${lead.createdAt.toDate().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}` 
+                          : (typeof lead.createdAt === 'string' ? `${new Date(lead.createdAt).toLocaleDateString('en-GB')} ${new Date(lead.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}` : 'NA')}
                       </span>
                     </div>
 
@@ -1099,8 +1099,8 @@ export default function LeadsPage() {
                       </span>
                       <span className="text-[10px] font-bold text-slate-400">
                         {lead.createdAt?.toDate 
-                          ? lead.createdAt.toDate().toLocaleDateString('en-GB') 
-                          : (typeof lead.createdAt === 'string' ? new Date(lead.createdAt).toLocaleDateString('en-GB') : 'NA')}
+                          ? `${lead.createdAt.toDate().toLocaleDateString('en-GB')} ${lead.createdAt.toDate().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}` 
+                          : (typeof lead.createdAt === 'string' ? `${new Date(lead.createdAt).toLocaleDateString('en-GB')} ${new Date(lead.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}` : 'NA')}
                       </span>
                     </div>
                   </div>
@@ -1586,8 +1586,8 @@ export default function LeadsPage() {
                         <span className="text-[10px] font-extrabold text-emerald-600 uppercase tracking-wider bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100/50">Lead Captured</span>
                         <span className="text-[9px] font-semibold text-slate-400">
                           {selectedLead.createdAt?.toDate 
-                            ? selectedLead.createdAt.toDate().toLocaleDateString('en-GB') 
-                            : (typeof selectedLead.createdAt === 'string' ? new Date(selectedLead.createdAt).toLocaleDateString('en-GB') : 'NA')}
+                            ? `${selectedLead.createdAt.toDate().toLocaleDateString('en-GB')} ${selectedLead.createdAt.toDate().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}` 
+                            : (typeof selectedLead.createdAt === 'string' ? `${new Date(selectedLead.createdAt).toLocaleDateString('en-GB')} ${new Date(selectedLead.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}` : 'NA')}
                         </span>
                       </div>
                       <p className="text-xs font-semibold text-slate-500 italic mt-2 pl-0.5">
