@@ -902,6 +902,23 @@ export async function GET(request: Request) {
   return new Response('Forbidden', { status: 403 });
 }
 
+const processedMessageIds = new Set<string>();
+
+function isDuplicateMessage(msgId: string): boolean {
+  if (!msgId) return false;
+  if (processedMessageIds.has(msgId)) {
+    return true;
+  }
+  processedMessageIds.add(msgId);
+  if (processedMessageIds.size > 1000) {
+    const firstKey = processedMessageIds.keys().next().value;
+    if (firstKey) {
+      processedMessageIds.delete(firstKey);
+    }
+  }
+  return false;
+}
+
 // ─── POST: Incoming message handler ───────────────────────────────────────────
 async function handleWebhookRequest(request: Request, pendingPromises: Promise<any>[]): Promise<Response> {
   try {
@@ -914,6 +931,12 @@ async function handleWebhookRequest(request: Request, pendingPromises: Promise<a
     }
 
     const msg = messages[0];
+    const msgId = msg.id;
+    if (msgId && isDuplicateMessage(msgId)) {
+      console.log(`[Webhook] Duplicate WhatsApp message ID detected: ${msgId}. Skipping.`);
+      return NextResponse.json({ ok: true });
+    }
+
     const rawFrom: string = msg.from; // sender's phone number
     
     // Sanitize number: strip leading 91 (for 10-digit Indian numbers)

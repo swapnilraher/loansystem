@@ -8,9 +8,35 @@ export async function GET() {
   return NextResponse.json({ status: 'API is working (REST Mode)' });
 }
 
+const lastLeadSubmissionByPhone = new Map<string, number>();
+
+function isDuplicateLeadSubmission(phone: string): boolean {
+  if (!phone || phone === 'N/A' || phone === '') return false;
+  const now = Date.now();
+  const lastTime = lastLeadSubmissionByPhone.get(phone);
+  if (lastTime && now - lastTime < 15000) {
+    return true;
+  }
+  lastLeadSubmissionByPhone.set(phone, now);
+  if (lastLeadSubmissionByPhone.size > 500) {
+    const oldestKey = lastLeadSubmissionByPhone.keys().next().value;
+    if (oldestKey) {
+      lastLeadSubmissionByPhone.delete(oldestKey);
+    }
+  }
+  return false;
+}
+
 export async function POST(request: Request) {
   try {
     const data = await request.json();
+    
+    const rawPhone = data.mobileNumber || data.phone || '';
+    const cleanPhone = rawPhone.replace(/\D/g, '');
+    if (cleanPhone && isDuplicateLeadSubmission(cleanPhone)) {
+      console.log(`[Leads API] Duplicate lead submission for phone: ${cleanPhone} inside 15s window. Ignoring.`);
+      return NextResponse.json({ success: true, message: "Duplicate submission ignored" }, { status: 200 });
+    }
     
     // Map form fields to Firestore REST format
     const leadData = {
