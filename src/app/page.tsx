@@ -1,6 +1,5 @@
-"use client"
 import React from "react"
-import { motion } from "framer-motion"
+import { Metadata } from "next"
 import dynamic from "next/dynamic"
 import { Header, Footer } from "@/components/sections/Layout"
 import { HomeHero } from "@/components/sections/HomeHero"
@@ -12,6 +11,38 @@ import { BlogAndCTA } from "@/components/sections/BlogAndCTA"
 import { TrustSignals } from "@/components/sections/TrustSignals"
 import { LoanJourney } from "@/components/sections/LoanJourney"
 import { LocationCoverage } from "@/components/sections/LocationCoverage"
+import { AnimatedSection } from "@/components/ui/AnimatedSection"
+
+export const metadata: Metadata = {
+  title: "Techstar Money Solution – Instant Loans, Best Rates & DSA Partner",
+  description: "Apply for Personal, Home, Business & LAP loans with instant approval. Compare 50+ banks, check eligibility in 2 minutes & get quick disbursal. Trusted by thousands across India.",
+  keywords: "instant loan, personal loan, home loan, business loan, loan against property, loan dsa, low interest loan, loan agent india",
+  alternates: {
+    canonical: "https://techstarsolution.in",
+  },
+  openGraph: {
+    title: "Techstar Money Solution – Instant Loans, Best Rates & DSA Partner",
+    description: "Apply for Personal, Home, Business & LAP loans with instant approval. Compare 50+ banks, check eligibility in 2 minutes & get quick disbursal. Trusted by thousands across India.",
+    url: "https://techstarsolution.in",
+    siteName: "Techstar Money Solution",
+    images: [
+      {
+        url: "/partners.png",
+        width: 1200,
+        height: 630,
+        alt: "Techstar Money Solution – India's Trusted Loan Marketplace"
+      }
+    ],
+    locale: "en_IN",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Techstar Money Solution – Instant Loans, Best Rates & DSA Partner",
+    description: "Compare 50+ banks. Personal, Home, Business & LAP loans with quick approval & low interest rates.",
+    images: ["/partners.png"],
+  },
+};
 
 const EligibilityWizard = dynamic(
   () => import("@/components/sections/EligibilityWizard").then((mod) => mod.EligibilityWizard),
@@ -46,16 +77,6 @@ const FAQ = dynamic(
 )
 
 export default function Home() {
-  const AnimatedSection = ({ children, delay = 0 }: { children: React.ReactNode, delay?: number }) => (
-    <motion.div
-      initial={{ opacity: 0, y: 50 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.6, delay: delay, ease: "easeOut" }}
-    >
-      {children}
-    </motion.div>
-  )
 
   return (
     <>
