@@ -7,7 +7,8 @@ import { useAuth } from "@/context/AuthContext"
 import { AdminSidebar } from "@/components/admin/AdminSidebar"
 import { AdminHeader } from "@/components/admin/AdminHeader"
 import { db } from "@/lib/firebase"
-import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore"
+import { collection, query, where, onSnapshot, orderBy, limit } from "firebase/firestore"
+import { motion, AnimatePresence } from "framer-motion"
 
 import { Loader2, ShieldCheck, LayoutDashboard, Briefcase, Network, Menu } from "lucide-react"
 
@@ -20,10 +21,25 @@ export default function AdminLayout({
   const router = useRouter()
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [activeNotification, setActiveNotification] = useState<{
+    id: string;
+    title: string;
+    body: string;
+    type: 'lead' | 'partner';
+  } | null>(null)
+
+  // Auto-dismiss in-app notification toast after 8 seconds
+  useEffect(() => {
+    if (!activeNotification) return;
+    const timer = setTimeout(() => {
+      setActiveNotification(null);
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [activeNotification]);
 
   // Real-time browser push notifications for new leads and new DSA partners
   useEffect(() => {
-    if (typeof window === "undefined" || !("Notification" in window) || pathname === "/admin/login" || !user || !adminRole) return;
+    if (typeof window === "undefined" || !("Notification" in window) || !user || !adminRole) return;
 
     // Request notification permission if not yet granted
     if (Notification.permission === "default") {
@@ -50,7 +66,7 @@ export default function AdminLayout({
       }
     };
 
-    const sendPushNotification = (title: string, body: string) => {
+    const sendPushNotification = (title: string, body: string, type: 'lead' | 'partner') => {
       if (Notification.permission === "granted") {
         // Try showing via Service Worker first (best compatibility for mobile and background)
         if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
@@ -67,38 +83,58 @@ export default function AdminLayout({
         } else {
           showFallbackNotification(title, body);
         }
-        
-        // Play notification sound
-        try {
-          const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/911/911-200.mp3");
-          audio.volume = 0.4;
-          audio.play();
-        } catch (e) {
-          console.log("Audio play blocked by browser autoplay policy");
-        }
       }
+      
+      // Play notification sound
+      try {
+        const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/911/911-200.mp3");
+        audio.volume = 0.4;
+        audio.play();
+      } catch (e) {
+        console.log("Audio play blocked by browser autoplay policy");
+      }
+
+      // Trigger premium in-app toast
+      setActiveNotification({
+        id: Math.random().toString(),
+        title,
+        body,
+        type
+      });
     };
 
     const sessionStartTime = Date.now();
-    let leadsInitial = true;
-    let partnersInitial = true;
 
-    // 1. Listen to new leads
-    const qLeads = query(collection(db, "leads"), orderBy("createdAt", "desc"));
+    // 1. Listen to new leads created after session start (with a 5-minute buffer)
+    const sessionStartTimestamp = new Date(sessionStartTime - 5 * 60 * 1000);
+    const qLeads = query(
+      collection(db, "leads"),
+      where("createdAt", ">=", sessionStartTimestamp),
+      orderBy("createdAt", "desc")
+    );
     const unsubLeads = onSnapshot(qLeads, (snapshot) => {
-      if (leadsInitial) {
-        leadsInitial = false;
-        return;
-      }
       snapshot.docChanges().forEach((change) => {
         if (change.type === "added") {
           const data = change.doc.data();
-          const createdAt = data.createdAt?.toDate ? data.createdAt.toDate().getTime() : (data.createdAt?.seconds ? data.createdAt.seconds * 1000 : 0);
-          if (createdAt && createdAt < sessionStartTime - 10000) return;
+          
+          let createdAt = 0;
+          if (data.createdAt) {
+            if (typeof data.createdAt.toDate === "function") {
+              createdAt = data.createdAt.toDate().getTime();
+            } else if (data.createdAt.seconds) {
+              createdAt = data.createdAt.seconds * 1000;
+            } else {
+              createdAt = new Date(data.createdAt).getTime();
+            }
+          }
+
+          // Skip if the lead was created before the admin session started (minus 10s buffer)
+          if (!createdAt || createdAt < sessionStartTime - 10000) return;
 
           sendPushNotification(
             "🌟 New Lead Received!",
-            `Name: ${data.name || "Unknown"}\nLoan Type: ${data.type || "N/A"}\nAmount: ₹${data.amount || "0"}`
+            `Name: ${data.name || "Unknown"}\nLoan Type: ${data.type || "N/A"}\nAmount: ₹${data.amount || "0"}`,
+            "lead"
           );
         }
       });
@@ -109,19 +145,37 @@ export default function AdminLayout({
     // 2. Listen to new DSA partners
     const qPartners = query(collection(db, "users"), where("role", "==", "partner"));
     const unsubPartners = onSnapshot(qPartners, (snapshot) => {
-      if (partnersInitial) {
-        partnersInitial = false;
-        return;
-      }
       snapshot.docChanges().forEach((change) => {
         if (change.type === "added" || change.type === "modified") {
           const data = change.doc.data();
           const id = change.doc.id;
 
-          const updatedAt = data.updatedAt?.toDate ? data.updatedAt.toDate().getTime() : (data.updatedAt?.seconds ? data.updatedAt.seconds * 1000 : 0);
-          const createdAt = data.createdAt?.toDate ? data.createdAt.toDate().getTime() : (data.createdAt?.seconds ? data.createdAt.seconds * 1000 : 0);
+          let updatedAt = 0;
+          if (data.updatedAt) {
+            if (typeof data.updatedAt.toDate === "function") {
+              updatedAt = data.updatedAt.toDate().getTime();
+            } else if (data.updatedAt.seconds) {
+              updatedAt = data.updatedAt.seconds * 1000;
+            } else {
+              updatedAt = new Date(data.updatedAt).getTime();
+            }
+          }
+
+          let createdAt = 0;
+          if (data.createdAt) {
+            if (typeof data.createdAt.toDate === "function") {
+              createdAt = data.createdAt.toDate().getTime();
+            } else if (data.createdAt.seconds) {
+              createdAt = data.createdAt.seconds * 1000;
+            } else {
+              createdAt = new Date(data.createdAt).getTime();
+            }
+          }
+
           const eventTime = updatedAt || createdAt;
-          if (eventTime && eventTime < sessionStartTime - 10000) return;
+
+          // Skip if the event happened before our session started
+          if (!eventTime || eventTime < sessionStartTime - 10000) return;
 
           const partnerName = data.kycData?.name || data.panData?.name || data.name || "New Partner";
           const step = data.onboardingStep;
@@ -137,22 +191,26 @@ export default function AdminLayout({
           if (step === 1) {
             sendPushNotification(
               "🤝 DSA Onboarding: Mobile Verified!",
-              `Name: ${partnerName}\nMobile: ${data.mobileNumber || "N/A"}\nCompleted onboarding Step 1 (Mobile Verification).`
+              `Name: ${partnerName}\nMobile: ${data.mobileNumber || "N/A"}\nCompleted onboarding Step 1 (Mobile Verification).`,
+              "partner"
             );
           } else if (step === 2) {
             sendPushNotification(
               "🛡️ DSA Onboarding: Aadhaar eKYC Done!",
-              `Name: ${partnerName}\nMobile: ${data.mobileNumber || "N/A"}\nCompleted onboarding Step 2 (Aadhaar KYC).`
+              `Name: ${partnerName}\nMobile: ${data.mobileNumber || "N/A"}\nCompleted onboarding Step 2 (Aadhaar KYC).`,
+              "partner"
             );
           } else if (step === 3) {
             sendPushNotification(
               "💳 DSA Onboarding: PAN Match Done!",
-              `Name: ${partnerName}\nMobile: ${data.mobileNumber || "N/A"}\nCompleted onboarding Step 3 (PAN Verification).`
+              `Name: ${partnerName}\nMobile: ${data.mobileNumber || "N/A"}\nCompleted onboarding Step 3 (PAN Verification).`,
+              "partner"
             );
           } else if (step === 4 || data.dsaStatus === "Active") {
             sendPushNotification(
               "🎉 New DSA Partner Onboarding Complete!",
-              `Name: ${partnerName}\nDSA Code: ${data.dsaCode || "N/A"}\nMobile: ${data.mobileNumber || "N/A"}\nOnboarding completed successfully!`
+              `Name: ${partnerName}\nDSA Code: ${data.dsaCode || "N/A"}\nMobile: ${data.mobileNumber || "N/A"}\nOnboarding completed successfully!`,
+              "partner"
             );
           }
         }
@@ -165,7 +223,7 @@ export default function AdminLayout({
       unsubLeads();
       unsubPartners();
     };
-  }, [user, adminRole, pathname]);
+  }, [user, adminRole]);
 
   useEffect(() => {
     if (!loading && pathname !== "/admin/login") {
@@ -260,6 +318,75 @@ export default function AdminLayout({
           <span className="text-[10px] tracking-tight">More</span>
         </button>
       </div>
+
+      {/* Real-time In-App Notification Toast */}
+      <AnimatePresence>
+        {activeNotification && (
+          <motion.div
+            initial={{ opacity: 0, x: 100, y: 0, scale: 0.9 }}
+            animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 100, scale: 0.9 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="fixed top-6 right-6 z-[9999] w-[320px] sm:w-[360px] overflow-hidden rounded-2xl border bg-slate-900/95 dark:bg-slate-950/95 text-white p-4.5 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-md"
+            style={{
+              borderColor: activeNotification.type === 'lead' ? 'rgba(16, 185, 129, 0.4)' : 'rgba(59, 130, 246, 0.4)'
+            }}
+          >
+            <div className="flex items-start gap-3">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
+                activeNotification.type === 'lead' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'
+              }`}>
+                {activeNotification.type === 'lead' ? '🌟' : '🤝'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-extrabold tracking-wide">{activeNotification.title}</h4>
+                <p className="text-xs text-slate-300 leading-relaxed font-semibold mt-1 whitespace-pre-line">{activeNotification.body}</p>
+                
+                <div className="flex items-center gap-3 mt-3.5">
+                  <button
+                    onClick={() => {
+                      if (activeNotification.type === 'lead') {
+                        router.push('/admin/leads');
+                      } else {
+                        router.push('/admin/partners');
+                      }
+                      setActiveNotification(null);
+                    }}
+                    style={{
+                      background: activeNotification.type === 'lead' ? '#10B981' : '#3B82F6',
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: 'white',
+                      padding: '6px 12px',
+                      fontSize: '11px',
+                      fontWeight: '800',
+                      textTransform: 'uppercase',
+                      cursor: 'pointer'
+                    }}
+                    className="hover:opacity-90 transition-opacity"
+                  >
+                    View Details
+                  </button>
+                  <button
+                    onClick={() => setActiveNotification(null)}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#94A3B8',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      cursor: 'pointer'
+                    }}
+                    className="hover:text-white transition-colors"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
