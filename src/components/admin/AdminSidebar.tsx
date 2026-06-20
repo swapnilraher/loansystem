@@ -41,6 +41,7 @@ const navItems = [
   { name: "All Auto Chatting", href: "/admin/integrations/all-auto-chatting", icon: Bot },
   { name: "Cloud Storage", href: "/admin/storage", icon: HardDrive },
   { name: "Roles & Permissions", href: "/admin/permissions", icon: ShieldCheck },
+  { name: "My Profile", href: "/admin/profile", icon: Settings },
 ]
 
 interface AdminSidebarProps {
