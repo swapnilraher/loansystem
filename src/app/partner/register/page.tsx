@@ -355,6 +355,23 @@ export default function PartnerRegistration() {
 
       await saveProgress(4, extraData);
       setGeneratedDsaCode(dsaCode)
+
+      // Trigger admin push notification for new registration
+      try {
+        await fetch("/api/partners/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: user.uid,
+            name: kycData?.name || panData?.full_name || user.displayName || profile?.displayName || "New Partner",
+            phone: formData.mobileNumber || profile?.mobileNumber || "N/A",
+            code: dsaCode
+          })
+        });
+      } catch (notifyErr) {
+        console.error("Failed to trigger partner notification:", notifyErr);
+      }
+
       nextStep()
     } catch (e) {
       console.error("Firestore Error:", e);

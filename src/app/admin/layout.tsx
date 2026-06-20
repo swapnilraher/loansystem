@@ -6,7 +6,7 @@ import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
 import { AdminSidebar } from "@/components/admin/AdminSidebar"
 import { AdminHeader } from "@/components/admin/AdminHeader"
-import { db, messaging } from "@/lib/firebase"
+import { db, getMessagingClient } from "@/lib/firebase"
 import { collection, query, where, onSnapshot, orderBy, limit, doc, updateDoc, arrayUnion } from "firebase/firestore"
 import { getToken, onMessage } from "firebase/messaging"
 import { motion, AnimatePresence } from "framer-motion"
@@ -42,38 +42,55 @@ export default function AdminLayout({
   useEffect(() => {
     if (typeof window === "undefined" || !("Notification" in window) || !user || !adminRole) return;
 
-    // Request notification permission if not yet granted
-    if (Notification.permission === "default") {
-      Notification.requestPermission();
-    }
+    let unsubscribe: (() => void) | null = null;
 
-    // Register service worker for mobile notifications compatibility and FCM background
-    if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/firebase-messaging-sw.js").then((reg) => {
-        console.log("FCM Service Worker registered:", reg.scope);
-        
-        // If we have messaging initialized, get token and listen for messages
-        if (messaging && Notification.permission === "granted") {
-          getToken(messaging, { 
-            vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
-            serviceWorkerRegistration: reg
-          }).then((currentToken) => {
-            if (currentToken) {
-              console.log("FCM Token retrieved.");
-              // Save token to admin user document
-              const userRef = doc(db, "users", user.uid);
-              updateDoc(userRef, {
-                fcmTokens: arrayUnion(currentToken)
-              }).catch(err => console.error("Error saving FCM token:", err));
-            } else {
-              console.log("No registration token available. Request permission to generate one.");
+    const setupMessaging = async () => {
+      try {
+        const messagingInstance = await getMessagingClient();
+        if (!messagingInstance) {
+          console.log("Firebase Messaging not supported/initialized in this browser.");
+          return;
+        }
+
+        // Register service worker for mobile notifications compatibility and FCM background
+        if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+          const reg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+          console.log("FCM Service Worker registered:", reg.scope);
+
+          const acquireToken = async () => {
+            try {
+              const currentToken = await getToken(messagingInstance, {
+                vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+                serviceWorkerRegistration: reg
+              });
+              if (currentToken) {
+                console.log("FCM Token retrieved.");
+                // Save token to admin user document
+                const userRef = doc(db, "users", user.uid);
+                await updateDoc(userRef, {
+                  fcmTokens: arrayUnion(currentToken)
+                });
+              } else {
+                console.log("No registration token available. Request permission to generate one.");
+              }
+            } catch (err) {
+              console.error("An error occurred while retrieving token:", err);
             }
-          }).catch((err) => {
-            console.log("An error occurred while retrieving token. ", err);
-          });
-          
+          };
+
+          // If permission is already granted, fetch token
+          if (Notification.permission === "granted") {
+            await acquireToken();
+          } else if (Notification.permission === "default") {
+            // Ask for permission and acquire token immediately if granted
+            const permission = await Notification.requestPermission();
+            if (permission === "granted") {
+              await acquireToken();
+            }
+          }
+
           // Listen for foreground messages
-          const unsubscribeOnMessage = onMessage(messaging, (payload) => {
+          unsubscribe = onMessage(messagingInstance, (payload) => {
             console.log("Message received. ", payload);
             const title = payload.notification?.title || "New Notification";
             const body = payload.notification?.body || "";
@@ -96,15 +113,19 @@ export default function AdminLayout({
               console.log("Audio play blocked by browser autoplay policy");
             }
           });
-
-          return () => {
-            unsubscribeOnMessage();
-          };
         }
-      }).catch((e) => {
-        console.error("FCM Service Worker registration failed:", e);
-      });
-    }
+      } catch (err) {
+        console.error("FCM setup failed in layout:", err);
+      }
+    };
+
+    setupMessaging();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, [user, adminRole]);
 
   useEffect(() => {

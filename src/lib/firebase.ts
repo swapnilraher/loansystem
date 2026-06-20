@@ -26,13 +26,19 @@ const storage = getStorage(app);
 const auth = getAuth(app);
 
 // Initialize Messaging only on the client side when supported
-let messaging: any = null;
-if (typeof window !== "undefined") {
-  isSupported().then((supported) => {
-    if (supported) {
-      messaging = getMessaging(app);
-    }
-  });
-}
+let messagingPromise: Promise<any> | null = null;
+export const getMessagingClient = async () => {
+  if (typeof window === "undefined") return null;
+  if (!messagingPromise) {
+    messagingPromise = isSupported().then((supported) => {
+      return supported ? getMessaging(app) : null;
+    }).catch((err) => {
+      console.error("FCM isSupported check failed:", err);
+      return null;
+    });
+  }
+  return messagingPromise;
+};
 
-export { app, db, storage, auth, messaging };
+export { app, db, storage, auth };
+

@@ -22,7 +22,7 @@ const serviceAccount = {
 };
 
 // Singleton pattern for Firebase Admin
-const getAdminApp = () => {
+export const getAdminApp = () => {
   if (admin.apps.length > 0) {
     return admin.apps[0];
   }

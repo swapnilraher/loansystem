@@ -699,7 +699,7 @@ async function createLead(data: Record<string, string>): Promise<string> {
   
   // Trigger FCM push notification for the new lead
   try {
-    sendLeadNotificationToAdmins({ id: leadId, ...data }).catch(console.error);
+    await sendLeadNotificationToAdmins({ id: leadId, ...data });
   } catch (err) {
     console.error("Error triggering push notification:", err);
   }

@@ -49,12 +49,12 @@ export async function POST(request: Request) {
 
     // Trigger FCM push notification for the new lead
     try {
-      sendLeadNotificationToAdmins({ 
+      await sendLeadNotificationToAdmins({ 
         id: newLeadId, 
         name: data.fullName || data.name || 'N/A', 
         type: data.type || (data.source?.includes('Home') ? 'Home Loan' : 'Personal Loan'),
         amount: data.loanAmount || data.amount || '0'
-      }).catch(console.error);
+      });
     } catch (err) {
       console.error("Error triggering push notification:", err);
     }
