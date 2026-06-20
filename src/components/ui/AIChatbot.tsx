@@ -292,17 +292,28 @@ export function AIChatbot() {
 
         {/* Floating Button */}
         <motion.button
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.92 }}
+          animate={{
+            y: isOpen ? 0 : [0, -6, 0],
+            scale: isOpen ? 1 : [1, 1.02, 1]
+          }}
+          transition={{
+            y: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+            scale: { duration: 3, repeat: Infinity, ease: "easeInOut" }
+          }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           onClick={() => {
             setIsOpen(!isOpen)
             setShowTooltip(false)
           }}
-          className="w-16 h-16 rounded-full shadow-premium flex items-center justify-center relative hover-lift group z-[100] border-0 outline-none overflow-visible bg-gradient-to-tr from-[#1EBE5D] to-[#128C7E]"
-          style={{ boxShadow: "0 8px 30px rgba(37, 211, 102, 0.4)" }}
+          className="relative hover-lift group z-[100] border-0 outline-none overflow-visible bg-transparent flex items-center justify-center"
+          style={{ 
+            width: isOpen ? "64px" : "192px", 
+            height: isOpen ? "64px" : "108px",
+            boxShadow: isOpen ? "0 8px 30px rgba(0, 0, 0, 0.15)" : "none" 
+          }}
         >
-          {/* Pulse Glow Backing */}
-          <div className="absolute -inset-1 bg-gradient-to-tr from-[#25D366] to-[#128C7E] rounded-full blur opacity-40 group-hover:opacity-70 transition duration-300 animate-pulse-slow pointer-events-none" />
+
           
           {/* Hover Phone Contact Tooltip */}
           {!isOpen && (
@@ -313,17 +324,19 @@ export function AIChatbot() {
           )}
 
           {isOpen ? (
-            <X size={26} className="text-white relative z-10" />
-          ) : (
-            <div className="relative flex items-center justify-center w-10 h-10 z-10">
-              <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 16 16" fill="currentColor" className="text-white">
-                <path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232"/>
-              </svg>
+            <div className="w-16 h-16 rounded-full bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center shadow-premium">
+              <X size={26} />
             </div>
+          ) : (
+            <img 
+              src="/img/chatbot-avatar.png" 
+              alt="Chat Support" 
+              className="w-full h-full object-contain"
+            />
           )}
           
           {!isOpen && (
-            <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[9px] font-black w-5.5 h-5.5 flex items-center justify-center rounded-full border-2 border-white dark:border-slate-950 shadow-sm">
+            <span className="absolute top-2 right-4 bg-rose-500 text-white text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-white dark:border-slate-950 shadow-sm">
               1
             </span>
           )}
