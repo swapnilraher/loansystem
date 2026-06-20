@@ -6,7 +6,7 @@ export async function sendLeadNotificationToAdmins(leadData: any) {
     const db = getAdminDb();
     
     // 1. Fetch all admin users
-    const adminsSnapshot = await db.collection('users').where('role', 'in', ['admin', 'superadmin']).get();
+    const adminsSnapshot = await db.collection('users').where('role', 'in', ['Admin', 'Super Admin', 'HR']).get();
     
     const tokens: string[] = [];
     adminsSnapshot.forEach((doc) => {
