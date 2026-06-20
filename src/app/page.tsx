@@ -12,6 +12,7 @@ import { TrustSignals } from "@/components/sections/TrustSignals"
 import { LoanJourney } from "@/components/sections/LoanJourney"
 import { LocationCoverage } from "@/components/sections/LocationCoverage"
 import { AnimatedSection } from "@/components/ui/AnimatedSection"
+import DynamicSections from "@/components/ui/DynamicSections"
 
 export const metadata: Metadata = {
   title: "Techstar Money Solution – Instant Loans, Best Rates & DSA Partner",
@@ -44,37 +45,7 @@ export const metadata: Metadata = {
   },
 };
 
-const EligibilityWizard = dynamic(
-  () => import("@/components/sections/EligibilityWizard").then((mod) => mod.EligibilityWizard),
-  {
-    ssr: false,
-    loading: () => <div className="h-[400px] flex items-center justify-center bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80">Loading Eligibility Wizard...</div>
-  }
-)
 
-const EMICalculator = dynamic(
-  () => import("@/components/sections/EMICalculator").then((mod) => mod.EMICalculator),
-  {
-    ssr: false,
-    loading: () => <div className="h-[400px] flex items-center justify-center bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80">Loading EMI Calculator...</div>
-  }
-)
-
-const Testimonials = dynamic(
-  () => import("@/components/sections/Testimonials").then((mod) => mod.Testimonials),
-  {
-    ssr: false,
-    loading: () => <div className="h-[300px] flex items-center justify-center bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80">Loading Reviews...</div>
-  }
-)
-
-const FAQ = dynamic(
-  () => import("@/components/sections/FAQ").then((mod) => mod.FAQ),
-  {
-    ssr: false,
-    loading: () => <div className="h-[300px] flex items-center justify-center bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80">Loading FAQs...</div>
-  }
-)
 
 export default function Home() {
 
@@ -88,11 +59,9 @@ export default function Home() {
         <AnimatedSection><LoanJourney /></AnimatedSection>
         <AnimatedSection><BecomePartner /></AnimatedSection>
         <AnimatedSection><CIBILBanner /></AnimatedSection>
-        <AnimatedSection><EligibilityWizard /></AnimatedSection>
-        <AnimatedSection><EMICalculator /></AnimatedSection>
-        <AnimatedSection><Testimonials /></AnimatedSection>
+        <DynamicSections />
         <AnimatedSection><LocationCoverage /></AnimatedSection>
-        <AnimatedSection><FAQ /></AnimatedSection>
+
         <AnimatedSection><BlogAndCTA /></AnimatedSection>
         <Footer />
       </main>
