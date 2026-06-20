@@ -47,9 +47,10 @@ export async function POST(request: Request) {
 
     const newLeadId = result.name.split('/').pop();
 
-    // Trigger FCM push notification for the new lead
+    // Trigger FCM push notification for the new lead concurrently (do not await yet)
+    let notificationPromise: Promise<void> | null = null;
     try {
-      await sendLeadNotificationToAdmins({ 
+      notificationPromise = sendLeadNotificationToAdmins({ 
         id: newLeadId, 
         name: data.fullName || data.name || 'N/A', 
         type: data.type || (data.source?.includes('Home') ? 'Home Loan' : 'Personal Loan'),
@@ -117,6 +118,15 @@ export async function POST(request: Request) {
         }
       } catch (waError) {
         console.error('Failed to send welcome WhatsApp message:', waError);
+      }
+    }
+    
+    // Await notification promise to ensure serverless context is preserved before returning
+    if (notificationPromise) {
+      try {
+        await notificationPromise;
+      } catch (err) {
+        console.error("Error waiting for notification dispatch:", err);
       }
     }
 

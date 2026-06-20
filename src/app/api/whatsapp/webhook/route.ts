@@ -673,7 +673,7 @@ async function findExistingLead(phone: string) {
   return null;
 }
 
-async function createLead(data: Record<string, string>): Promise<string> {
+async function createLead(data: Record<string, string>, pendingPromises?: Promise<any>[]): Promise<string> {
   const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/leads?key=${FIREBASE_API_KEY}`;
   const fields: Record<string, any> = {};
   for (const [k, v] of Object.entries(data)) {
@@ -699,7 +699,12 @@ async function createLead(data: Record<string, string>): Promise<string> {
   
   // Trigger FCM push notification for the new lead
   try {
-    await sendLeadNotificationToAdmins({ id: leadId, ...data });
+    const notifyPromise = sendLeadNotificationToAdmins({ id: leadId, ...data });
+    if (pendingPromises) {
+      pendingPromises.push(notifyPromise);
+    } else {
+      await notifyPromise;
+    }
   } catch (err) {
     console.error("Error triggering push notification:", err);
   }
@@ -898,7 +903,7 @@ export async function GET(request: Request) {
 }
 
 // ─── POST: Incoming message handler ───────────────────────────────────────────
-export async function POST(request: Request) {
+async function handleWebhookRequest(request: Request, pendingPromises: Promise<any>[]): Promise<Response> {
   try {
     const body = await request.json();
 
@@ -1052,7 +1057,7 @@ export async function POST(request: Request) {
         details: initialDetails,
         language: 'Marathi',
         ...initialResponses
-      });
+      }, pendingPromises);
 
       // Log incoming customer message linked to new lead
       await saveWAMessage(from, text, 'customer', 'Customer', newLeadId, mediaType, mediaUrl, filename);
@@ -1081,7 +1086,7 @@ export async function POST(request: Request) {
           category: 'Whatsapp ads',
           details: generateDetailsText({ name: "", category: "", language: "mr", responses: {} }),
           language: 'Marathi'
-        });
+        }, pendingPromises);
         
         const welcomeMsg = `👋 *TechStar Money Solutions मध्ये आपले स्वागत आहे!* \n\nआम्ही market मधील top banks आणि NBFCs सोबत official partner आहोत. आम्ही तुमची profile बघून कोणती बँक किंवा NBFC तुम्हाला जास्तीत जास्त (maximum) loan, कमीत कमी (minimum) interest rate मध्ये देऊ शकते, हे शोधून देतो.\n\nतुमच्यासाठी सर्वोत्तम लोन ऑफर्स शोधण्यासाठी, कृपया तुमचे *पूर्ण नाव (Full Name)* टाईप करा:`;
         await sendWA(from, welcomeMsg, leadId);
@@ -1284,5 +1289,22 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error('WhatsApp Webhook Error:', error);
     return NextResponse.json({ ok: true }); // Always return 200 to Facebook
+  }
+}
+
+export async function POST(request: Request) {
+  const pendingPromises: Promise<any>[] = [];
+  try {
+    const response = await handleWebhookRequest(request, pendingPromises);
+    if (pendingPromises.length > 0) {
+      await Promise.all(pendingPromises).catch(err => console.error("Error awaiting background tasks in webhook POST:", err));
+    }
+    return response;
+  } catch (error: any) {
+    console.error("Top-level webhook POST handler error:", error);
+    if (pendingPromises.length > 0) {
+      await Promise.all(pendingPromises).catch(err => console.error("Error awaiting background tasks in webhook POST error fallback:", err));
+    }
+    return NextResponse.json({ ok: true });
   }
 }
