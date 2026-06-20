@@ -473,8 +473,18 @@ function HeroSection({ city }: { city?: string }) {
     : []
 
   useEffect(() => {
-    try { const s = localStorage.getItem("_pld"); if (s) { const p = JSON.parse(s); Object.keys(p).forEach(k => setValue(k as any, p[k])) } } catch (_) {}
-  }, [setValue])
+    try { 
+      const s = localStorage.getItem("_pld"); 
+      if (s) { 
+        const p = JSON.parse(s); 
+        Object.keys(p).forEach(k => setValue(k as any, p[k])) 
+      } 
+    } catch (_) {}
+    if (city) {
+      const cityFormatted = city.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      setValue("city", cityFormatted);
+    }
+  }, [setValue, city])
 
   useEffect(() => {
     try { localStorage.setItem("_pld", JSON.stringify(vals)) } catch (_) {}
@@ -507,7 +517,7 @@ function HeroSection({ city }: { city?: string }) {
             <h1 className="hero-h1 mb-3">
               Get Instant{" "}
               <span className="accent-blue">Personal Loan</span>
-              {city && <span> in {city.replace(/-/g, ' ')}</span>}
+              {city && <span> in {city.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</span>}
               <br />Up to <span className="accent-green">₹50 Lakhs</span>
             </h1>
             <p style={{ color: "#475569", fontSize: ".95rem", lineHeight: 1.6, maxWidth: 500, marginBottom: 24, fontWeight: 500 }}>
@@ -1323,7 +1333,7 @@ function AnimatedPostersSection() {
       <style>{`
         /* ── POSTERS CAROUSEL / GRID ── */
         .posters-section {
-          padding: 100px 0;
+          padding: 60px 0;
           background: #f8fafc;
           border-top: 1px solid #f1f5f9;
           border-bottom: 1px solid #f1f5f9;
@@ -1335,15 +1345,10 @@ function AnimatedPostersSection() {
           padding: 0 15px;
         }
         .posters-slider-container {
-          display: flex;
-          overflow-x: auto;
-          scroll-snap-type: x mandatory;
-          gap: 28px;
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 24px;
           padding: 20px 5px 35px 5px;
-          scrollbar-width: none; /* Hide scrollbar Firefox */
-        }
-        .posters-slider-container::-webkit-scrollbar {
-          display: none; /* Hide scrollbar Chrome/Safari */
         }
         
         @keyframes floatPoster {
@@ -1353,9 +1358,8 @@ function AnimatedPostersSection() {
         }
 
         .poster-card-wrapper {
-          min-width: 290px;
-          flex: 1 0 auto;
-          scroll-snap-align: center;
+          width: 100%;
+          min-width: 0;
           background: #fff;
           border-radius: 24px;
           padding: 24px;
@@ -1437,20 +1441,23 @@ function AnimatedPostersSection() {
           border-bottom-style: solid;
           border-bottom-color: #0369a1;
         }
+        @media (min-width: 640px) {
+          .posters-slider-container {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 28px;
+          }
+        }
         @media (min-width: 992px) {
+          .posters-section {
+            padding: 100px 0;
+          }
           .posters-container {
             padding: 0 40px;
           }
           .posters-slider-container {
-            display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 32px;
-            overflow-x: visible;
-            scroll-snap-type: none;
             padding-bottom: 0;
-          }
-          .poster-card-wrapper {
-            min-width: 0;
           }
         }
       `}</style>

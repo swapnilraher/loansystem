@@ -73,3 +73,85 @@ export function generateFAQLD(faqs: { question: string; answer: string }[]) {
     })),
   };
 }
+
+export function getCityGeoData(city: string) {
+  const c = city.toLowerCase();
+  
+  if (c === "pune") {
+    return { latitude: 18.5204, longitude: 73.8567, postalCode: "411001", street: "FC Road, Shivaji Nagar" };
+  }
+  if (c === "mumbai" || c === "mumbai city") {
+    return { latitude: 19.0760, longitude: 72.8777, postalCode: "400001", street: "Bandra Kurla Complex (BKC)" };
+  }
+  if (c === "mumbai suburban") {
+    return { latitude: 19.1200, longitude: 72.8500, postalCode: "400051", street: "Western Express Highway, Andheri" };
+  }
+  if (c.includes("sambhajia") || c.includes("aurangabad")) {
+    return { latitude: 19.8698, longitude: 75.3182, postalCode: "431005", street: "Opposite Devgiri College, Station Road" };
+  }
+  if (c === "nagpur") {
+    return { latitude: 21.1458, longitude: 79.0882, postalCode: "440001", street: "Kingsway Road, Near Railway Station" };
+  }
+  if (c === "thane") {
+    return { latitude: 19.2183, longitude: 72.9781, postalCode: "400601", street: "Gokhale Road, Naupada" };
+  }
+  if (c === "navi mumbai") {
+    return { latitude: 19.0330, longitude: 73.0297, postalCode: "400703", street: "Sector 17, Vashi" };
+  }
+  if (c === "solapur") {
+    return { latitude: 17.6599, longitude: 75.9064, postalCode: "413001", street: "Station Road, Near Railway Station" };
+  }
+  if (c === "kolhapur") {
+    return { latitude: 16.7050, longitude: 74.2433, postalCode: "416001", street: "Rajarampuri, Main Road" };
+  }
+  if (c === "amravati") {
+    return { latitude: 20.9374, longitude: 77.7796, postalCode: "444601", street: "Badnera Road, Near Railway Overbridge" };
+  }
+  if (c === "akola") {
+    return { latitude: 20.7002, longitude: 77.0082, postalCode: "444001", street: "National Highway 6, Near Bus Stand" };
+  }
+  if (c === "latur") {
+    return { latitude: 18.4088, longitude: 76.5604, postalCode: "413512", street: "Ausa Road, Near Shivaji Chowk" };
+  }
+  if (c === "jalgaon") {
+    return { latitude: 21.0077, longitude: 75.5626, postalCode: "425001", street: "Court Road, Near Railway Station" };
+  }
+  if (c === "nashik") {
+    return { latitude: 19.9975, longitude: 73.7898, postalCode: "422001", street: "College Road, Near Canada Corner" };
+  }
+
+  return { 
+    latitude: 19.0760, 
+    longitude: 72.8777, 
+    postalCode: "400001", 
+    street: "Main Street, Near Town Plaza" 
+  };
+}
+
+export function generateLocalBusinessLD({ city, loanType, url, street, postalCode, latitude, longitude }: { city: string; loanType: string; url: string; street: string; postalCode: string; latitude: number; longitude: number }) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: `Techstar Business Solution - ${loanType} in ${city}`,
+    image: "https://techstarsolution.in/img/logo.jpeg",
+    telephone: "+91 7020646007",
+    url,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: street,
+      addressLocality: city,
+      addressRegion: "Maharashtra",
+      postalCode,
+      addressCountry: "IN"
+    },
+    geo: {
+      "@type": "GeoCoordinates",
+      latitude,
+      longitude
+    },
+    areaServed: {
+      "@type": "AdministrativeArea",
+      name: city
+    }
+  };
+}

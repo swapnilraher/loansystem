@@ -3,7 +3,17 @@ import { notFound } from 'next/navigation';
 import { Header, Footer } from '@/components/sections/Layout';
 import { StickyMobileCTA } from '@/components/ui/StickyMobileCTA';
 import { maharashtraCities } from '@/lib/maharashtraCities';
-import { generateOrganizationLD, generateFinancialServiceLD, generateBreadcrumbLD, generateFAQLD } from '@/lib/structuredData';
+import { 
+  generateOrganizationLD, 
+  generateFinancialServiceLD, 
+  generateBreadcrumbLD, 
+  generateFAQLD,
+  getCityGeoData,
+  generateLocalBusinessLD
+} from '@/lib/structuredData';
+import Link from 'next/link';
+import PersonalLoanPageContent from '@/components/sections/PersonalLoanPageBS';
+import LocationPageTemplate from '@/components/sections/LocationPageTemplate';
 
 // Supported loan types
 const validLoans = ['personal-loan', 'home-loan', 'lap-loan', 'business-loan', 'car-loan', 'loan-against-property'];
@@ -16,11 +26,12 @@ function titleCase(slug: string) {
 }
 
 /** Generate SEO metadata for loan‑state‑city pages */
-export async function generateMetadata({ params }: { params: { loan: string; state: string; city: string } }) {
-  const loanName = titleCase(params.loan);
-  const cityName = titleCase(params.city);
-  const stateName = titleCase(params.state);
-  const canonical = `https://techstarsolution.in/${params.loan}/${params.state}/${params.city}`;
+export async function generateMetadata({ params }: { params: Promise<{ loan: string; state: string; city: string }> }) {
+  const resolvedParams = await params;
+  const loanName = titleCase(resolvedParams.loan);
+  const cityName = titleCase(resolvedParams.city);
+  const stateName = titleCase(resolvedParams.state);
+  const canonical = `https://techstarsolution.in/${resolvedParams.loan}/${resolvedParams.state}/${resolvedParams.city}`;
 
   const title = `${loanName} in ${cityName}, ${stateName} – Low Interest Rates & Quick Approval | Techstar Business Solution`;
   const description = `Apply for ${loanName} in ${cityName}, ${stateName} with Techstar Business Solution. Compare interest rates, eligibility, EMI options and get quick approval from leading banks and NBFCs. Call +91 7020646007.`;
@@ -42,6 +53,7 @@ export async function generateMetadata({ params }: { params: { loan: string; sta
     description,
     keywords,
     alternates: { canonical },
+    robots: { index: true, follow: true },
     openGraph: {
       title,
       description,
@@ -57,8 +69,9 @@ export async function generateMetadata({ params }: { params: { loan: string; sta
   };
 }
 
-export default function LoanStateCityPage({ params }: { params: { loan: string; state: string; city: string } }) {
-  const { loan, state, city } = params;
+export default async function LoanStateCityPage({ params }: { params: Promise<{ loan: string; state: string; city: string }> }) {
+  const resolvedParams = await params;
+  const { loan, state, city } = resolvedParams;
 
   // Validate loan type
   if (!validLoans.includes(loan)) notFound();
@@ -74,10 +87,21 @@ export default function LoanStateCityPage({ params }: { params: { loan: string; 
   const stateName = titleCase(state);
   const canonical = `https://techstarsolution.in/${loan}/${state}/${city}`;
 
+  const geoData = getCityGeoData(city);
+
   // JSON‑LD structured data
   const jsonLd = [
     generateOrganizationLD(),
     generateFinancialServiceLD({ city: cityName, loanType: loanName, url: canonical }),
+    generateLocalBusinessLD({
+      city: cityName,
+      loanType: loanName,
+      url: canonical,
+      street: geoData.street,
+      postalCode: geoData.postalCode,
+      latitude: geoData.latitude,
+      longitude: geoData.longitude
+    }),
     generateBreadcrumbLD([
       { name: 'Home', url: 'https://techstarsolution.in' },
       { name: stateName, url: `https://techstarsolution.in/${state}` },
@@ -91,21 +115,27 @@ export default function LoanStateCityPage({ params }: { params: { loan: string; 
     ]),
   ];
 
+  if (loan === 'personal-loan') {
+    return (
+      <>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        <Header />
+        <PersonalLoanPageContent city={city} />
+        <Footer />
+        <StickyMobileCTA targetId="personal-loan-form" label="Apply Now" />
+      </>
+    );
+  }
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <main style={{ padding: '2rem', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui, sans-serif' }}>
-        <Header />
-        <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Best {loanName} in {cityName}, {stateName}</h1>
-        <p>
-          Apply for {loanName.toLowerCase()} in {cityName}, {stateName} with Techstar Business Solution.
-          Get instant approval, competitive interest rates, and minimal documentation.
-          Call <a href="tel:+917020646007">+91 7020646007</a> today.
-        </p>
-        {/* Placeholder for actual loan form component */}
-        <StickyMobileCTA targetId="loan-form" label="Apply Now" />
-        <Footer />
-      </main>
+      <LocationPageTemplate 
+        service={loanName}
+        location={cityName}
+        serviceSlug={loan}
+        locationSlug={citySlug}
+      />
     </>
   );
 }

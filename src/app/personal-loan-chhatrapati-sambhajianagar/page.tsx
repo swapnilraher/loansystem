@@ -1,6 +1,8 @@
 import React from "react"
 import { Metadata } from "next"
-import LocationPageTemplate from "@/components/sections/LocationPageTemplate"
+import { Header, Footer } from "@/components/sections/Layout"
+import PersonalLoanPageContent from "@/components/sections/PersonalLoanPageBS"
+import { StickyMobileCTA } from "@/components/ui/StickyMobileCTA"
 
 export const metadata: Metadata = {
   title: "Personal Loan in Chhatrapati Sambhajianagar – Fast Approval | Techstar Money Solution",
@@ -19,11 +21,11 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <LocationPageTemplate 
-      service="Personal Loan"
-      location="Chhatrapati Sambhajianagar"
-      serviceSlug="personal-loan"
-      locationSlug="chhatrapati-sambhajianagar"
-    />
+    <main>
+      <Header />
+      <PersonalLoanPageContent city="Chhatrapati Sambhajianagar" />
+      <Footer />
+      <StickyMobileCTA targetId="personal-loan-form" label="Apply Now" />
+    </main>
   )
 }

@@ -2,6 +2,7 @@
 
 import React from "react"
 import { Header, Footer } from "@/components/sections/Layout"
+import { getCityGeoData } from "@/lib/structuredData"
 import { PersonalLoanForm } from "./PersonalLoanForm"
 import { HomeLoanForm } from "./HomeLoanForm"
 import { BusinessLoanForm } from "./BusinessLoanForm"
@@ -100,13 +101,13 @@ export default function LocationPageTemplate({
   ]
 
   // Local SEO Geo coordinate mapping
-  let localGeo = { latitude: 19.9975, longitude: 73.7898, postalCode: "422001", street: "College Road, Near Canada Corner", locality: "Nashik" }
-  if (location === "Pune") {
-    localGeo = { latitude: 18.5204, longitude: 73.8567, postalCode: "411001", street: "FC Road, Shivaji Nagar", locality: "Pune" }
-  } else if (location === "Mumbai") {
-    localGeo = { latitude: 19.0760, longitude: 72.8777, postalCode: "400001", street: "Bandra Kurla Complex (BKC)", locality: "Mumbai" }
-  } else if (location.includes("Sambhajia") || location.includes("Aurangabad")) {
-    localGeo = { latitude: 19.8698, longitude: 75.3182, postalCode: "431005", street: "Opposite Devgiri College, Station Road", locality: "Chhatrapati Sambhajianagar" }
+  const geo = getCityGeoData(location)
+  const localGeo = {
+    latitude: geo.latitude,
+    longitude: geo.longitude,
+    postalCode: geo.postalCode,
+    street: geo.street,
+    locality: location
   }
 
   // Peer location links for semantic routing (Internal Linking Cluster)

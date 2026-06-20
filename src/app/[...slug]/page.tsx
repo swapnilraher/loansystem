@@ -105,8 +105,9 @@ function generateMeta(row: Record<string, string>) {
 }
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
-export async function generateMetadata({ params }: { params: { slug: string[] } }) {
-  const row = findRow(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string[] }> }) {
+  const resolvedParams = await params;
+  const row = findRow(resolvedParams.slug);
   if (!row) return {};
   return {
     title:       generateTitle(row),
@@ -123,8 +124,9 @@ export async function generateMetadata({ params }: { params: { slug: string[] } 
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-export default function LoanPage({ params }: { params: { slug: string[] } }) {
-  const row = findRow(params.slug);
+export default async function LoanPage({ params }: { params: Promise<{ slug: string[] }> }) {
+  const resolvedParams = await params;
+  const row = findRow(resolvedParams.slug);
   if (!row) { notFound(); return null; }
 
   const ci      = cityIntel[row.City] || {};
