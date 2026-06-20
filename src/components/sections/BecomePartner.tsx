@@ -140,8 +140,9 @@ export function BecomePartner() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-350 mb-1.5">Select City</label>
+                      <label htmlFor="become-partner-city" className="block text-xs font-bold text-slate-700 dark:text-slate-350 mb-1.5">Select City</label>
                       <select 
+                        id="become-partner-city"
                         value={formData.city}
                         onChange={e => setFormData({ ...formData, city: e.target.value })}
                         className="w-full h-11 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 text-xs focus:ring-2 focus:ring-primary focus:border-transparent dark:text-white outline-none font-bold"

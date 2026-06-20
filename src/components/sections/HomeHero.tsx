@@ -17,7 +17,6 @@ export function HomeHero() {
   const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.97])
   const heroOpacity = useTransform(scrollYProgress, [0, 1], [1, 0.4])
   const heroY = useTransform(scrollYProgress, [0, 1], [0, 60])
-  const heroBlur = useTransform(scrollYProgress, [0, 0.5, 1], ["blur(0px)", "blur(1px)", "blur(4px)"])
 
   // Live approval counter (Fintech social proof widget)
   const [liveApproved, setLiveApproved] = useState(12453000)
@@ -99,8 +98,7 @@ export function HomeHero() {
         style={{
           scale: heroScale,
           opacity: heroOpacity,
-          y: heroY,
-          filter: heroBlur
+          y: heroY
         }}
         className="container-xl py-5 position-relative z-10 mt-md-4"
       >
@@ -234,6 +232,8 @@ export function HomeHero() {
                 transition={{ duration: 0.8 }}
                 src={bannerImage}
                 alt="Fintech Banner"
+                width={1215}
+                height={1295}
                 className="w-100 h-auto object-fit-contain max-h-[600px] lg:max-h-[750px] scale-110 mix-blend-multiply dark:invert dark:mix-blend-screen"
                 style={{ filter: 'contrast(1.15) brightness(1.05)' }}
                 draggable="false"
@@ -296,8 +296,9 @@ export function HomeHero() {
                     </div>
 
                     <div className="col-lg-2 col-md-4 col-12">
-                      <label className="text-[11px] text-uppercase font-black text-slate-500 mb-2 d-block ms-1 tracking-wider">Loan Type</label>
+                      <label htmlFor="hero-loan-type" className="text-[11px] text-uppercase font-black text-slate-500 mb-2 d-block ms-1 tracking-wider">Loan Type</label>
                       <select 
+                        id="hero-loan-type"
                         className="form-select form-select-lg bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 focus:border-paytm-blue rounded-xl py-3 px-4 text-sm font-bold shadow-sm transition-all"
                         value={activeTab}
                         onChange={(e) => { setActiveTab(e.target.value); setLeadSuccess(false); }}

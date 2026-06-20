@@ -169,6 +169,7 @@ export function AIChatbot() {
               <button
                 onClick={() => setShowTooltip(false)}
                 className="absolute top-2.5 right-2.5 bg-slate-100/85 dark:bg-slate-800/85 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 rounded-full p-1 transition-colors"
+                aria-label="Close tooltip"
               >
                 <X size={10} />
               </button>

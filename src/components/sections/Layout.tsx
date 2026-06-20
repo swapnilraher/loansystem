@@ -79,6 +79,7 @@ export function Header() {
               <button
                 onClick={() => setIsOpen(true)}
                 className="d-lg-none btn btn-light dark:bg-slate-800 dark:border-slate-700 border border-slate-100 p-2 rounded-xl text-secondary dark:text-white me-3"
+                aria-label="Open navigation menu"
               >
                 <Menu size={20} />
               </button>

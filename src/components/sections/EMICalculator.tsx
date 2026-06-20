@@ -49,8 +49,9 @@ export function EMICalculator() {
               {/* Loan Amount */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <label className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">Loan Amount (₹)</label>
+                  <label htmlFor="emi-amount-num" className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">Loan Amount (₹)</label>
                   <input 
+                    id="emi-amount-num"
                     type="number"
                     value={amount}
                     onChange={(e) => setAmount(Number(e.target.value))}
@@ -61,14 +62,16 @@ export function EMICalculator() {
                   type="range" min="50000" max="5000000" step="10000" value={amount} 
                   onChange={(e) => setAmount(Number(e.target.value))}
                   className="w-full h-3 bg-slate-200 dark:bg-slate-800 rounded-full appearance-none cursor-pointer accent-primary"
+                  aria-label="Loan Amount Range"
                 />
               </div>
 
               {/* Interest Rate */}
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <label className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">Interest Rate (% p.a)</label>
+                 <div className="flex justify-between items-center">
+                  <label htmlFor="emi-interest-num" className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">Interest Rate (% p.a)</label>
                   <input 
+                    id="emi-interest-num"
                     type="number"
                     step="0.1"
                     value={interest}
@@ -80,14 +83,15 @@ export function EMICalculator() {
                   type="range" min="8" max="36" step="0.1" value={interest} 
                   onChange={(e) => setInterest(Number(e.target.value))}
                   className="w-full h-3 bg-slate-200 dark:bg-slate-800 rounded-full appearance-none cursor-pointer accent-primary"
+                  aria-label="Interest Rate Range"
                 />
               </div>
 
               {/* Tenure */}
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
+                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-4">
-                    <label className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">Tenure</label>
+                    <label htmlFor="emi-tenure-num" className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">Tenure</label>
                     <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-full">
                       <button 
                         onClick={() => { setTenureType("years"); if(tenure > 7) setTenure(5); }}
@@ -100,6 +104,7 @@ export function EMICalculator() {
                     </div>
                   </div>
                   <input 
+                    id="emi-tenure-num"
                     type="number"
                     value={tenure}
                     onChange={(e) => setTenure(Number(e.target.value))}
@@ -114,6 +119,7 @@ export function EMICalculator() {
                   value={tenure} 
                   onChange={(e) => setTenure(Number(e.target.value))}
                   className="w-full h-3 bg-slate-200 dark:bg-slate-800 rounded-full appearance-none cursor-pointer accent-primary"
+                  aria-label="Tenure Range"
                 />
               </div>
 

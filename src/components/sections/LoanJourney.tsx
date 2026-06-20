@@ -61,7 +61,7 @@ export function LoanJourney() {
       
       {/* Background Huge Logo Watermark */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] dark:opacity-[0.02]">
-        <img src="/img/logo.jpeg" alt="Watermark" className="w-[80vw] md:w-[60vw] max-w-[800px] object-contain grayscale" />
+        <img src="/img/logo.webp" alt="Watermark" width={800} height={800} className="w-[80vw] md:w-[60vw] max-w-[800px] object-contain grayscale" />
       </div>
 
       <div className="container mx-auto px-4 relative z-10">

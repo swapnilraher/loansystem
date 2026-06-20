@@ -176,6 +176,7 @@ export function EligibilityWizard() {
                     value={amount}
                     onChange={(e) => setAmount(Number(e.target.value))}
                     className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer accent-primary"
+                    aria-label="Required Amount"
                   />
                   <div className="flex justify-between text-[10px] text-slate-400 mt-2 font-semibold px-1">
                     <span>₹1 Lac</span>
@@ -226,6 +227,7 @@ export function EligibilityWizard() {
                     value={income}
                     onChange={(e) => setIncome(Number(e.target.value))}
                     className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer accent-primary"
+                    aria-label="Monthly Net Income"
                   />
                   <div className="flex justify-between text-[10px] text-slate-400 mt-2 font-semibold px-1">
                     <span>₹15K</span>
@@ -247,6 +249,7 @@ export function EligibilityWizard() {
                     value={emis}
                     onChange={(e) => setEmis(Number(e.target.value))}
                     className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer accent-primary"
+                    aria-label="Existing Monthly EMIs"
                   />
                   <div className="flex justify-between text-[10px] text-slate-400 mt-2 font-semibold px-1">
                     <span>₹0</span>
