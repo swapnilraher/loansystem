@@ -1,0 +1,30 @@
+rules_version = '2';
+
+/**
+ * Cloud Storage rules.
+ *
+ * `documents/` holds customer KYC uploads — PAN cards, Aadhaar, bank statements.
+ * With no rules in place these were listable and downloadable by anyone.
+ *
+ * Server-side writes (WhatsApp media saved by the webhook) go through the Admin
+ * SDK and bypass these rules, and the tokenised download URLs stored alongside
+ * those files keep working: a `getDownloadURL()` token is its own credential.
+ */
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    /** Active CRM staff only — see the `crm` claim in firestore.rules. */
+    function isStaff() {
+      return request.auth != null && request.auth.token.crm == true;
+    }
+
+    match /documents/{path=**} {
+      allow read, write: if isStaff();
+    }
+
+    // Anything not named above fails closed.
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

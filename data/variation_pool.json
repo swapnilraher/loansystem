@@ -1,0 +1,20 @@
+{
+  "intro_variants": [
+    "Need urgent funds in {City}? A {Loan_Type} can help you today with minimal paperwork and fast approval.",
+    "Looking for quick financing in {City}? {Loan_Type} gives you access to funds within 24–48 hours.",
+    "Residents of {City} often choose {Loan_Type} for hassle-free, low-interest borrowing.",
+    "Facing an unexpected expense in {City}? A {Loan_Type} is a reliable solution trusted by thousands."
+  ],
+  "benefit_variants": [
+    "Enjoy low interest rates, flexible repayment tenure, and fast processing for your {Loan_Type} – all with minimal documentation.",
+    "Get instant approval with competitive rates for your {Loan_Type}. No hidden charges, transparent terms, and dedicated support.",
+    "Benefit from multi-bank comparison, tailored loan solutions, and doorstep assistance for your {Loan_Type}.",
+    "Experience fast processing, zero collateral (for eligible profiles), and flexible EMI options on your {Loan_Type}."
+  ],
+  "cta_variants": [
+    "Apply now for your {Loan_Type} in {City} and receive funds within 24 hrs. Click below to get started.",
+    "Start your {Loan_Type} application today in {City} – quick, paperless, and fully guided by our expert DSA team.",
+    "Take the first step – request a {Loan_Type} in {City} right now and get instant in-principle approval.",
+    "Ready to apply? Fill in your {Loan_Type} details for {City} and our team will reach out within 30 minutes."
+  ]
+}

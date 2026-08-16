@@ -1,0 +1,1165 @@
+/*
+ * Bootstrap, confined to the marketing site.
+ *
+ * bootstrap.min.css ships with no `@layer` of its own, and unlayered author
+ * styles beat every layered one -- which is all of Tailwind. So Bootstrap used
+ * to win every conflict across the whole app, including inside the CRM:
+ * `h1{font-size:calc(1.375rem + 1.5vw)}` beat `text-admin-xl`,
+ * `label{display:inline-block}` beat `block` (shrinking every form field to the
+ * width of its own placeholder), and `button,input,select,textarea
+ * {font-size:inherit}` beat every `text-admin-*` size.
+ *
+ * Simply moving it into a low layer does not work. The marketing pages lean on
+ * Bootstrap's own classes -- the hero is `.display-3`, plus 94 `d-flex`, 39
+ * `col-lg-*`, 27 `row g-*` -- and demoting the layer puts Tailwind's Preflight
+ * above it, which collapses `.display-3` to `font-size: inherit`. Bootstrap's
+ * utilities are also `!important`, and importance REVERSES layer order, so
+ * `.px-3`/`.p-5` would still have overridden Tailwind's anyway.
+ *
+ * `layer(bootstrap)` below is only a marker. postcss-plugins/
+ * strip-bootstrap-important.cjs rewrites every rule in it to
+ * `body:not(:has(.admin-root)) ...` and lifts them back out of the layer, so
+ * the marketing tree sees Bootstrap unlayered and `!important` exactly as
+ * before, while nothing inside the CRM can match it. The layer does not
+ * survive the build.
+ */
+@import "bootstrap/dist/css/bootstrap.min.css" layer(bootstrap);
+@import "tailwindcss";
+/* The marketing site is deliberately light-only — ThemeContext strips `.dark`
+   on mount. The CRM opts into dark separately via `data-admin-theme` on <html>,
+   which ThemeContext never touches, so the two cannot fight. */
+@custom-variant dark (&:where(.dark, .dark *, [data-admin-theme="dark"], [data-admin-theme="dark"] *));
+
+
+:root {
+  --font-jakarta: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-outfit: 'Outfit', var(--font-jakarta);
+  --font-playfair: 'Playfair Display', serif;
+  --bs-body-font-family: var(--font-jakarta), sans-serif;
+  --bs-heading-font-family: var(--font-outfit), sans-serif;
+
+  --background: #ffffff;
+  --foreground: #0f172a;
+  
+  --primary: #10b981;
+  --primary-foreground: #ffffff;
+  
+  --secondary: #0f172a;
+  --secondary-foreground: #ffffff;
+  
+  --accent: #d97706;
+  --accent-foreground: #ffffff;
+  
+  --muted: #f8fafc;
+  --muted-foreground: #334155; /* Increased contrast (slate-700) - was #64748b */
+  
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  
+  --border: #cbd5e1; /* Increased contrast (slate-300) - was #f1f5f9 */
+  --input: #cbd5e1;  /* Increased contrast (slate-300) - was #f1f5f9 */
+  
+  --radius: 1.25rem;
+
+  /* High contrast colors for slate variables */
+  --slate-300: #94a3b8; /* increased contrast */
+  --slate-400: #57534e; /* normally #94a3b8 - increased contrast */
+  --slate-500: #44403c; /* normally #64748b - increased contrast */
+  --slate-600: #292524; /* normally #475569 - increased contrast */
+}
+
+.dark {
+  --background: #090d16;
+  --foreground: #f8fafc;
+  
+  --primary: #10b981;
+  --primary-foreground: #ffffff;
+  
+  --secondary: #ffffff;
+  --secondary-foreground: #090d16;
+  
+  --muted: #111827;
+  --muted-foreground: #cbd5e1; /* Increased contrast - was #9ca3af */
+  
+  --card: #0f172a;
+  --card-foreground: #f8fafc;
+  
+  --border: #475569; /* Increased contrast - was #1f2937 */
+  --input: #475569;  /* Increased contrast - was #1f2937 */
+
+  /* High contrast dark mode colors for slate variables */
+  --slate-300: #e2e8f0; /* increased contrast */
+  --slate-400: #f1f5f9; /* normally #94a3b8 - increased contrast */
+  --slate-500: #f8fafc; /* normally #64748b - increased contrast */
+  --slate-600: #ffffff; /* normally #475569 - increased contrast */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-slate-150: #ebeef3;
+  
+  --color-slate-300: var(--slate-300);
+  --color-slate-400: var(--slate-400);
+  --color-slate-500: var(--slate-500);
+  --color-slate-600: var(--slate-600);
+  
+  --radius-3xl: 1.5rem;
+  --radius-2xl: 1rem;
+  --radius-xl: 0.75rem;
+  --radius-lg: 0.5rem;
+  
+  --shadow-soft: 0 4px 20px -2px rgba(0,0,0,0.05);
+  --shadow-glow: 0 0 20px -5px rgba(0, 82, 204, 0.4);
+  --shadow-premium: 0 10px 30px -5px rgba(0, 82, 204, 0.1), 0 4px 10px -2px rgba(0, 0, 0, 0.05);
+  
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-blob: blob 7s infinite;
+}
+
+/* ==========================================================================
+   ADMIN CRM DESIGN TOKENS
+   --------------------------------------------------------------------------
+   Everything under /admin reads from this block. Rules:
+   - No raw hex and no `slate-*` utilities inside admin components. The public
+     site remaps --slate-400/500/600 to warm browns for contrast, so slate
+     utilities do NOT render as slate here.
+   - Type sizes are px on purpose. `html` font-size ramps 15px -> 17.5px by
+     breakpoint for the marketing site; rem type would make CRM tables balloon
+     on large screens.
+   - Status colour lives on 7 semantic tones, not 18 status names. Map a new
+     status to a tone in components/admin/ui/status.ts instead of adding colour.
+   ========================================================================== */
+:root {
+  --admin-bg: #f6f7f9;
+  --admin-surface: #ffffff;
+  --admin-surface-2: #f2f4f7;
+  --admin-surface-3: #eceff4;
+  --admin-border: #e4e8ee;
+  --admin-border-strong: #cfd6e0;
+  --admin-text: #101828;
+  --admin-text-muted: #596579;
+  /* Was #8b95a7 — only 3.02:1 on white, and it carries real content
+     (timestamps, owners, hints), not just decoration. Now 4.59:1. */
+  --admin-text-subtle: #6b7689;
+  /*
+   * Interactive green. Deliberately darker than the #10b981 brand emerald:
+   * that colour is 2.54:1 on white, so links, phone numbers and white-on-green
+   * button labels all failed WCAG AA. This is 5.2:1 on white and 4.7:1 on the
+   * soft tint. The vivid brand emerald lives on as --admin-accent-vivid for
+   * decorative fills, which only need 3:1.
+   */
+  --admin-accent: #0b7a58;
+  --admin-accent-hover: #096848;
+  --admin-accent-fg: #ffffff;
+  --admin-accent-soft: #e7f8f1;
+  --admin-accent-vivid: #10b981;
+  --admin-focus: rgba(11, 122, 88, 0.32);
+  /* Overlay behind every modal surface — was a raw #0b0f16 in four files. */
+  --admin-overlay: rgba(11, 15, 22, 0.45);
+
+  --admin-shadow-1: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --admin-shadow-2: 0 4px 12px -2px rgba(16, 24, 40, 0.08), 0 2px 4px -2px rgba(16, 24, 40, 0.04);
+  --admin-shadow-3: 0 16px 40px -8px rgba(16, 24, 40, 0.16);
+
+  --tone-neutral-bg: #f1f3f7;
+  --tone-neutral-fg: #4a5568;
+  --tone-neutral-bd: #dfe4ec;
+  --tone-info-bg: #eaf2ff;
+  --tone-info-fg: #1d5fd0;
+  --tone-info-bd: #d3e2fb;
+  --tone-violet-bg: #f2edfe;
+  --tone-violet-fg: #6941c6;
+  --tone-violet-bd: #e5dcfb;
+  --tone-cyan-bg: #e6f6fa;
+  --tone-cyan-fg: #0e7490;
+  --tone-cyan-bd: #cfeaf2;
+  --tone-warn-bg: #fef3e2;
+  --tone-warn-fg: #b45309;
+  --tone-warn-bd: #fae3c2;
+  --tone-success-bg: #e6f7f0;
+  --tone-success-fg: #047857;
+  --tone-success-bd: #cdeee0;
+  --tone-danger-bg: #fdecec;
+  --tone-danger-fg: #be123c;
+  --tone-danger-bd: #fad6da;
+}
+
+.dark,
+[data-admin-theme="dark"] {
+  --admin-bg: #0b0f16;
+  --admin-surface: #121821;
+  --admin-surface-2: #171f2a;
+  --admin-surface-3: #1d2733;
+  --admin-border: #232d3b;
+  --admin-border-strong: #33404f;
+  --admin-text: #e8edf4;
+  --admin-text-muted: #96a2b4;
+  /* Was #6b7789 — 3.93:1 on the dark surface. Now 6.02:1. */
+  --admin-text-subtle: #8a97ab;
+  --admin-accent: #2ee6a8;
+  --admin-accent-hover: #4aeeb6;
+  --admin-accent-fg: #06231a;
+  --admin-accent-soft: #10291f;
+  --admin-accent-vivid: #2ee6a8;
+  --admin-focus: rgba(46, 230, 168, 0.28);
+  --admin-overlay: rgba(2, 4, 8, 0.6);
+
+  --admin-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --admin-shadow-2: 0 4px 12px -2px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.35);
+  --admin-shadow-3: 0 16px 40px -8px rgba(0, 0, 0, 0.65);
+
+  --tone-neutral-bg: #1b232f;
+  --tone-neutral-fg: #a9b4c4;
+  --tone-neutral-bd: #2a3543;
+  --tone-info-bg: #12243f;
+  --tone-info-fg: #7fb3ff;
+  --tone-info-bd: #1e3a5f;
+  --tone-violet-bg: #221c3a;
+  --tone-violet-fg: #b9a4ff;
+  --tone-violet-bd: #33285a;
+  --tone-cyan-bg: #0e2830;
+  --tone-cyan-fg: #67d6ee;
+  --tone-cyan-bd: #17414d;
+  --tone-warn-bg: #2e2211;
+  --tone-warn-fg: #f5bd6a;
+  --tone-warn-bd: #4a3618;
+  --tone-success-bg: #0e2a20;
+  --tone-success-fg: #5fe0ab;
+  --tone-success-bd: #174433;
+  --tone-danger-bg: #2e1519;
+  --tone-danger-fg: #ff8a9b;
+  --tone-danger-bd: #4d2029;
+}
+
+/* ==========================================================================
+   WHATSAPP SURFACE
+   --------------------------------------------------------------------------
+   The one place in the CRM that deliberately does NOT use the admin palette.
+   Staff read this screen alongside the real WhatsApp app all day, and a thread
+   that is only approximately WhatsApp-coloured is harder to scan than one that
+   matches. These are WhatsApp's own values, kept here as tokens so components
+   still obey the "no raw hex in admin components" rule, and so dark mode is
+   handled in the same place as everything else.
+
+   Confined to /admin/whatsapp-inbox and the chat sheet. Everything around the
+   thread -- page chrome, buttons, inputs -- stays on the admin tokens.
+   ========================================================================== */
+:root {
+  --wa-header: #f0f2f5;
+  --wa-header-fg: #111b21;
+  --wa-panel: #ffffff;
+  --wa-chat-bg: #efeae2;
+  --wa-bubble-in: #ffffff;
+  --wa-bubble-out: #d9fdd3;
+  --wa-bubble-fg: #111b21;
+  --wa-meta: #667781;
+  --wa-tick: #53bdeb;
+  --wa-divider: #e9edef;
+  --wa-accent: #00a884;
+  --wa-accent-fg: #ffffff;
+  --wa-hover: #f5f6f6;
+  --wa-active: #f0f2f5;
+  --wa-stamp: rgba(17, 27, 33, 0.5);
+}
+
+[data-admin-theme="dark"] {
+  --wa-header: #202c33;
+  --wa-header-fg: #e9edef;
+  --wa-panel: #111b21;
+  --wa-chat-bg: #0b141a;
+  --wa-bubble-in: #202c33;
+  --wa-bubble-out: #005c4b;
+  --wa-bubble-fg: #e9edef;
+  --wa-meta: #8696a0;
+  --wa-tick: #53bdeb;
+  --wa-divider: #222d34;
+  --wa-accent: #00a884;
+  --wa-accent-fg: #111b21;
+  --wa-hover: #202c33;
+  --wa-active: #2a3942;
+  --wa-stamp: rgba(233, 237, 239, 0.6);
+}
+
+@layer components {
+  /*
+   * The chat wallpaper. WhatsApp's is a tiled doodle bitmap; this is a pair of
+   * very low-contrast dot grids over the base colour, which reads as the same
+   * kind of texture at a fraction of the weight and needs no asset. Opacity is
+   * deliberately near-invisible -- it should register as "not flat", not as a
+   * pattern competing with the messages.
+   */
+  .wa-wallpaper {
+    background-color: var(--wa-chat-bg);
+    background-image:
+      radial-gradient(circle at 1px 1px, var(--wa-stamp) 0.5px, transparent 0),
+      radial-gradient(circle at 1px 1px, var(--wa-stamp) 0.5px, transparent 0);
+    background-size: 22px 22px, 22px 22px;
+    background-position: 0 0, 11px 11px;
+    opacity: 1;
+  }
+  /* The dots above are drawn from a text colour, so knock them right back. */
+  .wa-wallpaper::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--wa-chat-bg);
+    opacity: 0.94;
+    pointer-events: none;
+  }
+}
+
+@theme inline {
+  --color-wa-header: var(--wa-header);
+  --color-wa-header-fg: var(--wa-header-fg);
+  --color-wa-panel: var(--wa-panel);
+  --color-wa-chat-bg: var(--wa-chat-bg);
+  --color-wa-bubble-in: var(--wa-bubble-in);
+  --color-wa-bubble-out: var(--wa-bubble-out);
+  --color-wa-bubble-fg: var(--wa-bubble-fg);
+  --color-wa-meta: var(--wa-meta);
+  --color-wa-tick: var(--wa-tick);
+  --color-wa-divider: var(--wa-divider);
+  --color-wa-accent: var(--wa-accent);
+  --color-wa-accent-fg: var(--wa-accent-fg);
+  --color-wa-hover: var(--wa-hover);
+  --color-wa-active: var(--wa-active);
+}
+
+@theme inline {
+  --color-admin-bg: var(--admin-bg);
+  --color-admin-surface: var(--admin-surface);
+  --color-admin-surface-2: var(--admin-surface-2);
+  --color-admin-surface-3: var(--admin-surface-3);
+  --color-admin-border: var(--admin-border);
+  --color-admin-border-strong: var(--admin-border-strong);
+  --color-admin-text: var(--admin-text);
+  --color-admin-muted: var(--admin-text-muted);
+  --color-admin-subtle: var(--admin-text-subtle);
+  --color-admin-accent: var(--admin-accent);
+  --color-admin-accent-hover: var(--admin-accent-hover);
+  --color-admin-accent-fg: var(--admin-accent-fg);
+  --color-admin-accent-soft: var(--admin-accent-soft);
+  --color-admin-accent-vivid: var(--admin-accent-vivid);
+  --color-admin-overlay: var(--admin-overlay);
+
+  --color-tone-neutral: var(--tone-neutral-bg);
+  --color-tone-neutral-fg: var(--tone-neutral-fg);
+  --color-tone-neutral-bd: var(--tone-neutral-bd);
+  --color-tone-info: var(--tone-info-bg);
+  --color-tone-info-fg: var(--tone-info-fg);
+  --color-tone-info-bd: var(--tone-info-bd);
+  --color-tone-violet: var(--tone-violet-bg);
+  --color-tone-violet-fg: var(--tone-violet-fg);
+  --color-tone-violet-bd: var(--tone-violet-bd);
+  --color-tone-cyan: var(--tone-cyan-bg);
+  --color-tone-cyan-fg: var(--tone-cyan-fg);
+  --color-tone-cyan-bd: var(--tone-cyan-bd);
+  --color-tone-warn: var(--tone-warn-bg);
+  --color-tone-warn-fg: var(--tone-warn-fg);
+  --color-tone-warn-bd: var(--tone-warn-bd);
+  --color-tone-success: var(--tone-success-bg);
+  --color-tone-success-fg: var(--tone-success-fg);
+  --color-tone-success-bd: var(--tone-success-bd);
+  --color-tone-danger: var(--tone-danger-bg);
+  --color-tone-danger-fg: var(--tone-danger-fg);
+  --color-tone-danger-bd: var(--tone-danger-bd);
+
+  /* One radius scale. 1.25rem pills are too round for dense CRM tables. */
+  --radius-admin-sm: 8px;
+  --radius-admin: 12px;
+  --radius-admin-lg: 16px;
+
+  /* Three elevation levels. Never invent a fourth. */
+  --shadow-admin-1: var(--admin-shadow-1);
+  --shadow-admin-2: var(--admin-shadow-2);
+  --shadow-admin-3: var(--admin-shadow-3);
+
+  /*
+   * meta / label / body / section / page-title.
+   *
+   * One notch below the original 11-24px ramp, so the whole CRM reads denser
+   * without any component changing a class. 10px is the floor: below that the
+   * uppercase meta labels stop being legible on a phone, and these carry real
+   * content (owners, timestamps, column headers), not decoration.
+   *
+   * Line heights are deliberately NOT scaled down with the sizes — smaller
+   * type needs proportionally more leading, not less, to stay readable in a
+   * dense table.
+   *
+   * This does not affect form controls on touch devices: the
+   * `@media (pointer: coarse)` rule below pins inputs, selects and textareas
+   * to 16px so iOS never zooms on focus.
+   */
+  --text-admin-2xs: 10px;
+  --text-admin-2xs--line-height: 1.5;
+  --text-admin-xs: 11px;
+  --text-admin-xs--line-height: 1.5;
+  --text-admin-sm: 12px;
+  --text-admin-sm--line-height: 1.55;
+  --text-admin-base: 13px;
+  --text-admin-base--line-height: 1.55;
+  --text-admin-lg: 15px;
+  --text-admin-lg--line-height: 1.4;
+  --text-admin-xl: 18px;
+  --text-admin-xl--line-height: 1.3;
+  --text-admin-2xl: 21px;
+  --text-admin-2xl--line-height: 1.25;
+}
+
+@layer components {
+  /* Focus ring used by every interactive admin control. */
+  .admin-focus {
+    @apply outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--admin-focus)] focus-visible:border-admin-accent;
+  }
+  /* Currency and counts must not jitter between rows. */
+  .admin-num {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  /*
+   * Slim scrollbar for the CRM's many inner scrollers. This class was used in
+   * 15 files but had never actually been defined, so every one of those panes
+   * fell back to the OS scrollbar.
+   */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--admin-border-strong) transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--admin-border-strong);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--admin-text-subtle);
+    background-clip: content-box;
+  }
+  .custom-scrollbar::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /*
+   * Touch target. Apple and Google both put the floor at ~44px; the CRM's icon
+   * buttons are drawn at 28-36px because that is the right *visual* weight in a
+   * dense table. This keeps the visual size and grows only the hit area, using
+   * a pseudo-element so layout is untouched.
+   */
+  .admin-touch {
+    position: relative;
+  }
+  @media (pointer: coarse) {
+    .admin-touch::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      min-width: 44px;
+      min-height: 44px;
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  /*
+   * Scroll container with no visible scrollbar. For swipeable card tracks,
+   * where a scrollbar under the cards reads as chrome rather than affordance —
+   * the peeking next card and the dots do that job. Still a real scroll
+   * container, so keyboard and screen readers are unaffected.
+   */
+  .admin-scroll-hidden {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .admin-scroll-hidden::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Padding that clears the home indicator on notched phones. */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+@layer base {
+  /*
+   * iOS Safari zooms the whole page whenever a focused control's text is under
+   * 16px, and every CRM input is 13px. The zoom does not undo itself, so staff
+   * end up panning a magnified page after each tap. Raise only the computed
+   * font-size on touch devices; the CRM's visual density on desktop is unchanged.
+   */
+  @media (pointer: coarse) {
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+}
+
+@layer base {
+  html {
+    font-size: 15px; /* Increased from 13.5px */
+  }
+  @media (min-width: 640px) {
+    html {
+      font-size: 15.5px; /* Increased from 14px */
+    }
+  }
+  @media (min-width: 768px) {
+    html {
+      font-size: 16px; /* Increased from 14.5px */
+    }
+  }
+  @media (min-width: 1024px) {
+    html {
+      font-size: 16.5px; /* Increased from 15px */
+    }
+  }
+  @media (min-width: 1280px) {
+    html {
+      font-size: 17px; /* Increased from 15.5px */
+    }
+  }
+  @media (min-width: 1536px) {
+    html {
+      font-size: 17.5px; /* Increased from 16px */
+    }
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-jakarta), sans-serif !important;
+    font-weight: 500;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  h1, h2, h3, h4, h5, h6, .btn, .badge, .form-control, .nav-link, p, span {
+    font-family: var(--font-jakarta), sans-serif;
+  }
+
+  /* Custom Premium Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--muted-foreground);
+    border-radius: 10px;
+    opacity: 0.3;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+  }
+
+  /* Selection color */
+  ::selection {
+    background: var(--primary);
+    color: white;
+  }
+}
+
+/* Premium Utilities */
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 via-teal-600 to-blue-600;
+}
+
+.text-gradient-gold {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500;
+}
+
+.glass {
+  @apply bg-white/70 dark:bg-slate-900/70 border border-slate-150/40 dark:border-slate-800/40 backdrop-blur-xl shadow-soft;
+}
+
+.glass-card {
+  @apply bg-white/80 dark:bg-slate-900/80 border border-slate-150/40 dark:border-slate-800/55 backdrop-blur-2xl shadow-premium;
+}
+
+.glass-premium {
+  @apply bg-white/50 dark:bg-slate-950/50 border border-white/20 dark:border-white/10 backdrop-blur-3xl shadow-[0_8px_32px_0_rgba(15,23,42,0.04)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)];
+}
+
+.hover-lift {
+  @apply transition-all duration-300 hover:-translate-y-1.5 hover:shadow-premium active:scale-[0.99];
+}
+
+.border-premium {
+  @apply border border-slate-150/50 dark:border-slate-800/50;
+}
+
+/* Keyframes */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+  100% { transform: translateY(0px); }
+}
+
+@keyframes blob {
+  0% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes aurora {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+
+.animate-aurora {
+  background-size: 200% 200%;
+  animation: aurora 15s ease infinite;
+}
+
+.glow-card-spotlight {
+  position: relative;
+  overflow: hidden;
+}
+
+.glow-card-spotlight::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(800px circle at var(--mouse-x, 0) var(--mouse-y, 0), rgba(37, 99, 235, 0.08), transparent 40%);
+  z-index: 1;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+
+.dark .glow-card-spotlight::before {
+  background: radial-gradient(800px circle at var(--mouse-x, 0) var(--mouse-y, 0), rgba(59, 130, 246, 0.15), transparent 40%);
+}
+
+.btn:active {
+  transform: translateY(0px) !important;
+}
+
+/* Premium Product Cards & Glows */
+.product-premium-card {
+  border: 1.5px solid rgba(226, 232, 240, 0.8) !important;
+  border-radius: 2rem !important;
+  background: linear-gradient(135deg, #ffffff, #fcfdfe) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 41, 112, 0.03), 0 1px 3px rgba(0,0,0,0.01) !important;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  position: relative;
+  overflow: hidden;
+}
+.dark .product-premium-card {
+  border: 1.5px solid rgba(51, 65, 85, 0.5) !important;
+  background: linear-gradient(135deg, #0f172a, #0b1120) !important;
+}
+.product-premium-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, #10b981, #00baf2, #6366f1);
+  opacity: 0.15;
+  transition: opacity 0.3s ease;
+}
+.product-premium-card:hover {
+  transform: translateY(-8px) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 41, 112, 0.12) !important;
+  border-color: rgba(0, 186, 242, 0.3) !important;
+}
+.dark .product-premium-card:hover {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+.product-premium-card:hover::before {
+  opacity: 1;
+}
+.product-premium-card:hover .w-12 {
+  transform: scale(1.1);
+  transition: transform 0.3s ease;
+}
+/* Premium Paytm & UrbanMoney Styles (Bootstrap Bridges) */
+.bg-paytm-blue {
+  background-color: #00baf2 !important;
+}
+.bg-paytm-navy {
+  background-color: #002970 !important;
+}
+.bg-urban-green {
+  background-color: #25a254 !important;
+}
+.bg-urban-dark {
+  background-color: #0f2942 !important;
+}
+
+.text-paytm-blue {
+  color: #00baf2 !important;
+}
+.text-paytm-navy {
+  color: #002970 !important;
+}
+.text-urban-green {
+  color: #25a254 !important;
+}
+.text-urban-dark {
+  color: #0f2942 !important;
+}
+
+/* Custom premium rounded hover-up effects and custom buttons */
+.btn-paytm {
+  background-color: #00baf2;
+  color: white;
+  border: none;
+  font-weight: 850;
+  border-radius: 30px !important; /* rounded-pill style */
+  padding: 12px 30px !important;
+  transition: all 0.3s ease;
+}
+.btn-paytm:hover {
+  background-color: #0099c8;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 186, 242, 0.3);
+  color: white;
+}
+
+.btn-paytm-navy {
+  background-color: #002970;
+  color: white;
+  border: none;
+  font-weight: 850;
+  border-radius: 30px !important;
+  padding: 12px 30px !important;
+  transition: all 0.3s ease;
+}
+.btn-paytm-navy:hover {
+  background-color: #001e52;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 41, 112, 0.3);
+  color: white;
+}
+
+.btn-urban {
+  background-color: #25a254;
+  color: white;
+  border: none;
+  font-weight: 850;
+  border-radius: 30px !important;
+  padding: 12px 30px !important;
+  transition: all 0.3s ease;
+}
+.btn-urban:hover {
+  background-color: #1e8343;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(37, 162, 84, 0.3);
+  color: white;
+}
+
+.card-paytm {
+  border: 1.5px solid rgba(0, 186, 242, 0.12) !important;
+  border-radius: 28px !important;
+  background: linear-gradient(135deg, #ffffff, #f6fafd) !important;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  position: relative;
+  overflow: hidden;
+}
+.dark .card-paytm {
+  border: 1.5px solid rgba(0, 186, 242, 0.2) !important;
+  background: linear-gradient(135deg, #0f172a, #0b0f19) !important;
+}
+.card-paytm::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, #00baf2, #002970);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.card-paytm:hover {
+  transform: translateY(-8px) !important;
+  box-shadow: 0 20px 40px rgba(0, 186, 242, 0.15), 0 8px 16px rgba(0, 41, 112, 0.04) !important;
+  border-color: rgba(0, 186, 242, 0.35) !important;
+}
+.card-paytm:hover::before {
+  opacity: 1;
+}
+.card-paytm:hover .w-12 {
+  transform: scale(1.1);
+  transition: transform 0.3s ease;
+}
+
+.card-urban {
+  border: 1.5px solid rgba(37, 162, 84, 0.12) !important;
+  border-radius: 24px !important;
+  background: linear-gradient(135deg, #ffffff, #f4fbf7) !important;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  position: relative;
+  overflow: hidden;
+}
+.dark .card-urban {
+  border: 1.5px solid rgba(37, 162, 84, 0.2) !important;
+  background: linear-gradient(135deg, #0f172a, #051a10) !important;
+}
+.card-urban::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, #25a254, #0f2942);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.card-urban:hover {
+  transform: translateY(-8px) !important;
+  box-shadow: 0 20px 40px rgba(37, 162, 84, 0.15), 0 8px 16px rgba(15, 41, 66, 0.04) !important;
+  border-color: rgba(37, 162, 84, 0.35) !important;
+}
+.card-urban:hover::before {
+  opacity: 1;
+}
+
+/* Resolve Bootstrap & Tailwind Conflicts */
+a {
+  text-decoration: none !important;
+}
+.navbar-brand {
+  font-family: var(--font-outfit), sans-serif;
+}
+.nav-link {
+  font-weight: 600;
+}
+
+/* Premium Form Input Custom Styles */
+.form-control, .form-select {
+  border: 1.8px solid #94a3b8 !important; /* Increased border contrast (slate-400) */
+  border-radius: 16px !important; /* Rounder corners */
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  color: #002970 !important;
+  padding: 0.75rem 1.25rem !important;
+  transition: all 0.2s ease-in-out !important;
+}
+.form-control:focus, .form-select:focus {
+  border-color: #00baf2 !important;
+  box-shadow: 0 0 0 4px rgba(0, 186, 242, 0.16) !important;
+  outline: 0 !important;
+}
+.form-control::placeholder {
+  color: #64748b !important; /* Increased placeholder contrast (slate-500) */
+  font-weight: 500 !important;
+}
+.dark .form-control, .dark .form-select {
+  background-color: #0f172a !important;
+  border-color: #475569 !important;
+  color: #f8fafc !important;
+}
+.dark .form-control:focus, .dark .form-select:focus {
+  border-color: #00baf2 !important;
+  box-shadow: 0 0 0 4px rgba(0, 186, 242, 0.25) !important;
+}
+
+/* Scroll Snapping Utilities */
+.scroll-snap-container {
+  scroll-snap-type: y mandatory;
+  overflow-y: auto;
+  height: 100vh;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+}
+.scroll-snap-section {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  scroll-margin-top: 56px; /* offset for height of header */
+  min-height: calc(100vh - 56px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+}
+
+/* swapnilaher.in style integrations */
+.techstar-blue-gradient {
+  background: radial-gradient(circle at 10% 0%, rgba(53, 94, 252, 0.08), transparent 42%) !important;
+}
+.techstar-service-bg {
+  background: linear-gradient(180deg, #ffffff 0%, rgba(223, 228, 253, 0.38) 100%) !important;
+}
+.home-info-card {
+  border: 1.8px solid rgba(53, 94, 252, 0.22) !important; /* Increased contrast border */
+  border-radius: 24px !important; /* Rounder corners */
+  padding: 1.75rem !important;
+  background: #ffffff !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.home-info-card:hover {
+  box-shadow: 0 20px 40px rgba(1, 26, 65, 0.12) !important;
+  transform: translateY(-6px) !important;
+  border-color: rgba(53, 94, 252, 0.45) !important;
+}
+.home-icon-box {
+  width: 52px;
+  height: 52px;
+  background: rgba(53, 94, 252, 0.1);
+  border-radius: 14px; /* Rounder box */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #355efc;
+}
+
+/* Global Premium Button Overrides */
+.btn {
+  border-radius: 30px !important; /* Force all Bootstrap buttons to be rounded-pill */
+  font-weight: 750 !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 15px rgba(53, 94, 252, 0.15) !important;
+}
+
+.btn:active {
+  transform: translateY(0px) !important;
+}
+
+/* Mobile App Redesign Premium Styles */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+.no-scrollbar {
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  scrollbar-width: none !important;  /* Firefox */
+}
+
+.premium-btn-status {
+  height: 36px !important;
+  border-radius: 9999px !important;
+  padding: 0 16px !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.05em !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 6px !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  border: 1px solid currentColor !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+}
+
+.premium-btn-status:active {
+  transform: scale(0.95) !important;
+}
+
+.premium-btn-action {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 9999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  border: 1px solid transparent !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+}
+
+.premium-btn-action:active {
+  transform: scale(0.9) !important;
+}
+
+.premium-fab {
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 9999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  cursor: pointer !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+.premium-fab-active {
+  background: #1e293b !important; /* slate-800 */
+  box-shadow: 0 10px 25px -5px rgba(30, 41, 59, 0.35) !important;
+}
+
+.premium-fab-inactive {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important; /* Premium Blue Gradient */
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4) !important;
+}
+
+/* Stylish Typography & Gradient Utilities */
+.font-outfit {
+  font-family: var(--font-outfit), sans-serif !important;
+}
+
+.text-gradient-premium {
+  background: linear-gradient(135deg, #10b981 0%, #0284c7 40%, #2563eb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.font-playfair {
+  font-family: var(--font-playfair), serif !important;
+}
+
+/*
+ * iOS anti-zoom, restated where it can actually win.
+ *
+ * The same rule up in `@layer base` has never once applied to a CRM control:
+ * `base` loses to `utilities`, and every control carries a `text-admin-*` size
+ * from there. Bootstrap's `font-size: inherit` was accidentally covering for it
+ * by beating both; now that Bootstrap is a layer down, the utility's 12px would
+ * come through and iOS Safari would zoom on every field tap -- exactly the bug
+ * that rule was written to stop. Unlayered here, so it outranks the utility.
+ *
+ * Scoped through `body:has(.admin-root)` rather than a class on the CRM tree
+ * because Sheet, Toast and CommandPalette all `createPortal` into <body> and
+ * would otherwise sit outside it. `.admin-root` is server-rendered by
+ * AdminLayout, so it is present on first paint.
+ */
+@media (pointer: coarse) {
+  body:has(.admin-root)
+    :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+    font-size: 16px;
+  }
+}
+
+
+
+
+
+
+
+/* ==========================================================================
+   ADMIN SPLASH
+   --------------------------------------------------------------------------
+   Motion for the branded hold screen in AdminLayout (`AdminSplash`).
+
+   These two live here rather than as arbitrary Tailwind values because each
+   needs a @keyframes, and a keyframe cannot be expressed as a utility. The
+   rest of the splash is plain utilities.
+
+   Both read from the admin tokens, so they follow the CRM's light/dark theme
+   with no second definition, and both are switched off wholesale at the
+   bottom of this block for `prefers-reduced-motion`.
+   ========================================================================== */
+
+/* Light travelling across the wordmark. The gradient is twice the width of the
+   text with the accent as a narrow band in the middle, so a highlight sweeps
+   *through* the letters rather than the whole word flashing on and off. */
+@keyframes admin-splash-sheen {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+.admin-splash-sheen {
+  background-image: linear-gradient(
+    100deg,
+    var(--admin-text) 0%,
+    var(--admin-text) 42%,
+    var(--admin-accent) 50%,
+    var(--admin-text) 58%,
+    var(--admin-text) 100%
+  );
+  background-size: 200% 100%;
+  animation: admin-splash-sheen 3.5s linear infinite;
+}
+
+/* `color: transparent` is only safe once we know the paint is actually being
+   clipped to the glyphs -- without the guard, a browser that does not support
+   background-clip would render the wordmark invisible rather than plain. */
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .admin-splash-sheen {
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+/* Indeterminate rail: a short bar that eases across the track and off the far
+   end, rather than one that fills. Nothing here knows how long the role check
+   will take, so a filling bar would be inventing progress it cannot measure. */
+@keyframes admin-splash-rail {
+  0%   { transform: translateX(-110%) scaleX(0.5); }
+  50%  { transform: translateX(90%)   scaleX(1); }
+  100% { transform: translateX(320%)  scaleX(0.5); }
+}
+
+.admin-splash-rail {
+  animation: admin-splash-rail 1.9s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-splash-sheen {
+    animation: none;
+    background-image: none;
+    -webkit-background-clip: border-box;
+    background-clip: border-box;
+    color: var(--admin-text);
+  }
+
+  /* Parked mid-track and still, so the rail reads as a static accent mark
+     instead of an empty slot. */
+  .admin-splash-rail {
+    animation: none;
+    transform: translateX(90%);
+  }
+}

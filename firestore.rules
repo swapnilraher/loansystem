@@ -1,0 +1,286 @@
+rules_version = '2';
+
+/**
+ * Firestore security rules for the DSA loan portal.
+ *
+ * The database previously had no rules at all. That meant every customer's phone
+ * number, PAN name, income and CIBIL score — and every staff password in
+ * `admin_users` — was readable by anyone who opened the site and copied the
+ * Firebase config out of the JavaScript bundle. These rules close that.
+ *
+ * HOW ROLES ARE KNOWN
+ * Rules cannot run a query, and this CRM identifies staff by *email* in
+ * `admin_users`, not by document id. So role is read from a custom claim that
+ * `/api/auth/claims` writes after verifying the caller's ID token. Nothing here
+ * trusts a client-supplied field; only `request.auth.token`.
+ *
+ * TRUST BOUNDARY
+ * Everything the server writes — the public lead form, the WhatsApp webhook, the
+ * bot flows, notifications — goes through the service account, which bypasses
+ * these rules entirely. That is why `leads` needs no anonymous write rule
+ * despite the landing pages creating leads all day.
+ *
+ * READ SCOPE, DELIBERATELY
+ * Staff read the whole `leads` collection. The CRM subscribes to it unfiltered
+ * and narrows in memory (`canSeeLead`), and a rule cannot filter a query — only
+ * allow or deny it whole. Scoping telecallers to own+unassigned server-side
+ * needs the client rewritten to run two constrained listeners first. Until then
+ * the boundary here is "active staff only", not "own leads only".
+ */
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- identity ---------------------------------------------------------
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    /** Active staff. Set by /api/auth/claims; absent for deactivated accounts. */
+    function isStaff() {
+      return signedIn() && request.auth.token.crm == true;
+    }
+
+    function role() {
+      return request.auth.token.crmRole;
+    }
+
+    function isAdmin() {
+      return isStaff() && role() == 'Admin';
+    }
+
+    /** Signs off disbursals, sees the whole pipeline, assigns leads. */
+    function isSupervisor() {
+      return isStaff() && (role() == 'Admin' || role() == 'Manager');
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    /** Reads a field that may be absent without failing the whole rule. */
+    function field(data, name) {
+      return data.get(name, '');
+    }
+
+    /** Same, for a boolean flag that older documents simply do not carry. */
+    function flag(data, name) {
+      return data.get(name, false);
+    }
+
+    // ---- staff directory --------------------------------------------------
+
+    /**
+     * `admin_users` stores staff passwords in plaintext, which makes it the most
+     * dangerous collection in the project. Only Admins and Managers may read it
+     * — the CRM needs the list for the assignment dropdown — and only Admins may
+     * change it. The `uid` back-link is written by the server, never from here.
+     *
+     * Telecallers losing this read is intentional: it only empties the staff
+     * results in the command palette, which their role could not act on anyway.
+     *
+     * The stored passwords should be deleted outright; see SECURITY.md.
+     */
+    match /admin_users/{staffId} {
+      allow read: if isSupervisor();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ---- leads ------------------------------------------------------------
+
+    /** Money is booked by the approval flow, never by an ordinary lead edit. */
+    function keepsMoneyFields(before, after) {
+      return field(after, 'staffIncentiveAmount') == field(before, 'staffIncentiveAmount')
+        && field(after, 'connectorCommissionAmount') == field(before, 'connectorCommissionAmount');
+    }
+
+    /** The only lead fields a DSA partner's own app writes. */
+    function onlyActivityFields() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'lastActivityNote',
+        'lastActivityType',
+        'lastActivityUser',
+        'lastActivityTime',
+        'updatedAt'
+      ]);
+    }
+
+    function ownsAsCustomer(data) {
+      return signedIn() && field(data, 'userId') == request.auth.uid;
+    }
+
+    function ownsAsPartner(data) {
+      return signedIn() && field(data, 'partnerId') == request.auth.uid;
+    }
+
+    /**
+     * Bringing a deleted lead back into the pipeline.
+     *
+     * Deleting is a flag, not a document removal (see `softDeleteLead` in the
+     * CRM), and every role may set it — a telecaller clearing a wrong number
+     * should not need an Admin. Clearing it is the privileged half: a lead an
+     * Admin removed must not be quietly reinstated by the person who deleted it.
+     */
+    function restoresDeletedLead(before, after) {
+      return flag(before, 'deleted') == true && flag(after, 'deleted') != true;
+    }
+
+    match /leads/{leadId} {
+      /**
+       * Staff see everything. A customer sees the applications they filed, a DSA
+       * partner the leads they sourced — both of those clients already query
+       * with the matching `where`, which is what makes the constraint provable.
+       */
+      allow read: if isStaff()
+        || ownsAsCustomer(resource.data)
+        || ownsAsPartner(resource.data);
+
+      // Staff enter walk-ins; customers apply; partners submit sourced leads.
+      // The public website form comes in through the service account instead.
+      allow create: if isStaff()
+        || ownsAsCustomer(request.resource.data)
+        || ownsAsPartner(request.resource.data);
+
+      allow update: if isAdmin()
+        || (
+          (isSupervisor() || (isStaff() && keepsMoneyFields(resource.data, request.resource.data)))
+          && !restoresDeletedLead(resource.data, request.resource.data)
+        )
+        || (ownsAsPartner(resource.data) && onlyActivityFields());
+
+      /**
+       * Nothing deletes a lead. The CRM's delete hides the file behind the
+       * `deleted` flag and keeps every field it had, so a wrong number cleared
+       * at 9pm is still there in the morning. Losing a customer's history to a
+       * mis-tap is not a recoverable mistake, and this is what makes it
+       * impossible rather than merely discouraged.
+       */
+      allow delete: if false;
+
+      /** Partner-side remarks. The parent lead decides who may touch them. */
+      match /remarks/{remarkId} {
+        allow read, create: if isStaff()
+          || ownsAsPartner(get(/databases/$(database)/documents/leads/$(leadId)).data);
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    match /lead_activities/{activityId} {
+      allow read: if isStaff();
+      // The timeline is an audit trail: append-only, even for Admins.
+      allow create: if isStaff();
+      allow update, delete: if false;
+    }
+
+    // ---- money ------------------------------------------------------------
+
+    match /staff_incentives/{rowId} {
+      allow read: if isStaff();
+      // Credited only by a supervisor signing off a disbursal.
+      allow create, update: if isSupervisor();
+      allow delete: if isAdmin();
+    }
+
+    match /commission_ledger/{rowId} {
+      // A partner reads their own wallet; staff read the whole ledger.
+      allow read: if isStaff() || ownsAsPartner(resource.data);
+      allow create, update: if isSupervisor();
+      allow delete: if isAdmin();
+    }
+
+    match /banks/{bankId} {
+      // Incentive and commission rates: staff read, only Admins set them.
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+
+    // ---- WhatsApp ---------------------------------------------------------
+
+    match /whatsapp_messages/{messageId} {
+      allow read, create: if isStaff();
+      allow update, delete: if false;
+    }
+
+    match /wa_notifications/{notificationId} {
+      allow read: if isStaff();
+      // Raised by the webhook (service account). Staff only mark them read.
+      allow create: if false;
+      allow update: if isStaff();
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * Live bot conversations. The webhook owns these; the CRM only renames the
+     * customer mid-flow when a lead is renamed.
+     */
+    match /waSession/{phone} {
+      allow read, update: if isStaff();
+      allow create, delete: if false;
+    }
+
+    /**
+     * The bot's script. Written from the CRM through `/api/flows`, which checks
+     * the caller is an Admin before it touches anything — this rule is the
+     * second lock, for a browser going straight at the database.
+     */
+    match /waFlows/{flowId} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+
+    /** Bot messages and the automation master switch. */
+    match /waSettings/{settingId} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+
+    /**
+     * Banker directory edits and additions, layered over `data/banker_list.json`.
+     * Staff read them through the lookup card; only an Admin maintains them.
+     */
+    match /bankers/{bankerId} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+
+    // ---- public site accounts ---------------------------------------------
+
+    /**
+     * Customers and DSA partners. A person reads and writes their own document
+     * and nothing else; staff read them all.
+     *
+     * `role` is constrained because this document is self-writable: partner
+     * onboarding legitimately sets `partner`, but nothing else may be claimed.
+     * CRM access never comes from here — that is what the token claim is for.
+     */
+    function selfAssignableRole(data) {
+      return !('role' in data) || data.role == 'user' || data.role == 'partner';
+    }
+
+    match /users/{uid} {
+      allow read: if isSelf(uid) || isStaff();
+      allow create: if isSelf(uid) && selfAssignableRole(request.resource.data);
+      allow update: if (isSelf(uid) && selfAssignableRole(request.resource.data)) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * One-time password codes for the staff reset flow. Issued and verified by
+     * the server; a browser that could read these could take over an account.
+     */
+    match /otp_codes/{codeId} {
+      allow read, write: if false;
+    }
+
+    // ---- default deny -----------------------------------------------------
+
+    /**
+     * Anything not named above is denied. New collections must be added here
+     * deliberately — a missing rule fails closed, which is the point.
+     */
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
