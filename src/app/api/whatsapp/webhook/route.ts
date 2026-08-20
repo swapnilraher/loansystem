@@ -469,6 +469,7 @@ function localLoanAIResponder(userText: string, lang: string): string {
     tenure: "कर्जाची मुदत (Tenure):\n- गृह कर्ज (Home Loan): ३० वर्षांपर्यंत\n- वैयक्तिक कर्ज (Personal Loan): १ ते ५ वर्षे\n- बिझनेस लोन (Business Loan): १ ते ५ वर्षे\n- प्रॉपर्टीवर कर्ज (LAP): १५ ते २० वर्षांपर्यंत",
     limit: "कमाल कर्जाची मर्यादा (Loan Limit):\n- वैयक्तिक/बिझनेस लोन: ₹५० लाखांपर्यंत (तुमच्या प्रोफाइलनुसार)\n- गृह कर्ज / प्रॉपर्टीवर कर्ज (LAP): मालमत्तेच्या बाजार मूल्याच्या ८०% पर्यंत",
     cibil: "सिबिल (CIBIL) स्कोर:\n- त्वरित कर्ज मंजुरी आणि कमी व्याजदरासाठी ७०० किंवा त्याहून अधिक क्रेडिट/सिबिल स्कोर असणे आवश्यक आहे.\n- ७०० पेक्षा कमी स्कोर असल्यास अतिरिक्त कागदपत्रांची पडताळणी होऊ शकते.",
+    address: "🏢 *टेकस्टार मनी सोल्युशन्स (Techstar Money Solutions)*\n📍 *ऑफिस पत्ता:* ऑफिस क्र. १०१, पहिला मजला, सिटी सेंटर, मुख्य रस्ता, महाराष्ट्र.\n📞 *संपर्क क्रमांक:* ७०२०६४६००७ / ९५७९००५६४५\n⏰ *वेळ:* सकाळी १०:०० ते संध्याकाळी ६:३० (सोमवार ते शनिवार)",
     unknown: "मला तुमचे बोलणे पूर्णपणे समजले नाही. कृपया कर्जाचे व्याजदर, कागदपत्रे, पात्रता, संपर्क याविषयी विचारण्यासाठी योग्य शब्द वापरा."
   };
 
@@ -486,6 +487,7 @@ function localLoanAIResponder(userText: string, lang: string): string {
     tenure: "लोन की अवधि (Tenure):\n- होम लोन (Home Loan): 30 वर्ष तक\n- पर्सनल लोन (Personal Loan): 1 से 5 वर्ष\n- बिजनेस लोन (Business Loan): 1 से 5 वर्ष\n- प्रॉपर्टी पर लोन (LAP): 15 से 20 वर्ष तक",
     limit: "अधिकतम लोन राशि (Loan Limit):\n- पर्सनल/बिजनेस लोन: ₹50 लाख तक (प्रोफाइल के अनुसार)\n- होम लोन / प्रॉपर्टी पर लोन: संपत्ति के ब्याज मूल्य का 80% तक",
     cibil: "सिबिल (CIBIL) स्कोर:\n- त्वरित लोन स्वीकृति और कम ब्याज दरों के लिए 700 या उससे अधिक का सिबिल स्कोर होना अच्छा माना जाता है।\n- 700 से कम स्कोर होने पर अतिरिक्त दस्तावेज सत्यापन की आवश्यकता हो सकती है।",
+    address: "🏢 *टेकस्टार मनी सॉल्यूशंस (Techstar Money Solutions)*\n📍 *कार्यालय का पता:* ऑफिस नंबर 101, पहली मंजिल, सिटी सेंटर, मुख्य मार्ग, महाराष्ट्र।\n📞 *संपर्क:* 7020646007 / 9579005645\n⏰ *समय:* सुबह 10:00 बजे से शाम 6:30 बजे (सोमवार से शनिवार)",
     unknown: "मुझे आपके द्वारा भेजा गया संदेश समझ नहीं आया। कृपया ब्याज दर, दस्तावेज, पात्रता, संपर्क जैसे कीवर्ड्स का उपयोग करें।"
   };
 
@@ -503,11 +505,15 @@ function localLoanAIResponder(userText: string, lang: string): string {
     tenure: "Loan Tenure Options:\n- Home Loan: Up to 30 years\n- Personal Loan: 1 to 5 years (12 to 60 months)\n- Business Loan: 1 to 5 years\n- Loan Against Property (LAP): Up to 15-20 years",
     limit: "Maximum Loan Limits:\n- Personal/Business Loan: Up to ₹50 Lakhs (based on income and credit profile)\n- Home Loan / LAP: Up to 80% of property market value",
     cibil: "CIBIL / Credit Score:\n- A credit/CIBIL score of 700 or above is preferred for quick loan approvals at lower interest rates.\n- Scores below 700 may require extra document verification and might attract higher interest rates.",
+    address: "🏢 *Techstar Money Solutions*\n📍 *Office Address:* Office No. 101, 1st Floor, City Center, Main Road, Maharashtra.\n📞 *Contact:* 7020646007 / 9579005645\n⏰ *Working Hours:* 10:00 AM to 6:30 PM (Mon-Sat)",
     unknown: "I did not get your request. Please ask about interest rates, documents, eligibility, processing fee, or contact details."
   };
 
   const resp = lang === 'mr' ? mrResponses : (lang === 'hi' ? hiResponses : enResponses);
 
+  if (lower.includes("address") || lower.includes("office") || lower.includes("location") || lower.includes("पत्ता") || lower.includes("ऑफ़िस") || lower.includes("ऑफिस") || lower.includes("पता") || lower.includes("kothe") || lower.includes("kute") || lower.includes("kahan")) {
+    return resp.address;
+  }
   if (lower.includes("hi") || lower.includes("hello") || lower.includes("नमस्कार") || lower.includes("namaskar")) {
     return resp.greeting;
   }
@@ -666,6 +672,21 @@ async function contextAwareAIResponder({
       hi: "निश्चित रूप से 👍 मैं आपका आवेदन हमारे ऋण सलाहकार को भेज रहा हूँ। हमारी टीम जल्द ही आपसे संपर्क करेगी।",
       en: "Sure 👍 I am routing your request to our loan consultant. Our team will contact you shortly."
     }[lang] || "Sure 👍 I am routing your request to our loan consultant. Our team will contact you shortly.";
+  }
+
+  // 3.5 Office Address / Location Query
+  const isAddressQuery = ["address", "office", "location", "पत्ता", "ऑफ़िस", "ऑफिस", "पता", "kothe", "kute", "kahan"].some(kw => lower.includes(kw));
+  if (isAddressQuery) {
+    const addressMsg = localLoanAIResponder("address", lang);
+    if (currentQ) {
+      const returnPrompt = {
+        mr: `\n\nअर्जाची पुढील माहिती नोंदवण्यासाठी:`,
+        hi: `\n\nआवेदन को आगे बढ़ाने के लिए:`,
+        en: `\n\nTo continue your application:`
+      }[lang] || `\n\nTo continue:`;
+      return `${addressMsg}${returnPrompt}`;
+    }
+    return addressMsg;
   }
 
   // 4. Contextual YES / NO handling (Rule #8, #9, #10)
