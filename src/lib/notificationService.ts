@@ -83,22 +83,72 @@ export async function sendLeadNotificationToAdmins(leadData: any, customDelayMs?
         return
       }
 
-      const name = leadData.name || leadData.fullName || leadData.panName || "Customer"
-      const city = leadData.city || leadData.district || leadData.location || "N/A"
-      const type = leadData.type || leadData.loanType || "Personal Loan"
-      const amount = leadData.amount || leadData.loanAmount
+      // Re-fetch latest lead details from database after delay (to include answers collected during delay e.g. via chatbot/pincode)
+      let currentLead = { ...leadData }
+      if (leadData?.id) {
+        try {
+          const db = getAdminDb()
+          const docSnap = await db.collection("leads").doc(leadData.id).get()
+          if (docSnap.exists) {
+            currentLead = { id: docSnap.id, ...docSnap.data() }
+          }
+        } catch (fetchErr) {
+          console.error("Error fetching latest lead details for notification:", fetchErr)
+        }
+      }
+
+      const name = currentLead.name || currentLead.fullName || currentLead.panName || leadData.name || "Customer"
+      
+      // Loan Type (type / loanType / category)
+      const type = currentLead.type || currentLead.loanType || currentLead.category || leadData.type || "Personal Loan"
+
+      // Extract subdistrict (taluka) and city (district)
+      const subdistrict = (
+        currentLead.subdistrict ||
+        currentLead.taluka ||
+        currentLead.pinTaluka ||
+        currentLead.block ||
+        ""
+      ).trim()
+
+      const rawCity = (
+        currentLead.city ||
+        currentLead.district ||
+        currentLead.pinCity ||
+        currentLead.pinDistrict ||
+        currentLead.location ||
+        leadData.city ||
+        ""
+      ).trim()
+
+      let city = rawCity || "N/A"
+      if (subdistrict) {
+        if (rawCity && !rawCity.toLowerCase().includes(subdistrict.toLowerCase())) {
+          city = `${subdistrict}, ${rawCity}`
+        } else if (!rawCity) {
+          city = subdistrict
+        }
+      }
+
+      const amount = currentLead.amount || currentLead.loanAmount || leadData.amount
+      const mobile = currentLead.phone || currentLead.mobile || currentLead.mobileNumber || leadData.phone
+      const source = currentLead.source || leadData.source
 
       const title = (settings && settings.leadTitle) || '🌟 New Lead Received!'
       const includeName = settings ? settings.includeName !== false : true
       const includeCity = settings ? settings.includeCity !== false : true
       const includeType = settings ? settings.includeType !== false : true
       const includeAmount = settings ? settings.includeAmount !== false : true
+      const includeMobile = settings ? settings.includeMobile === true : false
+      const includeSource = settings ? settings.includeSource === true : false
 
       const bodyLines: string[] = []
       if (includeName) bodyLines.push(`Name: ${name}`)
       if (includeCity) bodyLines.push(`City: ${city}`)
       if (includeType) bodyLines.push(`Loan Type: ${type}`)
       if (includeAmount && amount) bodyLines.push(`Amount: ₹${amount}`)
+      if (includeMobile && mobile) bodyLines.push(`Mobile: ${mobile}`)
+      if (includeSource && source) bodyLines.push(`Source: ${source}`)
 
       // Notification Payload with Name & City
       const message = {

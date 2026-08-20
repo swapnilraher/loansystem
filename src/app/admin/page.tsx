@@ -132,7 +132,7 @@ export default function AdminOverview() {
         0
       ),
       processing: leads.filter(l =>
-        ["Documents Pending", "Documents Received", "Login to Bank", "Under Process"].includes(l.status)
+        ["Login to Bank", "Bank Processing"].includes(l.status)
       ).length,
       myLeads: mine.length,
       myDisbursed: mine.filter(l => l.status === STATUS_DISBURSED).length,

@@ -29,6 +29,7 @@ export const STATUS_OPTIONS = [
   "Interested",
   "Bank Processing",
   STATUS_PENDING_APPROVAL,
+  "Approved",
   "Disbursed",
   "Rejected",
 ] as const
@@ -41,6 +42,7 @@ export const QUICK_STATUSES = [
   "Interested",
   "Bank Processing",
   STATUS_PENDING_APPROVAL,
+  "Approved",
   "Disbursed",
   "Rejected",
 ]
@@ -54,6 +56,7 @@ export const STATUS_LABELS: Record<string, string> = {
   Interested: "इच्छुक (Interested)",
   "Bank Processing": "बँक प्रोसेसिंग (Processing)",
   [STATUS_PENDING_APPROVAL]: "मंजुरी बाकी (Pending)",
+  Approved: "मंजूर (Approved)",
   Disbursed: "डिस्बर्स (Disbursed)",
   Rejected: "रिजेक्टेड (Rejected)",
 }

@@ -271,20 +271,32 @@ export function useLeadMutations() {
     [user?.uid, user?.email, staffName, staffLabel, claimFor]
   )
 
-  /** Saves the remark captured after a call or chat, plus the next follow-up. */
+  /** Saves the remark captured after a call or chat, plus the next follow-up and status. */
   const saveFollowUpRemark = useCallback(
     async (
       lead: Lead,
-      input: { type: string; remark: string; followUpDate: string; followUpReason: string }
+      input: { type: string; remark: string; followUpDate: string; followUpReason: string; status?: string }
     ) => {
       // Typed by hand into the post-call prompt, so it counts as a real note.
       await logLeadActivity(lead.id, input.type, input.remark, staffLabel, { manual: true })
 
-      const payload: Record<string, unknown> = { updatedAt: serverTimestamp() }
-      if (PRE_CONTACT_STATUSES.includes(lead.status)) {
+      const payload: Record<string, unknown> = {
+        updatedAt: serverTimestamp(),
+        lastActivityNote: input.remark.trim(),
+        lastActivityType: input.type,
+        lastActivityUser: staffName,
+        lastActivityTime: serverTimestamp(),
+      }
+
+      if (input.status && input.status !== lead.status) {
+        payload.status = input.status
+        payload.statusUpdatedAt = serverTimestamp()
+        await logLeadActivity(lead.id, "Status Update", `Changed status to ${input.status}`, staffLabel)
+      } else if (PRE_CONTACT_STATUSES.includes(lead.status)) {
         payload.status = "Contacted"
         payload.statusUpdatedAt = serverTimestamp()
       }
+
       if (input.followUpDate) {
         payload.followUpDate = input.followUpDate
         await logLeadActivity(
@@ -299,7 +311,7 @@ export function useLeadMutations() {
       await updateDoc(doc(db, "leads", lead.id), payload)
       return payload
     },
-    [staffLabel]
+    [staffLabel, staffName]
   )
 
   const setBotMuted = useCallback(async (leadId: string, muted: boolean) => {

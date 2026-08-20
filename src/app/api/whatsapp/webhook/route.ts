@@ -552,6 +552,157 @@ function localLoanAIResponder(userText: string, lang: string): string {
 }
 
 /**
+ * ─── Chat History Reader (Conversation Memory) ──────────────────────────────
+ * Fetches the last N messages for a customer phone number from Firestore `whatsapp_messages`.
+ */
+async function getRecentChatHistory(phone: string, limitCount: number = 8): Promise<{ sender: string; text: string }[]> {
+  const localNumber = phone.replace(/\D/g, "").slice(-10);
+  if (!localNumber) return [];
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery?key=${FIREBASE_API_KEY}`;
+    const queryPayload = {
+      structuredQuery: {
+        from: [{ collectionId: "whatsapp_messages" }],
+        where: {
+          fieldFilter: {
+            field: { fieldPath: "phone" },
+            op: "EQUAL",
+            value: { stringValue: localNumber }
+          }
+        },
+        orderBy: [{ field: { fieldPath: "timestamp" }, direction: "DESCENDING" }],
+        limit: limitCount
+      }
+    };
+    const res = await firestoreFetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(queryPayload)
+    });
+    if (!res.ok) return [];
+    const results = await res.json();
+    if (!Array.isArray(results)) return [];
+    const messages: { sender: string; text: string }[] = [];
+    for (const item of results) {
+      if (item.document && item.document.fields) {
+        const fields = item.document.fields;
+        const sender = fields.sender?.stringValue || "customer";
+        const text = fields.text?.stringValue || "";
+        if (text) {
+          messages.unshift({ sender, text });
+        }
+      }
+    }
+    return messages;
+  } catch (err) {
+    console.error("Error fetching recent chat history:", err);
+    return [];
+  }
+}
+
+interface AIContextParams {
+  text: string;
+  lang: string;
+  phone: string;
+  leadData?: Record<string, any> | null;
+  session?: WaSessionState | null;
+  currentQ?: FlowStep | null;
+}
+
+/**
+ * ─── AI Pre-Response Analysis & Loan Consultant Engine ───────────────────────
+ *
+ * Mandatory Workflow:
+ *  1. Customer Identification & Lead Data Load (Name, Phone, Pincode, Loan Type, Income, Status, Stored Responses)
+ *  2. Full Conversation History Read (whatsapp_messages collection)
+ *  3. Intent & Context Analysis (Self-Check: Already asked/answered? Is customer asking off-flow query?)
+ *  4. Priority to Existing Customer Info (Never re-ask for captured pincode, income, etc.)
+ *  5. Preserve CRM Flow State (Answer off-flow query, then transition back to current step)
+ *  6. Professional Loan Consultant Response Generation
+ */
+async function contextAwareAIResponder({
+  text,
+  lang = 'mr',
+  phone,
+  leadData,
+  session,
+  currentQ
+}: AIContextParams): Promise<string> {
+  const lower = text.toLowerCase().trim();
+  const customerName = leadData?.name || leadData?.fullName || leadData?.panName || session?.name || "Customer";
+  const category = leadData?.type || leadData?.loanType || session?.category || session?.responses?.category || "";
+  const pincode = leadData?.pincode || session?.responses?.pincode || leadData?.pinCity || "";
+  const income = leadData?.monthlyIncome || leadData?.salary || session?.responses?.monthlyIncome || session?.responses?.salary || "";
+  const occupation = leadData?.occupation || session?.responses?.occupation || session?.responses?.employmentType || "";
+  const status = leadData?.status || "New Lead";
+
+  // 1. Fetch recent chat history from Firestore for full conversation memory
+  const chatHistory = await getRecentChatHistory(phone, 8);
+
+  // 2. Check if customer is asking "What next?" / "Aata pudhe kay karaych?" / "Status"
+  const isAskingNextStep = ["आगे क्या करना है", "पुढे काय करायचे", "aata pudhe kay", "what next", "next step", "status", "माझ्या अर्जाचे काय झाले", "कधी मिळणार", "kab milega"].some(kw => lower.includes(kw));
+  
+  if (isAskingNextStep) {
+    if (status === "System Qualified" || status === "Bank Processing" || status === "Approved" || status === "Disbursed") {
+      if (lang === 'mr') {
+        return `नमस्कार ${customerName}! तुमचा ${category || 'कर्जाचा'} अर्ज आमच्या सिस्टीममध्ये आधीच नोंदवला गेला आहे (स्टेटस: ${status}). आमची टीम सध्या तुमच्या प्रोफाइलनुसार बँक ऑफर तपासत आहे. आमचे लोन मॅनेजर लवकरच तुमच्याशी संपर्क साधतील.`;
+      } else if (lang === 'hi') {
+        return `नमस्कार ${customerName}! आपका ${category || 'ऋण'} आवेदन सफलतापूर्वक पंजीकृत हो चुका है (स्टेटस: ${status})। हमारी टीम आपके प्रोफ़ाइल का सत्यापन कर रही है। हमारे प्रतिनिधि जल्द ही आपसे संपर्क करेंगे।`;
+      } else {
+        return `Hello ${customerName}! Your ${category || 'loan'} application has been successfully submitted (Status: ${status}). Our team is evaluating bank offers for your profile and will contact you shortly.`;
+      }
+    }
+  }
+
+  // 3. Evaluate query topic using localLoanAIResponder (rule-based NLP)
+  const baseAIInfo = localLoanAIResponder(text, lang);
+
+  // 4. If baseAIInfo gave a known response (not unknown), format it intelligently based on customer context
+  if (baseAIInfo && !baseAIInfo.includes("मला तुमचे बोलणे पूर्णपणे समजले नाही") && !baseAIInfo.includes("I did not get your request") && !baseAIInfo.includes("मुझे आपके द्वारा भेजा गया संदेश समझ नहीं आया")) {
+    // If we are currently inside an active flow question, append current question prompt after answering the query!
+    if (currentQ) {
+      const returnPrompt = {
+        mr: `\n\nआता तुमच्या कर्जाचा अर्ज पुढे नेण्यासाठी कृपया खालील प्रश्नाचे उत्तर द्या:`,
+        hi: `\n\nअब अपने लोन आवेदन को आगे बढ़ाने के लिए कृपया नीचे दिए गए प्रश्न का उत्तर दें:`,
+        en: `\n\nTo continue your loan application, please answer the following question:`
+      }[lang] || `\n\nPlease answer the question below to continue:`;
+      return `${baseAIInfo}${returnPrompt}`;
+    }
+    return baseAIInfo;
+  }
+
+  // 5. Context-aware fallback: Check if user already provided key information
+  const knownFacts: string[] = [];
+  if (category) knownFacts.push(`Loan Type: ${category}`);
+  if (pincode) knownFacts.push(`Pincode: ${pincode}`);
+  if (income) knownFacts.push(`Income: ${income}`);
+  if (occupation) knownFacts.push(`Occupation: ${occupation}`);
+
+  if (lang === 'mr') {
+    let reply = `नमस्कार ${customerName}! `;
+    if (knownFacts.length > 0) {
+      reply += `आमच्याकडे तुमची खालील माहिती आधीच नोंदवलेली आहे:\n- ${knownFacts.join("\n- ")}\n\n`;
+    }
+    reply += `तुम्हाला कर्जाविषयी (व्याजदर, पात्रता, आवश्यक कागदपत्रे, प्रोसेसिंग वेळ) अधिक माहिती हवी असल्यास सांगा, किंवा आमच्या टीमशी ७०२०६४६००७ वर संपर्क साधा.`;
+    return reply;
+  } else if (lang === 'hi') {
+    let reply = `नमस्कार ${customerName}! `;
+    if (knownFacts.length > 0) {
+      reply += `हमारे पास आपकी निम्नलिखित जानकारी पहले से दर्ज है:\n- ${knownFacts.join("\n- ")}\n\n`;
+    }
+    reply += `यदि आप लोन (ब्याज दर, दस्तावेज, पात्रता) के बारे में जानना चाहते हैं तो बताएं या हमारी टीम को 7020646007 पर कॉल करें।`;
+    return reply;
+  } else {
+    let reply = `Hello ${customerName}! `;
+    if (knownFacts.length > 0) {
+      reply += `We have the following details recorded for you:\n- ${knownFacts.join("\n- ")}\n\n`;
+    }
+    reply += `Feel free to ask about loan interest rates, documents, eligibility, or call us at 7020646007 for assistance.`;
+    return reply;
+  }
+}
+
+/**
  * A typed answer mapped onto one of a question's options.
  *
  * The keyword lists below stay in code rather than moving to the flow editor:
@@ -766,18 +917,65 @@ async function deleteSession(phone: string) {
   await firestoreFetch(url, { method: 'DELETE' });
 }
 
+// Helper to parse Firestore REST document fields into a structured lead record
+function parseLeadDoc(doc: any) {
+  const fields = doc.fields || {};
+  const id = doc.name.split("/").pop() || "";
+  
+  let responses: Record<string, string> = {};
+  if (fields.responses?.stringValue) {
+    try {
+      responses = JSON.parse(fields.responses.stringValue);
+    } catch (e) {}
+  }
+
+  // Extract direct fields from document into responses if missing
+  const directFields = [
+    'pincode', 'location', 'city', 'state', 'district', 'subdistrict', 'taluka',
+    'employmentType', 'occupation', 'monthlyIncome', 'cibilScore', 'existingLoanEmi',
+    'existingLoanDetails', 'loanAmount', 'propertyValue', 'homeLoanPurpose',
+    'businessName', 'businessVintage', 'annualTurnover', 'insuranceType', 'age', 'type', 'category'
+  ];
+
+  for (const f of directFields) {
+    if (fields[f]?.stringValue && !responses[f]) {
+      responses[f] = fields[f].stringValue;
+    }
+  }
+
+  return {
+    id,
+    name: fields.name?.stringValue || fields.fullName?.stringValue || "Customer",
+    phone: fields.phone?.stringValue || fields.mobile?.stringValue || "",
+    status: fields.status?.stringValue || "New Lead",
+    category: fields.type?.stringValue || fields.category?.stringValue || "Loan Application",
+    language: fields.language?.stringValue || "English",
+    botMuted: fields.botMuted?.booleanValue === true,
+    assignedTo: fields.assignedTo?.stringValue || "",
+    assignedToName: fields.assignedToName?.stringValue || "",
+    responses
+  };
+}
+
 // CRM Helper: Checks if a lead with this phone number already exists
 async function findExistingLead(phone: string) {
+  if (!phone) return null;
+  const clean = phone.replace(/\D/g, '');
+  if (!clean) return null;
+
+  const phone10 = clean.length === 12 && clean.startsWith('91') ? clean.substring(2) : (clean.length === 10 ? clean : clean);
+  const searchPhones = Array.from(new Set([phone10, `91${phone10}`, `+91${phone10}`, phone, clean]));
+
   const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery?key=${FIREBASE_API_KEY}`;
   
-  const getQueryForPhone = (ph: string) => ({
+  const getQueryForField = (fieldPath: string, value: string) => ({
     structuredQuery: {
       from: [{ collectionId: "leads" }],
       where: {
         fieldFilter: {
-          field: { fieldPath: "phone" },
+          field: { fieldPath },
           op: "EQUAL",
-          value: { stringValue: ph }
+          value: { stringValue: value }
         }
       },
       limit: 1
@@ -785,41 +983,32 @@ async function findExistingLead(phone: string) {
   });
 
   try {
-    let res = await firestoreFetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(getQueryForPhone(phone))
-    });
-    if (!res.ok) return null;
-    let result = await res.json();
-    
-    // Fallback: If not found and phone is 10 digits, search with "91" prefix for legacy leads
-    if ((!result || result.length === 0 || !result[0].document) && phone.length === 10) {
-      const legacyPhone = "91" + phone;
+    for (const ph of searchPhones) {
+      // 1. Check phone field
+      let res = await firestoreFetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(getQueryForField("phone", ph))
+      });
+      if (res.ok) {
+        let result = await res.json();
+        if (result && result.length > 0 && result[0].document) {
+          return parseLeadDoc(result[0].document);
+        }
+      }
+
+      // 2. Check mobile field
       res = await firestoreFetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(getQueryForPhone(legacyPhone))
+        body: JSON.stringify(getQueryForField("mobile", ph))
       });
       if (res.ok) {
-        result = await res.json();
+        let result = await res.json();
+        if (result && result.length > 0 && result[0].document) {
+          return parseLeadDoc(result[0].document);
+        }
       }
-    }
-
-    if (result && result.length > 0 && result[0].document) {
-      const doc = result[0].document;
-      return {
-        id: doc.name.split("/").pop() || "",
-        name: doc.fields?.name?.stringValue || "Customer",
-        status: doc.fields?.status?.stringValue || "New Lead",
-        category: doc.fields?.type?.stringValue || doc.fields?.category?.stringValue || "Loan Application",
-        language: doc.fields?.language?.stringValue || "English",
-        botMuted: doc.fields?.botMuted?.booleanValue === true,
-        // Carried so a muted-bot message can be routed to the right staff member
-        // without a second read of the same document.
-        assignedTo: doc.fields?.assignedTo?.stringValue || "",
-        assignedToName: doc.fields?.assignedToName?.stringValue || ""
-      };
     }
   } catch (err) {
     console.error("Error finding existing lead in CRM:", err);
@@ -828,6 +1017,16 @@ async function findExistingLead(phone: string) {
 }
 
 async function createLead(data: Record<string, string>, pendingPromises?: Promise<any>[]): Promise<string> {
+  const phone = data.phone || data.mobile || data.mobileNumber || '';
+  if (phone) {
+    const existing = await findExistingLead(phone);
+    if (existing) {
+      console.log(`[createLead] Idempotency check: Lead already exists (${existing.id}) for phone ${phone}. Updating existing lead.`);
+      await updateLead(existing.id, data);
+      return existing.id;
+    }
+  }
+
   const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/leads?key=${FIREBASE_API_KEY}`;
   const fields: Record<string, any> = {};
   for (const [k, v] of Object.entries(data)) {
@@ -1336,33 +1535,40 @@ async function handleWebhookRequest(request: Request, pendingPromises: Promise<a
         let statusMsg = "";
         if (lang === 'mr') {
           const categoryPhrase = isLanding ? "कर्जाच्या अर्जाची" : `${locCategory} च्या कर्जाच्या अर्जाची`;
-          statusMsg = `👋 नमस्कार *${lead.name}*!\n\nतुमच्या *${categoryPhrase}* सद्यस्थिती (Status) *${locStatus}* अशी आहे.\n\nतुम्हाला अजून काही मदत पाहिजे का? कृपया तुमचा प्रश्न येथे टाईप करा (उदा. व्याजदर, कागदपत्रे) किंवा नवीन कर्जासाठी *new loan* लिहा.`;
+          statusMsg = `👋 नमस्कार *${lead.name}*!\n\nतुमच्या *${categoryPhrase}* सद्यस्थिती (Status) *${locStatus}* अशी आहे.\n\nमी तुम्हाला कशी मदत करू शकतो? कृपया तुमचा प्रश्न येथे टाईप करा (उदा. व्याजदर, कागदपत्रे, मुदत इ.).`;
         } else if (lang === 'hi') {
           const categoryPhrase = isLanding ? "लोन आवेदन" : `${locCategory} के आवेदन`;
-          statusMsg = `👋 नमस्कार *${lead.name}*!\n\nहमें आपके *${categoryPhrase}* की स्थिति (Status) *${locStatus}* मिली है।\n\nक्या आपको और कोई मदद चाहिए? कृपया अपना प्रश्न यहाँ लिखें (जैसे: ब्याज दर, आवश्यक दस्तावेज) या फिर से आवेदन करने के लिए *new loan* लिखें।`;
+          statusMsg = `👋 नमस्कार *${lead.name}*!\n\nआपके *${categoryPhrase}* की स्थिति (Status) *${locStatus}* है।\n\nक्या मैं आपकी कोई मदद कर सकता हूँ? कृपया अपना प्रश्न यहाँ लिखें (जैसे: ब्याज दर, आवश्यक दस्तावेज)।`;
         } else {
           const categoryPhrase = isLanding ? "loan application" : `application for *${locCategory}*`;
-          statusMsg = `👋 Hello *${lead.name}*!\n\nWe found your existing *${categoryPhrase}*.\n\n📊 *Status:* ${locStatus}\n\nDo you need any further help? Please type your query (e.g. interest rate, required documents) or reply *new loan* to apply again.`;
+          statusMsg = `👋 Hello *${lead.name}*!\n\nWe found your existing *${categoryPhrase}*.\n\n📊 *Status:* ${locStatus}\n\nHow can I help you today? Please type your query (e.g. interest rate, required documents).`;
         }
         
         // Log incoming customer message linked to existing lead
         await saveWAMessage(from, displayText, 'customer', lead.name, lead.id, mediaType, mediaUrl, filename, mediaId);
         
-        await sendWA(from, statusMsg, lead.id);
+        // If customer's message is a specific question, answer directly using loan AI responder
+        const aiReply = localLoanAIResponder(text, lang);
+        const isUnknown = aiReply.includes("समजले नाही") || aiReply.includes("नहीं आया") || aiReply.includes("did not get");
+        if (!isUnknown) {
+          await sendWA(from, aiReply, lead.id);
+        } else {
+          await sendWA(from, statusMsg, lead.id);
+        }
         
-        // Start session in step 99 (support mode)
+        // Start session in step 99 (support mode) preserving all stored lead responses
         await saveSession(from, {
           step: 99,
           category: lead.category,
           name: lead.name,
-          responses: { leadId: lead.id },
+          responses: { ...(lead.responses || {}), leadId: lead.id },
           language: lang,
           leadId: lead.id
         });
         return NextResponse.json({ ok: true });
       }
 
-      // No existing lead: Start fresh flow
+      // No existing lead: Start fresh flow for BRAND NEW CUSTOMER ONLY
       const referral = msg.referral;
       const initialResponses: Record<string, string> = {};
       if (referral) {
@@ -1404,33 +1610,20 @@ async function handleWebhookRequest(request: Request, pendingPromises: Promise<a
 
     // ── Step 99: Existing Lead Support Mode ──
     if (session.step === 99) {
-      const restartKeywords = ["new loan", "apply", "start again", "restart", "नवीन कर्ज", "नया लोन", "आवेदन", "पुन्हा सुरू करा"];
-      if (restartKeywords.some(kw => text.toLowerCase().includes(kw))) {
-        await deleteSession(from);
-        
-        // Start fresh flow
-        const leadId = await createLead({
-          phone: from,
-          source: 'WhatsApp Automation',
-          category: 'Whatsapp ads',
-          details: generateDetailsText({ name: "", category: "", language: "mr", responses: {} }),
-          language: 'Marathi'
-        }, pendingPromises);
-        
-        const welcomeMsg = say(botMessages, "welcome", "mr");
-        await sendWA(from, welcomeMsg, leadId);
-        await saveSession(from, { step: 2, category: '', name: '', responses: {}, language: 'mr', leadId });
-        return NextResponse.json({ ok: true });
-      }
-
-      // Parse request using the local AI/loan info responder
-      const aiReply = localLoanAIResponder(text, lang);
+      const existingLeadDoc = await findExistingLead(from);
+      const aiReply = await contextAwareAIResponder({
+        text,
+        lang,
+        phone: from,
+        leadData: existingLeadDoc?.data,
+        session,
+      });
       
-      const followUpText = ( {
-        en: `\n\nIs there anything else I can help you with? (Or reply *new loan* to apply again)`,
-        hi: `\n\nक्या मैं आपकी किसी और चीज़ में सहायता कर सकता हूँ? (या दोबारा आवेदन करने के लिए *new loan* लिखें)`,
-        mr: `\n\nमी तुम्हाला अजून काही मदत करू शकतो का? (किंवा नवीन कर्जासाठी *new loan* लिहा)`
-      } as Record<string, string> )[lang] || `\n\nNeed any more help?`;
+      const followUpText = ({
+        en: `\n\nIs there anything else I can help you with?`,
+        hi: `\n\nक्या मैं आपकी किसी और चीज़ में सहायता कर सकता हूँ?`,
+        mr: `\n\nमी तुम्हाला अजून काही मदत करू शकतो का?`
+      } as Record<string, string>)[lang] || `\n\nNeed any more help?`;
 
       await sendWA(from, `${aiReply}${followUpText}`, session.leadId);
       return NextResponse.json({ ok: true });
@@ -1440,7 +1633,14 @@ async function handleWebhookRequest(request: Request, pendingPromises: Promise<a
     if (session.step === 1) {
       const langKey = text;
       if (langKey !== '1' && langKey !== '2' && langKey !== '3') {
-        const aiReply = localLoanAIResponder(text, 'en');
+        const existingLeadDoc = await findExistingLead(from);
+        const aiReply = await contextAwareAIResponder({
+          text,
+          lang: 'mr',
+          phone: from,
+          leadData: existingLeadDoc?.data,
+          session,
+        });
         await sendWA(from, `${aiReply}\n\n*Please select your language:*`, session.leadId);
         await sendWA(from, langInteractive, session.leadId);
         return NextResponse.json({ ok: true });
@@ -1494,7 +1694,14 @@ async function handleWebhookRequest(request: Request, pendingPromises: Promise<a
       const offered = menuFlows(config);
       const num = parseInt(text) - 1;
       if (isNaN(num) || num < 0 || num >= offered.length) {
-        const aiReply = localLoanAIResponder(text, lang);
+        const existingLeadDoc = await findExistingLead(from);
+        const aiReply = await contextAwareAIResponder({
+          text,
+          lang,
+          phone: from,
+          leadData: existingLeadDoc?.data,
+          session,
+        });
         await sendWA(from, aiReply, session.leadId);
         await sendWA(from, getCategoryListPayload(config, lang, session.name), session.leadId);
         return NextResponse.json({ ok: true });
@@ -1585,7 +1792,15 @@ async function handleWebhookRequest(request: Request, pendingPromises: Promise<a
       }
 
       if (!isClassified) {
-        const aiReply = localLoanAIResponder(text, lang);
+        const existingLeadDoc = await findExistingLead(from);
+        const aiReply = await contextAwareAIResponder({
+          text,
+          lang,
+          phone: from,
+          leadData: existingLeadDoc?.data,
+          session,
+          currentQ,
+        });
         await sendWA(from, aiReply, session.leadId);
         await sendWA(from, getQuestionPayload(botMessages, lang, currentQ), session.leadId);
         return NextResponse.json({ ok: true });

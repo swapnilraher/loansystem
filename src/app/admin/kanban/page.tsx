@@ -48,7 +48,6 @@ const COLUMNS = [
   STATUS_SYSTEM_QUALIFIED,
   "Contacted",
   "Interested",
-  "Documents Pending",
   "Login to Bank",
   "Sanctioned",
   STATUS_PENDING_APPROVAL,

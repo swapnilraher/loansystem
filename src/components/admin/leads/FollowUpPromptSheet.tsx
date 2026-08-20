@@ -1,10 +1,10 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useMemo, useState } from "react"
 import { Clock } from "lucide-react"
 import { AdminButton, Sheet } from "@/components/admin/ui"
-import { Field, TextArea, TextInput } from "./fields"
-import { leadName } from "./leadFilters"
+import { Field, Select, TextArea, TextInput } from "./fields"
+import { leadName, STATUS_LABELS, STATUS_OPTIONS } from "./leadFilters"
 import type { Lead } from "@/lib/hooks/useLeads"
 
 export interface FollowUpPrompt {
@@ -17,7 +17,7 @@ interface FollowUpPromptSheetProps {
   onClose: () => void
   onSave: (
     lead: Lead,
-    input: { type: string; remark: string; followUpDate: string; followUpReason: string }
+    input: { type: string; remark: string; followUpDate: string; followUpReason: string; status?: string }
   ) => Promise<void>
 }
 
@@ -29,6 +29,7 @@ export function FollowUpPromptSheet({ prompt, onClose, onSave }: FollowUpPromptS
   const [remark, setRemark] = useState("")
   const [date, setDate] = useState("")
   const [reason, setReason] = useState("")
+  const [status, setStatus] = useState("")
   const [saving, setSaving] = useState(false)
   const [seededFor, setSeededFor] = useState<string | null>(null)
 
@@ -37,7 +38,16 @@ export function FollowUpPromptSheet({ prompt, onClose, onSave }: FollowUpPromptS
     setRemark("")
     setDate("")
     setReason("")
+    setStatus(prompt.lead.status || "New Lead")
   }
+
+  const availableStatuses = useMemo(() => {
+    const opts = [...STATUS_OPTIONS]
+    if (prompt?.lead.status && !opts.includes(prompt.lead.status as any)) {
+      opts.unshift(prompt.lead.status as any)
+    }
+    return opts
+  }, [prompt?.lead.status])
 
   const save = async () => {
     if (!prompt || !remark.trim()) return
@@ -48,6 +58,7 @@ export function FollowUpPromptSheet({ prompt, onClose, onSave }: FollowUpPromptS
         remark: remark.trim(),
         followUpDate: date,
         followUpReason: reason,
+        status: status || prompt.lead.status,
       })
       onClose()
     } catch (e) {
@@ -86,6 +97,16 @@ export function FollowUpPromptSheet({ prompt, onClose, onSave }: FollowUpPromptS
       }
     >
       <div className="space-y-4">
+        <Field label="Lead Status (लीड स्थिती)">
+          <Select value={status} onChange={e => setStatus(e.target.value)}>
+            {availableStatuses.map(st => (
+              <option key={st} value={st}>
+                {st}
+              </option>
+            ))}
+          </Select>
+        </Field>
+
         <Field label="रिमार्क (Remark) / चर्चा">
           <TextArea
             autoFocus

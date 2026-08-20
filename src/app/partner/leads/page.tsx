@@ -18,15 +18,12 @@ import { BulkUploadModal } from "@/components/ui/BulkUploadModal"
 const STATUS_COLORS: any = {
   'New Lead': 'bg-blue-50 text-blue-600 border-blue-100',
   'Contacted': 'bg-indigo-50 text-indigo-600 border-indigo-100',
-  'Documents Pending': 'bg-orange-50 text-orange-600 border-orange-100',
-  'Under Process': 'bg-slate-50 text-slate-600 border-slate-100',
   'Login to Bank': 'bg-cyan-50 text-cyan-600 border-cyan-100',
   'Approved': 'bg-emerald-50 text-emerald-600 border-emerald-100',
   'Sanctioned': 'bg-green-50 text-green-600 border-green-100',
   'Disbursement Approval Pending': 'bg-amber-100 text-amber-700 border-amber-200',
   'Disbursed': 'bg-green-100 text-green-700 border-green-200',
   'Rejected': 'bg-rose-50 text-rose-600 border-rose-100',
-  'Not Interested': 'bg-slate-100 text-slate-500 border-slate-200',
 }
 
 /** Internal workflow states shown to connectors in plainer language. */

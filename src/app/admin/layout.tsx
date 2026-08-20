@@ -265,12 +265,9 @@ export default function AdminLayout({
       if (!user) {
         // Not logged in at all, redirect to admin login page
         router.push("/admin/login")
-      } else if (!adminRole && !accountDisabled) {
-        // Logged in but not an authorized admin, redirect to homepage
-        router.push("/")
       }
     }
-  }, [user, adminRole, accountDisabled, loading, router, pathname])
+  }, [user, loading, router, pathname])
 
   if (pathname === "/admin/login") {
     // No `justify-center` here: the page centres its own card with auto
@@ -303,9 +300,40 @@ export default function AdminLayout({
     )
   }
 
-  // Permission verification check
-  if (loading || (!adminRole && pathname !== "/admin/login")) {
+  // Loading state check
+  if (loading) {
     return <AdminSplash />
+  }
+
+  // Strict Role-Based Access Control: Normal website user attempts to access Admin Panel
+  if (user && !adminRole) {
+    return (
+      <div className="admin-root min-h-dvh flex flex-col items-center justify-center bg-admin-bg gap-4 px-6 text-center">
+        <div className="w-14 h-14 rounded-admin-lg bg-tone-danger border border-tone-danger-bd flex items-center justify-center">
+          <ShieldCheck className="text-tone-danger-fg" size={28} />
+        </div>
+        <div className="max-w-md space-y-2">
+          <h1 className="text-admin-2xl font-bold text-admin-text">Access Denied (अ‍ॅक्सेस नाकारला)</h1>
+          <p className="text-admin-sm text-admin-muted leading-relaxed">
+            तुम्हाला अ‍ॅडमिन पॅनेल वापरण्याची परवानगी नाही. Admin panel access is strictly reserved for authorized staff.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 mt-2">
+          <Link
+            href="/dashboard"
+            className="admin-focus h-10 px-5 inline-flex items-center bg-admin-accent text-admin-accent-fg rounded-admin-sm text-admin-sm font-semibold hover:bg-admin-accent-hover transition-colors"
+          >
+            User Dashboard वर जा
+          </Link>
+          <button
+            onClick={logout}
+            className="admin-focus h-10 px-5 inline-flex items-center bg-admin-surface border border-admin-border text-admin-text rounded-admin-sm text-admin-sm font-semibold hover:bg-admin-surface-2 transition-colors"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (

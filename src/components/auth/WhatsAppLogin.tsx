@@ -44,7 +44,7 @@ export function WhatsAppLogin({ isOpen, onClose }: WhatsAppLoginProps) {
   }, [step, profile, phoneNumber]);
 
   useEffect(() => {
-    if (user && profile) {
+    if (isOpen && user && profile) {
       const isComplete = profile.panName && profile.city && (profile.email || profile.mobile);
       if (isComplete) {
         onClose();
@@ -53,7 +53,7 @@ export function WhatsAppLogin({ isOpen, onClose }: WhatsAppLoginProps) {
         setStep("completion");
       }
     }
-  }, [user, profile, router, onClose]);
+  }, [isOpen, user, profile, router, onClose]);
 
   const handleGoogleLogin = async () => {
     setLoading(true);
