@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, onSnapshot, orderBy, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '@/context/AuthContext';
-import { can } from '@/lib/permissions';
+import { can, canSeeLead } from '@/lib/permissions';
+import { useViewerIdentity } from '@/lib/hooks/useViewerIdentity';
 
 export interface Lead {
   id: string;
@@ -147,6 +148,7 @@ export interface UseLeadsOptions {
  */
 export function useLeads(options: UseLeadsOptions = {}) {
   const { role } = useAuth();
+  const viewer = useViewerIdentity();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -169,7 +171,11 @@ export function useLeads(options: UseLeadsOptions = {}) {
         ...doc.data()
       })) as Lead[];
       
-      setLeads(leadsArray);
+      const scopedLeads = can(role, 'leads:viewAll')
+        ? leadsArray
+        : leadsArray.filter(lead => canSeeLead(role, lead, viewer));
+
+      setLeads(scopedLeads);
       setLoading(false);
     }, (err) => {
       console.error("Firestore error:", err);
@@ -178,7 +184,7 @@ export function useLeads(options: UseLeadsOptions = {}) {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [role, viewer]);
 
   return { leads: visibleLeads, loading, error, canSeeDeleted };
 }
