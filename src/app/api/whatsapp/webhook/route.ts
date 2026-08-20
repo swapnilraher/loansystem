@@ -365,22 +365,51 @@ async function completeQualification(
   const categoryLocalized = pick(flow?.label, lang) || session.category;
 
   const qualifiedAt = new Date().toISOString();
+  const qualSummary = qualificationSummary(session.responses);
 
   await updateLead(session.leadId, {
     status: STATUS_SYSTEM_QUALIFIED,
     qualifiedAt,
-    qualificationDetails: qualificationSummary(session.responses),
-    /**
-     * The leads table ranks on `statusUpdatedAt`. Setting a status without it
-     * would drop a lead that qualified thirty seconds ago to the bottom of the
-     * list, under files nobody has touched in weeks.
-     *
-     * An ISO string rather than a Firestore timestamp because `updateLead`
-     * sends every field as `stringValue` — `toDate` in `@/lib/dates` reads both
-     * shapes, so the CRM cannot tell the difference.
-     */
+    qualificationDetails: qualSummary,
     statusUpdatedAt: qualifiedAt,
+    responses: JSON.stringify(session.responses || {}),
   });
+
+  // Log qualification activity in lead timeline
+  try {
+    const actUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/lead_activities?key=${FIREBASE_API_KEY}`;
+    await firestoreFetch(actUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fields: {
+          leadId: { stringValue: session.leadId },
+          type: { stringValue: 'Status Change' },
+          note: { stringValue: `WhatsApp Bot qualified lead as System Qualified (${session.category}). Summary: ${qualSummary}` },
+          userName: { stringValue: 'WhatsApp Bot' },
+          manual: { booleanValue: false },
+          timestamp: { timestampValue: qualifiedAt }
+        }
+      })
+    });
+  } catch (actErr) {
+    console.error("Error logging qualification activity:", actErr);
+  }
+
+  // Trigger push notification to admins & staff for newly qualified lead
+  try {
+    await sendLeadNotificationToAdmins({
+      id: session.leadId,
+      name: session.name || 'Customer',
+      phone,
+      type: session.category,
+      status: STATUS_SYSTEM_QUALIFIED,
+      qualificationDetails: qualSummary,
+      ...session.responses
+    });
+  } catch (notifErr) {
+    console.error("Error sending notification for qualified lead:", notifErr);
+  }
 
   // Which promise is honest depends on the hour — see `callbackWindow`.
   const closingKey: MessageKey = {
