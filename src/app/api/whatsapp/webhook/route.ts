@@ -629,37 +629,109 @@ async function contextAwareAIResponder({
   currentQ
 }: AIContextParams): Promise<string> {
   const lower = text.toLowerCase().trim();
-  const customerName = leadData?.name || leadData?.fullName || leadData?.panName || session?.name || "Customer";
+  const customerName = leadData?.name || leadData?.fullName || leadData?.panName || session?.name || "";
   const category = leadData?.type || leadData?.loanType || session?.category || session?.responses?.category || "";
-  const pincode = leadData?.pincode || session?.responses?.pincode || leadData?.pinCity || "";
-  const income = leadData?.monthlyIncome || leadData?.salary || session?.responses?.monthlyIncome || session?.responses?.salary || "";
-  const occupation = leadData?.occupation || session?.responses?.occupation || session?.responses?.employmentType || "";
   const status = leadData?.status || "New Lead";
+  const leadId = session?.leadId || leadData?.id;
 
   // 1. Fetch recent chat history from Firestore for full conversation memory
   const chatHistory = await getRecentChatHistory(phone, 8);
+  const lastBotMessage = [...chatHistory].reverse().find(m => m.sender === 'bot' || m.sender === 'staff')?.text.toLowerCase() || "";
 
-  // 2. Check if customer is asking "What next?" / "Aata pudhe kay karaych?" / "Status"
-  const isAskingNextStep = ["आगे क्या करना है", "पुढे काय करायचे", "aata pudhe kay", "what next", "next step", "status", "माझ्या अर्जाचे काय झाले", "कधी मिळणार", "kab milega"].some(kw => lower.includes(kw));
-  
-  if (isAskingNextStep) {
-    if (status === "System Qualified" || status === "Bank Processing" || status === "Approved" || status === "Disbursed") {
-      if (lang === 'mr') {
-        return `नमस्कार ${customerName}! तुमचा ${category || 'कर्जाचा'} अर्ज आमच्या सिस्टीममध्ये आधीच नोंदवला गेला आहे (स्टेटस: ${status}). आमची टीम सध्या तुमच्या प्रोफाइलनुसार बँक ऑफर तपासत आहे. आमचे लोन मॅनेजर लवकरच तुमच्याशी संपर्क साधतील.`;
-      } else if (lang === 'hi') {
-        return `नमस्कार ${customerName}! आपका ${category || 'ऋण'} आवेदन सफलतापूर्वक पंजीकृत हो चुका है (स्टेटस: ${status})। हमारी टीम आपके प्रोफ़ाइल का सत्यापन कर रही है। हमारे प्रतिनिधि जल्द ही आपसे संपर्क करेंगे।`;
-      } else {
-        return `Hello ${customerName}! Your ${category || 'loan'} application has been successfully submitted (Status: ${status}). Our team is evaluating bank offers for your profile and will contact you shortly.`;
+  // 2. STOP / Opt-Out Detection (Rule #31)
+  const isOptOut = ["stop", "don't contact", "message karu naka", "नको message", "मेसेज करू नका", "नको"].some(kw => lower === kw || lower.includes("message karu naka"));
+  if (isOptOut) {
+    if (leadId) {
+      await updateLead(leadId, { communicationStatus: "OPTED_OUT" });
+    }
+    return {
+      mr: "ठीक आहे. पुढील संदेश पाठवले जाणार नाहीत. धन्यवाद!",
+      hi: "ठीक है। आगे कोई संदेश नहीं भेजा जाएगा। धन्यवाद!",
+      en: "Understood. No further messages will be sent. Thank you!"
+    }[lang] || "Understood. No further messages will be sent. Thank you!";
+  }
+
+  // 3. Human Agent / Call Request (Rule #18, #19, #36)
+  const isAgentRequest = ["agent", "call kara", "कॉल करा", "executive", "representative", "human agent", "बोलणे आहे", "प्रतिनिधी", "कॉल", "call me"].some(kw => lower.includes(kw));
+  if (isAgentRequest) {
+    if (leadId) {
+      await updateLead(leadId, {
+        status: "HUMAN_AGENT_REQUESTED",
+        followUpReason: "Customer requested human agent call",
+        statusUpdatedAt: new Date().toISOString()
+      });
+    }
+    return {
+      mr: "नक्की 👍 मी तुमची enquiry आमच्या loan consultant कडे पाठवत आहे. आमची टीम लवकरच तुमच्याशी संपर्क साधेल.",
+      hi: "निश्चित रूप से 👍 मैं आपका आवेदन हमारे ऋण सलाहकार को भेज रहा हूँ। हमारी टीम जल्द ही आपसे संपर्क करेगी।",
+      en: "Sure 👍 I am routing your request to our loan consultant. Our team will contact you shortly."
+    }[lang] || "Sure 👍 I am routing your request to our loan consultant. Our team will contact you shortly.";
+  }
+
+  // 4. Contextual YES / NO handling (Rule #8, #9, #10)
+  const isYes = ["हो", "yes", "ok", "okay", "नक्की", "बरं", "होय", "हाँ"].some(kw => lower === kw);
+  const isNo = ["नाही", "no", "nope", "नको", "नाहीये", "नहीं"].some(kw => lower === kw);
+
+  if (isNo) {
+    return {
+      mr: "ठीक आहे 👍 काही गरज भासल्यास आम्हाला कधीही संदेश पाठवा. धन्यवाद!",
+      hi: "ठीक है 👍 यदि आपको किसी सहायता की आवश्यकता हो तो हमें कभी भी संदेश भेजें। धन्यवाद!",
+      en: "Alright 👍 Feel free to message us anytime if you need help. Thank you!"
+    }[lang] || "Alright 👍 Feel free to message us anytime if you need help. Thank you!";
+  }
+
+  if (isYes) {
+    if (lastBotMessage.includes("consultant") || lastBotMessage.includes("टीम") || lastBotMessage.includes("संपर्क")) {
+      if (leadId) {
+        await updateLead(leadId, {
+          status: "HUMAN_AGENT_REQUESTED",
+          followUpReason: "Customer agreed to agent call",
+          statusUpdatedAt: new Date().toISOString()
+        });
       }
+      return {
+        mr: "नक्की 👍 मी तुमची enquiry आमच्या loan consultant कडे पाठवतो. आमची टीम तुमच्याशी संपर्क साधेल.",
+        hi: "निश्चित रूप से 👍 मैं आपका अनुरोध हमारे ऋण सलाहकार को भेज रहा हूँ। हमारी टीम आपसे संपर्क करेगी।",
+        en: "Sure 👍 I have forwarded your request to our loan consultant. Our team will reach out to you."
+      }[lang] || "Sure 👍 I have forwarded your request to our loan consultant. Our team will reach out to you.";
     }
   }
 
-  // 3. Evaluate query topic using localLoanAIResponder (rule-based NLP)
+  // 5. New Loan Intent (Rule #2 & #11 - Strict ban on dumping known facts summary list)
+  const isNewLoanIntent = ["new loan", "नवीन कर्ज", "नवीन लोन", "loan पाहिजे", "loan हवा आहे", "कर्ज पाहिजे"].some(kw => lower.includes(kw));
+  if (isNewLoanIntent) {
+    if (category) {
+      return {
+        mr: `नक्की 👍 तुमच्या ${category} enquiry साठी पुढे जाऊया. तुम्हाला अंदाजे किती loan amount हवा आहे?`,
+        hi: `निश्चित रूप से 👍 आपके ${category} आवेदन को आगे बढ़ाते हैं। आपको लगभग कितनी ऋण राशि चाहिए?`,
+        en: `Sure 👍 Let's continue with your ${category} application. How much loan amount do you require?`
+      }[lang] || `Sure 👍 How much loan amount do you require for your ${category}?`;
+    }
+    return {
+      mr: "नक्की 👍 नवीन loan साठी मी मदत करतो. तुम्हाला कोणत्या प्रकारचे loan हवे आहे?",
+      hi: "निश्चित रूप से 👍 मैं नए लोन में आपकी मदद करूँगा। आपको किस प्रकार का लोन चाहिए?",
+      en: "Sure 👍 I can help you with a new loan. What type of loan are you looking for?"
+    }[lang] || "Sure 👍 What type of loan are you looking for?";
+  }
+
+  // 6. Check if customer is asking "What next?" / "Status"
+  const isAskingNextStep = ["आगे क्या करना है", "पुढे काय करायचे", "aata pudhe kay", "what next", "next step", "status", "माझ्या अर्जाचे काय झाले", "कधी मिळणार", "kab milega"].some(kw => lower.includes(kw));
+  if (isAskingNextStep) {
+    if (status === "System Qualified" || status === "Bank Processing" || status === "Approved" || status === "Disbursed") {
+      const nameGreeting = customerName ? ` ${customerName}` : "";
+      return {
+        mr: `नमस्कार${nameGreeting}! तुमचा ${category || 'कर्जाचा'} अर्ज आमच्या सिस्टीममध्ये आधीच नोंदवला गेला आहे (स्टेटस: ${status}). आमची टीम सध्या तुमच्या प्रोफाइलनुसार बँक ऑफर तपासत आहे. आमचे लोन मॅनेजर लवकरच तुमच्याशी संपर्क साधतील.`,
+        hi: `नमस्कार${nameGreeting}! आपका ${category || 'ऋण'} आवेदन पंजीकृत हो चुका है (स्टेटस: ${status})। हमारी टीम आपके प्रोफ़ाइल की समीक्षा कर रही है।`,
+        en: `Hello${nameGreeting}! Your ${category || 'loan'} application is registered (Status: ${status}). Our team is processing bank offers for you.`
+      }[lang] || `Your loan application is registered (Status: ${status}). Our team will contact you shortly.`;
+    }
+  }
+
+  // 7. Evaluate query topic using localLoanAIResponder (rule-based NLP)
   const baseAIInfo = localLoanAIResponder(text, lang);
 
-  // 4. If baseAIInfo gave a known response (not unknown), format it intelligently based on customer context
+  // 8. Format response intelligently without repetitive boilerplate (Rule #2, #14, #15, #16, #17, #37)
   if (baseAIInfo && !baseAIInfo.includes("मला तुमचे बोलणे पूर्णपणे समजले नाही") && !baseAIInfo.includes("I did not get your request") && !baseAIInfo.includes("मुझे आपके द्वारा भेजा गया संदेश समझ नहीं आया")) {
-    // If we are currently inside an active flow question, append current question prompt after answering the query!
     if (currentQ) {
       const returnPrompt = {
         mr: `\n\nआता तुमच्या कर्जाचा अर्ज पुढे नेण्यासाठी कृपया खालील प्रश्नाचे उत्तर द्या:`,
@@ -671,35 +743,12 @@ async function contextAwareAIResponder({
     return baseAIInfo;
   }
 
-  // 5. Context-aware fallback: Check if user already provided key information
-  const knownFacts: string[] = [];
-  if (category) knownFacts.push(`Loan Type: ${category}`);
-  if (pincode) knownFacts.push(`Pincode: ${pincode}`);
-  if (income) knownFacts.push(`Income: ${income}`);
-  if (occupation) knownFacts.push(`Occupation: ${occupation}`);
-
-  if (lang === 'mr') {
-    let reply = `नमस्कार ${customerName}! `;
-    if (knownFacts.length > 0) {
-      reply += `आमच्याकडे तुमची खालील माहिती आधीच नोंदवलेली आहे:\n- ${knownFacts.join("\n- ")}\n\n`;
-    }
-    reply += `तुम्हाला कर्जाविषयी (व्याजदर, पात्रता, आवश्यक कागदपत्रे, प्रोसेसिंग वेळ) अधिक माहिती हवी असल्यास सांगा, किंवा आमच्या टीमशी ७०२०६४६००७ वर संपर्क साधा.`;
-    return reply;
-  } else if (lang === 'hi') {
-    let reply = `नमस्कार ${customerName}! `;
-    if (knownFacts.length > 0) {
-      reply += `हमारे पास आपकी निम्नलिखित जानकारी पहले से दर्ज है:\n- ${knownFacts.join("\n- ")}\n\n`;
-    }
-    reply += `यदि आप लोन (ब्याज दर, दस्तावेज, पात्रता) के बारे में जानना चाहते हैं तो बताएं या हमारी टीम को 7020646007 पर कॉल करें।`;
-    return reply;
-  } else {
-    let reply = `Hello ${customerName}! `;
-    if (knownFacts.length > 0) {
-      reply += `We have the following details recorded for you:\n- ${knownFacts.join("\n- ")}\n\n`;
-    }
-    reply += `Feel free to ask about loan interest rates, documents, eligibility, or call us at 7020646007 for assistance.`;
-    return reply;
-  }
+  // 9. Clean Natural Fallback (No repetitive summary dumping)
+  return {
+    mr: "नक्की 👍 तुम्हाला कर्जाविषयी (व्याजदर, पात्रता, आवश्यक कागदपत्रे, प्रक्रियेची वेळ) काय माहिती हवी आहे? सांगा, मी मदत करतो.",
+    hi: "निश्चित रूप से 👍 आपको लोन के बारे में क्या जानकारी चाहिए (ब्याज दर, पात्रता, दस्तावेज)? मैं आपकी मदद करूँगा।",
+    en: "Sure 👍 How can I help you regarding loan interest rates, eligibility, or documents?"
+  }[lang] || "Sure 👍 How can I help you regarding loan details?";
 }
 
 /**
