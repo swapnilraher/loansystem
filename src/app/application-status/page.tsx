@@ -53,7 +53,7 @@ export default function ApplicationStatusPage() {
     } catch (err: any) {
       setError(err.message || "Unable to find application");
       setAppDetails(null);
-    } fontFinally: {
+    } finally {
       setLoading(false);
     }
   };

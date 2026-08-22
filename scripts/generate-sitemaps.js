@@ -8,8 +8,8 @@
 //   public/sitemap.xml  (master index)
 //   public/robots.txt
 
-import { writeFileSync, mkdirSync, readdirSync, statSync, existsSync } from 'fs';
-import { resolve, join } from 'path';
+const { writeFileSync, mkdirSync, readdirSync, statSync, existsSync } = require('fs');
+const { resolve, join } = require('path');
 
 const BASE = 'https://techstarsolution.in';
 const TODAY = new Date().toISOString().split('T')[0]; // e.g. 2026-06-18
