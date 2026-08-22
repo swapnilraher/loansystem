@@ -27,17 +27,34 @@ function parseCsv(csv: string) {
   });
 }
 
-// ─── Load data (server-side module scope) ────────────────────────────────────
-const rows        = parseCsv(fs.readFileSync(CSV_PATH, 'utf8'));
-const cityIntel   = JSON.parse(fs.readFileSync(CITY_INTEL_PATH, 'utf8')) as Record<string, any>;
-const varPool     = JSON.parse(fs.readFileSync(VARIATION_PATH,  'utf8')) as {
-  intro_variants:   string[];
-  benefit_variants: string[];
-  cta_variants:     string[];
+// ─── Load data safely ────────────────────────────────────────────────────────
+let rows: Record<string, string>[] = [];
+let cityIntel: Record<string, any> = {};
+let varPool: { intro_variants: string[]; benefit_variants: string[]; cta_variants: string[] } = {
+  intro_variants: ["{Loan_Type} in {City}"],
+  benefit_variants: ["Low interest rates for {Loan_Type}"],
+  cta_variants: ["Apply for {Loan_Type} in {City} today"],
 };
 
+try {
+  if (fs.existsSync(CSV_PATH)) {
+    rows = parseCsv(fs.readFileSync(CSV_PATH, 'utf8'));
+  }
+  if (fs.existsSync(CITY_INTEL_PATH)) {
+    cityIntel = JSON.parse(fs.readFileSync(CITY_INTEL_PATH, 'utf8'));
+  }
+  if (fs.existsSync(VARIATION_PATH)) {
+    varPool = JSON.parse(fs.readFileSync(VARIATION_PATH, 'utf8'));
+  }
+} catch (e) {
+  console.warn("Warning loading data files in [...slug]/page.tsx:", e);
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
+function pick<T>(arr: T[]): T {
+  if (!arr || arr.length === 0) return "" as unknown as T;
+  return arr[Math.floor(Math.random() * arr.length)];
+}
 
 function findRow(slugParts?: string[]) {
   if (!slugParts) return undefined;
