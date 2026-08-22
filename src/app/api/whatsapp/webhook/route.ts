@@ -1715,15 +1715,25 @@ async function handleWebhookRequest(request: Request, pendingPromises: Promise<a
     if (session.step === 1) {
       const langKey = text;
       if (langKey !== '1' && langKey !== '2' && langKey !== '3') {
+        // Answer the off-topic message, then re-show language buttons
         const existingLeadDoc = await findExistingLead(from);
-        const aiReply = await contextAwareAIResponder({
-          text,
-          lang: 'mr',
-          phone: from,
-          leadData: existingLeadDoc ?? null,
-          session,
-        });
-        await sendWA(from, `${aiReply}\n\n*Please select your language:*`, session.leadId);
+        const chatHistory1 = await getRecentChatHistory(from, 6);
+        let aiReply1 = "";
+        try {
+          const geminiRes1 = await generateGeminiLoanConsultantReply({
+            text,
+            phone: from,
+            lang: 'mr',
+            leadData: existingLeadDoc ?? null,
+            chatHistory: chatHistory1,
+            session,
+          });
+          aiReply1 = geminiRes1.customer_response || "";
+        } catch (err) {
+          console.error("[Step1] Gemini error:", err);
+        }
+        if (!aiReply1) aiReply1 = localLoanAIResponder(text, 'mr');
+        await sendWA(from, aiReply1, session.leadId);
         await sendWA(from, langInteractive, session.leadId);
         return NextResponse.json({ ok: true });
       }
@@ -1776,15 +1786,25 @@ async function handleWebhookRequest(request: Request, pendingPromises: Promise<a
       const offered = menuFlows(config);
       const num = parseInt(text) - 1;
       if (isNaN(num) || num < 0 || num >= offered.length) {
+        // Answer the off-topic message, then re-show the product menu
         const existingLeadDoc = await findExistingLead(from);
-        const aiReply = await contextAwareAIResponder({
-          text,
-          lang,
-          phone: from,
-          leadData: existingLeadDoc ?? null,
-          session,
-        });
-        await sendWA(from, aiReply, session.leadId);
+        const chatHistory3 = await getRecentChatHistory(from, 6);
+        let aiReply3 = "";
+        try {
+          const geminiRes3 = await generateGeminiLoanConsultantReply({
+            text,
+            phone: from,
+            lang,
+            leadData: existingLeadDoc ?? null,
+            chatHistory: chatHistory3,
+            session,
+          });
+          aiReply3 = geminiRes3.customer_response || "";
+        } catch (err) {
+          console.error("[Step3] Gemini error:", err);
+        }
+        if (!aiReply3) aiReply3 = localLoanAIResponder(text, lang);
+        await sendWA(from, aiReply3, session.leadId);
         await sendWA(from, getCategoryListPayload(config, lang, session.name), session.leadId);
         return NextResponse.json({ ok: true });
       }
@@ -1875,18 +1895,36 @@ async function handleWebhookRequest(request: Request, pendingPromises: Promise<a
 
       if (!isClassified) {
         const existingLeadDoc = await findExistingLead(from);
-        const aiReply = await contextAwareAIResponder({
-          text,
-          lang,
-          phone: from,
-          leadData: existingLeadDoc ?? null,
-          session,
-          currentQ,
-        });
+        const chatHistoryMid = await getRecentChatHistory(from, 6);
+
+        let aiReply = "";
+        try {
+          const geminiRes = await generateGeminiLoanConsultantReply({
+            text,
+            phone: from,
+            lang,
+            leadData: existingLeadDoc ?? null,
+            chatHistory: chatHistoryMid,
+            session,
+            currentQ,
+          });
+          aiReply = geminiRes.customer_response || "";
+        } catch (err) {
+          console.error("[Mid-flow] Gemini error:", err);
+        }
+
+        // Fallback if Gemini failed or returned empty
+        if (!aiReply) {
+          aiReply = localLoanAIResponder(text, lang);
+        }
+
+        // 1. Send the answer to the customer's question
         await sendWA(from, aiReply, session.leadId);
+        // 2. Re-ask the same pending flow question (DO NOT change session step)
         await sendWA(from, getQuestionPayload(botMessages, lang, currentQ), session.leadId);
         return NextResponse.json({ ok: true });
       }
+
 
       const updatedResponses = { ...session.responses, [currentQ.field]: answer };
 

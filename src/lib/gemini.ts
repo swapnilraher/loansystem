@@ -145,9 +145,9 @@ export async function generateGeminiLoanConsultantReply({
   if (!apiKey) {
     console.warn("[Gemini AI] GEMINI_API_KEY is not set in environment.");
     return {
-      customer_response: lang === "mr" 
-        ? "हो, समजलं. तुमच्यासाठी योग्य loan option समजून घेण्यासाठी मी मदत करतो. तुमचे वय किती आहे?"
-        : (lang === "hi" ? "जी, समझा। मैं आपके लिए सही लोन विकल्प समझने में मदद करता हूँ।" : "Understood. I can help you find the best loan option."),
+      customer_response: lang === "mr"
+        ? "माफ करा, AI सेवा सध्या उपलब्ध नाही. कृपया आमच्या टीमशी संपर्क करा: 7020646007"
+        : (lang === "hi" ? "क्षमा करें, AI सेवा अभी उपलब्ध नहीं है। कृपया हमारी टीम से संपर्क करें: 7020646007" : "Sorry, AI service is temporarily unavailable. Please contact our team: 7020646007"),
       crm_update: {},
     };
   }
@@ -185,9 +185,9 @@ ${formattedHistory || "No previous chat history."}
 Customer: "${text}"
 
 Task:
-1. Answer the customer's message as Swapnil (AI Loan Consultant) following the system prompt rules.
-2. If customer asks a question, answer it in 1 short sentence, then smoothly return to the pending question or next step.
-3. Extract ANY new details provided by the customer in "crm_update" (do not overwrite existing confirmed details unless customer updated them).
+1. Answer ONLY what the customer asked in "customer_response". Keep it to 1-2 sentences maximum.
+2. Do NOT include any redirect to the pending flow question in your answer — the system will re-ask it automatically after your response.
+3. If customer provides new details in their message, capture them in "crm_update".
 4. Return valid JSON only with keys: "customer_response", "crm_update", "next_required_field".
 `;
 
@@ -235,9 +235,9 @@ Task:
 
   // Graceful Fallback if API fails
   return {
-    customer_response: lang === "mr" 
-      ? "हो, समजलं. तुमच्यासाठी योग्य loan option समजून घेण्यासाठी मी मदत करतो. तुमचे वय किती आहे?"
-      : (lang === "hi" ? "जी, समझा। मैं आपके लिए सही लोन विकल्प समझने में मदद करता हूँ।" : "Understood. I can help you find the best loan option."),
+    customer_response: lang === "mr"
+      ? "माफ करा, AI सेवा सध्या respond करत नाही. कृपया थोड्या वेळाने पुन्हा प्रयत्न करा."
+      : (lang === "hi" ? "क्षमा करें, AI सेवा अभी respond नहीं कर रही। कृपया थोड़ी देर बाद पुनः प्रयास करें।" : "Sorry, AI is temporarily unavailable. Please try again shortly."),
     crm_update: {},
   };
 }
