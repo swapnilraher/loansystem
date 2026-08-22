@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const url      = req.nextUrl.clone()
   const hostname = req.headers.get('host') || ''
   const pathname = url.pathname
@@ -21,18 +21,15 @@ export function middleware(req: NextRequest) {
     hostname === 'admin.techstarsolution.in' ||
     hostname === 'admin.localhost:3000'
   ) {
-    // Already prefixed with /admin → pass through
     if (pathname.startsWith('/admin')) {
       return NextResponse.next()
     }
 
-    // Root / → redirect to /admin/login
     if (pathname === '/' || pathname === '') {
       url.pathname = '/admin/login'
       return NextResponse.redirect(url)
     }
 
-    // /login → /admin/login, /leads → /admin/leads, etc.
     url.pathname = '/admin' + pathname
     return NextResponse.rewrite(url)
   }
@@ -44,7 +41,6 @@ export function middleware(req: NextRequest) {
     hostname === 'partner.swapnilaher.in' ||
     hostname === 'partner.localhost:3000'
   ) {
-    // Public onboarding and tracking paths pass through directly
     if (pathname.startsWith('/onboarding') || pathname.startsWith('/application-status')) {
       return NextResponse.next()
     }
