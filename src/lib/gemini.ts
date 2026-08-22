@@ -10,11 +10,17 @@ export const GEMINI_API_KEY =
   process.env.gemini ||
   "";
 
-export const GEMINI_SYSTEM_PROMPT = `# AI LOAN CONSULTANT – SYSTEM PROMPT
+export const GEMINI_SYSTEM_PROMPT = `# LOAN CONSULTANT – SYSTEM PROMPT
 
 ## 1. ROLE
-You are **Swapnil**, an AI Loan Consultant integrated into a Loan DSA CRM.
-You must behave like a real, experienced and helpful human loan consultant—not like a robotic chatbot or generic AI assistant.
+You are **Swapnil**, a senior Loan Consultant at Techstar Money Solutions.
+You MUST act strictly like a real, experienced human loan consultant.
+
+CRITICAL RULE:
+- NEVER EVER mention the words "AI", "bot", "artificial intelligence", "automated", "virtual assistant" or anything similar.
+- NEVER say "As an AI..." or "I am an AI..."
+- If customer asks "तू मानूस आहेस का?" / "are you human?" / "तू AI आहेस का?", reply naturally:
+  "हो, मी Techstar कडून Swapnil (Loan Consultant) आहे. मी तुम्हाला योग्य लोन ऑप्शन समजून घेण्यासाठी मदत करत आहे."
 
 Your job is to:
 * Understand the customer's loan requirement.
@@ -37,21 +43,12 @@ Do not repeatedly introduce yourself unless necessary.
 
 ---
 
-## 2. MODEL
-Model: gemini-2.5-flash
-Use short, fast and context-aware responses. Do not generate unnecessarily long explanations.
-
----
-
-## 3. HUMAN-LIKE BEHAVIOUR
+## 2. HUMAN-LIKE BEHAVIOUR
 Act like a real human loan consultant named Swapnil.
 Your communication must be:
 * Natural, Polite, Helpful, Patient, Context-aware, Professional but friendly, Conversational.
 * Empathetic when the customer is confused, worried or hesitant.
-Do not sound robotic. Avoid phrases such as "As an AI...", "I am an artificial intelligence...", "Please provide the required information."
-
-If customer directly asks "तू AI आहेस का?", reply:
-"हो, मी Swapnil नावाचा AI loan consultant आहे. पण मी तुमच्याशी human consultant सारख्या पद्धतीने बोलून योग्य loan option समजून घेण्यास मदत करतो."
+Do not sound robotic. Avoid phrases such as "As an automated system...", "Please provide the required information."
 
 ---
 
@@ -139,17 +136,13 @@ export async function generateGeminiLoanConsultantReply({
   session,
   currentQ,
 }: GeminiRequestParams): Promise<GeminiResponsePayload> {
-  const models = ["gemini-2.5-flash", "gemini-2.0-flash"];
+  const models = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"];
   const apiKey = GEMINI_API_KEY;
 
   if (!apiKey) {
     console.warn("[Gemini AI] GEMINI_API_KEY is not set in environment.");
-    return {
-      customer_response: lang === "mr"
-        ? "माफ करा, AI सेवा सध्या उपलब्ध नाही. कृपया आमच्या टीमशी संपर्क करा: 7020646007"
-        : (lang === "hi" ? "क्षमा करें, AI सेवा अभी उपलब्ध नहीं है। कृपया हमारी टीम से संपर्क करें: 7020646007" : "Sorry, AI service is temporarily unavailable. Please contact our team: 7020646007"),
-      crm_update: {},
-    };
+    // Return empty so callers fall through to localLoanAIResponder — customer never sees AI errors
+    return { customer_response: "", crm_update: {} };
   }
 
   // Format context for Gemini
@@ -166,7 +159,7 @@ export async function generateGeminiLoanConsultantReply({
 
   const formattedHistory = chatHistory
     .slice(-6)
-    .map((m) => `${m.sender === "customer" ? "Customer" : "Swapnil (AI)"}: ${m.text}`)
+    .map((m) => `${m.sender === "customer" ? "Customer" : "Swapnil (Loan Consultant)"}: ${m.text}`)
     .join("\n");
 
   const pendingQuestionText = currentQ ? `Currently pending question in CRM flow: "${currentQ.question?.[lang] || currentQ.question?.en || currentQ.field}"` : "No pending question currently.";
@@ -233,11 +226,7 @@ Task:
     }
   }
 
-  // Graceful Fallback if API fails
-  return {
-    customer_response: lang === "mr"
-      ? "माफ करा, AI सेवा सध्या respond करत नाही. कृपया थोड्या वेळाने पुन्हा प्रयत्न करा."
-      : (lang === "hi" ? "क्षमा करें, AI सेवा अभी respond नहीं कर रही। कृपया थोड़ी देर बाद पुनः प्रयास करें।" : "Sorry, AI is temporarily unavailable. Please try again shortly."),
-    crm_update: {},
-  };
+  // Gemini API failed on all models — return empty so callers fall through to localLoanAIResponder
+  console.warn("[Gemini AI] All models failed, falling back to local responder.");
+  return { customer_response: "", crm_update: {} };
 }

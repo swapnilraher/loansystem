@@ -486,7 +486,7 @@ function localLoanAIResponder(userText: string, lang: string): string {
   const lower = userText.toLowerCase().trim();
   
   const mrResponses = {
-    greeting: "नमस्कार! मी टेकस्टारचा एआय सहाय्यक आहे. मी तुम्हाला कर्जाविषयी माहिती देऊ शकतो. विचारण्यासाठी कीवर्ड वापरा जसे की: व्याजदर, कागदपत्रे, पात्रता, प्रोसेसिंग फी इ.",
+    greeting: "नमस्कार! मी टेकस्टार कडून स्वप्नील (Loan Consultant) आहे. मी तुम्हाला कर्जाविषयी माहिती देऊ शकतो. विचारण्यासाठी कीवर्ड वापरा जसे की: व्याजदर, कागदपत्रे, पात्रता, प्रोसेसिंग फी इ.",
     rate: "कर्जाचे व्याजदर खालीलप्रमाणे आहेत:\n- गृह कर्ज (Home Loan): ८.५०% पासून सुरू\n- वैयक्तिक कर्ज (Personal Loan): १०.४९% पासून सुरू\n- बिझनेस लोन (Business Loan): १२% पासून सुरू\n\nव्याजदर तुमच्या क्रेडिट स्कोर आणि मासिक उत्पन्नावर अवलंबून असेल.",
     docs: "कर्जासाठी आवश्यक कागदपत्रे:\n१. पॅन कार्ड आणि आधार कार्ड\n२. शेवटच्या ३ महिन्यांची सॅलरी स्लिप (नोकरी करत असल्यास)\n३. शेवटच्या ६ महिन्यांचे बँक स्टेटमेंट\n४. आयटीआर (व्यवसाय असल्यास)",
     eligibility: "कर्ज मिळवण्यासाठी पात्रता निकष:\n- तुमचे वय २१ ते ६० वर्षे असावे.\n- नोकरी करत असल्यास मासिक पगार किमान ₹१५,००० असावा.\n- तुमचा क्रेडिट/सिबिल (CIBIL) स्कोर ७००+ असावा.",
@@ -504,7 +504,7 @@ function localLoanAIResponder(userText: string, lang: string): string {
   };
 
   const hiResponses = {
-    greeting: "नमस्कार! मैं टेकस्टार का एआई सहायक हूँ। मैं आपको लोन के बारे में जानकारी दे सकता हूँ। जैसे: ब्याज दर, दस्तावेज, पात्रता, प्रोसेसिंग फीस आदि।",
+    greeting: "नमस्कार! मैं टेकस्टार से स्वप्निल (Loan Consultant) हूँ। मैं आपको लोन के बारे में जानकारी दे सकता हूँ। जैसे: ब्याज दर, दस्तावेज, पात्रता, प्रोसेसिंग फीस आदि।",
     rate: "लोन की ब्याज दरें इस प्रकार हैं:\n- होम लोन (Home Loan): 8.50% से शुरू\n- पर्सनल लोन (Personal Loan): 10.49% से शुरू\n- बिजनेस लोन (Business Loan): 12% से शुरू\n\nअंतिम ब्याज दर आपके सिबिल स्कोर पर निर्भर करती है।",
     docs: "लोन के लिए आवश्यक दस्तावेज:\n1. पैन कार्ड और आधार कार्ड\n2. पिछले 3 महीने की सैलरी स्लिप (नौकरी पेशा के लिए)\n3. पिछले 6 महीने का bank statement\n4. आईटीआर (व्यवसाय के लिए)",
     eligibility: "लोन के लिए पात्रता मानदंड:\n- आपकी आयु 21 से 60 वर्ष होनी चाहिए।\n- न्यूनतम मासिक वेतन ₹15,000 होना चाहिए।\n- सिबिल (CIBIL) स्कोर 700+ होना चाहिए।",
@@ -522,7 +522,7 @@ function localLoanAIResponder(userText: string, lang: string): string {
   };
 
   const enResponses = {
-    greeting: "Hello! I am the Techstar AI Assistant. I can help you with loan information. Ask me about: interest rates, documents, eligibility, processing fee, etc.",
+    greeting: "Hello! I am Swapnil from Techstar, your Loan Consultant. I can help you with loan information. Ask me about: interest rates, documents, eligibility, processing fee, etc.",
     rate: "Our current interest rates are:\n- Home Loan: Starts at 8.50% p.a.\n- Personal Loan: Starts at 10.49% p.a.\n- Business Loan: Starts at 12.00% p.a.\n\nFinal rates depend on your credit history and profile.",
     docs: "Required documents:\n1. PAN Card and Aadhaar Card\n2. Last 3 months' salary slips (for Salaried)\n3. Last 6 months' bank statements\n4. ITR / Business proof (for Self-Employed)",
     eligibility: "Eligibility Criteria:\n- Age between 21 and 60 years.\n- Minimum monthly salary of ₹15,000.\n- CIBIL score of 700 or above.",
