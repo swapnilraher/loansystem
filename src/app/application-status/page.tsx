@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -19,6 +19,23 @@ import {
 } from "lucide-react";
 
 export default function ApplicationStatusPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-100 flex items-center justify-center p-8">
+          <div className="flex items-center gap-3 bg-white p-6 rounded-2xl shadow-xl border border-slate-200">
+            <RefreshCw className="w-5 h-5 animate-spin text-emerald-600" />
+            <span className="text-sm font-semibold text-slate-700">Loading Tracker...</span>
+          </div>
+        </div>
+      }
+    >
+      <ApplicationStatusContent />
+    </Suspense>
+  );
+}
+
+function ApplicationStatusContent() {
   const searchParams = useSearchParams();
   const initialId = searchParams.get("id") || "";
 
