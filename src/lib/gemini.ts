@@ -1,7 +1,7 @@
 /**
  * Gemini AI Integration for Loan DSA CRM WhatsApp Chatbot
  * 
- * Model: gemini-2.5-flash (with automatic fallback to gemini-3.6-flash)
+ * Model: gemini-2.5-flash (with automatic fallback to gemini-2.0-flash)
  * Role: Swapnil (AI Loan Consultant)
  */
 
@@ -91,24 +91,25 @@ Always use terms like "preliminary eligibility", "approximate estimate", "subjec
 
 ---
 
-## 9. CRM DATA EXTRACTION REQUIREMENTS
-Extract all customer details provided in the message into structured fields for CRM storage.
-Always return JSON output with:
+## 9. RESPONSE FORMAT
+Your PRIMARY job is to answer the customer's question clearly and briefly.
+Always return valid JSON with these exact keys:
 {
-  "customer_response": "<Brief 1-2 sentence response to customer in customer's language>",
+  "customer_response": "<Your direct, helpful answer to the customer in their language — 1-2 sentences max>",
   "crm_update": {
     "name": "<customer name if mentioned>",
     "city": "<city if mentioned>",
     "age": "<age if mentioned>",
-    "monthly_income": "<monthly salary/income number if mentioned>",
-    "existing_emi": "<existing EMI number if mentioned>",
+    "monthly_income": "<monthly income if mentioned>",
+    "existing_emi": "<existing EMI if mentioned>",
     "employment_type": "<salaried/self_employed if mentioned>",
-    "loan_type": "<personal_loan/home_loan/lap/etc if mentioned>",
-    "loan_amount_required": "<loan amount number if mentioned>",
-    "cibil_score": "<cibil score if mentioned>"
+    "loan_type": "<loan type if mentioned>",
+    "loan_amount_required": "<loan amount if mentioned>",
+    "cibil_score": "<CIBIL score if mentioned>"
   },
-  "next_required_field": "<next missing field to collect>"
-}`;
+  "next_required_field": "<next missing field, if applicable>"
+}
+IMPORTANT: "customer_response" must ALWAYS have a clear, direct answer. Never leave it empty. Never ask the customer to restart the bot or fill a form again.`;
 
 export interface GeminiRequestParams {
   text: string;
@@ -127,7 +128,7 @@ export interface GeminiResponsePayload {
 }
 
 /**
- * Calls Gemini Model gemini-2.5-flash (with automatic fallback to gemini-3.6-flash)
+ * Calls Gemini Model gemini-2.5-flash (with automatic fallback to gemini-2.0-flash)
  */
 export async function generateGeminiLoanConsultantReply({
   text,
@@ -138,7 +139,7 @@ export async function generateGeminiLoanConsultantReply({
   session,
   currentQ,
 }: GeminiRequestParams): Promise<GeminiResponsePayload> {
-  const models = ["gemini-2.5-flash", "gemini-3.6-flash"];
+  const models = ["gemini-2.5-flash", "gemini-2.0-flash"];
   const apiKey = GEMINI_API_KEY;
 
   if (!apiKey) {

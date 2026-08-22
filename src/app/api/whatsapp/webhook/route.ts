@@ -1658,26 +1658,58 @@ async function handleWebhookRequest(request: Request, pendingPromises: Promise<a
     // Log incoming message for existing session
     await saveWAMessage(from, displayText, 'customer', session.name || 'Customer', session.leadId, mediaType, mediaUrl, filename, mediaId);
 
-    // ── Step 99: Existing Lead Support Mode ──
+    // ── Step 99: Existing Lead Q&A Mode (post-flow) ──
+    // AI must ONLY answer the customer's question. No CRM updates, no redirects, no follow-up text.
     if (session.step === 99) {
-      const existingLeadDoc = await findExistingLead(from);
-      const aiReply = await contextAwareAIResponder({
-        text,
-        lang,
-        phone: from,
-        leadData: existingLeadDoc?.data,
-        session,
-      });
-      
-      const followUpText = ({
-        en: `\n\nIs there anything else I can help you with?`,
-        hi: `\n\nक्या मैं आपकी किसी और चीज़ में सहायता कर सकता हूँ?`,
-        mr: `\n\nमी तुम्हाला अजून काही मदत करू शकतो का?`
-      } as Record<string, string>)[lang] || `\n\nNeed any more help?`;
+      const lower99 = text.toLowerCase().trim();
 
-      await sendWA(from, `${aiReply}${followUpText}`, session.leadId);
+      // Opt-out: stop sending messages
+      const isOptOut99 = ["stop", "message karu naka", "नको message", "मेसेज करू नका"].some(kw => lower99 === kw || lower99.includes(kw));
+      if (isOptOut99) {
+        if (session.leadId) await updateLead(session.leadId, { communicationStatus: "OPTED_OUT" });
+        const optOutMsg = { mr: "ठीक आहे. पुढील संदेश पाठवले जाणार नाहीत. धन्यवाद!", hi: "ठीक है। आगे कोई संदेश नहीं भेजा जाएगा। धन्यवाद!", en: "Understood. No further messages will be sent. Thank you!" }[lang] || "Understood.";
+        await sendWA(from, optOutMsg, session.leadId);
+        return NextResponse.json({ ok: true });
+      }
+
+      // Human agent request: route to staff
+      const isAgentReq99 = ["agent", "call kara", "कॉल करा", "executive", "representative", "human agent", "बोलणे आहे", "call me"].some(kw => lower99.includes(kw));
+      if (isAgentReq99) {
+        if (session.leadId) await updateLead(session.leadId, { status: "HUMAN_AGENT_REQUESTED", followUpReason: "Customer requested human agent call", statusUpdatedAt: new Date().toISOString() });
+        const agentMsg = { mr: "नक्की 👍 मी तुमची enquiry आमच्या loan consultant कडे पाठवत आहे. आमची टीम लवकरच तुमच्याशी संपर्क साधेल.", hi: "निश्चित रूप से 👍 हमारी टीम जल्द ही आपसे संपर्क करेगी।", en: "Sure 👍 Our team will contact you shortly." }[lang] || "Sure 👍 Our team will contact you shortly.";
+        await sendWA(from, agentMsg, session.leadId);
+        return NextResponse.json({ ok: true });
+      }
+
+      // ── ANSWER ONLY MODE ──
+      // Fetch chat history for Gemini context, then send JUST the answer.
+      const existingLeadDoc = await findExistingLead(from);
+      const chatHistory99 = await getRecentChatHistory(from, 8);
+
+      try {
+        const geminiRes = await generateGeminiLoanConsultantReply({
+          text,
+          phone: from,
+          lang,
+          leadData: existingLeadDoc ?? null,
+          chatHistory: chatHistory99,
+          session,
+        });
+        if (geminiRes.customer_response) {
+          // Send ONLY the answer — no CRM updates, no appended text
+          await sendWA(from, geminiRes.customer_response, session.leadId);
+          return NextResponse.json({ ok: true });
+        }
+      } catch (err) {
+        console.error("[Step99] Gemini error:", err);
+      }
+
+      // Fallback to local rule-based responder if Gemini fails
+      const fallbackReply = localLoanAIResponder(text, lang);
+      await sendWA(from, fallbackReply, session.leadId);
       return NextResponse.json({ ok: true });
     }
+
 
     // ── Step 1: Wait for language selection ──
     if (session.step === 1) {
@@ -1688,7 +1720,7 @@ async function handleWebhookRequest(request: Request, pendingPromises: Promise<a
           text,
           lang: 'mr',
           phone: from,
-          leadData: existingLeadDoc?.data,
+          leadData: existingLeadDoc ?? null,
           session,
         });
         await sendWA(from, `${aiReply}\n\n*Please select your language:*`, session.leadId);
@@ -1749,7 +1781,7 @@ async function handleWebhookRequest(request: Request, pendingPromises: Promise<a
           text,
           lang,
           phone: from,
-          leadData: existingLeadDoc?.data,
+          leadData: existingLeadDoc ?? null,
           session,
         });
         await sendWA(from, aiReply, session.leadId);
@@ -1847,7 +1879,7 @@ async function handleWebhookRequest(request: Request, pendingPromises: Promise<a
           text,
           lang,
           phone: from,
-          leadData: existingLeadDoc?.data,
+          leadData: existingLeadDoc ?? null,
           session,
           currentQ,
         });
