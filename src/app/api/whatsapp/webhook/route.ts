@@ -24,6 +24,7 @@ import {
   type WaFlow,
   type WaFlowConfig,
 } from "@/lib/waFlows";
+import { generateGeminiLoanConsultantReply } from "@/lib/gemini";
 
 const FIREBASE_API_KEY = "AIzaSyDy-zXamx8BB18MgTXWoyWACKRSKvvOBTo";
 const PROJECT_ID = "dsa-loan";
@@ -671,10 +672,9 @@ async function contextAwareAIResponder({
 
   // 1. Fetch recent chat history from Firestore for full conversation memory
   const chatHistory = await getRecentChatHistory(phone, 8);
-  const lastBotMessage = [...chatHistory].reverse().find(m => m.sender === 'bot' || m.sender === 'staff')?.text.toLowerCase() || "";
 
-  // 2. STOP / Opt-Out Detection (Rule #31)
-  const isOptOut = ["stop", "don't contact", "message karu naka", "नको message", "मेसेज करू नका", "नको"].some(kw => lower === kw || lower.includes("message karu naka"));
+  // 2. STOP / Opt-Out Detection
+  const isOptOut = ["stop", "don't contact", "message karu naka", "नको message", "मेसेज करू नका"].some(kw => lower === kw || lower.includes("message karu naka"));
   if (isOptOut) {
     if (leadId) {
       await updateLead(leadId, { communicationStatus: "OPTED_OUT" });
@@ -686,8 +686,8 @@ async function contextAwareAIResponder({
     }[lang] || "Understood. No further messages will be sent. Thank you!";
   }
 
-  // 3. Human Agent / Call Request (Rule #18, #19, #36)
-  const isAgentRequest = ["agent", "call kara", "कॉल करा", "executive", "representative", "human agent", "बोलणे आहे", "प्रतिनिधी", "कॉल", "call me"].some(kw => lower.includes(kw));
+  // 3. Human Agent / Call Request
+  const isAgentRequest = ["agent", "call kara", "कॉल करा", "executive", "representative", "human agent", "बोलणे आहे", "प्रतिनिधी", "call me"].some(kw => lower.includes(kw));
   if (isAgentRequest) {
     if (leadId) {
       await updateLead(leadId, {
@@ -703,84 +703,36 @@ async function contextAwareAIResponder({
     }[lang] || "Sure 👍 I am routing your request to our loan consultant. Our team will contact you shortly.";
   }
 
-  // 3.5 Office Address / Location Query
-  const isAddressQuery = ["address", "office", "location", "पत्ता", "ऑफ़िस", "ऑफिस", "पता", "kothe", "kute", "kahan"].some(kw => lower.includes(kw));
-  if (isAddressQuery) {
-    const addressMsg = localLoanAIResponder("address", lang);
-    if (currentQ) {
-      const returnPrompt = {
-        mr: `\n\nअर्जाची पुढील माहिती नोंदवण्यासाठी:`,
-        hi: `\n\nआवेदन को आगे बढ़ाने के लिए:`,
-        en: `\n\nTo continue your application:`
-      }[lang] || `\n\nTo continue:`;
-      return `${addressMsg}${returnPrompt}`;
-    }
-    return addressMsg;
-  }
+  // 4. Generate AI response using Gemini (gemini-2.5-flash with fallback)
+  try {
+    const geminiRes = await generateGeminiLoanConsultantReply({
+      text,
+      phone,
+      lang,
+      leadData,
+      chatHistory,
+      session,
+      currentQ
+    });
 
-  // 4. Contextual YES / NO handling (Rule #8, #9, #10)
-  const isYes = ["हो", "yes", "ok", "okay", "नक्की", "बरं", "होय", "हाँ"].some(kw => lower === kw);
-  const isNo = ["नाही", "no", "nope", "नको", "नाहीये", "नहीं"].some(kw => lower === kw);
-
-  if (isNo) {
-    return {
-      mr: "ठीक आहे 👍 काही गरज भासल्यास आम्हाला कधीही संदेश पाठवा. धन्यवाद!",
-      hi: "ठीक है 👍 यदि आपको किसी सहायता की आवश्यकता हो तो हमें कभी भी संदेश भेजें। धन्यवाद!",
-      en: "Alright 👍 Feel free to message us anytime if you need help. Thank you!"
-    }[lang] || "Alright 👍 Feel free to message us anytime if you need help. Thank you!";
-  }
-
-  if (isYes) {
-    if (lastBotMessage.includes("consultant") || lastBotMessage.includes("टीम") || lastBotMessage.includes("संपर्क")) {
-      if (leadId) {
-        await updateLead(leadId, {
-          status: "HUMAN_AGENT_REQUESTED",
-          followUpReason: "Customer agreed to agent call",
-          statusUpdatedAt: new Date().toISOString()
-        });
+    // 5. Update CRM Lead record with extracted structured data if available
+    if (leadId && geminiRes.crm_update && Object.keys(geminiRes.crm_update).length > 0) {
+      try {
+        await updateLead(leadId, geminiRes.crm_update);
+      } catch (e) {
+        console.error("Error updating lead with Gemini extracted data:", e);
       }
-      return {
-        mr: "नक्की 👍 मी तुमची enquiry आमच्या loan consultant कडे पाठवतो. आमची टीम तुमच्याशी संपर्क साधेल.",
-        hi: "निश्चित रूप से 👍 मैं आपका अनुरोध हमारे ऋण सलाहकार को भेज रहा हूँ। हमारी टीम आपसे संपर्क करेगी।",
-        en: "Sure 👍 I have forwarded your request to our loan consultant. Our team will reach out to you."
-      }[lang] || "Sure 👍 I have forwarded your request to our loan consultant. Our team will reach out to you.";
     }
+
+    if (geminiRes.customer_response) {
+      return geminiRes.customer_response;
+    }
+  } catch (err) {
+    console.error("Error calling Gemini Loan Consultant:", err);
   }
 
-  // 5. New Loan Intent (Rule #2 & #11 - Strict ban on dumping known facts summary list)
-  const isNewLoanIntent = ["new loan", "नवीन कर्ज", "नवीन लोन", "loan पाहिजे", "loan हवा आहे", "कर्ज पाहिजे"].some(kw => lower.includes(kw));
-  if (isNewLoanIntent) {
-    if (category) {
-      return {
-        mr: `नक्की 👍 तुमच्या ${category} enquiry साठी पुढे जाऊया. तुम्हाला अंदाजे किती loan amount हवा आहे?`,
-        hi: `निश्चित रूप से 👍 आपके ${category} आवेदन को आगे बढ़ाते हैं। आपको लगभग कितनी ऋण राशि चाहिए?`,
-        en: `Sure 👍 Let's continue with your ${category} application. How much loan amount do you require?`
-      }[lang] || `Sure 👍 How much loan amount do you require for your ${category}?`;
-    }
-    return {
-      mr: "नक्की 👍 नवीन loan साठी मी मदत करतो. तुम्हाला कोणत्या प्रकारचे loan हवे आहे?",
-      hi: "निश्चित रूप से 👍 मैं नए लोन में आपकी मदद करूँगा। आपको किस प्रकार का लोन चाहिए?",
-      en: "Sure 👍 I can help you with a new loan. What type of loan are you looking for?"
-    }[lang] || "Sure 👍 What type of loan are you looking for?";
-  }
-
-  // 6. Check if customer is asking "What next?" / "Status"
-  const isAskingNextStep = ["आगे क्या करना है", "पुढे काय करायचे", "aata pudhe kay", "what next", "next step", "status", "माझ्या अर्जाचे काय झाले", "कधी मिळणार", "kab milega"].some(kw => lower.includes(kw));
-  if (isAskingNextStep) {
-    if (status === "System Qualified" || status === "Bank Processing" || status === "Approved" || status === "Disbursed") {
-      const nameGreeting = customerName ? ` ${customerName}` : "";
-      return {
-        mr: `नमस्कार${nameGreeting}! तुमचा ${category || 'कर्जाचा'} अर्ज आमच्या सिस्टीममध्ये आधीच नोंदवला गेला आहे (स्टेटस: ${status}). आमची टीम सध्या तुमच्या प्रोफाइलनुसार बँक ऑफर तपासत आहे. आमचे लोन मॅनेजर लवकरच तुमच्याशी संपर्क साधतील.`,
-        hi: `नमस्कार${nameGreeting}! आपका ${category || 'ऋण'} आवेदन पंजीकृत हो चुका है (स्टेटस: ${status})। हमारी टीम आपके प्रोफ़ाइल की समीक्षा कर रही है।`,
-        en: `Hello${nameGreeting}! Your ${category || 'loan'} application is registered (Status: ${status}). Our team is processing bank offers for you.`
-      }[lang] || `Your loan application is registered (Status: ${status}). Our team will contact you shortly.`;
-    }
-  }
-
-  // 7. Evaluate query topic using localLoanAIResponder (rule-based NLP)
+  // Fallback if Gemini fails
   const baseAIInfo = localLoanAIResponder(text, lang);
-
-  // 8. Format response intelligently without repetitive boilerplate (Rule #2, #14, #15, #16, #17, #37)
   if (baseAIInfo && !baseAIInfo.includes("मला तुमचे बोलणे पूर्णपणे समजले नाही") && !baseAIInfo.includes("I did not get your request") && !baseAIInfo.includes("मुझे आपके द्वारा भेजा गया संदेश समझ नहीं आया")) {
     if (currentQ) {
       const returnPrompt = {
@@ -793,11 +745,10 @@ async function contextAwareAIResponder({
     return baseAIInfo;
   }
 
-  // 9. Clean Natural Fallback (No repetitive summary dumping)
   return {
-    mr: "नक्की 👍 तुम्हाला कर्जाविषयी (व्याजदर, पात्रता, आवश्यक कागदपत्रे, प्रक्रियेची वेळ) काय माहिती हवी आहे? सांगा, मी मदत करतो.",
-    hi: "निश्चित रूप से 👍 आपको लोन के बारे में क्या जानकारी चाहिए (ब्याज दर, पात्रता, दस्तावेज)? मैं आपकी मदद करूँगा।",
-    en: "Sure 👍 How can I help you regarding loan interest rates, eligibility, or documents?"
+    mr: "नक्की 👍 मी Swapnil आहे, तुमचे loan requirement समजून घेण्यासाठी मदत करतो. सांगा, तुम्हाला कोणत्या प्रकारचे लोन हवे आहे?",
+    hi: "निश्चित रूप से 👍 मैं Swapnil हूँ, आपकी लोन आवश्यकता समझने में मदद करता हूँ। बताएं, आपको किस प्रकार का लोन चाहिए?",
+    en: "Sure 👍 I am Swapnil, here to help you understand your loan options. What type of loan do you need?"
   }[lang] || "Sure 👍 How can I help you regarding loan details?";
 }
 
