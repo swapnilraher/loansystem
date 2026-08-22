@@ -1,0 +1,214 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import {
+  Search,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  XCircle,
+  FileText,
+  Building,
+  Phone,
+  Calendar,
+  ArrowLeft,
+  RefreshCw,
+  HelpCircle
+} from "lucide-react";
+
+export default function ApplicationStatusPage() {
+  const searchParams = useSearchParams();
+  const initialId = searchParams.get("id") || "";
+
+  const [applicationId, setApplicationId] = useState(initialId);
+  const [mobileNumber, setMobileNumber] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [appDetails, setAppDetails] = useState<any>(null);
+
+  const fetchStatus = async (id?: string, mobile?: string) => {
+    const queryId = id || applicationId;
+    const queryMobile = mobile || mobileNumber;
+
+    if (!queryId && !queryMobile) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const url = queryId
+        ? `/api/onboarding/status?id=${encodeURIComponent(queryId)}`
+        : `/api/onboarding/status?mobile=${encodeURIComponent(queryMobile)}`;
+
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Application not found");
+      }
+
+      setAppDetails(data.application);
+    } catch (err: any) {
+      setError(err.message || "Unable to find application");
+      setAppDetails(null);
+    } fontFinally: {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (initialId) {
+      fetchStatus(initialId);
+    }
+  }, [initialId]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    fetchStatus();
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-100 flex flex-col justify-between font-sans">
+      {/* Header */}
+      <header className="bg-slate-900 text-white py-4 px-6 shadow-md">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-md">
+              T
+            </div>
+            <div>
+              <span className="text-base font-bold tracking-tight">Techstar Money</span>
+              <span className="block text-[10px] text-emerald-400 font-bold uppercase">Application Tracker</span>
+            </div>
+          </div>
+          <Link href="/onboarding/" className="text-xs text-slate-300 hover:text-white font-semibold flex items-center gap-1">
+            <ArrowLeft className="w-3.5 h-3.5" /> Back to Onboarding
+          </Link>
+        </div>
+      </header>
+
+      {/* Main Body */}
+      <main className="flex-1 max-w-3xl w-full mx-auto p-4 sm:p-8 my-4">
+        <div className="bg-white rounded-3xl shadow-xl border border-slate-200 p-6 sm:p-8 space-y-6">
+          <div>
+            <h1 className="text-2xl font-black text-slate-900">Track DSA Partner Application</h1>
+            <p className="text-slate-500 text-xs mt-1">Enter your Application ID or registered mobile number to check status.</p>
+          </div>
+
+          {/* Search Form */}
+          <form onSubmit={handleSearch} className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+            <div className="sm:col-span-8">
+              <input
+                type="text"
+                value={applicationId}
+                onChange={(e) => setApplicationId(e.target.value)}
+                placeholder="Application ID (e.g. TSM-DSA-2026-104829)"
+                className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:bg-white focus:border-emerald-600 focus:outline-none"
+              />
+            </div>
+
+            <div className="sm:col-span-4">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold rounded-xl text-sm shadow-md flex items-center justify-center gap-2 transition-all"
+              >
+                {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                Track Status
+              </button>
+            </div>
+          </form>
+
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs font-semibold">
+              {error}
+            </div>
+          )}
+
+          {/* Application Status Card */}
+          {appDetails && (
+            <div className="space-y-6 pt-4 border-t border-slate-100 animate-fadeIn">
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-3">
+                <div className="flex justify-between items-center flex-wrap gap-2 border-b border-slate-200 pb-3">
+                  <div>
+                    <span className="text-xs text-slate-400 font-medium block">Application ID</span>
+                    <span className="font-mono font-bold text-slate-900 text-lg">{appDetails.applicationId}</span>
+                  </div>
+
+                  <div>
+                    {appDetails.status === "approved" ? (
+                      <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-100 text-emerald-800 font-bold text-xs rounded-full">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Approved
+                      </span>
+                    ) : appDetails.status === "query_raised" ? (
+                      <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-100 text-amber-900 font-bold text-xs rounded-full">
+                        <AlertTriangle className="w-4 h-4 text-amber-600" /> Action Required (Query Raised)
+                      </span>
+                    ) : appDetails.status === "rejected" ? (
+                      <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-red-100 text-red-800 font-bold text-xs rounded-full">
+                        <XCircle className="w-4 h-4 text-red-600" /> Application Rejected
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-100 text-blue-800 font-bold text-xs rounded-full">
+                        <Clock className="w-4 h-4 text-blue-600" /> Under Review
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs pt-1">
+                  <div>
+                    <span className="text-slate-400 block font-medium">Applicant Name</span>
+                    <span className="font-semibold text-slate-800">{appDetails.fullName}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block font-medium">Category</span>
+                    <span className="font-semibold text-slate-800">{appDetails.partnerType}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block font-medium">Submitted Date</span>
+                    <span className="font-semibold text-slate-800">
+                      {appDetails.submittedAt ? new Date(appDetails.submittedAt).toLocaleDateString() : "N/A"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Timeline Tracker */}
+              <div>
+                <h3 className="font-bold text-slate-900 text-sm mb-3">Application Progress Timeline</h3>
+                <div className="space-y-3">
+                  {(appDetails.timeline || [
+                    { title: "Mobile WhatsApp Verified", timestamp: appDetails.submittedAt },
+                    { title: "KYC Documents Uploaded", timestamp: appDetails.submittedAt },
+                    { title: "Application Submitted", timestamp: appDetails.submittedAt },
+                    { title: "Under Admin Review", timestamp: appDetails.submittedAt },
+                  ]).map((item: any, idx: number) => (
+                    <div key={idx} className="flex gap-3 text-xs items-start">
+                      <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-800">{item.title}</p>
+                        {item.timestamp && (
+                          <p className="text-[11px] text-slate-400">{new Date(item.timestamp).toLocaleString()}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-slate-200 bg-white py-4 px-6 text-center text-xs text-slate-500">
+        © {new Date().getFullYear()} Techstar Money Solution Pvt. Ltd. All rights reserved.
+      </footer>
+    </div>
+  );
+}

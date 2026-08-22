@@ -37,12 +37,18 @@ export function proxy(req: NextRequest) {
     return NextResponse.rewrite(url)
   }
 
-  // ── Partner subdomain: partner.techstarsolution.in ─────────────────────────
+  // ── Partner subdomain: partner.techstarsolution.in / partner.swapnilaher.in ────
   if (
     hostname.startsWith('partner.') ||
     hostname === 'partner.techstarsolution.in' ||
+    hostname === 'partner.swapnilaher.in' ||
     hostname === 'partner.localhost:3000'
   ) {
+    // Public onboarding and tracking paths pass through directly
+    if (pathname.startsWith('/onboarding') || pathname.startsWith('/application-status')) {
+      return NextResponse.next()
+    }
+
     if (!pathname.startsWith('/partner')) {
       url.pathname = `/partner${pathname}`
       return NextResponse.rewrite(url)

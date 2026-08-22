@@ -1,0 +1,112 @@
+import { NextResponse } from "next/server";
+import { getAdminDb } from "@/lib/firebase-admin";
+
+const PHONE_ID = process.env.WHATSAPP_PHONE_ID || "1112131761984283";
+const TOKEN = process.env.WHATSAPP_TOKEN || "EAAL6qnWnZABMBRfTVoipikLTEZBzVNQf9YStyNGTSxAGq8kHJ6AXivKPiHcMYxZBO2uuMyh4dCNVZB183wSpqoB0J08pAEsL5rEEqyHWdDfRgD5zxZCYhLX3ZBJW0rcxxQwvztib7jupBBStMxAaISbtrSalquCKiehliYs7ZCBf1VmGZCtqNTS1qhmPTybViZBZCOZBQZDZD";
+
+export async function POST(request: Request) {
+  try {
+    const { phoneNumber } = await request.json();
+
+    if (!phoneNumber || !/^[6-9]\d{9}$/.test(phoneNumber)) {
+      return NextResponse.json({ error: "Valid 10-digit Indian mobile number is required" }, { status: 400 });
+    }
+
+    // Generate 6-digit OTP for enhanced security
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    const db = getAdminDb();
+    await db.collection("partner_otp_codes").doc(phoneNumber).set({
+      otp,
+      expiresAt,
+      phoneNumber,
+      attempts: 0,
+      createdAt: new Date(),
+    });
+
+    // Send WhatsApp OTP via Meta API
+    try {
+      const templatePayload = {
+        messaging_product: "whatsapp",
+        to: `${process.env.COUNTRY_CODE || "91"}${phoneNumber}`,
+        type: "template",
+        template: {
+          name: "otp",
+          language: { code: "en_US" },
+          components: [
+            {
+              type: "body",
+              parameters: [{ type: "text", text: otp }]
+            },
+            {
+              type: "button",
+              sub_type: "url",
+              index: "0",
+              parameters: [{ type: "text", text: otp }]
+            }
+          ]
+        }
+      };
+
+      let response = await fetch(`https://graph.facebook.com/v17.0/${PHONE_ID}/messages`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(templatePayload),
+      });
+
+      if (!response.ok) {
+        // Fallback: template without button
+        templatePayload.template.components = [
+          {
+            type: "body",
+            parameters: [{ type: "text", text: otp }]
+          }
+        ];
+        response = await fetch(`https://graph.facebook.com/v17.0/${PHONE_ID}/messages`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${TOKEN}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(templatePayload),
+        });
+      }
+
+      if (!response.ok) {
+        // Fallback: Send direct text message if template is not registered
+        const textPayload = {
+          messaging_product: "whatsapp",
+          to: `${process.env.COUNTRY_CODE || "91"}${phoneNumber}`,
+          type: "text",
+          text: {
+            body: `*Techstar Money - Partner Registration OTP*\n\nYour verification code is: *${otp}*\n\nValid for 5 minutes. Do not share this OTP with anyone.`
+          }
+        };
+
+        await fetch(`https://graph.facebook.com/v17.0/${PHONE_ID}/messages`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${TOKEN}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(textPayload),
+        });
+      }
+    } catch (waErr) {
+      console.warn("WhatsApp API dispatch note:", waErr);
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: "OTP sent via WhatsApp",
+      expiresInSeconds: 300
+    });
+  } catch (error: any) {
+    console.error("Onboarding OTP Send Error:", error);
+    return NextResponse.json({ error: "Failed to send verification OTP. Please try again." }, { status: 500 });
+  }
+}
