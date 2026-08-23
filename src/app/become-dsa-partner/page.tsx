@@ -250,7 +250,7 @@ export default function BecomeDSAPartnerPage() {
             <div className="pt-6 border-t border-slate-800 text-center relative z-10">
               <p className="text-xs text-slate-400 font-bold">
                 Already registered?{" "}
-                <a href="/partner/login" className="text-primary hover:underline font-black">Login to Partner Dashboard</a>
+                <a href="/login" className="text-primary hover:underline font-black">Login to Partner Dashboard</a>
               </p>
             </div>
           </div>

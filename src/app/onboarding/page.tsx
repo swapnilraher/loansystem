@@ -789,10 +789,7 @@ export default function OnboardingPage() {
               </form>
 
               <div className="pt-4 border-t border-slate-100 text-center text-xs text-slate-500">
-                Already registered with Techstar Money?{" "}
-                <Link href="/partner/login" className="text-emerald-600 hover:text-emerald-700 font-bold underline">
-                  Login to Portal
-                </Link>
+                Already registered? <Link href="/login" className="text-emerald-600 font-bold hover:underline">Log in</Link>
               </div>
             </div>
           </div>
@@ -1083,7 +1080,7 @@ export default function OnboardingPage() {
                       {panDuplicateError}
                     </p>
                     <Link
-                      href="/partner/login"
+                      href="/login"
                       className="inline-block py-2 px-4 bg-red-600 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-red-700"
                     >
                       Go to Partner Login &rarr;
