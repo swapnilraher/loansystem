@@ -8,8 +8,29 @@ type ChatState = 'idle' | 'awaiting_name' | 'awaiting_mobile' | 'completed';
 
 export function AIChatbot() {
   const pathname = usePathname()
+  const [isPartnerPortal, setIsPartnerPortal] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const [showTooltip, setShowTooltip] = useState(true)
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const host = window.location.hostname.toLowerCase()
+      if (host.startsWith("partner.") || host.startsWith("admin.") || host.includes("partner")) {
+        setIsPartnerPortal(true)
+      }
+    }
+  }, [])
+
+  // Completely remove Chat With Us on Partner Portal, Onboarding, Status tracker, and Admin
+  if (
+    isPartnerPortal ||
+    pathname?.startsWith("/partner") ||
+    pathname?.startsWith("/onboarding") ||
+    pathname?.startsWith("/application-status") ||
+    pathname?.startsWith("/admin")
+  ) {
+    return null
+  }
   const [messages, setMessages] = useState([
     { id: 1, text: "नमस्कार! मी Techstar Money Solution AI आहे. मी तुम्हाला कर्जाबद्दल कशी मदत करू शकेन?", sender: 'ai' }
   ])

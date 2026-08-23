@@ -9,8 +9,13 @@ export function MobileBottomNav() {
   const pathname = usePathname()
   const { profile, adminRole } = useAuth()
   
-  // Hide on admin and partner routes to prevent dashboard layout overlapping
-  if (pathname?.startsWith("/admin") || pathname?.startsWith("/partner")) {
+  // Hide on admin, partner, onboarding, and application status routes
+  if (
+    pathname?.startsWith("/admin") ||
+    pathname?.startsWith("/partner") ||
+    pathname?.startsWith("/onboarding") ||
+    pathname?.startsWith("/application-status")
+  ) {
     return null
   }
 
