@@ -68,7 +68,8 @@ export async function POST(request: Request) {
         email: appData.email || "",
         mobileNumber: appData.mobileNumber,
         role: "partner",
-        dsaStatus: "approved",
+        dsaStatus: "Active",
+        status: "Active",
         dsaCode,
         partnerType: appData.partnerType || "Individual",
         firmType: appData.firmType || "",
@@ -92,6 +93,7 @@ export async function POST(request: Request) {
       // 3. Update application status
       await docRef.update({
         status: "approved",
+        dsaStatus: "Active",
         dsaCode,
         approvedAt: now,
         updatedAt: now,

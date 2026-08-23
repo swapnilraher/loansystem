@@ -13,7 +13,7 @@ export async function POST(request: Request) {
 
     if (!file || !documentType || !mobileNumber) {
       return NextResponse.json(
-        { error: "file, documentType, and mobileNumber are required." },
+        { error: "File, documentType, and mobileNumber are required." },
         { status: 400 }
       );
     }
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     ];
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: "Invalid file type. Allowed: JPG, PNG, WEBP, PDF." },
+        { error: "Invalid file type. Allowed formats: JPG, PNG, WEBP, PDF." },
         { status: 400 }
       );
     }
@@ -42,42 +42,50 @@ export async function POST(request: Request) {
       );
     }
 
-    // ── Convert to base64 data-URI for Cloudinary upload ──────────────────
+    // ── Convert to base64 buffer for Cloudinary / fallback ───────────────
     const bytes      = await file.arrayBuffer();
     const buffer     = Buffer.from(bytes);
     const base64Data = `data:${file.type};base64,${buffer.toString("base64")}`;
 
-    // ── Upload to Cloudinary ───────────────────────────────────────────────
-    // Folder structure: partner-kyc/<mobile>/<documentType>
-    const publicId = `partner-kyc/${mobileNumber}/${documentType}_${Date.now()}`;
+    let fileUrl: string = base64Data;
+    let cloudinaryId: string | undefined = undefined;
+    let uploadMethod: "cloudinary" | "firestore_base64" = "firestore_base64";
 
-    const uploadResult = await cloudinary.uploader.upload(base64Data, {
-      public_id:       publicId,
-      folder:          "partner-kyc",
-      resource_type:   "auto",          // handles PDFs + images
-      overwrite:       false,
-      tags:            ["partner-kyc", mobileNumber, documentType],
-      context: {
-        mobile:       mobileNumber,
-        documentType: documentType,
-        fileName:     file.name,
-      },
-    });
+    // ── Attempt Cloudinary Upload ─────────────────────────────────────────
+    try {
+      const publicId = `partner-kyc/${mobileNumber}/${documentType}_${Date.now()}`;
+      
+      const uploadResult = await cloudinary.uploader.upload(base64Data, {
+        public_id:     publicId,
+        folder:        "partner-kyc",
+        resource_type: "auto",
+        overwrite:     false,
+        tags:          ["partner-kyc", mobileNumber, documentType],
+      });
 
-    const fileUrl        = uploadResult.secure_url;
-    const cloudinaryId   = uploadResult.public_id;
-    const uploadedAt     = new Date().toISOString();
+      if (uploadResult?.secure_url) {
+        fileUrl      = uploadResult.secure_url;
+        cloudinaryId = uploadResult.public_id;
+        uploadMethod = "cloudinary";
+      }
+    } catch (cloudinaryErr: any) {
+      console.warn("Cloudinary upload failed, using secure base64 fallback:", cloudinaryErr?.message || cloudinaryErr);
+      // Fallback to storing base64Data directly so user upload NEVER breaks
+    }
 
-    // ── Store metadata (no base64) in Firestore ────────────────────────────
+    const uploadedAt = new Date().toISOString();
+
     const documentRecord = {
       documentType,
       fileName:    file.name,
       mimeType:    file.type,
       sizeBytes:   file.size,
-      fileUrl,          // ← Cloudinary CDN URL
-      cloudinaryId,     // ← for deletion / re-fetch if needed
+      fileUrl,
+      base64Data:  uploadMethod === "firestore_base64" ? base64Data : undefined,
+      cloudinaryId,
+      uploadMethod,
       uploadedAt,
-      status: "uploaded",
+      status:      "uploaded",
     };
 
     const db     = getAdminDb();
@@ -102,14 +110,15 @@ export async function POST(request: Request) {
         mimeType:    file.type,
         fileUrl,
         cloudinaryId,
+        uploadMethod,
         uploadedAt,
         status:      "uploaded",
       },
     });
   } catch (error: any) {
-    console.error("Document Upload Error:", error);
+    console.error("Document Upload Main Error:", error);
     return NextResponse.json(
-      { error: "Failed to upload document. Please try again." },
+      { error: error?.message || "Failed to upload document. Please try again." },
       { status: 500 }
     );
   }

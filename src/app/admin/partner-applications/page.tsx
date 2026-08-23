@@ -358,7 +358,9 @@ export default function AdminPartnerApplicationsPage() {
                       {(() => {
                         const url =
                           selectedApp.documents?.aadhaarFrontDoc?.fileUrl ||
-                          selectedApp.documents?.aadhaarDoc?.fileUrl;
+                          selectedApp.documents?.aadhaarFrontDoc?.base64Data ||
+                          selectedApp.documents?.aadhaarDoc?.fileUrl ||
+                          selectedApp.documents?.aadhaarDoc?.base64Data;
                         return url ? (
                           <a
                             href={url}
@@ -381,18 +383,23 @@ export default function AdminPartnerApplicationsPage() {
                         <p className="font-semibold text-white truncate">
                           {selectedApp.documents?.aadhaarBackDoc?.fileName || "—"}
                         </p>
-                        {selectedApp.documents?.aadhaarBackDoc?.fileUrl ? (
-                          <a
-                            href={selectedApp.documents.aadhaarBackDoc.fileUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-emerald-400 hover:underline font-bold text-[11px] pt-0.5"
-                          >
-                            <Eye className="w-3 h-3" /> View / Download
-                          </a>
-                        ) : (
-                          <span className="text-slate-500 text-[11px]">Not uploaded</span>
-                        )}
+                        {(() => {
+                          const url =
+                            selectedApp.documents?.aadhaarBackDoc?.fileUrl ||
+                            selectedApp.documents?.aadhaarBackDoc?.base64Data;
+                          return url ? (
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-emerald-400 hover:underline font-bold text-[11px] pt-0.5"
+                            >
+                              <Eye className="w-3 h-3" /> View / Download
+                            </a>
+                          ) : (
+                            <span className="text-slate-500 text-[11px]">Not uploaded</span>
+                          );
+                        })()}
                       </div>
                     )}
 
@@ -402,18 +409,23 @@ export default function AdminPartnerApplicationsPage() {
                       <p className="font-semibold text-white truncate">
                         {selectedApp.documents?.panDoc?.fileName || "—"}
                       </p>
-                      {selectedApp.documents?.panDoc?.fileUrl ? (
-                        <a
-                          href={selectedApp.documents.panDoc.fileUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-emerald-400 hover:underline font-bold text-[11px] pt-0.5"
-                        >
-                          <Eye className="w-3 h-3" /> View / Download
-                        </a>
-                      ) : (
-                        <span className="text-slate-500 text-[11px]">Not uploaded</span>
-                      )}
+                      {(() => {
+                        const url =
+                          selectedApp.documents?.panDoc?.fileUrl ||
+                          selectedApp.documents?.panDoc?.base64Data;
+                        return url ? (
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-emerald-400 hover:underline font-bold text-[11px] pt-0.5"
+                          >
+                            <Eye className="w-3 h-3" /> View / Download
+                          </a>
+                        ) : (
+                          <span className="text-slate-500 text-[11px]">Not uploaded</span>
+                        );
+                      })()}
                     </div>
 
                   </div>
