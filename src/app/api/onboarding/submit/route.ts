@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "PAN document upload is required. Please complete Step 6." }, { status: 400 });
     }
 
-    if (!appData?.documents?.aadhaarDoc) {
+    if (!appData?.documents?.aadhaarDoc && !appData?.documents?.aadhaarFrontDoc) {
       return NextResponse.json({ error: "Aadhaar document upload is required. Please complete Step 6." }, { status: 400 });
     }
 
@@ -71,6 +71,22 @@ export async function POST(request: Request) {
 
     await docRef.set(finalApplication);
 
+    // Update user profile in 'users' collection to mark dsaStatus as under_review
+    try {
+      const userRef = db.collection("users").doc(mobileNumber);
+      await userRef.set({
+        mobileNumber,
+        fullName: appData.fullName || appData.contactPersonName || "Partner Applicant",
+        email: appData.email || "",
+        role: "partner",
+        dsaStatus: "under_review",
+        applicationId,
+        updatedAt: submittedAt
+      }, { merge: true });
+    } catch (uErr) {
+      console.warn("User status sync error:", uErr);
+    }
+
     // Send WhatsApp confirmation to Partner
     try {
       const partnerMsg = {
@@ -92,6 +108,37 @@ export async function POST(request: Request) {
       });
     } catch (waErr) {
       console.warn("Notification error:", waErr);
+    }
+
+    // Send WhatsApp Approval Request to Admin with all application details
+    try {
+      const adminMobiles = [
+        process.env.ADMIN_WHATSAPP || "7020646007",
+        "9579005645"
+      ];
+
+      const adminMessageText = `🚨 *NEW DSA PARTNER APPROVAL REQUEST* 🚨\n\nA new partner has submitted their onboarding application and requires approval!\n\n📌 *Application ID:* ${applicationId}\n👤 *Name:* ${appData.fullName || appData.contactPersonName || 'N/A'}\n📞 *Mobile:* +91 ${mobileNumber}\n📧 *Email:* ${appData.email || 'N/A'}\n🏢 *Type:* ${appData.partnerType || 'Individual'}${appData.firmType ? ` (${appData.firmType})` : ''}\n🆔 *PAN:* ${appData.panNumber || 'N/A'}\n\n📍 *Office Address:*\n${appData.addressLine1 || ''}, ${appData.city || ''}, ${appData.district || ''}, ${appData.stateName || ''} - ${appData.pinCode || ''}\n\n🏦 *Bank Details:*\n• Holder: ${appData.bankDetails?.accountHolderName || 'N/A'}\n• Account: ${appData.bankDetails?.accountNumber || 'N/A'} (${appData.bankDetails?.accountType || 'Savings'})\n• Bank: ${appData.bankDetails?.bankName || 'N/A'}\n• Branch: ${appData.bankDetails?.branchName || 'N/A'}\n• IFSC: ${appData.bankDetails?.ifsc || 'N/A'}\n\n📄 *Documents Uploaded:*\n• Aadhaar & PAN Uploaded\n\n🔗 *Review & Approve Now:*\nhttps://partner.swapnilaher.in/admin/partner-applications`;
+
+      for (const adminNum of adminMobiles) {
+        if (!adminNum) continue;
+        const adminPayload = {
+          messaging_product: "whatsapp",
+          to: `${process.env.COUNTRY_CODE || "91"}${adminNum.replace(/\D/g, "")}`,
+          type: "text",
+          text: { body: adminMessageText }
+        };
+
+        await fetch(`https://graph.facebook.com/v17.0/${PHONE_ID}/messages`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${TOKEN}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(adminPayload),
+        });
+      }
+    } catch (adminWaErr) {
+      console.warn("Admin Notification Error:", adminWaErr);
     }
 
     return NextResponse.json({

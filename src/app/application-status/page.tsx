@@ -38,16 +38,17 @@ export default function ApplicationStatusPage() {
 function ApplicationStatusContent() {
   const searchParams = useSearchParams();
   const initialId = searchParams.get("id") || "";
+  const initialMobile = searchParams.get("mobile") || "";
 
   const [applicationId, setApplicationId] = useState(initialId);
-  const [mobileNumber, setMobileNumber] = useState("");
+  const [mobileNumber, setMobileNumber] = useState(initialMobile);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [appDetails, setAppDetails] = useState<any>(null);
 
   const fetchStatus = async (id?: string, mobile?: string) => {
-    const queryId = id || applicationId;
-    const queryMobile = mobile || mobileNumber;
+    const queryId = id !== undefined ? id : applicationId;
+    const queryMobile = mobile !== undefined ? mobile : mobileNumber;
 
     if (!queryId && !queryMobile) return;
 
@@ -77,9 +78,11 @@ function ApplicationStatusContent() {
 
   useEffect(() => {
     if (initialId) {
-      fetchStatus(initialId);
+      fetchStatus(initialId, undefined);
+    } else if (initialMobile) {
+      fetchStatus(undefined, initialMobile);
     }
-  }, [initialId]);
+  }, [initialId, initialMobile]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

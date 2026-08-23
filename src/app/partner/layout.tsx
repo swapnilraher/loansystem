@@ -27,16 +27,26 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
   // 2. If authenticated but role is not partner or dsaStatus is not Active/approved, redirect to /onboarding to complete onboarding
   useEffect(() => {
     if (loading) return;
-    
+
     const isLoginPage = pathname === '/partner/login';
-    
+
     if (!user) {
-      if (!isLoginPage) {
-        router.push('/partner/login');
-      }
-    } else if (profile) {
-      const isRegisteredAndActive = profile.role === "partner" && (profile.dsaStatus === "Active" || profile.dsaStatus === "approved");
-      if (!isRegisteredAndActive && !isLoginPage) {
+      if (!isLoginPage) router.push('/partner/login');
+      return;
+    }
+
+    if (!profile) return; // still loading profile
+
+    const isApproved =
+      profile.role === "partner" &&
+      (profile.dsaStatus === "Active" || profile.dsaStatus === "approved");
+
+    if (!isApproved && !isLoginPage) {
+      // If they have a submitted application, send them to the status tracker
+      // Otherwise send back to onboarding to complete
+      if (profile.applicationId || profile.dsaStatus === "under_review" || profile.dsaStatus === "queried") {
+        router.push('/application-status');
+      } else {
         router.push('/onboarding');
       }
     }

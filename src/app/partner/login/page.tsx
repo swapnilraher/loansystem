@@ -97,15 +97,23 @@ export default function PartnerLogin() {
     try {
       const res = await fetch(`/api/onboarding/status?mobile=${mobileNumber}`);
       const data = await res.json();
-      if (res.ok && data.application?.status === "approved") {
-        router.push("/partner");
-      } else if (res.ok && data.application) {
-        router.push(`/application-status?mobile=${mobileNumber}`);
+
+      if (res.ok && data.application) {
+        const status = data.application.status;
+        if (status === "approved") {
+          // Fully approved DSA partner → enter portal
+          router.push("/partner");
+        } else {
+          // submitted / under_review / queried / rejected → show status tracker
+          router.push(`/application-status?mobile=${mobileNumber}`);
+        }
       } else {
+        // No application at all → start fresh onboarding
         router.push("/onboarding");
       }
     } catch {
-      router.push("/partner");
+      // Network error → fallback to onboarding
+      router.push("/onboarding");
     } finally {
       setLoading(false);
     }
@@ -117,8 +125,23 @@ export default function PartnerLogin() {
     setLoading(true);
     setError("");
     try {
-      await loginWithEmailAndPassword(email, password);
-      router.push("/partner");
+      const cred = await loginWithEmailAndPassword(email, password);
+      // Check application status before routing
+      const userEmail = cred?.user?.email || email;
+      const res = await fetch(`/api/onboarding/status?email=${encodeURIComponent(userEmail)}`);
+      const data = await res.json();
+
+      if (res.ok && data.application) {
+        const status = data.application.status;
+        if (status === "approved") {
+          router.push("/partner");
+        } else {
+          router.push(`/application-status?email=${encodeURIComponent(userEmail)}`);
+        }
+      } else {
+        // No application → start onboarding
+        router.push("/onboarding");
+      }
     } catch (err: any) {
       setError(err.message || "Invalid email or password.");
     } finally {
