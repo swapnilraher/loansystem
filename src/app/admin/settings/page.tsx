@@ -34,7 +34,7 @@ export default function SettingsPage() {
   // 1. Company Profile States
   const [companyInfo, setCompanyInfo] = useState({
     companyName: "Techstar Money Solution",
-    primaryEmail: "official@swapnilaher.in",
+    primaryEmail: "official@techstarsolution.in",
     defaultBranch: "Pune Regional Office",
     baseCurrency: "INR (₹)",
     autoAssignment: true,

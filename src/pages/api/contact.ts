@@ -37,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const mailOptions = {
     from: `"Techstar Loans Contact" <${process.env.SMTP_USER}>`,
-    to: 'official@swapnilaher.in', // recipient email address
+    to: 'official@techstarsolution.in', // recipient email address
     subject: 'New Contact Form Submission',
     text: `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\nDesired Loan Amount: ${amount}\nMessage: ${message || 'N/A'}`,
     html: `<p><strong>Name:</strong> ${name}</p>

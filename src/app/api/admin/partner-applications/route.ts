@@ -113,7 +113,7 @@ export async function POST(request: Request) {
           to: `${process.env.COUNTRY_CODE || "91"}${appData.mobileNumber}`,
           type: "text",
           text: {
-            body: `🎉 *Congratulations ${appData.fullName || 'Partner'}!*\n\nYour Techstar Money DSA Partner Application has been *APPROVED*! 🌟\n\n📌 *Partner Code (DSA Code):* ${dsaCode}\n📌 *Partner Portal:* https://partner.swapnilaher.in/partner/login\n\nYou can now log in using your WhatsApp mobile number to submit loan leads and track commissions!\n\nWelcome to Techstar Money!`
+            body: `🎉 *Congratulations ${appData.fullName || 'Partner'}!*\n\nYour Techstar Money DSA Partner Application has been *APPROVED*! 🌟\n\n📌 *Partner Code (DSA Code):* ${dsaCode}\n📌 *Partner Portal:* https://partner.techstarsolution.in/partner/login\n\nYou can now log in using your WhatsApp mobile number to submit loan leads and track commissions!\n\nWelcome to Techstar Money!`
           }
         };
 

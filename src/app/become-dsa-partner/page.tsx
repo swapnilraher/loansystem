@@ -243,7 +243,7 @@ export default function BecomeDSAPartnerPage() {
                 href="/onboarding"
                 className="text-primary hover:underline font-black text-sm block mx-auto"
               >
-                https://partner.swapnilaher.in/onboarding/
+                https://partner.techstarsolution.in/onboarding/
               </a>
             </div>
 

@@ -94,7 +94,7 @@ export async function POST(request: Request) {
         to: `${process.env.COUNTRY_CODE || "91"}${mobileNumber}`,
         type: "text",
         text: {
-          body: `*Techstar Money - DSA Partner Application Submitted* 🌟\n\nDear ${appData.fullName || 'Partner'},\n\nYour application has been received successfully!\n\n📌 *Application ID:* ${applicationId}\n📌 *Status:* Under Review\n\nOur onboarding team will review your details and documents. Approval may take up to 24 hours.\n\nTrack Status: https://partner.swapnilaher.in/application-status?id=${applicationId}\n\nRegards,\n*Techstar Money Team*`
+          body: `*Techstar Money - DSA Partner Application Submitted* 🌟\n\nDear ${appData.fullName || 'Partner'},\n\nYour application has been received successfully!\n\n📌 *Application ID:* ${applicationId}\n📌 *Status:* Under Review\n\nOur onboarding team will review your details and documents. Approval may take up to 24 hours.\n\nTrack Status: https://partner.techstarsolution.in/application-status?id=${applicationId}\n\nRegards,\n*Techstar Money Team*`
         }
       };
 
@@ -117,7 +117,7 @@ export async function POST(request: Request) {
         "9579005645"
       ];
 
-      const adminMessageText = `🚨 *NEW DSA PARTNER APPROVAL REQUEST* 🚨\n\nA new partner has submitted their onboarding application and requires approval!\n\n📌 *Application ID:* ${applicationId}\n👤 *Name:* ${appData.fullName || appData.contactPersonName || 'N/A'}\n📞 *Mobile:* +91 ${mobileNumber}\n📧 *Email:* ${appData.email || 'N/A'}\n🏢 *Type:* ${appData.partnerType || 'Individual'}${appData.firmType ? ` (${appData.firmType})` : ''}\n🆔 *PAN:* ${appData.panNumber || 'N/A'}\n\n📍 *Office Address:*\n${appData.addressLine1 || ''}, ${appData.city || ''}, ${appData.district || ''}, ${appData.stateName || ''} - ${appData.pinCode || ''}\n\n🏦 *Bank Details:*\n• Holder: ${appData.bankDetails?.accountHolderName || 'N/A'}\n• Account: ${appData.bankDetails?.accountNumber || 'N/A'} (${appData.bankDetails?.accountType || 'Savings'})\n• Bank: ${appData.bankDetails?.bankName || 'N/A'}\n• Branch: ${appData.bankDetails?.branchName || 'N/A'}\n• IFSC: ${appData.bankDetails?.ifsc || 'N/A'}\n\n📄 *Documents Uploaded:*\n• Aadhaar & PAN Uploaded\n\n🔗 *Review & Approve Now:*\nhttps://partner.swapnilaher.in/admin/partner-applications`;
+      const adminMessageText = `🚨 *NEW DSA PARTNER APPROVAL REQUEST* 🚨\n\nA new partner has submitted their onboarding application and requires approval!\n\n📌 *Application ID:* ${applicationId}\n👤 *Name:* ${appData.fullName || appData.contactPersonName || 'N/A'}\n📞 *Mobile:* +91 ${mobileNumber}\n📧 *Email:* ${appData.email || 'N/A'}\n🏢 *Type:* ${appData.partnerType || 'Individual'}${appData.firmType ? ` (${appData.firmType})` : ''}\n🆔 *PAN:* ${appData.panNumber || 'N/A'}\n\n📍 *Office Address:*\n${appData.addressLine1 || ''}, ${appData.city || ''}, ${appData.district || ''}, ${appData.stateName || ''} - ${appData.pinCode || ''}\n\n🏦 *Bank Details:*\n• Holder: ${appData.bankDetails?.accountHolderName || 'N/A'}\n• Account: ${appData.bankDetails?.accountNumber || 'N/A'} (${appData.bankDetails?.accountType || 'Savings'})\n• Bank: ${appData.bankDetails?.bankName || 'N/A'}\n• Branch: ${appData.bankDetails?.branchName || 'N/A'}\n• IFSC: ${appData.bankDetails?.ifsc || 'N/A'}\n\n📄 *Documents Uploaded:*\n• Aadhaar & PAN Uploaded\n\n🔗 *Review & Approve Now:*\nhttps://partner.techstarsolution.in/admin/partner-applications`;
 
       for (const adminNum of adminMobiles) {
         if (!adminNum) continue;

@@ -34,11 +34,10 @@ export function proxy(req: NextRequest) {
     return NextResponse.rewrite(url)
   }
 
-  // ── Partner subdomain: partner.techstarsolution.in / partner.swapnilaher.in ────
+  // ── Partner subdomain: partner.techstarsolution.in ─────────────────────
   if (
     hostname.startsWith('partner.') ||
     hostname === 'partner.techstarsolution.in' ||
-    hostname === 'partner.swapnilaher.in' ||
     hostname === 'partner.localhost:3000'
   ) {
     if (pathname.startsWith('/onboarding') || pathname.startsWith('/application-status')) {
