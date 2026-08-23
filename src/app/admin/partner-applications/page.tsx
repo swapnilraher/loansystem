@@ -299,27 +299,86 @@ export default function AdminPartnerApplicationsPage() {
               </div>
 
               {/* Sections Breakdown */}
-              <div className="space-y-4 text-xs text-slate-300">
+              <div className="space-y-4 text-xs text-slate-300 max-h-[60vh] overflow-y-auto pr-1">
+                {/* 1. Personal & Contact */}
                 <div className="bg-slate-900/60 p-4 rounded-xl space-y-1">
-                  <h4 className="font-bold text-emerald-400 text-sm mb-2">1. Contact & Personal</h4>
+                  <h4 className="font-bold text-emerald-400 text-sm mb-2">1. Basic Details</h4>
+                  <p><strong>Full Name:</strong> {selectedApp.fullName || "N/A"}</p>
                   <p><strong>Mobile:</strong> +91 {selectedApp.mobileNumber}</p>
                   <p><strong>Email:</strong> {selectedApp.email || "N/A"}</p>
-                  <p><strong>DOB:</strong> {selectedApp.dob || "N/A"}</p>
                 </div>
 
+                {/* 2. Business & PAN */}
                 <div className="bg-slate-900/60 p-4 rounded-xl space-y-1">
-                  <h4 className="font-bold text-emerald-400 text-sm mb-2">2. Business Structure</h4>
-                  <p><strong>Type:</strong> {selectedApp.partnerType} {selectedApp.firmType ? `(${selectedApp.firmType})` : ""}</p>
-                  <p><strong>PAN:</strong> {selectedApp.panNumber || "N/A"}</p>
-                  <p><strong>GSTIN:</strong> {selectedApp.gstin || "Not Registered"}</p>
+                  <h4 className="font-bold text-emerald-400 text-sm mb-2">2. Business Structure & PAN</h4>
+                  <p><strong>Partner Entity:</strong> {selectedApp.partnerType} {selectedApp.firmType ? `(${selectedApp.firmType})` : ""}</p>
+                  <p><strong>PAN Number:</strong> <span className="font-mono font-bold text-white">{selectedApp.panNumber || "N/A"}</span></p>
                 </div>
 
+                {/* 3. Contact Person */}
                 <div className="bg-slate-900/60 p-4 rounded-xl space-y-1">
-                  <h4 className="font-bold text-emerald-400 text-sm mb-2">3. Bank Account & IFSC</h4>
-                  <p><strong>Bank:</strong> {selectedApp.bankDetails?.bankName || "N/A"}</p>
-                  <p><strong>Branch:</strong> {selectedApp.bankDetails?.branchName || "N/A"}</p>
-                  <p><strong>Account No:</strong> {selectedApp.bankDetails?.accountNumber || "N/A"}</p>
-                  <p><strong>IFSC:</strong> {selectedApp.bankDetails?.ifsc || "N/A"}</p>
+                  <h4 className="font-bold text-emerald-400 text-sm mb-2">3. Contact Person</h4>
+                  <p><strong>Name:</strong> {selectedApp.contactPersonName || selectedApp.fullName || "N/A"}</p>
+                  <p><strong>Designation:</strong> {selectedApp.designation || "N/A"}</p>
+                  <p><strong>DOB:</strong> {selectedApp.dob || "N/A"} &nbsp;|&nbsp; <strong>Gender:</strong> {selectedApp.gender || "N/A"}</p>
+                </div>
+
+                {/* 4. Office Address */}
+                <div className="bg-slate-900/60 p-4 rounded-xl space-y-1">
+                  <h4 className="font-bold text-emerald-400 text-sm mb-2">4. Office Address</h4>
+                  <p>{selectedApp.addressLine1}{selectedApp.addressLine2 ? `, ${selectedApp.addressLine2}` : ""}</p>
+                  <p>{selectedApp.area ? `${selectedApp.area}, ` : ""}{selectedApp.city}, {selectedApp.district}, {selectedApp.stateName} - {selectedApp.pinCode}</p>
+                </div>
+
+                {/* 5. GST */}
+                <div className="bg-slate-900/60 p-4 rounded-xl space-y-1">
+                  <h4 className="font-bold text-emerald-400 text-sm mb-2">5. GST Details</h4>
+                  <p><strong>Registered:</strong> {selectedApp.isGstRegistered || "No"}</p>
+                  {selectedApp.gstin && <p><strong>GSTIN:</strong> <span className="font-mono font-bold">{selectedApp.gstin}</span></p>}
+                </div>
+
+                {/* 6. KYC Documents */}
+                <div className="bg-slate-900/60 p-4 rounded-xl space-y-2">
+                  <h4 className="font-bold text-emerald-400 text-sm mb-2">6. KYC Documents</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-3 bg-slate-800 rounded-lg text-xs space-y-1">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase block">Aadhaar Card</span>
+                      <p className="font-semibold text-white truncate">{selectedApp.documents?.aadhaarDoc?.fileName || "Uploaded"}</p>
+                      {selectedApp.documents?.aadhaarDoc?.base64Data && (
+                        <a
+                          href={selectedApp.documents.aadhaarDoc.base64Data}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-emerald-400 hover:underline font-bold text-[11px] pt-1"
+                        >
+                          <Eye className="w-3 h-3" /> View / Download
+                        </a>
+                      )}
+                    </div>
+                    <div className="p-3 bg-slate-800 rounded-lg text-xs space-y-1">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase block">PAN Card</span>
+                      <p className="font-semibold text-white truncate">{selectedApp.documents?.panDoc?.fileName || "Uploaded"}</p>
+                      {selectedApp.documents?.panDoc?.base64Data && (
+                        <a
+                          href={selectedApp.documents.panDoc.base64Data}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-emerald-400 hover:underline font-bold text-[11px] pt-1"
+                        >
+                          <Eye className="w-3 h-3" /> View / Download
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 7. Bank Account */}
+                <div className="bg-slate-900/60 p-4 rounded-xl space-y-1">
+                  <h4 className="font-bold text-emerald-400 text-sm mb-2">7. Bank Account & IFSC</h4>
+                  <p><strong>Account Holder:</strong> {selectedApp.bankDetails?.accountHolderName || selectedApp.fullName || "N/A"}</p>
+                  <p><strong>Bank & Branch:</strong> {selectedApp.bankDetails?.bankName || "N/A"} ({selectedApp.bankDetails?.branchName || "N/A"})</p>
+                  <p><strong>Account No:</strong> <span className="font-mono font-bold">{selectedApp.bankDetails?.accountNumber || "N/A"}</span> ({selectedApp.bankDetails?.accountType || "Savings"})</p>
+                  <p><strong>IFSC Code:</strong> <span className="font-mono font-bold text-emerald-400">{selectedApp.bankDetails?.ifsc || "N/A"}</span></p>
                 </div>
               </div>
             </div>
@@ -359,16 +418,21 @@ export default function AdminPartnerApplicationsPage() {
           <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl p-6 text-white space-y-4">
             <h3 className="text-lg font-bold">Raise Query to Applicant</h3>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Section</label>
+              <label className="block text-xs font-semibold text-slate-400 mb-1">Section *</label>
               <select
                 value={querySection}
                 onChange={(e) => setQuerySection(e.target.value)}
                 className="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white"
               >
-                <option value="KYC Documents">KYC Documents</option>
-                <option value="PAN Details">PAN Details</option>
-                <option value="Bank Account Details">Bank Account Details</option>
-                <option value="Office Address">Office Address</option>
+                <option value="Basic Details">1. Basic Details</option>
+                <option value="Business Details">2. Business Details</option>
+                <option value="PAN Details">2. PAN Details</option>
+                <option value="Contact Person">3. Contact Person</option>
+                <option value="Office Address">4. Office Address</option>
+                <option value="GST Details">5. GST Details</option>
+                <option value="KYC Documents">6. KYC Documents (Aadhaar/PAN)</option>
+                <option value="Bank Account Details">7. Bank Account Details</option>
+                <option value="General">Other / General</option>
               </select>
             </div>
 

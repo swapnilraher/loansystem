@@ -228,7 +228,7 @@ export default function BecomeDSAPartnerPage() {
             {/* Registration Button */}
             <div className="pt-2 relative z-10">
               <a 
-                href="/partner/register"
+                href="/onboarding"
                 className="w-full sm:w-auto px-10 h-14 bg-primary text-white rounded-full font-black text-lg hover:scale-105 transition-all shadow-xl shadow-primary/20 inline-flex items-center justify-center gap-2 group"
               >
                 Register as DSA Partner
@@ -240,10 +240,10 @@ export default function BecomeDSAPartnerPage() {
             <div className="space-y-2 relative z-10">
               <p className="text-xs text-slate-500 font-bold uppercase tracking-widest leading-none">Registration Link</p>
               <a 
-                href="/partner/register"
+                href="/onboarding"
                 className="text-primary hover:underline font-black text-sm block mx-auto"
               >
-                https://techstarsolution.in/partner/register
+                https://partner.swapnilaher.in/onboarding/
               </a>
             </div>
 

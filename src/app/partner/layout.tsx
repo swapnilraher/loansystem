@@ -24,20 +24,20 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
 
   // Redirect checks:
   // 1. If not authenticated, redirect to partner login
-  // 2. If authenticated but role is not partner or dsaStatus is not Active, redirect to partner register to complete onboarding
+  // 2. If authenticated but role is not partner or dsaStatus is not Active/approved, redirect to /onboarding to complete onboarding
   useEffect(() => {
     if (loading) return;
     
-    const onRegisterOrLogin = pathname.startsWith('/partner/register') || pathname === '/partner/login';
+    const isLoginPage = pathname === '/partner/login';
     
     if (!user) {
-      if (!onRegisterOrLogin) {
+      if (!isLoginPage) {
         router.push('/partner/login');
       }
     } else if (profile) {
-      const isRegisteredAndActive = profile.role === "partner" && profile.dsaStatus === "Active";
-      if (!isRegisteredAndActive && !onRegisterOrLogin) {
-        router.push('/partner/register');
+      const isRegisteredAndActive = profile.role === "partner" && (profile.dsaStatus === "Active" || profile.dsaStatus === "approved");
+      if (!isRegisteredAndActive && !isLoginPage) {
+        router.push('/onboarding');
       }
     }
   }, [user, profile, loading, pathname, router])
@@ -46,8 +46,8 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
     return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>
   }
 
-  // Allow register and login pages to bypass the standard layout
-  if (pathname.startsWith('/partner/register') || pathname === '/partner/login') {
+  // Allow login page to bypass the standard partner dashboard layout
+  if (pathname === '/partner/login') {
     return <>{children}</>
   }
 

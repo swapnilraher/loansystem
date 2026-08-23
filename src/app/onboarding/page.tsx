@@ -25,43 +25,54 @@ import {
   Lock,
   Camera,
   RefreshCw,
-  Search
+  Search,
+  CheckSquare,
+  AlertTriangle,
+  Edit2,
+  Trash2,
+  Eye,
+  ExternalLink,
+  MessageSquare
 } from "lucide-react";
 
 import WhatsAppOtpModal from "@/components/onboarding/WhatsAppOtpModal";
 import ImageCropModal from "@/components/onboarding/ImageCropModal";
 
+type PartnerType = "Individual" | "Firm";
+type FirmType = "Proprietorship" | "Partnership" | "Private Limited" | "Limited" | "LLP";
+
 export default function OnboardingPage() {
-  // Mobile Verification State
+  // ─── Screen 1 & 2: Mobile & WhatsApp OTP Verification ───
   const [mobileNumber, setMobileNumber] = useState("");
   const [isMobileVerified, setIsMobileVerified] = useState(false);
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [mobileError, setMobileError] = useState<string | null>(null);
 
-  // Step Counter (1 to 8)
+  // ─── Stepper Counter (1 to 8) ───
   const [currentStep, setCurrentStep] = useState(1);
   const [savingStep, setSavingStep] = useState(false);
+  const [stepError, setStepError] = useState<string | null>(null);
 
-  // Step 1: Basic Details
+  // ─── Step 1: Basic Details ───
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
 
-  // Step 2: Partner Type & PAN
-  const [partnerType, setPartnerType] = useState<"Individual" | "Firm">("Individual");
-  const [firmType, setFirmType] = useState<"Proprietorship" | "Partnership" | "Private Limited" | "Limited" | "LLP">("Proprietorship");
+  // ─── Step 2: Business & PAN ───
+  const [partnerType, setPartnerType] = useState<PartnerType>("Individual");
+  const [firmType, setFirmType] = useState<FirmType>("Proprietorship");
   const [panNumber, setPanNumber] = useState("");
   const [panValid, setPanValid] = useState(false);
-  const [panVerifying, setPanVerifying] = useState(false);
-  const [panError, setPanError] = useState<string | null>(null);
+  const [panChecking, setPanChecking] = useState(false);
+  const [panDuplicateError, setPanDuplicateError] = useState<string | null>(null);
 
-  // Step 3: Contact Person Details
+  // ─── Step 3: Contact Person Details ───
   const [contactPersonName, setContactPersonName] = useState("");
-  const [designation, setDesignation] = useState("Individual / Proprietor");
+  const [designation, setDesignation] = useState("Individual");
   const [dob, setDob] = useState("");
   const [gender, setGender] = useState("Male");
 
-  // Step 4: Office Address Details
+  // ─── Step 4: Office Address Details ───
   const [addressLine1, setAddressLine1] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
   const [area, setArea] = useState("");
@@ -70,21 +81,19 @@ export default function OnboardingPage() {
   const [stateName, setStateName] = useState("");
   const [pinCode, setPinCode] = useState("");
 
-  // Step 5: GST Registration
+  // ─── Step 5: GST Registration ───
   const [isGstRegistered, setIsGstRegistered] = useState<"Yes" | "No">("No");
   const [gstin, setGstin] = useState("");
   const [gstValid, setGstValid] = useState(false);
+  const [gstVerifying, setGstVerifying] = useState(false);
 
-  // Step 6: Aadhaar & PAN Uploads
-  const [aadhaarNumber, setAadhaarNumber] = useState("");
-  const [panDoc, setPanDoc] = useState<{ fileName: string; sizeBytes: number; uploadedAt: string } | null>(null);
+  // ─── Step 6: KYC Document Uploads ───
   const [aadhaarDoc, setAadhaarDoc] = useState<{ fileName: string; sizeBytes: number; uploadedAt: string } | null>(null);
-  const [gstDoc, setGstDoc] = useState<{ fileName: string; sizeBytes: number; uploadedAt: string } | null>(null);
-
-  const [activeCropModal, setActiveCropModal] = useState<"panDoc" | "aadhaarDoc" | "gstDoc" | null>(null);
+  const [panDoc, setPanDoc] = useState<{ fileName: string; sizeBytes: number; uploadedAt: string } | null>(null);
+  const [activeCropModal, setActiveCropModal] = useState<"aadhaarDoc" | "panDoc" | null>(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
 
-  // Step 7: Bank Details
+  // ─── Step 7: Bank Details ───
   const [accountHolderName, setAccountHolderName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [confirmAccountNumber, setConfirmAccountNumber] = useState("");
@@ -94,200 +103,138 @@ export default function OnboardingPage() {
   const [accountType, setAccountType] = useState<"Savings" | "Current">("Savings");
   const [ifscLoading, setIfscLoading] = useState(false);
   const [ifscValid, setIfscValid] = useState(false);
+  const [bankVerificationStatus, setBankVerificationStatus] = useState<"pending" | "verified">("pending");
 
-  // Step 8: Declaration & Final Submission
+  // ─── Step 8: Review & Declarations ───
   const [declareTruth, setDeclareTruth] = useState(false);
   const [declareTerms, setDeclareTerms] = useState(false);
-  const [submittingApp, setSubmittingApp] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // ─── Final Success Screen ───
   const [submittedAppId, setSubmittedAppId] = useState<string | null>(null);
 
-  // Global Error state
-  const [globalError, setGlobalError] = useState<string | null>(null);
-
-  // Auto-validate PAN format on typing
+  // Auto-sync designation when partnerType or firmType changes
   useEffect(() => {
-    if (panNumber.length === 10) {
-      handleCheckPan(panNumber);
+    if (partnerType === "Individual") {
+      setDesignation("Individual");
     } else {
-      setPanValid(false);
-      setPanError(null);
+      if (firmType === "Proprietorship") setDesignation("Proprietor");
+      else if (firmType === "Partnership") setDesignation("Partner");
+      else if (firmType === "Private Limited" || firmType === "Limited") setDesignation("Director");
+      else if (firmType === "LLP") setDesignation("Designated Partner");
     }
-  }, [panNumber]);
+  }, [partnerType, firmType]);
 
-  // Handle IFSC lookup on 11 characters
-  useEffect(() => {
-    if (ifscCode.length === 11) {
-      handleLookupIfsc(ifscCode);
-    } else {
-      setIfscValid(false);
-      setBankName("");
-      setBranchName("");
+  // Designation options by partner/firm type
+  const getDesignationOptions = () => {
+    if (partnerType === "Individual") {
+      return ["Individual", "Proprietor"];
     }
-  }, [ifscCode]);
+    switch (firmType) {
+      case "Proprietorship":
+        return ["Proprietor", "Authorized Representative"];
+      case "Partnership":
+        return ["Partner", "Authorized Partner", "Authorized Signatory"];
+      case "Private Limited":
+      case "Limited":
+        return ["Director", "Authorized Signatory"];
+      case "LLP":
+        return ["Designated Partner", "Partner", "Authorized Signatory"];
+      default:
+        return ["Authorized Signatory", "Representative"];
+    }
+  };
 
-  // ── Initial WhatsApp OTP ──────────────────────────────────────────────────────
-  const handleSendMobileOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!/^[6-9]\d{9}$/.test(mobileNumber)) {
-      setMobileError("Please enter a valid 10-digit Indian mobile number starting with 6-9.");
+  // ─── 1. Send WhatsApp OTP ───
+  const handleSendOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setMobileError(null);
+
+    const cleanNumber = mobileNumber.replace(/\D/g, "");
+    if (!/^[6-9]\d{9}$/.test(cleanNumber)) {
+      setMobileError("Please enter a valid 10-digit Indian mobile number (starts with 6, 7, 8, or 9).");
       return;
     }
-    setMobileError(null);
-    setOtpLoading(true);
 
+    setOtpLoading(true);
     try {
       const res = await fetch("/api/onboarding/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber: mobileNumber }),
+        body: JSON.stringify({ phoneNumber: cleanNumber }),
       });
-      const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error || "Failed to send OTP");
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to send WhatsApp verification OTP.");
+      }
 
       setShowOtpModal(true);
     } catch (err: any) {
-      setMobileError(err.message || "Failed to send OTP via WhatsApp.");
+      setMobileError(err.message || "Failed to connect to WhatsApp OTP service.");
     } finally {
       setOtpLoading(false);
     }
   };
 
-  const handleOtpVerified = async (token: string) => {
-    setIsMobileVerified(true);
+  // ─── 2. On OTP Verified ───
+  const handleOtpVerified = async () => {
     setShowOtpModal(false);
+    setIsMobileVerified(true);
+    setCurrentStep(1);
 
-    // Try to resume existing draft
+    // Try loading any previous draft
     try {
       const res = await fetch(`/api/onboarding/resume?mobile=${mobileNumber}`);
       const data = await res.json();
-
-      if (data.exists && data.data) {
-        const saved = data.data;
-        if (saved.fullName) setFullName(saved.fullName);
-        if (saved.email) setEmail(saved.email);
-        if (saved.partnerType) setPartnerType(saved.partnerType);
-        if (saved.firmType) setFirmType(saved.firmType);
-        if (saved.panNumber) setPanNumber(saved.panNumber);
-        if (saved.contactPersonName) setContactPersonName(saved.contactPersonName);
-        if (saved.designation) setDesignation(saved.designation);
-        if (saved.dob) setDob(saved.dob);
-        if (saved.gender) setGender(saved.gender);
-        if (saved.addressLine1) setAddressLine1(saved.addressLine1);
-        if (saved.addressLine2) setAddressLine2(saved.addressLine2);
-        if (saved.area) setArea(saved.area);
-        if (saved.city) setCity(saved.city);
-        if (saved.district) setDistrict(saved.district);
-        if (saved.stateName) setStateName(saved.stateName);
-        if (saved.pinCode) setPinCode(saved.pinCode);
-        if (saved.isGstRegistered) setIsGstRegistered(saved.isGstRegistered);
-        if (saved.gstin) setGstin(saved.gstin);
-        if (saved.aadhaarNumber) setAadhaarNumber(saved.aadhaarNumber);
-        if (saved.documents?.panDoc) setPanDoc(saved.documents.panDoc);
-        if (saved.documents?.aadhaarDoc) setAadhaarDoc(saved.documents.aadhaarDoc);
-        if (saved.documents?.gstDoc) setGstDoc(saved.documents.gstDoc);
-        if (saved.bankDetails) {
-          setAccountHolderName(saved.bankDetails.accountHolderName || "");
-          setAccountNumber(saved.bankDetails.accountNumber || "");
-          setConfirmAccountNumber(saved.bankDetails.accountNumber || "");
-          setIfscCode(saved.bankDetails.ifsc || "");
-          setBankName(saved.bankDetails.bankName || "");
-          setBranchName(saved.bankDetails.branchName || "");
-          setAccountType(saved.bankDetails.accountType || "Savings");
+      if (res.ok && data.application) {
+        const app = data.application;
+        if (app.fullName) setFullName(app.fullName);
+        if (app.email) setEmail(app.email);
+        if (app.partnerType) setPartnerType(app.partnerType);
+        if (app.firmType) setFirmType(app.firmType);
+        if (app.panNumber) {
+          setPanNumber(app.panNumber);
+          setPanValid(true);
         }
-        if (saved.status === "under_review" || saved.applicationId) {
-          setSubmittedAppId(saved.applicationId);
+        if (app.contactPersonName) setContactPersonName(app.contactPersonName);
+        if (app.designation) setDesignation(app.designation);
+        if (app.dob) setDob(app.dob);
+        if (app.gender) setGender(app.gender);
+        if (app.addressLine1) setAddressLine1(app.addressLine1);
+        if (app.addressLine2) setAddressLine2(app.addressLine2);
+        if (app.area) setArea(app.area);
+        if (app.city) setCity(app.city);
+        if (app.district) setDistrict(app.district);
+        if (app.stateName) setStateName(app.stateName);
+        if (app.pinCode) setPinCode(app.pinCode);
+        if (app.isGstRegistered) setIsGstRegistered(app.isGstRegistered);
+        if (app.gstin) {
+          setGstin(app.gstin);
+          setGstValid(true);
         }
-        if (saved.currentStep) {
-          setCurrentStep(saved.currentStep);
+        if (app.documents?.aadhaarDoc) setAadhaarDoc(app.documents.aadhaarDoc);
+        if (app.documents?.panDoc) setPanDoc(app.documents.panDoc);
+        if (app.bankDetails) {
+          setAccountHolderName(app.bankDetails.accountHolderName || "");
+          setAccountNumber(app.bankDetails.accountNumber || "");
+          setConfirmAccountNumber(app.bankDetails.accountNumber || "");
+          setIfscCode(app.bankDetails.ifsc || "");
+          setBankName(app.bankDetails.bankName || "");
+          setBranchName(app.bankDetails.branchName || "");
+          setAccountType(app.bankDetails.accountType || "Savings");
+          if (app.bankDetails.ifsc) setIfscValid(true);
         }
       }
     } catch (e) {
-      console.warn("Resume draft note:", e);
+      console.warn("Could not resume draft:", e);
     }
   };
 
-  // ── PAN Check ─────────────────────────────────────────────────────────────────
-  const handleCheckPan = async (pan: string) => {
-    setPanVerifying(true);
-    setPanError(null);
-    try {
-      const res = await fetch("/api/onboarding/pan/check", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ panNumber: pan, mobileNumber }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setPanValid(false);
-        setPanError(data.error || "Invalid PAN number");
-      } else {
-        setPanValid(true);
-        setPanError(null);
-      }
-    } catch (err: any) {
-      setPanValid(false);
-      setPanError("Failed to check PAN number");
-    } finally {
-      setPanVerifying(false);
-    }
-  };
-
-  // ── Razorpay IFSC Lookup ──────────────────────────────────────────────────────
-  const handleLookupIfsc = async (ifsc: string) => {
-    setIfscLoading(true);
-    try {
-      const res = await fetch(`/api/onboarding/ifsc?code=${ifsc}`);
-      const data = await res.json();
-
-      if (res.ok && data.valid) {
-        setBankName(data.bank);
-        setBranchName(data.branch);
-        setIfscValid(true);
-      } else {
-        setIfscValid(false);
-        setBankName("");
-        setBranchName("");
-      }
-    } catch (err) {
-      setIfscValid(false);
-    } finally {
-      setIfscLoading(false);
-    }
-  };
-
-  // ── Document Upload Handler ───────────────────────────────────────────────────
-  const handleConfirmDocUpload = async (docType: "panDoc" | "aadhaarDoc" | "gstDoc", file: File) => {
-    setUploadingDoc(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("documentType", docType);
-      formData.append("mobileNumber", mobileNumber);
-
-      const res = await fetch("/api/onboarding/document/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Upload failed");
-
-      if (docType === "panDoc") setPanDoc(data.document);
-      if (docType === "aadhaarDoc") setAadhaarDoc(data.document);
-      if (docType === "gstDoc") setGstDoc(data.document);
-    } catch (err: any) {
-      alert(err.message || "Failed to upload document");
-    } finally {
-      setUploadingDoc(false);
-    }
-  };
-
-  // ── Save Step Progress ────────────────────────────────────────────────────────
-  const saveStepData = async (stepNum: number, stepPayload: Record<string, any>) => {
+  // ─── 3. Save Progress to Backend ───
+  const saveProgress = async (stepNum: number, stepPayload: any) => {
     setSavingStep(true);
-    setGlobalError(null);
+    setStepError(null);
     try {
       const res = await fetch("/api/onboarding/save-step", {
         method: "POST",
@@ -298,83 +245,296 @@ export default function OnboardingPage() {
           stepData: stepPayload,
         }),
       });
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to save step");
+      if (!res.ok) throw new Error(data.error || "Failed to save step progress.");
       return true;
     } catch (err: any) {
-      setGlobalError(err.message || "Failed to save step progress.");
+      setStepError(err.message || "Failed to save progress. Please try again.");
       return false;
     } finally {
       setSavingStep(false);
     }
   };
 
-  // ── Step Navigation ──────────────────────────────────────────────────────────
-  const handleNextStep = async () => {
-    if (currentStep === 1) {
-      if (!fullName.trim() || !email.trim()) {
-        setGlobalError("Please fill in your Full Name and Email Address.");
-        return;
-      }
-      const saved = await saveStepData(1, { fullName, email });
-      if (saved) setCurrentStep(2);
-    } else if (currentStep === 2) {
-      if (!panValid) {
-        setGlobalError("Please enter a valid, non-duplicate PAN number.");
-        return;
-      }
-      const saved = await saveStepData(2, { partnerType, firmType, panNumber });
-      if (saved) setCurrentStep(3);
-    } else if (currentStep === 3) {
-      if (!contactPersonName.trim() || !dob || !gender) {
-        setGlobalError("Please complete all Contact Person fields.");
-        return;
-      }
-      const saved = await saveStepData(3, { contactPersonName, designation, dob, gender });
-      if (saved) setCurrentStep(4);
-    } else if (currentStep === 4) {
-      if (!addressLine1.trim() || !city.trim() || !stateName.trim() || !pinCode.trim()) {
-        setGlobalError("Please complete all mandatory Office Address fields.");
-        return;
-      }
-      const saved = await saveStepData(4, { addressLine1, addressLine2, area, city, district, stateName, pinCode });
-      if (saved) setCurrentStep(5);
-    } else if (currentStep === 5) {
-      if (isGstRegistered === "Yes" && !gstin.trim()) {
-        setGlobalError("Please enter your GSTIN number.");
-        return;
-      }
-      const saved = await saveStepData(5, { isGstRegistered, gstin });
-      if (saved) setCurrentStep(6);
-    } else if (currentStep === 6) {
-      if (!panDoc || !aadhaarDoc) {
-        setGlobalError("PAN Document and Aadhaar Document uploads are compulsory.");
-        return;
-      }
-      const saved = await saveStepData(6, { aadhaarNumber });
-      if (saved) setCurrentStep(7);
-    } else if (currentStep === 7) {
-      if (!accountNumber || accountNumber !== confirmAccountNumber || !ifscValid) {
-        setGlobalError("Please verify that Bank Account Numbers match and IFSC Code is valid.");
-        return;
-      }
-      const saved = await saveStepData(7, {
-        bankDetails: { accountHolderName: accountHolderName || fullName, accountNumber, ifsc: ifscCode, bankName, branchName, accountType }
-      });
-      if (saved) setCurrentStep(8);
+  // ─── Step 1 Submit ───
+  const handleStep1Submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fullName.trim()) {
+      setStepError("Full Name is required.");
+      return;
     }
-  };
-
-  // ── Final Submission ─────────────────────────────────────────────────────────
-  const handleFinalSubmit = async () => {
-    if (!declareTruth || !declareTerms) {
-      setGlobalError("You must agree to the truthfulness declaration and terms & conditions.");
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setStepError("Please provide a valid Email Address.");
       return;
     }
 
-    setSubmittingApp(true);
-    setGlobalError(null);
+    const ok = await saveProgress(2, {
+      fullName: fullName.trim(),
+      email: email.trim(),
+      mobileNumber,
+      isMobileVerified: true,
+    });
+    if (ok) setCurrentStep(2);
+  };
 
+  // ─── Step 2: Check PAN ───
+  const handleCheckPan = async () => {
+    setStepError(null);
+    setPanDuplicateError(null);
+    const cleanPan = panNumber.trim().toUpperCase();
+
+    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+    if (!panRegex.test(cleanPan)) {
+      setStepError("Please enter a valid 10-character PAN number (e.g. ABCDE1234F).");
+      return;
+    }
+
+    setPanChecking(true);
+    try {
+      const res = await fetch("/api/onboarding/pan/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ panNumber: cleanPan, mobileNumber }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.isDuplicate) {
+        setPanDuplicateError(data.error || "This PAN is already linked with an existing Techstar Money partner account.");
+        setPanValid(false);
+      } else {
+        setPanValid(true);
+        setPanNumber(cleanPan);
+      }
+    } catch (err: any) {
+      setStepError(err.message || "Failed to check PAN status.");
+    } finally {
+      setPanChecking(false);
+    }
+  };
+
+  const handleStep2Submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!panValid) {
+      setStepError("Please verify your PAN number before continuing.");
+      return;
+    }
+
+    const ok = await saveProgress(3, {
+      partnerType,
+      firmType: partnerType === "Firm" ? firmType : null,
+      panNumber: panNumber.trim().toUpperCase(),
+      panValid: true,
+    });
+    if (ok) setCurrentStep(3);
+  };
+
+  // ─── Step 3 Submit ───
+  const handleStep3Submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contactPersonName.trim()) {
+      setStepError("Contact Person Name is required.");
+      return;
+    }
+    if (!dob) {
+      setStepError("Date of Birth is required.");
+      return;
+    }
+
+    const ok = await saveProgress(4, {
+      contactPersonName: contactPersonName.trim(),
+      designation,
+      dob,
+      gender,
+    });
+    if (ok) setCurrentStep(4);
+  };
+
+  // ─── Step 4 Submit ───
+  const handleStep4Submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addressLine1.trim() || !city.trim() || !district.trim() || !stateName.trim() || !pinCode.trim()) {
+      setStepError("Please fill in all mandatory address fields marked with *.");
+      return;
+    }
+    if (!/^\d{6}$/.test(pinCode.trim())) {
+      setStepError("Please enter a valid 6-digit PIN code.");
+      return;
+    }
+
+    const ok = await saveProgress(5, {
+      addressLine1: addressLine1.trim(),
+      addressLine2: addressLine2.trim(),
+      area: area.trim(),
+      city: city.trim(),
+      district: district.trim(),
+      stateName: stateName.trim(),
+      pinCode: pinCode.trim(),
+    });
+    if (ok) setCurrentStep(5);
+  };
+
+  // ─── Step 5: GST Verification & Submit ───
+  const handleVerifyGst = () => {
+    const cleanGst = gstin.trim().toUpperCase();
+    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    if (!gstRegex.test(cleanGst)) {
+      setStepError("Please enter a valid 15-character GSTIN (e.g. 27ABCDE1234F1Z5).");
+      setGstValid(false);
+      return;
+    }
+    setGstVerifying(true);
+    setTimeout(() => {
+      setGstValid(true);
+      setGstin(cleanGst);
+      setGstVerifying(false);
+      setStepError(null);
+    }, 600);
+  };
+
+  const handleStep5Submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isGstRegistered === "Yes" && !gstValid) {
+      setStepError("Please verify your GSTIN or select 'No' if not GST registered.");
+      return;
+    }
+
+    const ok = await saveProgress(6, {
+      isGstRegistered,
+      gstin: isGstRegistered === "Yes" ? gstin.trim().toUpperCase() : null,
+      gstValid: isGstRegistered === "Yes" ? gstValid : false,
+    });
+    if (ok) setCurrentStep(6);
+  };
+
+  // ─── Step 6: KYC Document Upload Handler ───
+  const handleDocumentCropped = async (file: File) => {
+    if (!activeCropModal) return;
+    const docType = activeCropModal;
+    setUploadingDoc(true);
+    setStepError(null);
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("documentType", docType);
+    formData.append("mobileNumber", mobileNumber);
+
+    try {
+      const res = await fetch("/api/onboarding/document/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Document upload failed");
+
+      if (docType === "aadhaarDoc") {
+        setAadhaarDoc(data.document);
+      } else if (docType === "panDoc") {
+        setPanDoc(data.document);
+      }
+    } catch (err: any) {
+      setStepError(err.message || "Failed to upload document.");
+    } finally {
+      setUploadingDoc(false);
+      setActiveCropModal(null);
+    }
+  };
+
+  const handleStep6Submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aadhaarDoc) {
+      setStepError("Aadhaar Card document upload is mandatory.");
+      return;
+    }
+    if (!panDoc) {
+      setStepError("PAN Card document upload is mandatory.");
+      return;
+    }
+
+    const ok = await saveProgress(7, {
+      documents: {
+        aadhaarDoc,
+        panDoc,
+      },
+    });
+    if (ok) setCurrentStep(7);
+  };
+
+  // ─── Step 7: IFSC Lookup ───
+  const handleIfscLookup = async (code: string) => {
+    const cleanIfsc = code.trim().toUpperCase();
+    setIfscCode(cleanIfsc);
+    if (cleanIfsc.length !== 11) {
+      setIfscValid(false);
+      return;
+    }
+
+    setIfscLoading(true);
+    setStepError(null);
+    try {
+      const res = await fetch(`/api/onboarding/ifsc?code=${cleanIfsc}`);
+      const data = await res.json();
+
+      if (!res.ok || !data.valid) {
+        setIfscValid(false);
+        setStepError(data.error || "Invalid IFSC code. Bank details not found.");
+      } else {
+        setIfscValid(true);
+        setBankName(data.bank || "");
+        setBranchName(data.branch || "");
+        setStepError(null);
+      }
+    } catch (err: any) {
+      setIfscValid(false);
+      setStepError("Could not fetch bank details from Razorpay IFSC service.");
+    } finally {
+      setIfscLoading(false);
+    }
+  };
+
+  const handleStep7Submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!accountHolderName.trim()) {
+      setStepError("Account Holder Name is required.");
+      return;
+    }
+    if (!accountNumber.trim() || accountNumber.length < 9) {
+      setStepError("Please enter a valid Bank Account Number.");
+      return;
+    }
+    if (accountNumber !== confirmAccountNumber) {
+      setStepError("Account Number and Confirmation do not match.");
+      return;
+    }
+    if (!ifscValid || !bankName) {
+      setStepError("Please enter a valid 11-digit IFSC code.");
+      return;
+    }
+
+    const ok = await saveProgress(8, {
+      bankDetails: {
+        accountHolderName: accountHolderName.trim(),
+        accountNumber: accountNumber.trim(),
+        ifsc: ifscCode.trim().toUpperCase(),
+        bankName,
+        branchName,
+        accountType,
+        verificationStatus: bankVerificationStatus,
+      },
+    });
+    if (ok) setCurrentStep(8);
+  };
+
+  // ─── Step 8: Final Submission ───
+  const handleFinalSubmit = async () => {
+    if (!declareTruth || !declareTerms) {
+      setStepError("Please confirm all declaration and terms checkboxes before submitting.");
+      return;
+    }
+
+    setSubmitting(true);
+    setStepError(null);
     try {
       const res = await fetch("/api/onboarding/submit", {
         method: "POST",
@@ -386,206 +546,213 @@ export default function OnboardingPage() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Submission failed");
+      if (!res.ok) throw new Error(data.error || "Failed to submit application");
 
       setSubmittedAppId(data.applicationId);
     } catch (err: any) {
-      setGlobalError(err.message || "Failed to submit application.");
+      setStepError(err.message || "Failed to submit application. Please try again.");
     } finally {
-      setSubmittingApp(false);
+      setSubmitting(false);
     }
   };
 
-  // ── Render Submission Success / Approval Pending Screen ───────────────────────
+  // ─── Render Success Screen ───
   if (submittedAppId) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 text-center p-8">
-          <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 className="w-12 h-12" />
+      <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4 font-sans">
+        <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl p-8 sm:p-10 border border-slate-200 text-center space-y-6 animate-fadeIn">
+          <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+            <CheckCircle2 className="w-10 h-10" />
           </div>
 
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">Application Submitted Successfully!</h2>
-          <p className="text-slate-600 text-sm max-w-md mx-auto mb-6">
-            Your Techstar Money DSA Partner application has been received and is currently undergoing admin review.
-          </p>
-
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-6 text-left max-w-md mx-auto">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-xs text-slate-500 font-medium">Application ID</span>
-              <span className="font-mono font-bold text-slate-900 text-sm">{submittedAppId}</span>
-            </div>
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-xs text-slate-500 font-medium">Status</span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 text-amber-800 font-semibold text-xs rounded-full">
-                <Clock className="w-3.5 h-3.5" /> Under Review
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-slate-500 font-medium">SLA Estimate</span>
-              <span className="text-xs text-slate-700 font-medium">Up to 24 Hours</span>
-            </div>
+          <div className="space-y-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-800 font-bold text-xs rounded-full">
+              <Clock className="w-3.5 h-3.5" /> Under Review
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              Application Submitted Successfully!
+            </h1>
+            <p className="text-slate-500 text-xs sm:text-sm font-medium leading-relaxed max-w-md mx-auto">
+              Your DSA Partner application has been received. Our compliance team will review your details and documents. Approval takes up to 24 hours.
+            </p>
           </div>
 
-          <p className="text-slate-500 text-xs mb-8">
-            You will receive WhatsApp and email updates once your application is reviewed.
-          </p>
+          {/* Application ID Card */}
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-center space-y-1">
+            <span className="text-slate-400 font-bold text-[10px] uppercase tracking-widest block">Your Application ID</span>
+            <span className="font-mono font-black text-slate-900 text-2xl tracking-wider">{submittedAppId}</span>
+            <p className="text-[11px] text-slate-400 font-medium pt-1">
+              A confirmation receipt with tracking details has been sent to your WhatsApp number.
+            </p>
+          </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          {/* Actions */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
             <Link
               href={`/application-status?id=${submittedAppId}`}
-              className="py-3 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm shadow-md transition-all flex items-center justify-center gap-2"
+              className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2"
             >
-              Track Application Status
-              <ArrowRight className="w-4 h-4" />
+              Track Application <ArrowRight className="w-4 h-4" />
             </Link>
-            <Link
-              href="/"
-              className="py-3 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition-all"
+            <a
+              href="https://wa.me/917020646007?text=Hello%20Techstar%20Money%20Team,%20I%20have%20submitted%20my%20DSA%20Partner%20Application%20ID:%20"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-3.5 px-4 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs sm:text-sm shadow-sm transition-all flex items-center justify-center gap-2"
             >
-              Back to Home
-            </Link>
+              <MessageSquare className="w-4 h-4 text-emerald-600" /> Contact Support
+            </a>
           </div>
         </div>
       </div>
     );
   }
 
-  // ── Render Initial Mobile Verification Screen (Pre-OTP) ───────────────────────
+  // ─── Render Pre-Verification Screens (Screen 1: Mobile & Screen 2: OTP) ───
   if (!isMobileVerified) {
+    const isMobileValid = /^[6-9]\d{9}$/.test(mobileNumber.replace(/\D/g, ""));
+
     return (
-      <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-between">
-        {/* Top Header */}
-        <header className="border-b border-slate-800 py-4 px-6">
+      <div className="min-h-screen bg-slate-100 flex flex-col justify-between font-sans">
+        {/* Header */}
+        <header className="bg-slate-900 text-white py-4 px-6 shadow-md">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-emerald-500/30">
+              <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-md">
                 T
               </div>
               <div>
-                <span className="text-lg font-extrabold tracking-tight text-white">Techstar Money</span>
-                <span className="block text-[10px] text-emerald-400 font-bold uppercase tracking-wider">DSA Partner Portal</span>
+                <span className="text-base font-bold tracking-tight">Techstar Money</span>
+                <span className="block text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+                  Techstar Money Solution Pvt. Ltd.
+                </span>
               </div>
             </div>
-            <Link href="/" className="text-xs font-semibold text-slate-400 hover:text-white transition-colors">
-              Main Site →
+
+            <Link
+              href="/partner/login"
+              className="text-xs text-slate-300 hover:text-white font-semibold flex items-center gap-1"
+            >
+              Partner Login <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </header>
 
-        {/* Main Content (2-Column Desktop / Single Column Mobile) */}
-        <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-8 flex items-center">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 w-full items-center">
-            {/* Left Side Branding */}
-            <div className="lg:col-span-7 space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider">
-                <ShieldCheck className="w-4 h-4" /> Official Channel Partner Onboarding
+        {/* Main Hero Card */}
+        <main className="flex-1 flex items-center justify-center p-4 sm:p-6 my-6">
+          <div className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden grid grid-cols-1 md:grid-cols-12">
+            {/* Left Column: Techstar Money Value Prop */}
+            <div className="md:col-span-5 bg-gradient-to-br from-slate-900 via-slate-850 to-slate-950 p-8 text-white flex flex-col justify-between relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-[80px]" />
+              <div className="space-y-6 relative z-10">
+                <span className="inline-block px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-widest rounded-full">
+                  DSA Partner Program
+                </span>
+                <h2 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
+                  Grow Your Financial Services Business
+                </h2>
+                <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
+                  Join 500+ certified loan partners across Maharashtra. Access 50+ leading banks, digital lead management, and quick payouts.
+                </p>
+
+                <div className="space-y-3 pt-2">
+                  {[
+                    "Zero setup fees or hidden charges",
+                    "Instant digital onboarding with WhatsApp OTP",
+                    "Industry-best commission slabs on disbursals",
+                    "Dedicated Relationship Manager file support",
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-2.5 text-xs text-slate-300 font-medium">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <h1 className="text-3xl sm:text-5xl font-black text-white leading-tight">
-                Become a <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">Techstar Money</span> Partner
-              </h1>
-
-              <p className="text-slate-400 text-base sm:text-lg max-w-xl">
-                Grow your financial services business with access to 40+ leading Banks & NBFCs, instant payouts, and a high-tech DSA portal.
-              </p>
-
-              {/* Benefits Bullets */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                {[
-                  "Personal, Business & Home Loans",
-                  "Real-Time Lead & Commission Tracking",
-                  "Automated WhatsApp Notifications",
-                  "Dedicated Partner Relationship Manager",
-                ].map((b, i) => (
-                  <div key={i} className="flex items-center gap-3 bg-slate-800/50 border border-slate-700/50 p-3.5 rounded-xl">
-                    <div className="w-6 h-6 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center shrink-0">
-                      <Check className="w-3.5 h-3.5" />
-                    </div>
-                    <span className="text-slate-200 text-sm font-medium">{b}</span>
-                  </div>
-                ))}
+              <div className="pt-6 border-t border-slate-800 text-[11px] text-slate-400">
+                🛡️ 100% Secure & Compliant Financial Portal
               </div>
             </div>
 
-            {/* Right Side Mobile Card */}
-            <div className="lg:col-span-5">
-              <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-2xl text-slate-900 border border-slate-100">
-                <h2 className="text-xl font-bold text-slate-900 mb-1">Get Started</h2>
-                <p className="text-slate-500 text-xs mb-6">
-                  Enter your mobile number to receive a verification OTP via WhatsApp.
+            {/* Right Column: Screen 1 Mobile Entry Form */}
+            <div className="md:col-span-7 p-6 sm:p-10 flex flex-col justify-center space-y-6">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                  Become a Techstar Money Partner
+                </h1>
+                <p className="text-slate-500 text-xs sm:text-sm mt-1">
+                  Start your journey with Techstar Money and grow your financial services business.
                 </p>
+              </div>
 
-                {mobileError && (
-                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
-                    <span>{mobileError}</span>
-                  </div>
-                )}
+              {mobileError && (
+                <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+                  <span>{mobileError}</span>
+                </div>
+              )}
 
-                <form onSubmit={handleSendMobileOtp} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
-                      Mobile Number <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative flex items-center">
-                      <span className="absolute left-3.5 text-slate-500 text-sm font-bold border-r border-slate-200 pr-2.5">
-                        +91
-                      </span>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={10}
-                        value={mobileNumber}
-                        onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ""))}
-                        placeholder="98765 43210"
-                        className="w-full pl-16 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold text-base focus:bg-white focus:border-emerald-600 focus:outline-none transition-all"
-                        required
-                      />
+              <form onSubmit={handleSendOtp} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Enter your mobile number *
+                  </label>
+                  <div className="relative">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2 text-slate-400 border-r border-slate-300 pr-3">
+                      <Phone className="w-4 h-4 text-emerald-600" />
+                      <span className="text-xs font-bold text-slate-700">+91</span>
                     </div>
+                    <input
+                      type="tel"
+                      maxLength={10}
+                      inputMode="numeric"
+                      value={mobileNumber}
+                      onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ""))}
+                      placeholder="10-digit mobile number"
+                      className="w-full pl-22 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none transition-all"
+                      autoFocus
+                    />
                   </div>
+                  <p className="text-[11px] text-slate-400 mt-1.5 font-medium">
+                    We will send a 6-digit WhatsApp OTP to verify your mobile number.
+                  </p>
+                </div>
 
-                  <button
-                    type="submit"
-                    disabled={otpLoading || mobileNumber.length < 10}
-                    className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 text-base mt-2"
-                  >
-                    {otpLoading ? (
-                      <>
-                        <RefreshCw className="w-5 h-5 animate-spin" />
-                        Sending WhatsApp OTP...
-                      </>
-                    ) : (
-                      <>
-                        Get Started (WhatsApp OTP)
-                        <ArrowRight className="w-5 h-5" />
-                      </>
-                    )}
-                  </button>
-                </form>
+                <button
+                  type="submit"
+                  disabled={otpLoading || !isMobileValid}
+                  className="w-full py-4 px-6 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2"
+                >
+                  {otpLoading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Sending WhatsApp OTP...
+                    </>
+                  ) : (
+                    <>
+                      Get Started <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
 
-                <p className="text-[11px] text-slate-400 text-center mt-4">
-                  By clicking Get Started, you agree to Techstar Money's{" "}
-                  <Link href="/terms" className="text-emerald-600 underline">
-                    Terms
-                  </Link>{" "}
-                  &{" "}
-                  <Link href="/privacy" className="text-emerald-600 underline">
-                    Privacy Policy
-                  </Link>
-                  .
-                </p>
+              <div className="pt-4 border-t border-slate-100 text-center text-xs text-slate-500">
+                Already registered with Techstar Money?{" "}
+                <Link href="/partner/login" className="text-emerald-600 hover:text-emerald-700 font-bold underline">
+                  Login to Portal
+                </Link>
               </div>
             </div>
           </div>
         </main>
 
         {/* Footer */}
-        <footer className="border-t border-slate-800 py-4 px-6 text-center text-xs text-slate-500">
+        <footer className="border-t border-slate-200 bg-white py-4 px-6 text-center text-xs text-slate-500">
           © {new Date().getFullYear()} Techstar Money Solution Pvt. Ltd. All rights reserved.
         </footer>
 
-        {/* WhatsApp OTP Modal */}
+        {/* Screen 2: WhatsApp OTP Modal */}
         <WhatsAppOtpModal
           isOpen={showOtpModal}
           phoneNumber={mobileNumber}
@@ -597,689 +764,1067 @@ export default function OnboardingPage() {
     );
   }
 
-  // ── Render 8-Step Onboarding Wizard ──────────────────────────────────────────
+  // ─── 8-STEP ONBOARDING WIZARD ───
+  const STEP_TITLES = [
+    "Basic Details",
+    "Business & PAN",
+    "Contact Person",
+    "Office Address",
+    "GST Registration",
+    "KYC Documents",
+    "Bank Details",
+    "Review & Submit",
+  ];
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col justify-between font-sans">
-      {/* Top Header */}
-      <header className="bg-slate-900 text-white py-4 px-4 sm:px-8 shadow-md">
+      {/* Top Navbar */}
+      <header className="bg-slate-900 text-white py-3.5 px-6 shadow-md sticky top-0 z-30">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-md">
+            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center text-white font-black text-base shadow-sm">
               T
             </div>
             <div>
-              <span className="text-base font-bold tracking-tight">Techstar Money</span>
-              <span className="block text-[10px] text-emerald-400 font-bold uppercase">Partner Onboarding</span>
+              <span className="text-sm font-bold tracking-tight">Techstar Money</span>
+              <span className="block text-[9px] text-emerald-400 font-bold uppercase">Partner Onboarding</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-xs">
-            <div className="hidden sm:flex items-center gap-2 text-slate-300">
-              <Phone className="w-3.5 h-3.5 text-emerald-400" />
-              <span>+91 {mobileNumber}</span>
-            </div>
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full font-semibold">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Mobile Verified
-            </span>
+          <div className="flex items-center gap-4 text-xs font-semibold text-slate-300">
+            <span className="hidden sm:inline">📱 +91 {mobileNumber}</span>
+            <Link href="/application-status" className="text-slate-400 hover:text-white">
+              Status Tracker
+            </Link>
           </div>
         </div>
       </header>
 
-      {/* Progress Bar Header */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 sm:px-8 py-3">
-          <div className="flex items-center justify-between mb-2 text-xs font-semibold text-slate-700">
-            <span>
-              Step <strong className="text-emerald-600 font-bold">{currentStep}</strong> of 8
+      {/* Main Container */}
+      <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 my-4 space-y-6">
+        {/* Stepper Progress Bar */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-black text-emerald-600 uppercase tracking-wider">
+              Step {currentStep} of 8: {STEP_TITLES[currentStep - 1]}
             </span>
-            <span className="text-slate-500 font-normal hidden sm:inline">
-              {[
-                "Basic Details",
-                "Partner Type & PAN",
-                "Contact Person",
-                "Office Address",
-                "GST Registration",
-                "KYC Documents",
-                "Bank Details",
-                "Review & Submit",
-              ][currentStep - 1]}
+            <span className="text-xs font-bold text-slate-500">
+              {Math.round((currentStep / 8) * 100)}% Complete
             </span>
-            <span className="text-emerald-600 font-bold">{Math.round((currentStep / 8) * 100)}%</span>
           </div>
 
           {/* Progress Bar Track */}
-          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+          <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-emerald-500 to-teal-600 transition-all duration-300 ease-out"
+              className="bg-emerald-600 h-full rounded-full transition-all duration-300"
               style={{ width: `${(currentStep / 8) * 100}%` }}
             />
           </div>
+
+          {/* Step Pills for Desktop */}
+          <div className="hidden sm:grid grid-cols-8 gap-1.5 mt-4 pt-3 border-t border-slate-100">
+            {STEP_TITLES.map((title, idx) => {
+              const stepIdx = idx + 1;
+              const isPast = currentStep > stepIdx;
+              const isCurrent = currentStep === stepIdx;
+
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => isPast && setCurrentStep(stepIdx)}
+                  disabled={!isPast}
+                  className={`text-left p-1.5 rounded-lg text-[10px] font-bold transition-all truncate ${
+                    isCurrent
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                      : isPast
+                      ? "text-slate-700 hover:bg-slate-50 cursor-pointer"
+                      : "text-slate-350 cursor-not-allowed"
+                  }`}
+                >
+                  <span className="block text-[8px] uppercase tracking-wider text-slate-400">Step {stepIdx}</span>
+                  <span className="truncate block">{title}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
 
-      {/* Main Form Body */}
-      <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-8 my-4">
-        <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
-          {globalError && (
-            <div className="p-4 bg-red-50 border-b border-red-200 text-red-700 text-xs font-medium flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
-              <span>{globalError}</span>
-            </div>
-          )}
+        {/* Global Step Error Banner */}
+        {stepError && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs font-semibold flex items-center gap-2 animate-fadeIn">
+            <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+            <span>{stepError}</span>
+          </div>
+        )}
 
-          <div className="p-6 sm:p-10">
-            {/* STEP 1: Basic Details */}
-            {currentStep === 1 && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">1. Tell us about yourself</h2>
-                  <p className="text-slate-500 text-xs mt-1">Please enter your basic personal contact details.</p>
-                </div>
+        {/* STEP CONTENT CARDS */}
+        <div className="bg-white rounded-3xl shadow-xl border border-slate-200 p-6 sm:p-10">
+          {/* ─────────────────────────────────────────────────────────────
+              STEP 1: BASIC DETAILS
+          ────────────────────────────────────────────────────────────── */}
+          {currentStep === 1 && (
+            <form onSubmit={handleStep1Submit} className="space-y-6 animate-fadeIn">
+              <div>
+                <h2 className="text-xl font-black text-slate-900">Basic Details</h2>
+                <p className="text-slate-500 text-xs mt-1">Please provide your primary contact information.</p>
+              </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Full Name (as per PAN) <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="e.g. Swapnil Ramesh Aher"
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:border-emerald-600 focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Email Address <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="swapnil@example.com"
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:border-emerald-600 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Mobile Number</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Full Name (as per PAN Card) *
+                  </label>
                   <input
                     type="text"
-                    value={`+91 ${mobileNumber}`}
-                    disabled
-                    className="w-full p-3 bg-slate-100 border border-slate-200 text-slate-500 font-bold text-sm rounded-xl cursor-not-allowed"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="e.g. Ramesh Kumar Sharma"
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
                   />
-                  <span className="text-[11px] text-emerald-600 font-medium mt-1 inline-flex items-center gap-1">
-                    ✓ Verified via WhatsApp OTP
-                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="e.g. ramesh.sharma@gmail.com"
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Mobile Number *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      disabled
+                      value={`+91 ${mobileNumber}`}
+                      className="w-full p-3.5 bg-slate-100 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 cursor-not-allowed"
+                    />
+                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-emerald-600 font-bold flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">
+                      <Check className="w-3.5 h-3.5" /> WhatsApp Verified
+                    </span>
+                  </div>
                 </div>
               </div>
-            )}
 
-            {/* STEP 2: Partner Type & PAN */}
-            {currentStep === 2 && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">2. Select Partner Type & PAN</h2>
-                  <p className="text-slate-500 text-xs mt-1">Choose your business structure and enter your PAN details.</p>
+              <div className="pt-4 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={savingStep}
+                  className="py-3.5 px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-md transition-all flex items-center gap-2"
+                >
+                  {savingStep ? <RefreshCw className="w-4 h-4 animate-spin" /> : <>Save & Continue <ArrowRight className="w-4 h-4" /></>}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* ─────────────────────────────────────────────────────────────
+              STEP 2: BUSINESS & PAN DETAILS
+          ────────────────────────────────────────────────────────────── */}
+          {currentStep === 2 && (
+            <form onSubmit={handleStep2Submit} className="space-y-6 animate-fadeIn">
+              <div>
+                <h2 className="text-xl font-black text-slate-900">Business & PAN Details</h2>
+                <p className="text-slate-500 text-xs mt-1">Select your partner registration entity type and verify PAN.</p>
+              </div>
+
+              {/* Partner Type Selection */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Partner Entity Type *
+                </label>
+                <div className="grid grid-cols-2 gap-3 max-w-md">
+                  {(["Individual", "Firm"] as PartnerType[]).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => { setPartnerType(type); setPanValid(false); }}
+                      className={`p-4 rounded-2xl border text-sm font-bold transition-all text-center flex items-center justify-center gap-2 ${
+                        partnerType === type
+                          ? "bg-emerald-50 border-emerald-600 text-emerald-800 shadow-sm"
+                          : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                      }`}
+                    >
+                      {type === "Individual" ? <User className="w-4 h-4" /> : <Building className="w-4 h-4" />}
+                      {type}
+                    </button>
+                  ))}
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-2">Partner Category</label>
-                  <div className="grid grid-cols-2 gap-3 max-w-sm">
-                    {(["Individual", "Firm"] as const).map((type) => (
+              {/* Firm Type Selection (If Firm) */}
+              {partnerType === "Firm" && (
+                <div className="space-y-2 pt-2 animate-fadeIn">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Select Firm Type *
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {(["Proprietorship", "Partnership", "Private Limited", "Limited", "LLP"] as FirmType[]).map((ft) => (
                       <button
-                        key={type}
+                        key={ft}
                         type="button"
-                        onClick={() => setPartnerType(type)}
-                        className={`p-4 border-2 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
-                          partnerType === type
-                            ? "border-emerald-600 bg-emerald-50 text-emerald-800 shadow-sm"
-                            : "border-slate-200 text-slate-600 hover:border-slate-300"
+                        onClick={() => setFirmType(ft)}
+                        className={`p-3 rounded-xl border text-xs font-bold transition-all text-left ${
+                          firmType === ft
+                            ? "bg-emerald-50 border-emerald-600 text-emerald-800"
+                            : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
                         }`}
                       >
-                        {type === "Individual" ? <User className="w-4 h-4" /> : <Building2 className="w-4 h-4" />}
-                        {type}
+                        {ft}
                       </button>
                     ))}
                   </div>
                 </div>
+              )}
 
-                {partnerType === "Firm" && (
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-2">Firm / Business Structure</label>
-                    <div className="flex flex-wrap gap-2">
-                      {(["Proprietorship", "Partnership", "Private Limited", "Limited", "LLP"] as const).map((ft) => (
-                        <button
-                          key={ft}
-                          type="button"
-                          onClick={() => setFirmType(ft)}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all ${
-                            firmType === ft
-                              ? "bg-slate-900 text-white border-slate-900 shadow"
-                              : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                          }`}
-                        >
-                          {ft}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                    {partnerType === "Individual" ? "PAN Number" : "Firm PAN Number"} <span className="text-red-500">*</span>
-                  </label>
+              {/* PAN Number Input & Duplicate Check */}
+              <div className="space-y-2 pt-2">
+                <label className="block text-xs font-bold text-slate-700">
+                  {partnerType === "Individual" ? "Individual PAN Number *" : "Firm PAN Number *"}
+                </label>
+                <div className="flex flex-col sm:flex-row gap-3">
                   <input
                     type="text"
                     maxLength={10}
                     value={panNumber}
-                    onChange={(e) => setPanNumber(e.target.value.toUpperCase())}
-                    placeholder="ABCDE1234F"
-                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-base font-mono font-bold tracking-widest uppercase focus:bg-white focus:border-emerald-600 focus:outline-none"
+                    onChange={(e) => {
+                      setPanNumber(e.target.value.toUpperCase());
+                      setPanValid(false);
+                      setPanDuplicateError(null);
+                    }}
+                    placeholder="e.g. ABCDE1234F"
+                    className="flex-1 p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-bold tracking-wider text-slate-900 uppercase focus:bg-white focus:border-emerald-600 focus:outline-none"
                   />
-                  {panVerifying && <span className="text-xs text-slate-400 mt-1 block">Verifying PAN...</span>}
-                  {panValid && <span className="text-xs text-emerald-600 font-bold mt-1 block">✓ Valid & Available PAN Number</span>}
-                  {panError && <span className="text-xs text-red-600 font-semibold mt-1 block">{panError}</span>}
-                </div>
-              </div>
-            )}
-
-            {/* STEP 3: Contact Person Details */}
-            {currentStep === 3 && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">3. Contact Person Details</h2>
-                  <p className="text-slate-500 text-xs mt-1">Enter authorized signatory / contact person details.</p>
+                  <button
+                    type="button"
+                    onClick={handleCheckPan}
+                    disabled={panChecking || panNumber.trim().length !== 10}
+                    className="py-3.5 px-6 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2"
+                  >
+                    {panChecking ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Check PAN"}
+                  </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Contact Person Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={contactPersonName || fullName}
-                      onChange={(e) => setContactPersonName(e.target.value)}
-                      placeholder="Contact Person Full Name"
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:border-emerald-600 focus:outline-none"
-                    />
-                  </div>
+                {panValid && (
+                  <p className="text-xs text-emerald-600 font-bold flex items-center gap-1 mt-1">
+                    <CheckCircle2 className="w-4 h-4" /> PAN format valid and verified available.
+                  </p>
+                )}
 
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Designation</label>
-                    <input
-                      type="text"
-                      value={designation}
-                      onChange={(e) => setDesignation(e.target.value)}
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:border-emerald-600 focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Date of Birth <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      value={dob}
-                      onChange={(e) => setDob(e.target.value)}
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:border-emerald-600 focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Gender</label>
-                    <select
-                      value={gender}
-                      onChange={(e) => setGender(e.target.value)}
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:border-emerald-600 focus:outline-none"
+                {panDuplicateError && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl space-y-2 mt-2">
+                    <p className="text-xs text-red-700 font-bold flex items-center gap-1.5">
+                      <AlertTriangle className="w-4 h-4 text-red-500" />
+                      PAN Already Linked
+                    </p>
+                    <p className="text-xs text-red-600">
+                      {panDuplicateError}
+                    </p>
+                    <Link
+                      href="/partner/login"
+                      className="inline-block py-2 px-4 bg-red-600 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-red-700"
                     >
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                    </select>
+                      Go to Partner Login &rarr;
+                    </Link>
                   </div>
-                </div>
+                )}
               </div>
-            )}
 
-            {/* STEP 4: Office Address */}
-            {currentStep === 4 && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">4. Office & Contact Address</h2>
-                  <p className="text-slate-500 text-xs mt-1">Provide your primary office address details.</p>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Address Line 1 <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={addressLine1}
-                      onChange={(e) => setAddressLine1(e.target.value)}
-                      placeholder="Shop/Office No., Building Name"
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:border-emerald-600 focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Address Line 2</label>
-                    <input
-                      type="text"
-                      value={addressLine2}
-                      onChange={(e) => setAddressLine2(e.target.value)}
-                      placeholder="Street, Landmark"
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:border-emerald-600 focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        City <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                        placeholder="City"
-                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:border-emerald-600 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        State <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={stateName}
-                        onChange={(e) => setStateName(e.target.value)}
-                        placeholder="Maharashtra"
-                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:border-emerald-600 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        PIN Code <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        maxLength={6}
-                        value={pinCode}
-                        onChange={(e) => setPinCode(e.target.value.replace(/\D/g, ""))}
-                        placeholder="431001"
-                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:border-emerald-600 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
+              <div className="pt-6 border-t border-slate-100 flex justify-between">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(1)}
+                  className="py-3.5 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingStep || !panValid}
+                  className="py-3.5 px-8 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl text-sm shadow-md flex items-center gap-2"
+                >
+                  {savingStep ? <RefreshCw className="w-4 h-4 animate-spin" /> : <>Save & Continue <ArrowRight className="w-4 h-4" /></>}
+                </button>
               </div>
-            )}
+            </form>
+          )}
 
-            {/* STEP 5: GST Registration */}
-            {currentStep === 5 && (
-              <div className="space-y-6">
+          {/* ─────────────────────────────────────────────────────────────
+              STEP 3: CONTACT PERSON DETAILS
+          ────────────────────────────────────────────────────────────── */}
+          {currentStep === 3 && (
+            <form onSubmit={handleStep3Submit} className="space-y-6 animate-fadeIn">
+              <div>
+                <h2 className="text-xl font-black text-slate-900">Contact Person Details</h2>
+                <p className="text-slate-500 text-xs mt-1">Designated person details for communication and agreements.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">5. GST Registration</h2>
-                  <p className="text-slate-500 text-xs mt-1">Specify whether your business is GST registered.</p>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Contact Person Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={contactPersonName}
+                    onChange={(e) => setContactPersonName(e.target.value)}
+                    placeholder="e.g. Ramesh Sharma"
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-2">Is your business GST Registered?</label>
-                  <div className="flex gap-4">
-                    {(["Yes", "No"] as const).map((opt) => (
-                      <button
-                        key={opt}
-                        type="button"
-                        onClick={() => setIsGstRegistered(opt)}
-                        className={`py-3 px-8 rounded-xl font-bold text-sm border transition-all ${
-                          isGstRegistered === opt
-                            ? "bg-emerald-600 text-white border-emerald-600 shadow-md"
-                            : "bg-slate-50 text-slate-700 border-slate-200"
-                        }`}
-                      >
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Designation *
+                  </label>
+                  <select
+                    value={designation}
+                    onChange={(e) => setDesignation(e.target.value)}
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  >
+                    {getDesignationOptions().map((opt) => (
+                      <option key={opt} value={opt}>
                         {opt}
-                      </button>
+                      </option>
                     ))}
-                  </div>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Date of Birth *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={dob}
+                    onChange={(e) => setDob(e.target.value)}
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Gender *
+                  </label>
+                  <select
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value)}
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-slate-100 flex justify-between">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(2)}
+                  className="py-3.5 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingStep}
+                  className="py-3.5 px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-md flex items-center gap-2"
+                >
+                  {savingStep ? <RefreshCw className="w-4 h-4 animate-spin" /> : <>Save & Continue <ArrowRight className="w-4 h-4" /></>}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* ─────────────────────────────────────────────────────────────
+              STEP 4: OFFICE ADDRESS DETAILS
+          ────────────────────────────────────────────────────────────── */}
+          {currentStep === 4 && (
+            <form onSubmit={handleStep4Submit} className="space-y-6 animate-fadeIn">
+              <div>
+                <h2 className="text-xl font-black text-slate-900">Office Address</h2>
+                <p className="text-slate-500 text-xs mt-1">Official operating address of your business.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Address Line 1 (Shop / Office No, Building) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={addressLine1}
+                    onChange={(e) => setAddressLine1(e.target.value)}
+                    placeholder="e.g. Office No 402, Business Hub"
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Address Line 2 (Street / Landmark)
+                  </label>
+                  <input
+                    type="text"
+                    value={addressLine2}
+                    onChange={(e) => setAddressLine2(e.target.value)}
+                    placeholder="e.g. Near City Center Mall, Shivaji Nagar"
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Area / Locality
+                  </label>
+                  <input
+                    type="text"
+                    value={area}
+                    onChange={(e) => setArea(e.target.value)}
+                    placeholder="e.g. Deccan Gymkhana"
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    City *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="e.g. Pune"
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    District *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={district}
+                    onChange={(e) => setDistrict(e.target.value)}
+                    placeholder="e.g. Pune"
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    State *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={stateName}
+                    onChange={(e) => setStateName(e.target.value)}
+                    placeholder="e.g. Maharashtra"
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    PIN Code *
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    required
+                    value={pinCode}
+                    onChange={(e) => setPinCode(e.target.value.replace(/\D/g, ""))}
+                    placeholder="6-digit PIN code"
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-slate-100 flex justify-between">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(3)}
+                  className="py-3.5 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingStep}
+                  className="py-3.5 px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-md flex items-center gap-2"
+                >
+                  {savingStep ? <RefreshCw className="w-4 h-4 animate-spin" /> : <>Save & Continue <ArrowRight className="w-4 h-4" /></>}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* ─────────────────────────────────────────────────────────────
+              STEP 5: GST REGISTRATION
+          ────────────────────────────────────────────────────────────── */}
+          {currentStep === 5 && (
+            <form onSubmit={handleStep5Submit} className="space-y-6 animate-fadeIn">
+              <div>
+                <h2 className="text-xl font-black text-slate-900">GST Registration</h2>
+                <p className="text-slate-500 text-xs mt-1">Specify whether your firm is registered under GST.</p>
+              </div>
+
+              <div className="space-y-4">
+                <label className="block text-xs font-bold text-slate-700">
+                  Is your business GST registered? *
+                </label>
+                <div className="grid grid-cols-2 gap-3 max-w-xs">
+                  {(["Yes", "No"] as const).map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => {
+                        setIsGstRegistered(opt);
+                        if (opt === "No") {
+                          setGstin("");
+                          setGstValid(false);
+                        }
+                      }}
+                      className={`p-3.5 rounded-xl border text-sm font-bold transition-all text-center ${
+                        isGstRegistered === opt
+                          ? "bg-emerald-50 border-emerald-600 text-emerald-800"
+                          : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
                 </div>
 
                 {isGstRegistered === "Yes" && (
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      GSTIN Number <span className="text-red-500">*</span>
+                  <div className="space-y-2 pt-2 animate-fadeIn">
+                    <label className="block text-xs font-bold text-slate-700">
+                      GST Number (GSTIN) *
                     </label>
-                    <input
-                      type="text"
-                      maxLength={15}
-                      value={gstin}
-                      onChange={(e) => setGstin(e.target.value.toUpperCase())}
-                      placeholder="27ABCDE1234F1Z5"
-                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold uppercase text-base focus:bg-white focus:border-emerald-600 focus:outline-none"
-                    />
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <input
+                        type="text"
+                        maxLength={15}
+                        value={gstin}
+                        onChange={(e) => {
+                          setGstin(e.target.value.toUpperCase());
+                          setGstValid(false);
+                        }}
+                        placeholder="e.g. 27ABCDE1234F1Z5"
+                        className="flex-1 p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-bold tracking-wider text-slate-900 uppercase focus:bg-white focus:border-emerald-600 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleVerifyGst}
+                        disabled={gstVerifying || gstin.trim().length !== 15}
+                        className="py-3.5 px-6 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2"
+                      >
+                        {gstVerifying ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Verify GST"}
+                      </button>
+                    </div>
+
+                    {gstValid && (
+                      <p className="text-xs text-emerald-600 font-bold flex items-center gap-1 mt-1">
+                        <CheckCircle2 className="w-4 h-4" /> GSTIN format validated successfully.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
-            )}
 
-            {/* STEP 6: KYC Documents */}
-            {currentStep === 6 && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">6. KYC Document Uploads</h2>
-                  <p className="text-slate-500 text-xs mt-1">Upload clear photos or PDFs of PAN Card and Aadhaar Card.</p>
-                </div>
+              <div className="pt-6 border-t border-slate-100 flex justify-between">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(4)}
+                  className="py-3.5 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingStep || (isGstRegistered === "Yes" && !gstValid)}
+                  className="py-3.5 px-8 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl text-sm shadow-md flex items-center gap-2"
+                >
+                  {savingStep ? <RefreshCw className="w-4 h-4 animate-spin" /> : <>Save & Continue <ArrowRight className="w-4 h-4" /></>}
+                </button>
+              </div>
+            </form>
+          )}
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Aadhaar Number</label>
-                  <input
-                    type="text"
-                    maxLength={12}
-                    value={aadhaarNumber}
-                    onChange={(e) => setAadhaarNumber(e.target.value.replace(/\D/g, ""))}
-                    placeholder="1234 5678 9012"
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-sm focus:bg-white focus:border-emerald-600 focus:outline-none"
-                  />
-                </div>
+          {/* ─────────────────────────────────────────────────────────────
+              STEP 6: KYC DOCUMENTS UPLOAD
+          ────────────────────────────────────────────────────────────── */}
+          {currentStep === 6 && (
+            <form onSubmit={handleStep6Submit} className="space-y-6 animate-fadeIn">
+              <div>
+                <h2 className="text-xl font-black text-slate-900">KYC Verification Documents</h2>
+                <p className="text-slate-500 text-xs mt-1">
+                  Upload Aadhaar Card & PAN Card. Take photo with camera or choose from gallery.
+                </p>
+              </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                  {/* PAN Upload Card */}
-                  <div className="p-4 border-2 border-dashed border-slate-200 rounded-2xl text-center space-y-3 bg-slate-50/50">
-                    <FileText className="w-8 h-8 text-blue-600 mx-auto" />
-                    <div>
-                      <h4 className="font-bold text-slate-900 text-sm">PAN Card Document <span className="text-red-500">*</span></h4>
-                      <p className="text-slate-400 text-[11px]">Compulsory JPG, PNG or PDF</p>
-                    </div>
-
-                    {panDoc ? (
-                      <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-semibold flex items-center justify-between">
-                        <span className="truncate max-w-[150px]">{panDoc.fileName}</span>
-                        <button
-                          type="button"
-                          onClick={() => setActiveCropModal("panDoc")}
-                          className="text-emerald-700 underline text-[11px]"
-                        >
-                          Replace
-                        </button>
-                      </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Aadhaar Upload Card */}
+                <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-800 text-sm">Contact Person Aadhaar *</span>
+                    {aadhaarDoc ? (
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Uploaded
+                      </span>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() => setActiveCropModal("panDoc")}
-                        className="py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 mx-auto transition-all shadow-sm"
-                      >
-                        <Camera className="w-3.5 h-3.5" /> Upload PAN Document
-                      </button>
+                      <span className="text-[10px] font-bold text-red-500">Required</span>
                     )}
                   </div>
 
-                  {/* Aadhaar Upload Card */}
-                  <div className="p-4 border-2 border-dashed border-slate-200 rounded-2xl text-center space-y-3 bg-slate-50/50">
-                    <FileCheck className="w-8 h-8 text-emerald-600 mx-auto" />
-                    <div>
-                      <h4 className="font-bold text-slate-900 text-sm">Aadhaar Document <span className="text-red-500">*</span></h4>
-                      <p className="text-slate-400 text-[11px]">Compulsory JPG, PNG or PDF</p>
-                    </div>
-
-                    {aadhaarDoc ? (
-                      <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-semibold flex items-center justify-between">
-                        <span className="truncate max-w-[150px]">{aadhaarDoc.fileName}</span>
+                  {aadhaarDoc ? (
+                    <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                        <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span className="truncate flex-1">{aadhaarDoc.fileName}</span>
+                      </div>
+                      <div className="flex items-center gap-3 pt-1 border-t border-slate-100 text-[11px] font-bold">
                         <button
                           type="button"
                           onClick={() => setActiveCropModal("aadhaarDoc")}
-                          className="text-emerald-700 underline text-[11px]"
+                          className="text-emerald-600 hover:underline"
                         >
-                          Replace
+                          Replace Document
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAadhaarDoc(null)}
+                          className="text-red-500 hover:underline"
+                        >
+                          Remove
                         </button>
                       </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setActiveCropModal("aadhaarDoc")}
+                      className="w-full py-6 border-2 border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/30 rounded-xl flex flex-col items-center justify-center gap-2 text-slate-600 transition-all"
+                    >
+                      <Camera className="w-6 h-6 text-emerald-600" />
+                      <span className="text-xs font-bold">Upload Aadhaar Card</span>
+                      <span className="text-[10px] text-slate-400">Camera / Gallery / PDF</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* PAN Card Upload Card */}
+                <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-800 text-sm">PAN Card Document *</span>
+                    {panDoc ? (
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Uploaded
+                      </span>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() => setActiveCropModal("aadhaarDoc")}
-                        className="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 mx-auto transition-all shadow-sm"
-                      >
-                        <Camera className="w-3.5 h-3.5" /> Upload Aadhaar Document
-                      </button>
+                      <span className="text-[10px] font-bold text-red-500">Required</span>
                     )}
                   </div>
+
+                  {panDoc ? (
+                    <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                        <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span className="truncate flex-1">{panDoc.fileName}</span>
+                      </div>
+                      <div className="flex items-center gap-3 pt-1 border-t border-slate-100 text-[11px] font-bold">
+                        <button
+                          type="button"
+                          onClick={() => setActiveCropModal("panDoc")}
+                          className="text-emerald-600 hover:underline"
+                        >
+                          Replace Document
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPanDoc(null)}
+                          className="text-red-500 hover:underline"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setActiveCropModal("panDoc")}
+                      className="w-full py-6 border-2 border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/30 rounded-xl flex flex-col items-center justify-center gap-2 text-slate-600 transition-all"
+                    >
+                      <Camera className="w-6 h-6 text-emerald-600" />
+                      <span className="text-xs font-bold">Upload PAN Card</span>
+                      <span className="text-[10px] text-slate-400">Camera / Gallery / PDF</span>
+                    </button>
+                  )}
                 </div>
               </div>
-            )}
 
-            {/* STEP 7: Bank Details */}
-            {currentStep === 7 && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">7. Bank Account Details</h2>
-                  <p className="text-slate-500 text-xs mt-1">Enter your bank account for commission payouts.</p>
+              <div className="pt-6 border-t border-slate-100 flex justify-between">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(5)}
+                  className="py-3.5 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingStep || !aadhaarDoc || !panDoc}
+                  className="py-3.5 px-8 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl text-sm shadow-md flex items-center gap-2"
+                >
+                  {savingStep ? <RefreshCw className="w-4 h-4 animate-spin" /> : <>Save & Continue <ArrowRight className="w-4 h-4" /></>}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* ─────────────────────────────────────────────────────────────
+              STEP 7: BANK ACCOUNT DETAILS (RAZORPAY IFSC)
+          ────────────────────────────────────────────────────────────── */}
+          {currentStep === 7 && (
+            <form onSubmit={handleStep7Submit} className="space-y-6 animate-fadeIn">
+              <div>
+                <h2 className="text-xl font-black text-slate-900">Bank Account Details</h2>
+                <p className="text-slate-500 text-xs mt-1">For monthly DSA payouts and commission disbursals.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Account Holder Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={accountHolderName}
+                    onChange={(e) => setAccountHolderName(e.target.value)}
+                    placeholder="e.g. Ramesh Kumar Sharma / Techstar Enterprise"
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  />
                 </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Account Holder Name</label>
-                    <input
-                      type="text"
-                      value={accountHolderName || fullName}
-                      onChange={(e) => setAccountHolderName(e.target.value)}
-                      placeholder="Name as per Bank Account"
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:border-emerald-600 focus:outline-none"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Account Number *
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={accountNumber}
+                    onChange={(e) => setAccountNumber(e.target.value)}
+                    placeholder="Bank Account Number"
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  />
+                </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        Account Number <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={accountNumber}
-                        onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ""))}
-                        placeholder="Enter Account Number"
-                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm font-bold focus:bg-white focus:border-emerald-600 focus:outline-none"
-                      />
-                    </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Confirm Account Number *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={confirmAccountNumber}
+                    onChange={(e) => setConfirmAccountNumber(e.target.value)}
+                    placeholder="Re-enter Bank Account Number"
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  />
+                </div>
 
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        Confirm Account Number <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="password"
-                        value={confirmAccountNumber}
-                        onChange={(e) => setConfirmAccountNumber(e.target.value.replace(/\D/g, ""))}
-                        placeholder="Re-enter Account Number"
-                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm font-bold focus:bg-white focus:border-emerald-600 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      IFSC Code <span className="text-red-500">*</span>
-                    </label>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    IFSC Code *
+                  </label>
+                  <div className="relative">
                     <input
                       type="text"
                       maxLength={11}
+                      required
                       value={ifscCode}
-                      onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
-                      placeholder="HDFC0000001"
-                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold tracking-widest text-base uppercase focus:bg-white focus:border-emerald-600 focus:outline-none"
+                      onChange={(e) => handleIfscLookup(e.target.value)}
+                      placeholder="e.g. HDFC0000103"
+                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-bold tracking-wider text-slate-900 uppercase focus:bg-white focus:border-emerald-600 focus:outline-none"
                     />
-                    {ifscLoading && <span className="text-xs text-slate-400 mt-1 block">Checking IFSC via Razorpay API...</span>}
-                    {ifscValid && (
-                      <div className="mt-2 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-semibold text-emerald-800 space-y-0.5">
-                        <p>✓ <strong>Bank:</strong> {bankName}</p>
-                        <p>✓ <strong>Branch:</strong> {branchName}</p>
-                      </div>
+                    {ifscLoading && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <RefreshCw className="w-4 h-4 animate-spin text-emerald-600" />
+                      </span>
                     )}
                   </div>
                 </div>
-              </div>
-            )}
 
-            {/* STEP 8: Review & Submit */}
-            {currentStep === 8 && (
-              <div className="space-y-6">
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">8. Review Your Application</h2>
-                  <p className="text-slate-500 text-xs mt-1">Verify all details before final submission.</p>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Account Type *
+                  </label>
+                  <select
+                    value={accountType}
+                    onChange={(e: any) => setAccountType(e.target.value)}
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  >
+                    <option value="Savings">Savings Account</option>
+                    <option value="Current">Current Account</option>
+                  </select>
                 </div>
 
-                <div className="space-y-4 text-xs text-slate-700">
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">
-                    <div className="flex justify-between items-center font-bold text-slate-900 text-sm mb-2 border-b border-slate-200 pb-2">
-                      <span>Applicant Details</span>
-                      <button type="button" onClick={() => setCurrentStep(1)} className="text-emerald-600 hover:underline">
-                        Edit
-                      </button>
+                {/* Auto-populated Bank Details */}
+                {bankName && (
+                  <div className="sm:col-span-2 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-1 animate-fadeIn">
+                    <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
+                      <Landmark className="w-4 h-4" /> Bank & Branch Details (Razorpay Verified)
                     </div>
-                    <p><strong>Name:</strong> {fullName}</p>
-                    <p><strong>Email:</strong> {email}</p>
-                    <p><strong>Mobile:</strong> +91 {mobileNumber}</p>
+                    <p className="text-xs text-slate-700 font-semibold">
+                      <strong>Bank:</strong> {bankName} &nbsp;|&nbsp; <strong>Branch:</strong> {branchName}
+                    </p>
                   </div>
+                )}
+              </div>
 
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">
-                    <div className="flex justify-between items-center font-bold text-slate-900 text-sm mb-2 border-b border-slate-200 pb-2">
-                      <span>Business & PAN</span>
-                      <button type="button" onClick={() => setCurrentStep(2)} className="text-emerald-600 hover:underline">
-                        Edit
-                      </button>
-                    </div>
-                    <p><strong>Category:</strong> {partnerType} {partnerType === "Firm" ? `(${firmType})` : ""}</p>
-                    <p><strong>PAN:</strong> {panNumber}</p>
+              <div className="pt-6 border-t border-slate-100 flex justify-between">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(6)}
+                  className="py-3.5 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingStep || !ifscValid || !bankName}
+                  className="py-3.5 px-8 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl text-sm shadow-md flex items-center gap-2"
+                >
+                  {savingStep ? <RefreshCw className="w-4 h-4 animate-spin" /> : <>Save & Continue <ArrowRight className="w-4 h-4" /></>}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* ─────────────────────────────────────────────────────────────
+              STEP 8: REVIEW & SUBMIT APPLICATION
+          ────────────────────────────────────────────────────────────── */}
+          {currentStep === 8 && (
+            <div className="space-y-6 animate-fadeIn">
+              <div>
+                <h2 className="text-xl font-black text-slate-900">Review Your Application</h2>
+                <p className="text-slate-500 text-xs mt-1">Please review all submitted information before final submission.</p>
+              </div>
+
+              {/* Review Sections */}
+              <div className="space-y-4">
+                {/* 1. Basic Details */}
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">1. Basic Details</span>
+                    <p className="font-bold text-slate-800 text-sm">{fullName}</p>
+                    <p className="text-xs text-slate-500">{email} • +91 {mobileNumber}</p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(1)}
+                    className="p-2 text-emerald-600 hover:bg-emerald-100 rounded-lg text-xs font-bold flex items-center gap-1"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" /> Edit
+                  </button>
+                </div>
 
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">
-                    <div className="flex justify-between items-center font-bold text-slate-900 text-sm mb-2 border-b border-slate-200 pb-2">
-                      <span>Bank & Payouts</span>
-                      <button type="button" onClick={() => setCurrentStep(7)} className="text-emerald-600 hover:underline">
-                        Edit
-                      </button>
-                    </div>
-                    <p><strong>Bank:</strong> {bankName || "N/A"}</p>
-                    <p><strong>Branch:</strong> {branchName || "N/A"}</p>
-                    <p><strong>Account:</strong> ••••••{accountNumber.slice(-4)}</p>
-                    <p><strong>IFSC:</strong> {ifscCode}</p>
+                {/* 2. Business & PAN */}
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">2. Business Details</span>
+                    <p className="font-bold text-slate-800 text-sm">
+                      {partnerType} {partnerType === "Firm" ? `(${firmType})` : ""}
+                    </p>
+                    <p className="text-xs text-slate-500 font-mono">PAN: {panNumber}</p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(2)}
+                    className="p-2 text-emerald-600 hover:bg-emerald-100 rounded-lg text-xs font-bold flex items-center gap-1"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" /> Edit
+                  </button>
+                </div>
 
-                  {/* Declaration Checkboxes */}
-                  <div className="pt-4 space-y-3">
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={declareTruth}
-                        onChange={(e) => setDeclareTruth(e.target.checked)}
-                        className="mt-1 w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
-                      />
-                      <span className="text-xs text-slate-600 leading-relaxed">
-                        I confirm that all information and documents provided by me are true, complete, and accurate.
-                      </span>
-                    </label>
-
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={declareTerms}
-                        onChange={(e) => setDeclareTerms(e.target.checked)}
-                        className="mt-1 w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
-                      />
-                      <span className="text-xs text-slate-600 leading-relaxed">
-                        I agree to Techstar Money's Terms & Conditions and Partner Onboarding Guidelines.
-                      </span>
-                    </label>
+                {/* 3. Contact Person */}
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">3. Contact Person</span>
+                    <p className="font-bold text-slate-800 text-sm">{contactPersonName} ({designation})</p>
+                    <p className="text-xs text-slate-500">DOB: {dob} • Gender: {gender}</p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(3)}
+                    className="p-2 text-emerald-600 hover:bg-emerald-100 rounded-lg text-xs font-bold flex items-center gap-1"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" /> Edit
+                  </button>
+                </div>
+
+                {/* 4. Office Address */}
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">4. Office Address</span>
+                    <p className="font-semibold text-slate-800 text-xs leading-relaxed">
+                      {addressLine1}{addressLine2 ? `, ${addressLine2}` : ""}, {city}, {district}, {stateName} - {pinCode}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(4)}
+                    className="p-2 text-emerald-600 hover:bg-emerald-100 rounded-lg text-xs font-bold flex items-center gap-1"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" /> Edit
+                  </button>
+                </div>
+
+                {/* 5. GST */}
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">5. GST Registration</span>
+                    <p className="font-bold text-slate-800 text-xs">
+                      {isGstRegistered === "Yes" ? `GSTIN: ${gstin}` : "Not GST Registered"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(5)}
+                    className="p-2 text-emerald-600 hover:bg-emerald-100 rounded-lg text-xs font-bold flex items-center gap-1"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" /> Edit
+                  </button>
+                </div>
+
+                {/* 6. Documents */}
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">6. KYC Documents</span>
+                    <p className="text-xs text-slate-700 font-semibold">
+                      ✓ Aadhaar ({aadhaarDoc?.fileName}) &nbsp;•&nbsp; ✓ PAN ({panDoc?.fileName})
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(6)}
+                    className="p-2 text-emerald-600 hover:bg-emerald-100 rounded-lg text-xs font-bold flex items-center gap-1"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" /> Edit
+                  </button>
+                </div>
+
+                {/* 7. Bank Details */}
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">7. Bank Details</span>
+                    <p className="font-bold text-slate-800 text-sm">{bankName} ({branchName})</p>
+                    <p className="text-xs text-slate-500 font-mono">
+                      A/C: ****{accountNumber.slice(-4)} • IFSC: {ifscCode} • {accountType}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(7)}
+                    className="p-2 text-emerald-600 hover:bg-emerald-100 rounded-lg text-xs font-bold flex items-center gap-1"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" /> Edit
+                  </button>
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* Footer Controls */}
-          <div className="p-6 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-            {currentStep > 1 ? (
-              <button
-                type="button"
-                onClick={() => setCurrentStep((prev) => prev - 1)}
-                className="py-3 px-5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm"
-              >
-                <ArrowLeft className="w-4 h-4" /> Back
-              </button>
-            ) : (
-              <div></div>
-            )}
+              {/* Declarations */}
+              <div className="p-5 bg-emerald-50/50 border border-emerald-100 rounded-2xl space-y-3">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={declareTruth}
+                    onChange={(e) => setDeclareTruth(e.target.checked)}
+                    className="mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"
+                  />
+                  <span className="text-xs font-medium text-slate-700 leading-relaxed">
+                    I confirm that all information and KYC documents provided by me are true, valid, and belong to me/my entity.
+                  </span>
+                </label>
 
-            {currentStep < 8 ? (
-              <button
-                type="button"
-                onClick={handleNextStep}
-                disabled={savingStep}
-                className="py-3.5 px-7 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold rounded-xl text-sm shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition-all"
-              >
-                {savingStep ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" /> Saving...
-                  </>
-                ) : (
-                  <>
-                    Save & Continue
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleFinalSubmit}
-                disabled={submittingApp || !declareTruth || !declareTerms}
-                className="py-3.5 px-8 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 text-white font-black rounded-xl text-sm shadow-xl shadow-emerald-600/30 flex items-center gap-2 transition-all"
-              >
-                {submittingApp ? (
-                  <>
-                    <RefreshCw className="w-5 h-5 animate-spin" /> Submitting...
-                  </>
-                ) : (
-                  <>
-                    Submit Partner Application
-                    <CheckCircle2 className="w-5 h-5" />
-                  </>
-                )}
-              </button>
-            )}
-          </div>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={declareTerms}
+                    onChange={(e) => setDeclareTerms(e.target.checked)}
+                    className="mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"
+                  />
+                  <span className="text-xs font-medium text-slate-700 leading-relaxed">
+                    I agree to Techstar Money Terms & Conditions, RBI Compliance guidelines, and Privacy Policy.
+                  </span>
+                </label>
+              </div>
+
+              <div className="pt-4 flex justify-between items-center">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(7)}
+                  className="py-3.5 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleFinalSubmit}
+                  disabled={submitting || !declareTruth || !declareTerms}
+                  className="py-4 px-10 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl text-sm shadow-xl shadow-emerald-600/30 flex items-center gap-2"
+                >
+                  {submitting ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" /> Submitting Application...
+                    </>
+                  ) : (
+                    <>
+                      Submit Partner Application <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </main>
-
-      {/* Image Crop & Upload Modal */}
-      {activeCropModal && (
-        <ImageCropModal
-          isOpen={true}
-          title={
-            activeCropModal === "panDoc"
-              ? "Upload PAN Document"
-              : activeCropModal === "aadhaarDoc"
-              ? "Upload Aadhaar Document"
-              : "Upload GST Document"
-          }
-          onClose={() => setActiveCropModal(null)}
-          onConfirm={(file) => handleConfirmDocUpload(activeCropModal, file)}
-        />
-      )}
 
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white py-4 px-6 text-center text-xs text-slate-500">
         © {new Date().getFullYear()} Techstar Money Solution Pvt. Ltd. All rights reserved.
       </footer>
+
+      {/* Document Crop / Upload Modal */}
+      {activeCropModal && (
+        <ImageCropModal
+          isOpen={true}
+          title={activeCropModal === "aadhaarDoc" ? "Upload Aadhaar Card" : "Upload PAN Card"}
+          onClose={() => setActiveCropModal(null)}
+          onConfirm={handleDocumentCropped}
+        />
+      )}
     </div>
   );
 }

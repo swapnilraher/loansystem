@@ -182,7 +182,7 @@ function ApplicationStatusContent() {
                   </div>
                   <div>
                     <span className="text-slate-400 block font-medium">Category</span>
-                    <span className="font-semibold text-slate-800">{appDetails.partnerType}</span>
+                    <span className="font-semibold text-slate-800">{appDetails.partnerType} {appDetails.firmType ? `(${appDetails.firmType})` : ""}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block font-medium">Submitted Date</span>
@@ -192,6 +192,35 @@ function ApplicationStatusContent() {
                   </div>
                 </div>
               </div>
+
+              {/* Admin Query Box if Query Raised */}
+              {(appDetails.status === "query_raised" || (appDetails.queries && appDetails.queries.length > 0)) && (
+                <div className="p-5 bg-amber-50 border border-amber-200 rounded-2xl space-y-3 animate-fadeIn">
+                  <div className="flex items-center gap-2 text-amber-900 font-bold text-sm">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+                    <span>Action Required – Admin Query Raised</span>
+                  </div>
+                  <div className="space-y-2">
+                    {(appDetails.queries || []).map((q: any, i: number) => (
+                      <div key={i} className="p-3 bg-white border border-amber-200 rounded-xl text-xs space-y-1">
+                        <div className="flex justify-between font-bold text-amber-800">
+                          <span>Section: {q.section}</span>
+                          <span className="text-[10px] text-slate-400">{q.raisedAt ? new Date(q.raisedAt).toLocaleDateString() : ""}</span>
+                        </div>
+                        <p className="text-slate-700 font-medium">{q.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="pt-2">
+                    <Link
+                      href={`/onboarding`}
+                      className="inline-flex items-center gap-2 py-2.5 px-5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all"
+                    >
+                      Update Application & Resolve Query &rarr;
+                    </Link>
+                  </div>
+                </div>
+              )}
 
               {/* Timeline Tracker */}
               <div>

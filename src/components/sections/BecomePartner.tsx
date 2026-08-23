@@ -13,7 +13,7 @@ export function BecomePartner() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    router.push('/partner/register')
+    router.push('/onboarding')
   }
 
   const benefits = [
