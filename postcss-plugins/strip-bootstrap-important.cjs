@@ -27,8 +27,15 @@
  * for this plugin. The layer does not survive the build.
  */
 
-/** Matches the CRM subtree; `.admin-root` is server-rendered by AdminLayout. */
-const GUARD = "body:not(:has(.admin-root))"
+/**
+ * Matches everything Bootstrap is still allowed to style. `.admin-root` is
+ * server-rendered by AdminLayout; `.partner-root` marks the partner auth flows,
+ * which are built from the same admin token system and use no Bootstrap class
+ * of their own -- without the exclusion, Reboot's `label{display:inline-block}`
+ * collapses every `Field` to the width of its own placeholder, and `p-*`/`px-*`
+ * render at Bootstrap's scale instead of Tailwind's.
+ */
+const GUARD = "body:not(:has(.admin-root)):not(:has(.partner-root))"
 
 /**
  * Selectors that must stay global. `:root`/`html` carry Bootstrap's `--bs-*`
