@@ -88,9 +88,14 @@ export default function OnboardingPage() {
   const [gstVerifying, setGstVerifying] = useState(false);
 
   // ─── Step 6: KYC Document Uploads ───
-  const [aadhaarDoc, setAadhaarDoc] = useState<{ fileName: string; sizeBytes: number; uploadedAt: string } | null>(null);
-  const [panDoc, setPanDoc] = useState<{ fileName: string; sizeBytes: number; uploadedAt: string } | null>(null);
-  const [activeCropModal, setActiveCropModal] = useState<"aadhaarDoc" | "panDoc" | null>(null);
+  type DocKey = "aadhaarFront" | "aadhaarBack" | "panDoc";
+  type DocMeta = { fileName: string; sizeBytes: number; uploadedAt: string; fileUrl?: string };
+  const [aadhaarFrontDoc, setAadhaarFrontDoc] = useState<DocMeta | null>(null);
+  const [aadhaarBackDoc, setAadhaarBackDoc] = useState<DocMeta | null>(null);
+  const [aadhaarDoc, setAadhaarDoc] = useState<DocMeta | null>(null); // legacy alias kept for resume
+  const [aadhaarCombined, setAadhaarCombined] = useState(false); // both sides on 1 image/PDF
+  const [panDoc, setPanDoc] = useState<DocMeta | null>(null);
+  const [activeCropModal, setActiveCropModal] = useState<DocKey | null>(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
 
   // ─── Step 7: Bank Details ───
@@ -213,7 +218,9 @@ export default function OnboardingPage() {
           setGstin(app.gstin);
           setGstValid(true);
         }
-        if (app.documents?.aadhaarDoc) setAadhaarDoc(app.documents.aadhaarDoc);
+        if (app.documents?.aadhaarFrontDoc) setAadhaarFrontDoc(app.documents.aadhaarFrontDoc);
+        if (app.documents?.aadhaarBackDoc) setAadhaarBackDoc(app.documents.aadhaarBackDoc);
+        if (app.documents?.aadhaarDoc) { setAadhaarFrontDoc(app.documents.aadhaarDoc); setAadhaarCombined(true); } // old single-doc resume
         if (app.documents?.panDoc) setPanDoc(app.documents.panDoc);
         if (app.bankDetails) {
           setAccountHolderName(app.bankDetails.accountHolderName || "");
@@ -350,6 +357,40 @@ export default function OnboardingPage() {
     if (ok) setCurrentStep(4);
   };
 
+  // ─── Step 4: Pincode API auto-fill ───
+  const [pincodeLoading, setPincodeLoading] = useState(false);
+  const [pincodeAreas, setPincodeAreas] = useState<string[]>([]);
+
+  const handlePincodeChange = async (value: string) => {
+    const clean = value.replace(/\D/g, "");
+    setPinCode(clean);
+    if (clean.length !== 6) {
+      setPincodeAreas([]);
+      return;
+    }
+    setPincodeLoading(true);
+    try {
+      const res = await fetch(`https://api.postalpincode.in/pincode/${clean}`);
+      const data = await res.json();
+      if (data?.[0]?.Status === "Success" && data[0].PostOffice?.length > 0) {
+        const po = data[0].PostOffice;
+        // City / District / State from first result
+        setCity(po[0].District || po[0].Block || "");
+        setDistrict(po[0].District || "");
+        setStateName(po[0].State || "");
+        // Unique area list for dropdown
+        const areas = [...new Set<string>(po.map((p: any) => p.Name as string))];
+        setPincodeAreas(areas);
+        if (areas.length === 1) setArea(areas[0]);
+        else setArea("");
+      }
+    } catch {
+      // silently ignore
+    } finally {
+      setPincodeLoading(false);
+    }
+  };
+
   // ─── Step 4 Submit ───
   const handleStep4Submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -428,8 +469,12 @@ export default function OnboardingPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Document upload failed");
 
-      if (docType === "aadhaarDoc") {
-        setAadhaarDoc(data.document);
+      if (docType === "aadhaarFront") {
+        setAadhaarFrontDoc(data.document);
+        // If combined flag, also populate back slot
+        if (aadhaarCombined) setAadhaarBackDoc(data.document);
+      } else if (docType === "aadhaarBack") {
+        setAadhaarBackDoc(data.document);
       } else if (docType === "panDoc") {
         setPanDoc(data.document);
       }
@@ -443,8 +488,12 @@ export default function OnboardingPage() {
 
   const handleStep6Submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!aadhaarDoc) {
-      setStepError("Aadhaar Card document upload is mandatory.");
+    if (!aadhaarFrontDoc) {
+      setStepError("Please upload Aadhaar Card (Front side is mandatory).");
+      return;
+    }
+    if (!aadhaarCombined && !aadhaarBackDoc) {
+      setStepError("Please upload Aadhaar Card Back side, or check \"Both sides on one image/PDF\".");
       return;
     }
     if (!panDoc) {
@@ -454,7 +503,9 @@ export default function OnboardingPage() {
 
     const ok = await saveProgress(7, {
       documents: {
-        aadhaarDoc,
+        aadhaarFrontDoc,
+        aadhaarBackDoc: aadhaarCombined ? aadhaarFrontDoc : aadhaarBackDoc,
+        aadhaarCombined,
         panDoc,
       },
     });
@@ -1161,6 +1212,62 @@ export default function OnboardingPage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* PIN Code — first so API fires before other fields */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    PIN Code *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      inputMode="numeric"
+                      required
+                      value={pinCode}
+                      onChange={(e) => handlePincodeChange(e.target.value)}
+                      placeholder="Enter 6-digit PIN code"
+                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                    />
+                    {pincodeLoading && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <RefreshCw className="w-4 h-4 animate-spin text-emerald-600" />
+                      </span>
+                    )}
+                  </div>
+                  {pinCode.length === 6 && !pincodeLoading && city && (
+                    <p className="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Location auto-filled from Pincode
+                    </p>
+                  )}
+                </div>
+
+                {/* Area / Locality — dropdown if API returned multiple, text if single */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Area / Locality
+                  </label>
+                  {pincodeAreas.length > 1 ? (
+                    <select
+                      value={area}
+                      onChange={(e) => setArea(e.target.value)}
+                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                    >
+                      <option value="">Select area / post office</option>
+                      {pincodeAreas.map((a) => (
+                        <option key={a} value={a}>{a}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={area}
+                      onChange={(e) => setArea(e.target.value)}
+                      placeholder="e.g. Deccan Gymkhana"
+                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                    />
+                  )}
+                </div>
+
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
                     Address Line 1 (Shop / Office No, Building) *
@@ -1190,19 +1297,6 @@ export default function OnboardingPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Area / Locality
-                  </label>
-                  <input
-                    type="text"
-                    value={area}
-                    onChange={(e) => setArea(e.target.value)}
-                    placeholder="e.g. Deccan Gymkhana"
-                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
                     City *
                   </label>
                   <input
@@ -1210,8 +1304,10 @@ export default function OnboardingPage() {
                     required
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    placeholder="e.g. Pune"
-                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                    placeholder="Auto-filled from Pincode"
+                    className={`w-full p-3.5 border rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-emerald-600 transition-all ${
+                      pincodeLoading || city ? "bg-emerald-50 border-emerald-200 focus:bg-white" : "bg-slate-50 border-slate-200 focus:bg-white"
+                    }`}
                   />
                 </div>
 
@@ -1224,8 +1320,10 @@ export default function OnboardingPage() {
                     required
                     value={district}
                     onChange={(e) => setDistrict(e.target.value)}
-                    placeholder="e.g. Pune"
-                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                    placeholder="Auto-filled from Pincode"
+                    className={`w-full p-3.5 border rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-emerald-600 transition-all ${
+                      pincodeLoading || district ? "bg-emerald-50 border-emerald-200 focus:bg-white" : "bg-slate-50 border-slate-200 focus:bg-white"
+                    }`}
                   />
                 </div>
 
@@ -1238,23 +1336,10 @@ export default function OnboardingPage() {
                     required
                     value={stateName}
                     onChange={(e) => setStateName(e.target.value)}
-                    placeholder="e.g. Maharashtra"
-                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    PIN Code *
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={6}
-                    required
-                    value={pinCode}
-                    onChange={(e) => setPinCode(e.target.value.replace(/\D/g, ""))}
-                    placeholder="6-digit PIN code"
-                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                    placeholder="Auto-filled from Pincode"
+                    className={`w-full p-3.5 border rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-emerald-600 transition-all ${
+                      pincodeLoading || stateName ? "bg-emerald-50 border-emerald-200 focus:bg-white" : "bg-slate-50 border-slate-200 focus:bg-white"
+                    }`}
                   />
                 </div>
               </div>
@@ -1375,111 +1460,179 @@ export default function OnboardingPage() {
           ────────────────────────────────────────────────────────────── */}
           {currentStep === 6 && (
             <form onSubmit={handleStep6Submit} className="space-y-6 animate-fadeIn">
+              {/* Upload Loader Overlay */}
+              {uploadingDoc && (
+                <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+                  <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+                  <p className="text-white font-bold text-sm">Uploading document…</p>
+                  <p className="text-slate-300 text-xs">Please wait, do not close this page.</p>
+                </div>
+              )}
+
               <div>
                 <h2 className="text-xl font-black text-slate-900">KYC Verification Documents</h2>
                 <p className="text-slate-500 text-xs mt-1">
-                  Upload Aadhaar Card & PAN Card. Take photo with camera or choose from gallery.
+                  Upload Aadhaar Card (Front &amp; Back) and PAN Card. Gallery or PDF accepted.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {/* Aadhaar Upload Card */}
-                <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-800 text-sm">Contact Person Aadhaar *</span>
-                    {aadhaarDoc ? (
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full flex items-center gap-1">
-                        <Check className="w-3 h-3" /> Uploaded
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-bold text-red-500">Required</span>
-                    )}
-                  </div>
-
-                  {aadhaarDoc ? (
-                    <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2">
-                      <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                        <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
-                        <span className="truncate flex-1">{aadhaarDoc.fileName}</span>
-                      </div>
-                      <div className="flex items-center gap-3 pt-1 border-t border-slate-100 text-[11px] font-bold">
-                        <button
-                          type="button"
-                          onClick={() => setActiveCropModal("aadhaarDoc")}
-                          className="text-emerald-600 hover:underline"
-                        >
-                          Replace Document
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setAadhaarDoc(null)}
-                          className="text-red-500 hover:underline"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
+              {/* ── Aadhaar Section ─────────────────────────────────── */}
+              <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-800 text-sm">Aadhaar Card *</span>
+                  {aadhaarFrontDoc && (aadhaarCombined || aadhaarBackDoc) ? (
+                    <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full flex items-center gap-1">
+                      <Check className="w-3 h-3" /> Complete
+                    </span>
+                  ) : aadhaarFrontDoc ? (
+                    <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full">Back Pending</span>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => setActiveCropModal("aadhaarDoc")}
-                      className="w-full py-6 border-2 border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/30 rounded-xl flex flex-col items-center justify-center gap-2 text-slate-600 transition-all"
-                    >
-                      <Camera className="w-6 h-6 text-emerald-600" />
-                      <span className="text-xs font-bold">Upload Aadhaar Card</span>
-                      <span className="text-[10px] text-slate-400">Camera / Gallery / PDF</span>
-                    </button>
+                    <span className="text-[10px] font-bold text-red-500">Required</span>
                   )}
                 </div>
 
-                {/* PAN Card Upload Card */}
-                <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-800 text-sm">PAN Card Document *</span>
-                    {panDoc ? (
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full flex items-center gap-1">
-                        <Check className="w-3 h-3" /> Uploaded
-                      </span>
+                {/* Combined toggle */}
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={aadhaarCombined}
+                    onChange={(e) => {
+                      setAadhaarCombined(e.target.checked);
+                      if (e.target.checked) setAadhaarBackDoc(null);
+                    }}
+                    className="w-4 h-4 accent-emerald-600"
+                  />
+                  <span className="text-xs font-semibold text-slate-700">
+                    Both sides are on one image / PDF (no separate back upload needed)
+                  </span>
+                </label>
+
+                <div className={`grid gap-4 ${aadhaarCombined ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"}`}>
+                  {/* Front side */}
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
+                      {aadhaarCombined ? "Aadhaar (Both Sides / Combined)" : "Front Side"}
+                    </p>
+                    {aadhaarFrontDoc ? (
+                      <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-2">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                          <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span className="truncate flex-1">{aadhaarFrontDoc.fileName}</span>
+                        </div>
+                        <div className="flex items-center gap-3 pt-1 border-t border-slate-100 text-[11px] font-bold">
+                          {aadhaarFrontDoc.fileUrl && (
+                            <a
+                              href={aadhaarFrontDoc.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline flex items-center gap-1"
+                            >
+                              <Eye className="w-3 h-3" /> View
+                            </a>
+                          )}
+                          <button type="button" onClick={() => setActiveCropModal("aadhaarFront")} className="text-emerald-600 hover:underline">Replace</button>
+                          <button type="button" onClick={() => setAadhaarFrontDoc(null)} className="text-red-500 hover:underline">Remove</button>
+                        </div>
+                      </div>
                     ) : (
-                      <span className="text-[10px] font-bold text-red-500">Required</span>
+                      <button
+                        type="button"
+                        onClick={() => setActiveCropModal("aadhaarFront")}
+                        className="w-full py-6 border-2 border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/30 rounded-xl flex flex-col items-center justify-center gap-2 text-slate-600 transition-all"
+                      >
+                        <Upload className="w-6 h-6 text-emerald-600" />
+                        <span className="text-xs font-bold">{aadhaarCombined ? "Upload Aadhaar (Combined)" : "Upload Aadhaar Front"}</span>
+                        <span className="text-[10px] text-slate-400">Gallery / PDF</span>
+                      </button>
                     )}
                   </div>
 
+                  {/* Back side — hidden when combined */}
+                  {!aadhaarCombined && (
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Back Side</p>
+                      {aadhaarBackDoc ? (
+                        <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-2">
+                          <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                            <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span className="truncate flex-1">{aadhaarBackDoc.fileName}</span>
+                          </div>
+                          <div className="flex items-center gap-3 pt-1 border-t border-slate-100 text-[11px] font-bold">
+                            {aadhaarBackDoc.fileUrl && (
+                              <a
+                                href={aadhaarBackDoc.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline flex items-center gap-1"
+                              >
+                                <Eye className="w-3 h-3" /> View
+                              </a>
+                            )}
+                            <button type="button" onClick={() => setActiveCropModal("aadhaarBack")} className="text-emerald-600 hover:underline">Replace</button>
+                            <button type="button" onClick={() => setAadhaarBackDoc(null)} className="text-red-500 hover:underline">Remove</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setActiveCropModal("aadhaarBack")}
+                          className="w-full py-6 border-2 border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/30 rounded-xl flex flex-col items-center justify-center gap-2 text-slate-600 transition-all"
+                        >
+                          <Upload className="w-6 h-6 text-emerald-600" />
+                          <span className="text-xs font-bold">Upload Aadhaar Back</span>
+                          <span className="text-[10px] text-slate-400">Gallery / PDF</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ── PAN Card Section ─────────────────────────────── */}
+              <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-800 text-sm">PAN Card Document *</span>
                   {panDoc ? (
-                    <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2">
-                      <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                        <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
-                        <span className="truncate flex-1">{panDoc.fileName}</span>
-                      </div>
-                      <div className="flex items-center gap-3 pt-1 border-t border-slate-100 text-[11px] font-bold">
-                        <button
-                          type="button"
-                          onClick={() => setActiveCropModal("panDoc")}
-                          className="text-emerald-600 hover:underline"
-                        >
-                          Replace Document
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPanDoc(null)}
-                          className="text-red-500 hover:underline"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full flex items-center gap-1">
+                      <Check className="w-3 h-3" /> Uploaded
+                    </span>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => setActiveCropModal("panDoc")}
-                      className="w-full py-6 border-2 border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/30 rounded-xl flex flex-col items-center justify-center gap-2 text-slate-600 transition-all"
-                    >
-                      <Camera className="w-6 h-6 text-emerald-600" />
-                      <span className="text-xs font-bold">Upload PAN Card</span>
-                      <span className="text-[10px] text-slate-400">Camera / Gallery / PDF</span>
-                    </button>
+                    <span className="text-[10px] font-bold text-red-500">Required</span>
                   )}
                 </div>
+
+                {panDoc ? (
+                  <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                      <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="truncate flex-1">{panDoc.fileName}</span>
+                    </div>
+                    <div className="flex items-center gap-3 pt-1 border-t border-slate-100 text-[11px] font-bold">
+                      {panDoc.fileUrl && (
+                        <a
+                          href={panDoc.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline flex items-center gap-1"
+                        >
+                          <Eye className="w-3 h-3" /> View
+                        </a>
+                      )}
+                      <button type="button" onClick={() => setActiveCropModal("panDoc")} className="text-emerald-600 hover:underline">Replace Document</button>
+                      <button type="button" onClick={() => setPanDoc(null)} className="text-red-500 hover:underline">Remove</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setActiveCropModal("panDoc")}
+                    className="w-full py-6 border-2 border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/30 rounded-xl flex flex-col items-center justify-center gap-2 text-slate-600 transition-all"
+                  >
+                    <Upload className="w-6 h-6 text-emerald-600" />
+                    <span className="text-xs font-bold">Upload PAN Card</span>
+                    <span className="text-[10px] text-slate-400">Gallery / PDF</span>
+                  </button>
+                )}
               </div>
 
               <div className="pt-6 border-t border-slate-100 flex justify-between">
@@ -1492,7 +1645,7 @@ export default function OnboardingPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={savingStep || !aadhaarDoc || !panDoc}
+                  disabled={savingStep || !aadhaarFrontDoc || (!aadhaarCombined && !aadhaarBackDoc) || !panDoc}
                   className="py-3.5 px-8 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl text-sm shadow-md flex items-center gap-2"
                 >
                   {savingStep ? <RefreshCw className="w-4 h-4 animate-spin" /> : <>Save & Continue <ArrowRight className="w-4 h-4" /></>}
@@ -1590,17 +1743,29 @@ export default function OnboardingPage() {
                   </select>
                 </div>
 
-                {/* Auto-populated Bank Details */}
-                {bankName && (
-                  <div className="sm:col-span-2 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-1 animate-fadeIn">
-                    <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
-                      <Landmark className="w-4 h-4" /> Bank & Branch Details (Razorpay Verified)
-                    </div>
-                    <p className="text-xs text-slate-700 font-semibold">
-                      <strong>Bank:</strong> {bankName} &nbsp;|&nbsp; <strong>Branch:</strong> {branchName}
-                    </p>
-                  </div>
-                )}
+                {/* Auto-populated Bank & Branch — readonly display fields */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Bank Name</label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={bankName}
+                    placeholder="Auto-filled from IFSC"
+                    className="w-full p-3.5 bg-slate-100 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 cursor-default select-none outline-none"
+                    tabIndex={-1}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Branch Name</label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={branchName}
+                    placeholder="Auto-filled from IFSC"
+                    className="w-full p-3.5 bg-slate-100 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 cursor-default select-none outline-none"
+                    tabIndex={-1}
+                  />
+                </div>
               </div>
 
               <div className="pt-6 border-t border-slate-100 flex justify-between">
@@ -1613,7 +1778,7 @@ export default function OnboardingPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={savingStep || !ifscValid || !bankName}
+                  disabled={savingStep || !ifscValid || !bankName || !accountHolderName.trim() || accountNumber.length < 9 || accountNumber !== confirmAccountNumber}
                   className="py-3.5 px-8 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl text-sm shadow-md flex items-center gap-2"
                 >
                   {savingStep ? <RefreshCw className="w-4 h-4 animate-spin" /> : <>Save & Continue <ArrowRight className="w-4 h-4" /></>}
@@ -1820,7 +1985,13 @@ export default function OnboardingPage() {
       {activeCropModal && (
         <ImageCropModal
           isOpen={true}
-          title={activeCropModal === "aadhaarDoc" ? "Upload Aadhaar Card" : "Upload PAN Card"}
+          title={
+            activeCropModal === "aadhaarFront"
+              ? "Upload Aadhaar Front / Combined"
+              : activeCropModal === "aadhaarBack"
+              ? "Upload Aadhaar Back"
+              : "Upload PAN Card"
+          }
           onClose={() => setActiveCropModal(null)}
           onConfirm={handleDocumentCropped}
         />

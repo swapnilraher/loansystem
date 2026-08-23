@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Camera, Image as ImageIcon, RotateCw, ZoomIn, ZoomOut, Check, X, Upload } from "lucide-react";
 
 interface ImageCropModalProps {
@@ -20,8 +20,22 @@ export default function ImageCropModal({
   const [rotation, setRotation] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [fileName, setFileName] = useState("document.jpg");
+  const [isMobile, setIsMobile] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  // Detect mobile device on mount
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile =
+        /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        ) || window.matchMedia("(pointer: coarse)").matches;
+      setIsMobile(mobile);
+    };
+    checkMobile();
+  }, []);
 
   if (!isOpen) return null;
 
@@ -29,6 +43,12 @@ export default function ImageCropModal({
     const file = e.target.files?.[0];
     if (file) {
       setFileName(file.name);
+      // PDFs – just pass directly without canvas render
+      if (file.type === "application/pdf") {
+        onConfirm(file);
+        onClose();
+        return;
+      }
       const reader = new FileReader();
       reader.onload = () => {
         setImageSrc(reader.result as string);
@@ -52,7 +72,6 @@ export default function ImageCropModal({
   const handleConfirm = () => {
     if (!imageSrc) return;
 
-    // Create a canvas to apply rotation & zoom scaling
     const img = new Image();
     img.src = imageSrc;
     img.onload = () => {
@@ -70,13 +89,17 @@ export default function ImageCropModal({
       ctx.scale(zoom, zoom);
       ctx.drawImage(img, -img.width / 2, -img.height / 2);
 
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const croppedFile = new File([blob], fileName, { type: "image/jpeg" });
-          onConfirm(croppedFile);
-          onClose();
-        }
-      }, "image/jpeg", 0.9);
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const croppedFile = new File([blob], fileName, { type: "image/jpeg" });
+            onConfirm(croppedFile);
+            onClose();
+          }
+        },
+        "image/jpeg",
+        0.9
+      );
     };
   };
 
@@ -102,6 +125,7 @@ export default function ImageCropModal({
           className="hidden"
           onChange={handleFileSelect}
         />
+        {/* Camera input — only rendered on mobile, hidden on desktop */}
         <input
           ref={cameraInputRef}
           type="file"
@@ -120,25 +144,32 @@ export default function ImageCropModal({
               </div>
               <h4 className="font-semibold text-slate-800 text-lg mb-1">Choose Document Source</h4>
               <p className="text-slate-500 text-xs mb-6 max-w-xs mx-auto">
-                Upload clear image or PDF document for verification (JPG, PNG, PDF up to 10MB)
+                Upload a clear image or PDF (JPG, PNG, PDF up to 10 MB)
               </p>
 
-              <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto">
-                <button
-                  type="button"
-                  onClick={() => cameraInputRef.current?.click()}
-                  className="py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-xl flex items-center justify-center gap-2 shadow-md transition-all"
-                >
-                  <Camera className="w-4 h-4" />
-                  Take Photo
-                </button>
+              <div className={`grid gap-3 max-w-xs mx-auto ${isMobile ? "grid-cols-2" : "grid-cols-1"}`}>
+                {/* Take Photo — only shown on mobile */}
+                {isMobile && (
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-xl flex items-center justify-center gap-2 shadow-md transition-all"
+                  >
+                    <Camera className="w-4 h-4" />
+                    Take Photo
+                  </button>
+                )}
+
+                {/* Gallery / File — always shown */}
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="py-3 px-4 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all"
+                  className={`py-3 px-4 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all ${
+                    !isMobile ? "w-full max-w-xs mx-auto" : ""
+                  }`}
                 >
                   <ImageIcon className="w-4 h-4 text-blue-600" />
-                  Gallery / File
+                  {isMobile ? "Gallery / File" : "Choose from Gallery or PDF"}
                 </button>
               </div>
             </div>
