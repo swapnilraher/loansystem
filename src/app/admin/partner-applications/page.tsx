@@ -339,36 +339,83 @@ export default function AdminPartnerApplicationsPage() {
 
                 {/* 6. KYC Documents */}
                 <div className="bg-slate-900/60 p-4 rounded-xl space-y-2">
-                  <h4 className="font-bold text-emerald-400 text-sm mb-2">6. KYC Documents</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="p-3 bg-slate-800 rounded-lg text-xs space-y-1">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase block">Aadhaar Card</span>
-                      <p className="font-semibold text-white truncate">{selectedApp.documents?.aadhaarDoc?.fileName || "Uploaded"}</p>
-                      {selectedApp.documents?.aadhaarDoc?.base64Data && (
-                        <a
-                          href={selectedApp.documents.aadhaarDoc.base64Data}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-emerald-400 hover:underline font-bold text-[11px] pt-1"
-                        >
-                          <Eye className="w-3 h-3" /> View / Download
-                        </a>
-                      )}
+                  <h4 className="font-bold text-emerald-400 text-sm mb-3">6. KYC Documents</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+
+                    {/* ── Aadhaar Front / Combined ── */}
+                    <div className="p-3 bg-slate-800 rounded-lg text-xs space-y-1.5">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase block">
+                        Aadhaar
+                        {selectedApp.documents?.aadhaarCombined
+                          ? " (Both Sides — Combined)"
+                          : " Front Side"}
+                      </span>
+                      <p className="font-semibold text-white truncate">
+                        {selectedApp.documents?.aadhaarFrontDoc?.fileName ||
+                          selectedApp.documents?.aadhaarDoc?.fileName ||
+                          "—"}
+                      </p>
+                      {(() => {
+                        const url =
+                          selectedApp.documents?.aadhaarFrontDoc?.fileUrl ||
+                          selectedApp.documents?.aadhaarDoc?.fileUrl;
+                        return url ? (
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-emerald-400 hover:underline font-bold text-[11px] pt-0.5"
+                          >
+                            <Eye className="w-3 h-3" /> View / Download
+                          </a>
+                        ) : (
+                          <span className="text-slate-500 text-[11px]">Not uploaded</span>
+                        );
+                      })()}
                     </div>
-                    <div className="p-3 bg-slate-800 rounded-lg text-xs space-y-1">
+
+                    {/* ── Aadhaar Back (only if not combined) ── */}
+                    {!selectedApp.documents?.aadhaarCombined && (
+                      <div className="p-3 bg-slate-800 rounded-lg text-xs space-y-1.5">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Aadhaar Back Side</span>
+                        <p className="font-semibold text-white truncate">
+                          {selectedApp.documents?.aadhaarBackDoc?.fileName || "—"}
+                        </p>
+                        {selectedApp.documents?.aadhaarBackDoc?.fileUrl ? (
+                          <a
+                            href={selectedApp.documents.aadhaarBackDoc.fileUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-emerald-400 hover:underline font-bold text-[11px] pt-0.5"
+                          >
+                            <Eye className="w-3 h-3" /> View / Download
+                          </a>
+                        ) : (
+                          <span className="text-slate-500 text-[11px]">Not uploaded</span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* ── PAN Card ── */}
+                    <div className="p-3 bg-slate-800 rounded-lg text-xs space-y-1.5">
                       <span className="text-[10px] text-slate-400 font-bold uppercase block">PAN Card</span>
-                      <p className="font-semibold text-white truncate">{selectedApp.documents?.panDoc?.fileName || "Uploaded"}</p>
-                      {selectedApp.documents?.panDoc?.base64Data && (
+                      <p className="font-semibold text-white truncate">
+                        {selectedApp.documents?.panDoc?.fileName || "—"}
+                      </p>
+                      {selectedApp.documents?.panDoc?.fileUrl ? (
                         <a
-                          href={selectedApp.documents.panDoc.base64Data}
+                          href={selectedApp.documents.panDoc.fileUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-emerald-400 hover:underline font-bold text-[11px] pt-1"
+                          className="inline-flex items-center gap-1 text-emerald-400 hover:underline font-bold text-[11px] pt-0.5"
                         >
                           <Eye className="w-3 h-3" /> View / Download
                         </a>
+                      ) : (
+                        <span className="text-slate-500 text-[11px]">Not uploaded</span>
                       )}
                     </div>
+
                   </div>
                 </div>
 
