@@ -94,7 +94,7 @@ export function StatCard({
   loading = false,
   className,
 }: StatCardProps) {
-  const t = TONE_CLASSES[tone]
+  const t = TONE_CLASSES[tone] || TONE_CLASSES.neutral
 
   const deltaGood =
     delta?.direction === "flat" ? null : delta ? (delta.direction === "up") !== !!delta.invert : null

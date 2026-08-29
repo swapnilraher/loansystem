@@ -42,6 +42,8 @@ import { FactRow, SectionCard, Select } from "@/components/admin/leads/fields"
 import DocumentViewerModal from "@/components/ui/DocumentViewerModal"
 import EditPartnerModal from "@/components/admin/EditPartnerModal"
 
+import { usePartners } from "@/lib/hooks/usePartners"
+
 const ALL_TYPES = "All types"
 const ALL_STATUSES = "All statuses"
 
@@ -72,6 +74,7 @@ function formatAddress(address: unknown): string {
 }
 
 export default function PartnersPage() {
+  const { partners: firestorePartners, loading: firestoreLoading } = usePartners()
   const { leads } = useLeads()
   const toast = useToast()
 
@@ -97,15 +100,21 @@ export default function PartnersPage() {
     setLoading(true)
     try {
       const res = await fetch("/api/admin/partner-applications?status=all")
-      const data = await res.json()
-      if (res.ok && Array.isArray(data.applications)) {
-        setPartners(data.applications)
-      } else {
-        setPartners([])
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data?.applications)) {
+          setPartners(data.applications)
+          return
+        }
+      }
+      if (firestorePartners && firestorePartners.length > 0) {
+        setPartners(firestorePartners)
       }
     } catch (e) {
-      console.error("Fetch partners error:", e)
-      setPartners([])
+      console.warn("Fetch partner applications API warning, using Firestore fallback:", e)
+      if (firestorePartners && firestorePartners.length > 0) {
+        setPartners(firestorePartners)
+      }
     } finally {
       setLoading(false)
     }
@@ -114,6 +123,13 @@ export default function PartnersPage() {
   useEffect(() => {
     fetchPartnersData()
   }, [])
+
+  useEffect(() => {
+    if (firestorePartners && firestorePartners.length > 0 && partners.length === 0) {
+      setPartners(firestorePartners)
+      setLoading(false)
+    }
+  }, [firestorePartners])
 
   /** Lead counts and commission per partner, from confirmed disbursals only. */
   const stats = useMemo(() => {
@@ -382,7 +398,7 @@ export default function PartnersPage() {
         <StatCard label="Total Registered" value={partners.length} icon={Network} tone="info" loading={loading} />
         <StatCard label="Pending Approval" value={underReviewCount} hint="Requires Admin Sign-off" icon={Clock} tone="warn" loading={loading} />
         <StatCard label="Active Connectors" value={activeCount} hint="Verified DSA Partners" icon={CheckCircle2} tone="success" loading={loading} />
-        <StatCard label="Incomplete Drafts" value={draftCount} hint="Onboarding drop-offs" icon={Users} tone="subtle" loading={loading} />
+        <StatCard label="Incomplete Drafts" value={draftCount} hint="Onboarding drop-offs" icon={Users} tone="neutral" loading={loading} />
       </div>
 
       {/* Toolbar */}
