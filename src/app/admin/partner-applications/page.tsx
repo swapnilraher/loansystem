@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
+import React, { useState, useEffect, useMemo } from "react"
+import Link from "next/link"
 import {
   Users,
   Search,
@@ -11,562 +11,548 @@ import {
   Clock,
   Eye,
   FileText,
-  Building,
+  Building2,
   RefreshCw,
   Phone,
   Mail,
   ShieldCheck,
   Download,
-  Send,
-  ArrowLeft,
   Edit,
-} from "lucide-react";
-import DocumentViewerModal from "@/components/ui/DocumentViewerModal";
-import EditPartnerModal from "@/components/admin/EditPartnerModal";
+  UserPlus,
+  ArrowLeft,
+  X,
+  ExternalLink,
+} from "lucide-react"
+
+import {
+  Column,
+  DataTable,
+  EmptyState,
+  PageHeader,
+  Sheet,
+  StatCard,
+  StatusBadge,
+  Toolbar,
+  useToast,
+} from "@/components/admin/ui"
+import { FactRow, SectionCard, Select } from "@/components/admin/leads/fields"
+import DocumentViewerModal from "@/components/ui/DocumentViewerModal"
+import EditPartnerModal from "@/components/admin/EditPartnerModal"
+import { formatDayShort } from "@/lib/dates"
+
+const ALL_STATUSES = "All statuses"
 
 export default function AdminPartnerApplicationsPage() {
-  const [applications, setApplications] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedApp, setSelectedApp] = useState<any | null>(null);
+  const [applications, setApplications] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filterStatus, setFilterStatus] = useState("all")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedApp, setSelectedApp] = useState<any | null>(null)
+
+  // Side-by-Side Document Viewer State
+  const [sideDoc, setSideDoc] = useState<{ title: string; url?: string; fileName?: string } | null>(null)
 
   // Modals
-  const [showQueryModal, setShowQueryModal] = useState(false);
-  const [querySection, setQuerySection] = useState("KYC Documents");
-  const [queryMessage, setQueryMessage] = useState("");
-  const [showRejectModal, setShowRejectModal] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
-  const [actionLoading, setActionLoading] = useState(false);
-  const [viewDoc, setViewDoc] = useState<{ title: string; url?: string; fileName?: string } | null>(null);
-  const [showEditModal, setShowEditModal] = useState(false);
+  const [showQueryModal, setShowQueryModal] = useState(false)
+  const [querySection, setQuerySection] = useState("KYC Documents")
+  const [queryMessage, setQueryMessage] = useState("")
+  const [showRejectModal, setShowRejectModal] = useState(false)
+  const [rejectReason, setRejectReason] = useState("")
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [actionLoading, setActionLoading] = useState(false)
+
+  const toast = useToast()
 
   const fetchApplications = async () => {
-    setLoading(true);
+    setLoading(true)
     try {
-      const res = await fetch(`/api/admin/partner-applications?status=${filterStatus}`);
-      const data = await res.json();
+      const res = await fetch(`/api/admin/partner-applications?status=${filterStatus}`)
+      const data = await res.json()
       if (res.ok && data.applications) {
-        setApplications(data.applications);
+        setApplications(data.applications)
       }
     } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
+      console.error(e)
+    } flex: {
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
-    fetchApplications();
-  }, [filterStatus]);
+    fetchApplications()
+  }, [filterStatus])
 
   const handleApprove = async (app: any) => {
-    if (!confirm(`Are you sure you want to APPROVE ${app.fullName} as an official Techstar Money DSA Partner?`)) return;
+    if (!confirm(`Are you sure you want to APPROVE ${app.fullName || app.contactPersonName} as an official Techstar Money DSA Partner?`)) return
 
-    setActionLoading(true);
+    setActionLoading(true)
     try {
       const res = await fetch("/api/admin/partner-applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "approve",
-          id: app.applicationId,
+          id: app.applicationId || app.mobileNumber,
           mobileNumber: app.mobileNumber,
         }),
-      });
+      })
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Approval failed");
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Approval failed")
 
-      alert(`Partner Approved Successfully!\nGenerated Partner DSA Code: ${data.dsaCode}`);
-      setSelectedApp(null);
-      fetchApplications();
+      toast.push({
+        tone: "success",
+        title: "Partner Approved Successfully",
+        description: `Generated DSA Code: ${data.dsaCode}`,
+      })
+      setSelectedApp(null)
+      setSideDoc(null)
+      fetchApplications()
     } catch (err: any) {
-      alert(err.message || "Failed to approve partner");
+      toast.push({ tone: "danger", title: err.message || "Failed to approve partner" })
     } finally {
-      setActionLoading(false);
+      setActionLoading(false)
     }
-  };
+  }
 
   const handleRaiseQuery = async () => {
-    if (!selectedApp || !queryMessage.trim()) return;
-    setActionLoading(true);
+    if (!selectedApp || !queryMessage.trim()) return
+    setActionLoading(true)
     try {
       const res = await fetch("/api/admin/partner-applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "query",
-          id: selectedApp.applicationId,
+          id: selectedApp.applicationId || selectedApp.mobileNumber,
           mobileNumber: selectedApp.mobileNumber,
           querySection,
           queryMessage,
         }),
-      });
+      })
 
-      if (!res.ok) throw new Error("Failed to raise query");
+      if (!res.ok) throw new Error("Failed to raise query")
 
-      alert("Query raised successfully and partner notified.");
-      setShowQueryModal(false);
-      setQueryMessage("");
-      setSelectedApp(null);
-      fetchApplications();
+      toast.push({ tone: "warn", title: "Query raised successfully", description: "Partner notified via WhatsApp" })
+      setShowQueryModal(false)
+      setQueryMessage("")
+      setSelectedApp(null)
+      setSideDoc(null)
+      fetchApplications()
     } catch (err: any) {
-      alert(err.message);
+      toast.push({ tone: "danger", title: err.message })
     } finally {
-      setActionLoading(false);
+      setActionLoading(false)
     }
-  };
+  }
 
   const handleReject = async () => {
-    if (!selectedApp || !rejectReason.trim()) return;
-    setActionLoading(true);
+    if (!selectedApp || !rejectReason.trim()) return
+    setActionLoading(true)
     try {
       const res = await fetch("/api/admin/partner-applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "reject",
-          id: selectedApp.applicationId,
+          id: selectedApp.applicationId || selectedApp.mobileNumber,
           mobileNumber: selectedApp.mobileNumber,
           reason: rejectReason,
         }),
-      });
+      })
 
-      if (!res.ok) throw new Error("Failed to reject application");
+      if (!res.ok) throw new Error("Failed to reject application")
 
-      alert("Application rejected.");
-      setShowRejectModal(false);
-      setRejectReason("");
-      setSelectedApp(null);
-      fetchApplications();
+      toast.push({ tone: "danger", title: "Application Rejected" })
+      setShowRejectModal(false)
+      setRejectReason("")
+      setSelectedApp(null)
+      setSideDoc(null)
+      fetchApplications()
     } catch (err: any) {
-      alert(err.message);
+      toast.push({ tone: "danger", title: err.message })
     } finally {
-      setActionLoading(false);
+      setActionLoading(false)
     }
-  };
+  }
 
-  const filteredApps = applications.filter((app) => {
-    const term = searchTerm.toLowerCase();
-    return (
-      app.fullName?.toLowerCase().includes(term) ||
-      app.applicationId?.toLowerCase().includes(term) ||
-      app.mobileNumber?.includes(term) ||
-      app.panNumber?.toLowerCase().includes(term)
-    );
-  });
+  const filteredApps = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase()
+    return applications.filter((app) => {
+      if (
+        term &&
+        !`${app.fullName || ""} ${app.contactPersonName || ""} ${app.applicationId || ""} ${app.mobileNumber || ""} ${app.panNumber || ""}`
+          .toLowerCase()
+          .includes(term)
+      ) {
+        return false
+      }
+      return true
+    })
+  }, [applications, searchTerm])
+
+  const columns: Column<any>[] = useMemo(
+    () => [
+      {
+        id: "name",
+        header: "Applicant / Entity",
+        card: "title",
+        sortValue: app => app.fullName || app.contactPersonName || "",
+        cell: app => (
+          <span className="min-w-0 block">
+            <span className="block font-semibold text-admin-text truncate">
+              {app.fullName || app.contactPersonName || `Applicant (+91 ${app.mobileNumber})`}
+            </span>
+            <span className="admin-num block text-admin-2xs text-admin-subtle truncate">
+              {app.applicationId || app.mobileNumber}
+            </span>
+          </span>
+        ),
+      },
+      {
+        id: "mobile",
+        header: "Mobile",
+        card: "meta",
+        cell: app => (
+          <a
+            href={`tel:${app.mobileNumber}`}
+            onClick={e => e.stopPropagation()}
+            className="admin-num text-admin-accent hover:underline inline-flex items-center gap-1"
+          >
+            <Phone size={12} />
+            +91 {app.mobileNumber}
+          </a>
+        ),
+      },
+      {
+        id: "pan",
+        header: "PAN / Entity",
+        card: "meta",
+        cell: app => (
+          <span className="text-admin-muted truncate">
+            <span className="font-mono font-semibold">{app.panNumber || "PAN Pending"}</span>
+            <span className="block text-admin-2xs text-admin-subtle">
+              {app.partnerType || "Individual"} {app.firmType ? `(${app.firmType})` : ""}
+            </span>
+          </span>
+        ),
+      },
+      {
+        id: "submitted",
+        header: "Submitted / Updated",
+        card: "meta",
+        cell: app => (
+          <span className="text-admin-muted whitespace-nowrap">
+            {formatDayShort(app.updatedAt || app.submittedAt) || "Recently"}
+          </span>
+        ),
+      },
+      {
+        id: "status",
+        header: "Status",
+        card: "trailing",
+        sortValue: app => app.status || "draft",
+        cell: app => {
+          const st = app.status || "draft"
+          if (st === "approved") return <StatusBadge status="Approved" tone="success" dot />
+          if (st === "query_raised") return <StatusBadge status="Query Raised" tone="warn" dot />
+          if (st === "rejected") return <StatusBadge status="Rejected" tone="danger" dot />
+          if (st === "draft") return <StatusBadge status={`Draft (${app.currentStep || 1}/8)`} tone="subtle" dot />
+          return <StatusBadge status="Under Review" tone="info" dot />
+        },
+      },
+    ],
+    []
+  )
+
+  const underReviewCount = applications.filter(a => a.status === "under_review" || a.status === "submitted").length
+  const draftCount       = applications.filter(a => a.status === "draft").length
+  const approvedCount    = applications.filter(a => a.status === "approved").length
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans">
+    <div className="partner-root min-h-screen bg-admin-bg p-4 sm:p-6 space-y-4">
       {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-950/80 py-4 px-6 sticky top-0 z-20 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-emerald-500 rounded-xl flex items-center justify-center text-white font-black text-lg">
-              T
-            </div>
-            <div>
-              <span className="text-base font-bold tracking-tight text-white">Techstar Money CRM</span>
-              <span className="block text-[10px] text-emerald-400 font-bold uppercase">DSA Partner Onboarding Admin</span>
-            </div>
-          </div>
+      <PageHeader
+        title="Partner Onboarding Applications"
+        subtitle="Review, verify documents side-by-side, edit details, and approve DSA Channel Partners."
+        actions={
+          <button
+            onClick={fetchApplications}
+            className="admin-focus py-1.5 px-3 bg-admin-surface border border-admin-border hover:bg-admin-bg text-admin-text text-admin-xs font-semibold rounded-admin-sm flex items-center gap-1.5 shadow-admin-1 transition-colors"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
+          </button>
+        }
+      />
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={fetchApplications}
-              className="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 rounded-lg flex items-center gap-1.5 transition-colors"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
-            </button>
-            <Link href="/admin" className="text-xs text-slate-400 hover:text-white flex items-center gap-1 font-semibold">
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
-            </Link>
-          </div>
-        </div>
-      </header>
+      {/* Metrics */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard label="Total Applications" value={applications.length} icon={Building2} tone="info" loading={loading} />
+        <StatCard label="Pending Approval" value={underReviewCount} hint="Requires Admin Review" icon={Clock} tone="warn" loading={loading} />
+        <StatCard label="Drafts / Incomplete" value={draftCount} hint="Step 1-7 in progress" icon={Users} tone="subtle" loading={loading} />
+        <StatCard label="Approved Partners" value={approvedCount} hint="Active DSA Partners" icon={CheckCircle2} tone="success" loading={loading} />
+      </div>
 
-      {/* Main Grid */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Applications Table List */}
-        <div className={`${selectedApp ? "lg:col-span-6" : "lg:col-span-12"} space-y-4 transition-all duration-300`}>
-          {/* Controls Bar */}
-          <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-slate-800/60 p-4 rounded-2xl border border-slate-700/60">
-            <div className="relative w-full sm:w-72">
-              <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search name, mobile, PAN, ID..."
-                className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
-              />
-            </div>
+      {/* Filter Toolbar */}
+      <Toolbar
+        search={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search name, mobile, PAN, Application ID…"
+        chips={[
+          { id: "all", label: "All", count: applications.length },
+          { id: "under_review", label: "Under Review", count: underReviewCount },
+          { id: "draft", label: "Drafts / Drop-offs", count: draftCount },
+          { id: "query_raised", label: "Query Raised", count: applications.filter(a => a.status === "query_raised").length },
+          { id: "approved", label: "Approved", count: approvedCount },
+          { id: "rejected", label: "Rejected", count: applications.filter(a => a.status === "rejected").length },
+        ]}
+        activeChip={filterStatus}
+        onChipChange={setFilterStatus}
+      />
 
-            {/* Filter Pills */}
-            <div className="flex flex-wrap gap-1.5 w-full sm:w-auto">
-              {[
-                { key: "all", label: "All" },
-                { key: "under_review", label: "Under Review" },
-                { key: "draft", label: "Drafts / Drop-offs" },
-                { key: "query_raised", label: "Query" },
-                { key: "approved", label: "Approved" },
-                { key: "rejected", label: "Rejected" },
-              ].map((f) => (
-                <button
-                  key={f.key}
-                  onClick={() => setFilterStatus(f.key)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                    filterStatus === f.key
-                      ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
-                      : "bg-slate-900 text-slate-400 hover:text-white"
-                  }`}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Applications List */}
-          <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl overflow-hidden">
-            {loading ? (
-              <div className="p-12 text-center text-slate-400 text-xs">
-                <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-400" />
-                Loading Partner Applications...
-              </div>
-            ) : filteredApps.length === 0 ? (
-              <div className="p-12 text-center text-slate-400 text-xs">
-                No partner applications found matching criteria.
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-700/60">
-                {filteredApps.map((app) => {
-                  const stepNames: Record<number, string> = {
-                    1: "Mobile Verified",
-                    2: "Basic Details",
-                    3: "Business & PAN",
-                    4: "Contact Person",
-                    5: "Office Address",
-                    6: "GST Details",
-                    7: "KYC Documents",
-                    8: "Bank Details",
-                  };
-                  const stepName = stepNames[app.currentStep || 1] || `Step ${app.currentStep || 1}`;
-
-                  return (
-                    <div
-                      key={app.id}
-                      onClick={() => setSelectedApp(app)}
-                      className={`p-4 hover:bg-slate-700/40 cursor-pointer transition-colors flex items-center justify-between gap-4 ${
-                        selectedApp?.id === app.id ? "bg-slate-700/60 border-l-4 border-emerald-500" : ""
-                      }`}
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-white text-sm">
-                            {app.fullName || app.contactPersonName || `Applicant (+91 ${app.mobileNumber})`}
-                          </span>
-                          <span className="text-[10px] font-mono bg-slate-900 text-slate-300 px-2 py-0.5 rounded">
-                            {app.applicationId || app.mobileNumber}
-                          </span>
-                        </div>
-                        <div className="text-xs text-slate-400 flex flex-wrap items-center gap-3">
-                          <span>📱 +91 {app.mobileNumber}</span>
-                          <span>💳 {app.panNumber || "PAN Pending"}</span>
-                          <span>🏢 {app.partnerType || "Individual"}</span>
-                          {app.updatedAt && (
-                            <span className="text-[11px] text-slate-500">
-                              🕒 {new Date(app.updatedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="text-right shrink-0">
-                        {app.status === "approved" ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold rounded-full">
-                            <CheckCircle2 className="w-3 h-3" /> Approved
-                          </span>
-                        ) : app.status === "query_raised" ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[11px] font-bold rounded-full">
-                            <AlertTriangle className="w-3 h-3" /> Query
-                          </span>
-                        ) : app.status === "rejected" ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-500/20 text-red-400 border border-red-500/30 text-[11px] font-bold rounded-full">
-                            <XCircle className="w-3 h-3" /> Rejected
-                          </span>
-                        ) : app.status === "draft" ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[11px] font-bold rounded-full">
-                            <Clock className="w-3 h-3" /> Draft ({stepName})
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[11px] font-bold rounded-full">
-                            <Clock className="w-3 h-3" /> Review
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+      {/* Main Split Layout: DataTable + Side-by-Side Inspector */}
+      <div className="flex flex-col lg:flex-row gap-4 items-start">
+        {/* Table View */}
+        <div className="flex-1 w-full min-w-0">
+          <DataTable
+            columns={columns}
+            rows={filteredApps}
+            getRowId={app => app.id || app.mobileNumber}
+            loading={loading}
+            onRowClick={app => {
+              setSelectedApp(app)
+              setSideDoc(null)
+            }}
+            emptyTitle="No partner applications found"
+            emptyDescription="Partners who register or save onboarding steps will appear here."
+          />
         </div>
 
-        {/* Right Column: Selected Application Detail Inspector */}
+        {/* Side-by-Side Verification Inspector Drawer */}
         {selectedApp && (
-          <div className="lg:col-span-6 bg-slate-800 border border-slate-700 rounded-2xl p-6 space-y-6 flex flex-col justify-between">
-            <div className="space-y-6">
-              {/* Detail Header */}
-              <div className="flex justify-between items-start border-b border-slate-700 pb-4">
-                <div>
-                  <h3 className="text-xl font-bold text-white">
-                    {selectedApp.fullName || selectedApp.contactPersonName || `Partner Applicant (+91 ${selectedApp.mobileNumber})`}
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Application ID: {selectedApp.applicationId || selectedApp.mobileNumber}
-                  </p>
-                </div>
-                <button onClick={() => setSelectedApp(null)} className="text-xs text-slate-400 hover:text-white">
-                  Close ✕
-                </button>
+          <div className="w-full lg:w-[480px] xl:w-[520px] bg-admin-surface border border-admin-border rounded-admin-lg shadow-admin-2 p-5 space-y-4 shrink-0 max-h-[88vh] overflow-y-auto">
+            {/* Inspector Top Bar */}
+            <div className="flex items-start justify-between border-b border-admin-border pb-3">
+              <div>
+                <h3 className="text-admin-base font-bold text-admin-text leading-tight">
+                  {selectedApp.fullName || selectedApp.contactPersonName || `Applicant (+91 ${selectedApp.mobileNumber})`}
+                </h3>
+                <p className="text-admin-2xs text-admin-subtle admin-num mt-0.5">
+                  ID: {selectedApp.applicationId || selectedApp.mobileNumber}
+                </p>
               </div>
-
-              {/* Step Progress Tracker */}
-              <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-700/80 space-y-3">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-slate-300">
-                    Status:{" "}
-                    {selectedApp.status === "draft" ? (
-                      <span className="text-purple-400 font-extrabold">Incomplete / Draft (Step {selectedApp.currentStep || 1}/8)</span>
-                    ) : selectedApp.status === "approved" ? (
-                      <span className="text-emerald-400 font-extrabold">Approved ({selectedApp.dsaCode})</span>
-                    ) : selectedApp.status === "query_raised" ? (
-                      <span className="text-amber-400 font-extrabold">Query Raised</span>
-                    ) : selectedApp.status === "rejected" ? (
-                      <span className="text-red-400 font-extrabold">Rejected</span>
-                    ) : (
-                      <span className="text-blue-400 font-extrabold">Under Review (Submitted)</span>
-                    )}
-                  </span>
-                  <span className="text-[11px] text-slate-400">
-                    Last update: {selectedApp.updatedAt ? new Date(selectedApp.updatedAt).toLocaleString("en-IN") : "N/A"}
-                  </span>
-                </div>
-
-                {/* 8-Step Tracker */}
-                <div className="grid grid-cols-8 gap-1 pt-1">
-                  {[
-                    { step: 1, label: "Basic" },
-                    { step: 2, label: "Business" },
-                    { step: 3, label: "Contact" },
-                    { step: 4, label: "Address" },
-                    { step: 5, label: "GST" },
-                    { step: 6, label: "KYC" },
-                    { step: 7, label: "Bank" },
-                    { step: 8, label: "Submitted" },
-                  ].map((st) => {
-                    const isDone = (selectedApp.currentStep || 1) >= st.step || selectedApp.status === "submitted" || selectedApp.status === "under_review" || selectedApp.status === "approved";
-                    const isCurrent = (selectedApp.currentStep || 1) === st.step && selectedApp.status === "draft";
-                    return (
-                      <div key={st.step} className="text-center space-y-1">
-                        <div
-                          className={`h-2 rounded-full transition-all ${
-                            isCurrent
-                              ? "bg-purple-500 shadow-sm shadow-purple-500"
-                              : isDone
-                              ? "bg-emerald-500"
-                              : "bg-slate-700"
-                          }`}
-                        />
-                        <span
-                          className={`block text-[9px] font-semibold truncate ${
-                            isCurrent ? "text-purple-300 font-bold" : isDone ? "text-slate-200" : "text-slate-500"
-                          }`}
-                        >
-                          {st.label}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Sections Breakdown */}
-              <div className="space-y-4 text-xs text-slate-300 max-h-[60vh] overflow-y-auto pr-1">
-                {/* 1. Personal & Contact */}
-                <div className="bg-slate-900/60 p-4 rounded-xl space-y-1">
-                  <h4 className="font-bold text-emerald-400 text-sm mb-2">1. Basic Details</h4>
-                  <p><strong>Full Name:</strong> {selectedApp.fullName || "N/A"}</p>
-                  <p><strong>Mobile:</strong> +91 {selectedApp.mobileNumber}</p>
-                  <p><strong>Email:</strong> {selectedApp.email || "N/A"}</p>
-                </div>
-
-                {/* 2. Business & PAN */}
-                <div className="bg-slate-900/60 p-4 rounded-xl space-y-1">
-                  <h4 className="font-bold text-emerald-400 text-sm mb-2">2. Business Structure & PAN</h4>
-                  <p><strong>Partner Entity:</strong> {selectedApp.partnerType} {selectedApp.firmType ? `(${selectedApp.firmType})` : ""}</p>
-                  <p><strong>PAN Number:</strong> <span className="font-mono font-bold text-white">{selectedApp.panNumber || "N/A"}</span></p>
-                </div>
-
-                {/* 3. Contact Person */}
-                <div className="bg-slate-900/60 p-4 rounded-xl space-y-1">
-                  <h4 className="font-bold text-emerald-400 text-sm mb-2">3. Contact Person</h4>
-                  <p><strong>Name:</strong> {selectedApp.contactPersonName || selectedApp.fullName || "N/A"}</p>
-                  <p><strong>Designation:</strong> {selectedApp.designation || "N/A"}</p>
-                  <p><strong>DOB:</strong> {selectedApp.dob || "N/A"} &nbsp;|&nbsp; <strong>Gender:</strong> {selectedApp.gender || "N/A"}</p>
-                </div>
-
-                {/* 4. Office Address */}
-                <div className="bg-slate-900/60 p-4 rounded-xl space-y-1">
-                  <h4 className="font-bold text-emerald-400 text-sm mb-2">4. Office Address</h4>
-                  <p>{selectedApp.addressLine1}{selectedApp.addressLine2 ? `, ${selectedApp.addressLine2}` : ""}</p>
-                  <p>{selectedApp.area ? `${selectedApp.area}, ` : ""}{selectedApp.city}, {selectedApp.district}, {selectedApp.stateName} - {selectedApp.pinCode}</p>
-                </div>
-
-                {/* 5. GST */}
-                <div className="bg-slate-900/60 p-4 rounded-xl space-y-1">
-                  <h4 className="font-bold text-emerald-400 text-sm mb-2">5. GST Details</h4>
-                  <p><strong>Registered:</strong> {selectedApp.isGstRegistered || "No"}</p>
-                  {selectedApp.gstin && <p><strong>GSTIN:</strong> <span className="font-mono font-bold">{selectedApp.gstin}</span></p>}
-                </div>
-
-                {/* 6. KYC Documents */}
-                <div className="bg-slate-900/60 p-4 rounded-xl space-y-2">
-                  <h4 className="font-bold text-emerald-400 text-sm mb-3">6. KYC Documents</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-
-                    {/* ── Aadhaar Front / Combined ── */}
-                    <div className="p-3 bg-slate-800 rounded-lg text-xs space-y-1.5">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase block">
-                        Aadhaar
-                        {selectedApp.documents?.aadhaarCombined
-                          ? " (Both Sides — Combined)"
-                          : " Front Side"}
-                      </span>
-                      <p className="font-semibold text-white truncate">
-                        {selectedApp.documents?.aadhaarFrontDoc?.fileName ||
-                          selectedApp.documents?.aadhaarDoc?.fileName ||
-                          "—"}
-                      </p>
-                      {(() => {
-                        const docObj = selectedApp.documents?.aadhaarFrontDoc || selectedApp.documents?.aadhaarDoc;
-                        const url = docObj?.fileUrl || docObj?.base64Data;
-                        return url ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setViewDoc({
-                                title: "Aadhaar Card",
-                                url,
-                                fileName: docObj?.fileName || "Aadhaar_Document",
-                              })
-                            }
-                            className="inline-flex items-center gap-1 text-emerald-400 hover:underline font-bold text-[11px] pt-0.5"
-                          >
-                            <Eye className="w-3 h-3" /> View / Download Document
-                          </button>
-                        ) : (
-                          <span className="text-slate-500 text-[11px]">Not uploaded</span>
-                        );
-                      })()}
-                    </div>
-
-                    {/* ── Aadhaar Back (only if not combined) ── */}
-                    {!selectedApp.documents?.aadhaarCombined && (
-                      <div className="p-3 bg-slate-800 rounded-lg text-xs space-y-1.5">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Aadhaar Back Side</span>
-                        <p className="font-semibold text-white truncate">
-                          {selectedApp.documents?.aadhaarBackDoc?.fileName || "—"}
-                        </p>
-                        {(() => {
-                          const docObj = selectedApp.documents?.aadhaarBackDoc;
-                          const url = docObj?.fileUrl || docObj?.base64Data;
-                          return url ? (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setViewDoc({
-                                  title: "Aadhaar Back Side",
-                                  url,
-                                  fileName: docObj?.fileName || "Aadhaar_Back",
-                                })
-                              }
-                              className="inline-flex items-center gap-1 text-emerald-400 hover:underline font-bold text-[11px] pt-0.5"
-                            >
-                              <Eye className="w-3 h-3" /> View / Download Document
-                            </button>
-                          ) : (
-                            <span className="text-slate-500 text-[11px]">Not uploaded</span>
-                          );
-                        })()}
-                      </div>
-                    )}
-
-                    {/* ── PAN Card ── */}
-                    <div className="p-3 bg-slate-800 rounded-lg text-xs space-y-1.5">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase block">PAN Card</span>
-                      <p className="font-semibold text-white truncate">
-                        {selectedApp.documents?.panDoc?.fileName || "—"}
-                      </p>
-                      {(() => {
-                        const docObj = selectedApp.documents?.panDoc;
-                        const url = docObj?.fileUrl || docObj?.base64Data;
-                        return url ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setViewDoc({
-                                title: "PAN Card",
-                                url,
-                                fileName: docObj?.fileName || "PAN_Card",
-                              })
-                            }
-                            className="inline-flex items-center gap-1 text-emerald-400 hover:underline font-bold text-[11px] pt-0.5"
-                          >
-                            <Eye className="w-3 h-3" /> View / Download Document
-                          </button>
-                        ) : (
-                          <span className="text-slate-500 text-[11px]">Not uploaded</span>
-                        );
-                      })()}
-                    </div>
-
-                  </div>
-                </div>
-
-                {/* 7. Bank Account */}
-                <div className="bg-slate-900/60 p-4 rounded-xl space-y-1">
-                  <h4 className="font-bold text-emerald-400 text-sm mb-2">7. Bank Account & IFSC</h4>
-                  <p><strong>Account Holder:</strong> {selectedApp.bankDetails?.accountHolderName || selectedApp.fullName || "N/A"}</p>
-                  <p><strong>Bank & Branch:</strong> {selectedApp.bankDetails?.bankName || "N/A"} ({selectedApp.bankDetails?.branchName || "N/A"})</p>
-                  <p><strong>Account No:</strong> <span className="font-mono font-bold">{selectedApp.bankDetails?.accountNumber || "N/A"}</span> ({selectedApp.bankDetails?.accountType || "Savings"})</p>
-                  <p><strong>IFSC Code:</strong> <span className="font-mono font-bold text-emerald-400">{selectedApp.bankDetails?.ifsc || "N/A"}</span></p>
-                </div>
-              </div>
+              <button
+                onClick={() => {
+                  setSelectedApp(null)
+                  setSideDoc(null)
+                }}
+                className="p-1 text-admin-subtle hover:text-admin-text rounded-lg"
+              >
+                <X size={18} />
+              </button>
             </div>
 
-            {/* Action Bar */}
-            <div className="pt-4 border-t border-slate-700 flex flex-wrap gap-2 justify-end">
+            {/* Application Status Banner */}
+            <div className="flex items-center justify-between bg-admin-bg border border-admin-border rounded-admin p-3 text-admin-xs">
+              <span className="font-semibold text-admin-text">
+                Status:{" "}
+                {selectedApp.status === "approved" ? (
+                  <span className="text-tone-success-fg font-bold">Approved ({selectedApp.dsaCode})</span>
+                ) : selectedApp.status === "query_raised" ? (
+                  <span className="text-tone-warn-fg font-bold">Query Raised</span>
+                ) : selectedApp.status === "rejected" ? (
+                  <span className="text-tone-danger-fg font-bold">Rejected</span>
+                ) : selectedApp.status === "draft" ? (
+                  <span className="text-admin-subtle font-bold">Draft (Step {selectedApp.currentStep || 1}/8)</span>
+                ) : (
+                  <span className="text-admin-accent font-bold">Under Review</span>
+                )}
+              </span>
               <button
                 type="button"
                 onClick={() => setShowEditModal(true)}
-                className="py-2.5 px-4 bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs rounded-xl transition-all flex items-center gap-1"
+                className="admin-focus text-admin-xs font-bold text-admin-accent hover:underline flex items-center gap-1"
               >
-                <Edit className="w-3.5 h-3.5" /> Edit Details
+                <Edit size={13} /> Edit Details
               </button>
+            </div>
+
+            {/* Details Breakdown */}
+            <div className="space-y-3">
+              {/* 1. Basic & Entity */}
+              <SectionCard title="1. Basic & Entity Details">
+                <div className="divide-y divide-admin-border">
+                  <FactRow label="Full Name" value={selectedApp.fullName || "—"} />
+                  <FactRow label="Mobile Number" value={`+91 ${selectedApp.mobileNumber}`} />
+                  <FactRow label="Email" value={selectedApp.email || "—"} />
+                  <FactRow label="Entity Type" value={`${selectedApp.partnerType || 'Individual'} ${selectedApp.firmType ? `(${selectedApp.firmType})` : ''}`} />
+                  <FactRow label="PAN Number" value={<span className="font-mono font-bold">{selectedApp.panNumber || "—"}</span>} />
+                </div>
+              </SectionCard>
+
+              {/* 2. Office Address */}
+              <SectionCard title="2. Office Address">
+                <div className="divide-y divide-admin-border">
+                  <FactRow label="Address" value={`${selectedApp.addressLine1 || ''} ${selectedApp.addressLine2 || ''}`} />
+                  <FactRow label="City & State" value={`${selectedApp.city || ''}, ${selectedApp.stateName || ''} - ${selectedApp.pinCode || ''}`} />
+                  <FactRow label="GST Status" value={`${selectedApp.isGstRegistered || 'No'} ${selectedApp.gstin ? `(${selectedApp.gstin})` : ''}`} />
+                </div>
+              </SectionCard>
+
+              {/* 3. KYC Documents & MOA PDF (Clicking views Side-by-Side) */}
+              <SectionCard title="3. KYC Documents & Signed MOA Agreement">
+                <div className="space-y-2 pt-1">
+                  {/* Aadhaar Front */}
+                  <div className="flex items-center justify-between p-2.5 bg-admin-bg border border-admin-border rounded-admin text-admin-xs">
+                    <div>
+                      <p className="font-semibold text-admin-text">
+                        Aadhaar {selectedApp.documents?.aadhaarCombined ? "(Both Sides)" : "Front"}
+                      </p>
+                      <p className="text-admin-2xs text-admin-subtle truncate max-w-[180px]">
+                        {selectedApp.documents?.aadhaarFrontDoc?.fileName || selectedApp.documents?.aadhaarDoc?.fileName || "Uploaded"}
+                      </p>
+                    </div>
+                    {(() => {
+                      const docObj = selectedApp.documents?.aadhaarFrontDoc || selectedApp.documents?.aadhaarDoc
+                      const url = docObj?.fileUrl || docObj?.base64Data
+                      return url ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSideDoc({
+                              title: "Aadhaar Card",
+                              url,
+                              fileName: docObj?.fileName || "Aadhaar_Document",
+                            })
+                          }
+                          className="admin-focus py-1 px-2.5 rounded bg-admin-accent-soft text-admin-accent hover:bg-admin-accent hover:text-white font-bold text-admin-2xs transition-colors flex items-center gap-1"
+                        >
+                          <Eye size={12} /> View Document
+                        </button>
+                      ) : (
+                        <span className="text-admin-subtle text-admin-2xs">Not uploaded</span>
+                      )
+                    })()}
+                  </div>
+
+                  {/* Aadhaar Back */}
+                  {!selectedApp.documents?.aadhaarCombined && (
+                    <div className="flex items-center justify-between p-2.5 bg-admin-bg border border-admin-border rounded-admin text-admin-xs">
+                      <div>
+                        <p className="font-semibold text-admin-text">Aadhaar Back Side</p>
+                        <p className="text-admin-2xs text-admin-subtle truncate max-w-[180px]">
+                          {selectedApp.documents?.aadhaarBackDoc?.fileName || "Uploaded"}
+                        </p>
+                      </div>
+                      {(() => {
+                        const docObj = selectedApp.documents?.aadhaarBackDoc
+                        const url = docObj?.fileUrl || docObj?.base64Data
+                        return url ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSideDoc({
+                                title: "Aadhaar Back Side",
+                                url,
+                                fileName: docObj?.fileName || "Aadhaar_Back",
+                              })
+                            }
+                            className="admin-focus py-1 px-2.5 rounded bg-admin-accent-soft text-admin-accent hover:bg-admin-accent hover:text-white font-bold text-admin-2xs transition-colors flex items-center gap-1"
+                          >
+                            <Eye size={12} /> View Document
+                          </button>
+                        ) : (
+                          <span className="text-admin-subtle text-admin-2xs">Not uploaded</span>
+                        )
+                      })()}
+                    </div>
+                  )}
+
+                  {/* PAN Card */}
+                  <div className="flex items-center justify-between p-2.5 bg-admin-bg border border-admin-border rounded-admin text-admin-xs">
+                    <div>
+                      <p className="font-semibold text-admin-text">PAN Card</p>
+                      <p className="text-admin-2xs text-admin-subtle truncate max-w-[180px]">
+                        {selectedApp.documents?.panDoc?.fileName || "Uploaded"}
+                      </p>
+                    </div>
+                    {(() => {
+                      const docObj = selectedApp.documents?.panDoc
+                      const url = docObj?.fileUrl || docObj?.base64Data
+                      return url ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSideDoc({
+                              title: "PAN Card",
+                              url,
+                              fileName: docObj?.fileName || "PAN_Card",
+                            })
+                          }
+                          className="admin-focus py-1 px-2.5 rounded bg-admin-accent-soft text-admin-accent hover:bg-admin-accent hover:text-white font-bold text-admin-2xs transition-colors flex items-center gap-1"
+                        >
+                          <Eye size={12} /> View Document
+                        </button>
+                      ) : (
+                        <span className="text-admin-subtle text-admin-2xs">Not uploaded</span>
+                      )
+                    })()}
+                  </div>
+
+                  {/* Executed MOA Agreement PDF */}
+                  <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-admin text-admin-xs">
+                    <div>
+                      <p className="font-bold text-emerald-900">Signed MOA Agreement (PDF)</p>
+                      <p className="text-admin-2xs text-emerald-700">
+                        {selectedApp.agreementSigned ? "✅ OTP Verified & Executed" : "Pending Signature"}
+                      </p>
+                    </div>
+                    {(() => {
+                      const mouUrl = selectedApp.agreementPdfUrl || `/api/partner/agreement/pdf?mobile=${selectedApp.mobileNumber}`
+                      return (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSideDoc({
+                              title: `Signed MOA Agreement - ${selectedApp.fullName}`,
+                              url: mouUrl,
+                              fileName: `MOA_Agreement_${selectedApp.mobileNumber}.pdf`,
+                            })
+                          }
+                          className="admin-focus py-1 px-2.5 rounded bg-emerald-600 text-white font-bold text-admin-2xs hover:bg-emerald-700 transition-colors flex items-center gap-1 shadow-sm"
+                        >
+                          <Eye size={12} /> View Signed MOA PDF
+                        </button>
+                      )
+                    })()}
+                  </div>
+                </div>
+              </SectionCard>
+
+              {/* 4. Bank Account Details */}
+              <SectionCard title="4. Bank Account & IFSC">
+                <div className="divide-y divide-admin-border">
+                  <FactRow label="Account Holder" value={selectedApp.bankDetails?.accountHolderName || selectedApp.fullName || "—"} />
+                  <FactRow label="Bank Name" value={selectedApp.bankDetails?.bankName || "—"} />
+                  <FactRow label="Account Number" value={<span className="font-mono font-bold">{selectedApp.bankDetails?.accountNumber || "—"}</span>} />
+                  <FactRow label="IFSC Code" value={<span className="font-mono font-bold text-admin-accent">{selectedApp.bankDetails?.ifsc || "—"}</span>} />
+                </div>
+              </SectionCard>
+            </div>
+
+            {/* Action Bar */}
+            <div className="pt-3 border-t border-admin-border flex flex-wrap gap-2 justify-end">
               <button
                 type="button"
                 onClick={() => setShowQueryModal(true)}
-                className="py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition-all"
+                className="admin-focus py-2 px-3 bg-amber-600 hover:bg-amber-700 text-white font-bold text-admin-xs rounded-admin transition-all"
               >
                 Raise Query
               </button>
               <button
                 type="button"
                 onClick={() => setShowRejectModal(true)}
-                className="py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition-all"
+                className="admin-focus py-2 px-3 bg-red-600 hover:bg-red-700 text-white font-bold text-admin-xs rounded-admin transition-all"
               >
                 Reject
               </button>
@@ -574,26 +560,39 @@ export default function AdminPartnerApplicationsPage() {
                 type="button"
                 onClick={() => handleApprove(selectedApp)}
                 disabled={actionLoading}
-                className="py-2.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/30 transition-all flex items-center gap-1.5"
+                className="admin-focus py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-admin-xs rounded-admin shadow-admin-1 transition-all flex items-center gap-1.5 disabled:opacity-50"
               >
-                <CheckCircle2 className="w-4 h-4" /> Approve Partner
+                <CheckCircle2 size={15} />
+                <span>Approve Partner</span>
               </button>
             </div>
           </div>
         )}
-      </main>
+
+        {/* Attached Side-by-Side Document Preview Panel (Renders on the same screen) */}
+        {sideDoc && selectedApp && (
+          <DocumentViewerModal
+            isOpen={!!sideDoc}
+            title={sideDoc.title}
+            fileUrl={sideDoc.url}
+            fileName={sideDoc.fileName}
+            isSideBySide={true}
+            onClose={() => setSideDoc(null)}
+          />
+        )}
+      </div>
 
       {/* Raise Query Modal */}
       {showQueryModal && selectedApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl p-6 text-white space-y-4">
-            <h3 className="text-lg font-bold">Raise Query to Applicant</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md bg-admin-surface border border-admin-border rounded-admin-lg p-6 space-y-4 text-admin-text">
+            <h3 className="text-admin-base font-bold">Raise Query to Applicant</h3>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Section *</label>
+              <label className="block text-admin-xs font-semibold text-admin-muted mb-1">Section *</label>
               <select
                 value={querySection}
-                onChange={(e) => setQuerySection(e.target.value)}
-                className="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white"
+                onChange={e => setQuerySection(e.target.value)}
+                className="w-full p-2.5 bg-admin-bg border border-admin-border rounded-admin text-admin-xs text-admin-text"
               >
                 <option value="Basic Details">1. Basic Details</option>
                 <option value="Business Details">2. Business Details</option>
@@ -608,21 +607,21 @@ export default function AdminPartnerApplicationsPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Query Message</label>
+              <label className="block text-admin-xs font-semibold text-admin-muted mb-1">Query Message</label>
               <textarea
                 rows={3}
                 value={queryMessage}
-                onChange={(e) => setQueryMessage(e.target.value)}
+                onChange={e => setQueryMessage(e.target.value)}
                 placeholder="Explain what correction or re-upload is required..."
-                className="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white"
+                className="w-full p-2.5 bg-admin-bg border border-admin-border rounded-admin text-admin-xs text-admin-text"
               />
             </div>
 
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setShowQueryModal(false)} className="py-2 px-4 bg-slate-800 text-xs font-bold rounded-xl">
+              <button onClick={() => setShowQueryModal(false)} className="py-2 px-4 bg-admin-bg text-admin-xs font-bold rounded-admin">
                 Cancel
               </button>
-              <button onClick={handleRaiseQuery} className="py-2 px-5 bg-amber-600 hover:bg-amber-700 text-xs font-bold rounded-xl">
+              <button onClick={handleRaiseQuery} className="py-2 px-5 bg-amber-600 hover:bg-amber-700 text-white text-admin-xs font-bold rounded-admin">
                 Send Query
               </button>
             </div>
@@ -632,25 +631,25 @@ export default function AdminPartnerApplicationsPage() {
 
       {/* Rejection Modal */}
       {showRejectModal && selectedApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl p-6 text-white space-y-4">
-            <h3 className="text-lg font-bold text-red-400">Reject Partner Application</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md bg-admin-surface border border-admin-border rounded-admin-lg p-6 space-y-4 text-admin-text">
+            <h3 className="text-admin-base font-bold text-tone-danger-fg">Reject Partner Application</h3>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Rejection Reason</label>
+              <label className="block text-admin-xs font-semibold text-admin-muted mb-1">Rejection Reason</label>
               <textarea
                 rows={3}
                 value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
+                onChange={e => setRejectReason(e.target.value)}
                 placeholder="Reason for rejection..."
-                className="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white"
+                className="w-full p-2.5 bg-admin-bg border border-admin-border rounded-admin text-admin-xs text-admin-text"
               />
             </div>
 
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setShowRejectModal(false)} className="py-2 px-4 bg-slate-800 text-xs font-bold rounded-xl">
+              <button onClick={() => setShowRejectModal(false)} className="py-2 px-4 bg-admin-bg text-admin-xs font-bold rounded-admin">
                 Cancel
               </button>
-              <button onClick={handleReject} className="py-2 px-5 bg-red-600 hover:bg-red-700 text-xs font-bold rounded-xl">
+              <button onClick={handleReject} className="py-2 px-5 bg-red-600 hover:bg-red-700 text-white text-admin-xs font-bold rounded-admin">
                 Confirm Rejection
               </button>
             </div>
@@ -658,18 +657,7 @@ export default function AdminPartnerApplicationsPage() {
         </div>
       )}
 
-      {/* Universal Document Viewer Modal */}
-      {viewDoc && (
-        <DocumentViewerModal
-          isOpen={!!viewDoc}
-          title={viewDoc.title}
-          fileUrl={viewDoc.url}
-          fileName={viewDoc.fileName}
-          onClose={() => setViewDoc(null)}
-        />
-      )}
-
-      {/* Admin Edit Application Modal */}
+      {/* Admin Edit Application Details Modal */}
       {showEditModal && selectedApp && (
         <EditPartnerModal
           isOpen={showEditModal}
@@ -679,5 +667,5 @@ export default function AdminPartnerApplicationsPage() {
         />
       )}
     </div>
-  );
+  )
 }

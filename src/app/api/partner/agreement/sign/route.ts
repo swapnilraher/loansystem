@@ -119,8 +119,8 @@ export async function POST(request: Request) {
     await appDocRef.set(pdfMeta, { merge: true })
     await userDocRef.set(pdfMeta, { merge: true })
 
-    const userQuery = await db.collection("users").where("mobileNumber", "==", phoneNumber).get()
-    userQuery.forEach((docSnap) => {
+    const userPdfQuery = await db.collection("users").where("mobileNumber", "==", phoneNumber).get()
+    userPdfQuery.forEach((docSnap) => {
       docSnap.ref.set(pdfMeta, { merge: true })
     })
 
