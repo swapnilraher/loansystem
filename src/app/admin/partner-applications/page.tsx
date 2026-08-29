@@ -18,9 +18,11 @@ import {
   ShieldCheck,
   Download,
   Send,
-  ArrowLeft
+  ArrowLeft,
+  Edit,
 } from "lucide-react";
 import DocumentViewerModal from "@/components/ui/DocumentViewerModal";
+import EditPartnerModal from "@/components/admin/EditPartnerModal";
 
 export default function AdminPartnerApplicationsPage() {
   const [applications, setApplications] = useState<any[]>([]);
@@ -37,6 +39,7 @@ export default function AdminPartnerApplicationsPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [viewDoc, setViewDoc] = useState<{ title: string; url?: string; fileName?: string } | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const fetchApplications = async () => {
     setLoading(true);
@@ -548,6 +551,13 @@ export default function AdminPartnerApplicationsPage() {
             <div className="pt-4 border-t border-slate-700 flex flex-wrap gap-2 justify-end">
               <button
                 type="button"
+                onClick={() => setShowEditModal(true)}
+                className="py-2.5 px-4 bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs rounded-xl transition-all flex items-center gap-1"
+              >
+                <Edit className="w-3.5 h-3.5" /> Edit Details
+              </button>
+              <button
+                type="button"
                 onClick={() => setShowQueryModal(true)}
                 className="py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition-all"
               >
@@ -656,6 +666,16 @@ export default function AdminPartnerApplicationsPage() {
           fileUrl={viewDoc.url}
           fileName={viewDoc.fileName}
           onClose={() => setViewDoc(null)}
+        />
+      )}
+
+      {/* Admin Edit Application Modal */}
+      {showEditModal && selectedApp && (
+        <EditPartnerModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          application={selectedApp}
+          onSaved={() => fetchApplications()}
         />
       )}
     </div>

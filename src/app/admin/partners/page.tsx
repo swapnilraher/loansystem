@@ -8,7 +8,7 @@ import {
   CheckCircle2,
   Network,
   ShieldCheck,
-
+  Edit,
 } from "lucide-react"
 import { doc, updateDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
@@ -32,6 +32,7 @@ import {
 import { FactRow, SectionCard, Select } from "@/components/admin/leads/fields"
 import { leadName } from "@/components/admin/leads/leadFilters"
 import DocumentViewerModal from "@/components/ui/DocumentViewerModal"
+import EditPartnerModal from "@/components/admin/EditPartnerModal"
 
 const ALL_TYPES = "All types"
 const ALL_STATUSES = "All statuses"
@@ -74,6 +75,7 @@ export default function PartnersPage() {
   const [selected, setSelected] = useState<Partner | null>(null)
   const [tab, setTab] = useState<"overview" | "leads">("overview")
   const [viewDoc, setViewDoc] = useState<{ title: string; url?: string; fileName?: string } | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
 
   /** Lead counts and commission per partner, from confirmed disbursals only. */
   const stats = useMemo(() => {
@@ -328,18 +330,27 @@ export default function PartnersPage() {
       >
         {selected && (
           <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Select
-                value={selected.dsaStatus || "Active"}
-                onChange={e => updateStatus(selected.id, e.target.value)}
-                className="w-auto"
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Select
+                  value={selected.dsaStatus || "Active"}
+                  onChange={e => updateStatus(selected.id, e.target.value)}
+                  className="w-auto"
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                  <option value="Suspended">Suspended</option>
+                </Select>
+                <StatusBadge tone={selected.kycVerified ? "success" : "danger"} status="eKYC" />
+                <StatusBadge tone={selected.panVerified ? "success" : "danger"} status="PAN" />
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEditModal(true)}
+                className="admin-focus text-admin-xs font-semibold text-admin-accent hover:underline flex items-center gap-1"
               >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-                <option value="Suspended">Suspended</option>
-              </Select>
-              <StatusBadge tone={selected.kycVerified ? "success" : "danger"} status="eKYC" />
-              <StatusBadge tone={selected.panVerified ? "success" : "danger"} status="PAN" />
+                <Edit size={13} /> Edit Details
+              </button>
             </div>
 
             <div className="flex gap-1 border-b border-admin-border">
@@ -502,6 +513,18 @@ export default function PartnersPage() {
           fileUrl={viewDoc.url}
           fileName={viewDoc.fileName}
           onClose={() => setViewDoc(null)}
+        />
+      )}
+
+      {/* Admin Edit Partner Modal */}
+      {showEditModal && selected && (
+        <EditPartnerModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          application={selected}
+          onSaved={() => {
+            // refresh data
+          }}
         />
       )}
     </div>

@@ -88,6 +88,42 @@ export async function POST(request: Request) {
 
     const pdfBuffer = generatePartnerAgreementPdf(partnerPdfData)
 
+    // Upload generated MOU PDF to Cloudinary and store URL in database
+    let agreementPdfUrl: string = `/api/partner/agreement/pdf?mobile=${phoneNumber}`
+    try {
+      const cloudinary = (await import("@/lib/cloudinary")).default
+      const base64Pdf = `data:application/pdf;base64,${pdfBuffer.toString("base64")}`
+      const uploadRes = await cloudinary.uploader.upload(base64Pdf, {
+        public_id: `MOU_Agreement_${phoneNumber}_${dsaCode}`,
+        folder: "partner-agreements",
+        resource_type: "auto",
+        overwrite: true,
+        tags: ["partner-mou", phoneNumber, dsaCode],
+      })
+      if (uploadRes?.secure_url) {
+        agreementPdfUrl = uploadRes.secure_url
+      }
+    } catch (cErr) {
+      console.warn("Cloudinary MOU PDF upload warning:", cErr)
+    }
+
+    // Save final PDF URL to Firestore
+    const pdfMeta = {
+      agreementSigned: true,
+      agreementSignedAt: signedAtIso,
+      agreementIp: clientIp,
+      agreementPdfUrl: agreementPdfUrl,
+      updatedAt: now,
+    }
+
+    await appDocRef.set(pdfMeta, { merge: true })
+    await userDocRef.set(pdfMeta, { merge: true })
+
+    const userQuery = await db.collection("users").where("mobileNumber", "==", phoneNumber).get()
+    userQuery.forEach((docSnap) => {
+      docSnap.ref.set(pdfMeta, { merge: true })
+    })
+
     // 5. Send Email with PDF Attachment via Nodemailer
     let emailSent = false
     if (partnerEmail) {
