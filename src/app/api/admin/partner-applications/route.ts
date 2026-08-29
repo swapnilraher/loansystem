@@ -10,21 +10,59 @@ export async function GET(request: Request) {
     const status = searchParams.get("status");
 
     const db = getAdminDb();
-    const snapshot = await db.collection("partner_applications").get();
+    const appSnap = await db.collection("partner_applications").get();
+    const userSnap = await db.collection("users").where("role", "==", "partner").get();
 
-    let applications = snapshot.docs.map((doc: any) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        createdAt: data?.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data?.createdAt,
-        updatedAt: data?.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : data?.updatedAt,
-        submittedAt: data?.submittedAt?.toDate ? data.submittedAt.toDate().toISOString() : data?.submittedAt,
-      };
+    const map = new Map<string, any>();
+
+    userSnap.docs.forEach((docSnap: any) => {
+      const data = docSnap.data();
+      const mobile = data.mobileNumber || docSnap.id;
+      if (mobile) {
+        map.set(mobile, {
+          id: docSnap.id,
+          mobileNumber: mobile,
+          fullName: data.fullName || data.name || "",
+          email: data.email || "",
+          status: data.dsaStatus || data.status || "draft",
+          dsaCode: data.dsaCode || "",
+          applicationId: data.applicationId || `TSM-P-${mobile}`,
+          createdAt: data?.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data?.createdAt,
+          updatedAt: data?.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : data?.updatedAt,
+        });
+      }
     });
 
+    appSnap.docs.forEach((docSnap: any) => {
+      const data = docSnap.data();
+      const mobile = data.mobileNumber || docSnap.id;
+      if (mobile) {
+        const existing = map.get(mobile) || {};
+        map.set(mobile, {
+          ...existing,
+          ...data,
+          id: docSnap.id,
+          mobileNumber: mobile,
+          fullName: data.fullName || data.contactPersonName || existing.fullName || "",
+          email: data.email || existing.email || "",
+          status: data.status || existing.status || "under_review",
+          createdAt: data?.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data?.createdAt || existing.createdAt,
+          updatedAt: data?.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : data?.updatedAt || existing.updatedAt,
+          submittedAt: data?.submittedAt?.toDate ? data.submittedAt.toDate().toISOString() : data?.submittedAt,
+        });
+      }
+    });
+
+    let applications = Array.from(map.values());
+
     if (status && status !== "all") {
-      applications = applications.filter((app: any) => app.status === status);
+      if (status === "under_review") {
+        applications = applications.filter(
+          (app: any) => app.status === "under_review" || app.status === "submitted"
+        );
+      } else {
+        applications = applications.filter((app: any) => app.status === status);
+      }
     }
 
     applications.sort((a: any, b: any) => {

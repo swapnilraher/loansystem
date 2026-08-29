@@ -107,8 +107,11 @@ export default function PartnersPage() {
         return false
       }
       if (typeFilter !== ALL_TYPES && partner.businessType !== typeFilter) return false
-      if (statusFilter !== ALL_STATUSES && (partner.dsaStatus || "Active") !== statusFilter) {
-        return false
+      if (statusFilter !== ALL_STATUSES) {
+        const currentSt = partner.dsaStatus || "Active"
+        if (statusFilter === "Active" && currentSt !== "Active" && currentSt !== "approved") return false
+        if (statusFilter === "under_review" && currentSt !== "under_review" && currentSt !== "submitted") return false
+        if (statusFilter !== "Active" && statusFilter !== "under_review" && currentSt !== statusFilter) return false
       }
       return true
     })
@@ -272,8 +275,10 @@ export default function PartnersPage() {
         searchPlaceholder="Search by name, DSA code or mobile…"
         chips={[
           { id: ALL_STATUSES, label: "All", count: partners.length },
-          { id: "Active", label: "Active", count: activeCount },
-          { id: "Inactive", label: "Inactive", count: partners.length - activeCount },
+          { id: "under_review", label: "Under Review", count: partners.filter(p => p.dsaStatus === "under_review" || p.dsaStatus === "submitted").length },
+          { id: "draft", label: "Drafts", count: partners.filter(p => p.dsaStatus === "draft").length },
+          { id: "Active", label: "Active / Approved", count: partners.filter(p => p.dsaStatus === "Active" || p.dsaStatus === "approved").length },
+          { id: "Inactive", label: "Inactive", count: partners.filter(p => p.dsaStatus === "Inactive").length },
         ]}
         activeChip={statusFilter}
         onChipChange={setStatusFilter}

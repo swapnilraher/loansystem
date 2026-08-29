@@ -20,6 +20,7 @@ import {
   Send,
   ArrowLeft
 } from "lucide-react";
+import DocumentViewerModal from "@/components/ui/DocumentViewerModal";
 
 export default function AdminPartnerApplicationsPage() {
   const [applications, setApplications] = useState<any[]>([]);
@@ -35,6 +36,7 @@ export default function AdminPartnerApplicationsPage() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [viewDoc, setViewDoc] = useState<{ title: string; url?: string; fileName?: string } | null>(null);
 
   const fetchApplications = async () => {
     setLoading(true);
@@ -446,20 +448,22 @@ export default function AdminPartnerApplicationsPage() {
                           "—"}
                       </p>
                       {(() => {
-                        const url =
-                          selectedApp.documents?.aadhaarFrontDoc?.fileUrl ||
-                          selectedApp.documents?.aadhaarFrontDoc?.base64Data ||
-                          selectedApp.documents?.aadhaarDoc?.fileUrl ||
-                          selectedApp.documents?.aadhaarDoc?.base64Data;
+                        const docObj = selectedApp.documents?.aadhaarFrontDoc || selectedApp.documents?.aadhaarDoc;
+                        const url = docObj?.fileUrl || docObj?.base64Data;
                         return url ? (
-                          <a
-                            href={url}
-                            target="_blank"
-                            rel="noreferrer"
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setViewDoc({
+                                title: "Aadhaar Card",
+                                url,
+                                fileName: docObj?.fileName || "Aadhaar_Document",
+                              })
+                            }
                             className="inline-flex items-center gap-1 text-emerald-400 hover:underline font-bold text-[11px] pt-0.5"
                           >
-                            <Eye className="w-3 h-3" /> View / Download
-                          </a>
+                            <Eye className="w-3 h-3" /> View / Download Document
+                          </button>
                         ) : (
                           <span className="text-slate-500 text-[11px]">Not uploaded</span>
                         );
@@ -474,18 +478,22 @@ export default function AdminPartnerApplicationsPage() {
                           {selectedApp.documents?.aadhaarBackDoc?.fileName || "—"}
                         </p>
                         {(() => {
-                          const url =
-                            selectedApp.documents?.aadhaarBackDoc?.fileUrl ||
-                            selectedApp.documents?.aadhaarBackDoc?.base64Data;
+                          const docObj = selectedApp.documents?.aadhaarBackDoc;
+                          const url = docObj?.fileUrl || docObj?.base64Data;
                           return url ? (
-                            <a
-                              href={url}
-                              target="_blank"
-                              rel="noreferrer"
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setViewDoc({
+                                  title: "Aadhaar Back Side",
+                                  url,
+                                  fileName: docObj?.fileName || "Aadhaar_Back",
+                                })
+                              }
                               className="inline-flex items-center gap-1 text-emerald-400 hover:underline font-bold text-[11px] pt-0.5"
                             >
-                              <Eye className="w-3 h-3" /> View / Download
-                            </a>
+                              <Eye className="w-3 h-3" /> View / Download Document
+                            </button>
                           ) : (
                             <span className="text-slate-500 text-[11px]">Not uploaded</span>
                           );
@@ -500,18 +508,22 @@ export default function AdminPartnerApplicationsPage() {
                         {selectedApp.documents?.panDoc?.fileName || "—"}
                       </p>
                       {(() => {
-                        const url =
-                          selectedApp.documents?.panDoc?.fileUrl ||
-                          selectedApp.documents?.panDoc?.base64Data;
+                        const docObj = selectedApp.documents?.panDoc;
+                        const url = docObj?.fileUrl || docObj?.base64Data;
                         return url ? (
-                          <a
-                            href={url}
-                            target="_blank"
-                            rel="noreferrer"
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setViewDoc({
+                                title: "PAN Card",
+                                url,
+                                fileName: docObj?.fileName || "PAN_Card",
+                              })
+                            }
                             className="inline-flex items-center gap-1 text-emerald-400 hover:underline font-bold text-[11px] pt-0.5"
                           >
-                            <Eye className="w-3 h-3" /> View / Download
-                          </a>
+                            <Eye className="w-3 h-3" /> View / Download Document
+                          </button>
                         ) : (
                           <span className="text-slate-500 text-[11px]">Not uploaded</span>
                         );
@@ -634,6 +646,17 @@ export default function AdminPartnerApplicationsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Universal Document Viewer Modal */}
+      {viewDoc && (
+        <DocumentViewerModal
+          isOpen={!!viewDoc}
+          title={viewDoc.title}
+          fileUrl={viewDoc.url}
+          fileName={viewDoc.fileName}
+          onClose={() => setViewDoc(null)}
+        />
       )}
     </div>
   );

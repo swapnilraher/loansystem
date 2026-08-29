@@ -48,6 +48,22 @@ export async function POST(request: Request) {
 
     await docRef.set(cleanPayload, { merge: true });
 
+    // Sync to users collection so partner registrations are visible across all admin panels
+    try {
+      const userRef = db.collection("users").doc(mobileNumber);
+      await userRef.set({
+        mobileNumber,
+        fullName: cleanPayload.fullName || cleanPayload.contactPersonName || "Partner Applicant",
+        email: cleanPayload.email || "",
+        role: "partner",
+        dsaStatus: cleanPayload.status || "draft",
+        applicationId: cleanPayload.applicationId || `TSM-DRAFT-${mobileNumber}`,
+        updatedAt: new Date()
+      }, { merge: true });
+    } catch (uErr) {
+      console.warn("User status sync error in save-step:", uErr);
+    }
+
     return NextResponse.json({
       success: true,
       currentStep: cleanPayload.currentStep,
