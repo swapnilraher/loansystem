@@ -81,7 +81,7 @@ export default function PartnerLogin() {
     try {
       const res = await fetch("/api/onboarding/send-otp", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber: mobileNumber }),
+        body: JSON.stringify({ phoneNumber: mobileNumber, isLogin: true }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to send OTP")
@@ -97,7 +97,8 @@ export default function PartnerLogin() {
       const res = await fetch(`/api/onboarding/status?mobile=${mobileNumber}`)
       const data = await res.json()
       if (res.ok && data.application) {
-        data.application.status === "approved" ? router.push("/partner") : router.push(`/application-status?mobile=${mobileNumber}`)
+        const appSt = data.application.dsaStatus || data.application.status
+        (appSt === "approved" || appSt === "Active") ? router.push("/partner") : router.push(`/application-status?mobile=${mobileNumber}`)
       } else { router.push("/onboarding") }
     } catch { router.push("/onboarding") }
     finally { setLoading(false) }
@@ -110,7 +111,8 @@ export default function PartnerLogin() {
       const res = await fetch(`/api/onboarding/status?email=${encodeURIComponent(email)}`)
       const data = await res.json()
       if (res.ok && data.application) {
-        data.application.status === "approved" ? router.push("/partner") : router.push(`/application-status?email=${encodeURIComponent(email)}`)
+        const appSt = data.application.dsaStatus || data.application.status
+        (appSt === "approved" || appSt === "Active") ? router.push("/partner") : router.push(`/application-status?email=${encodeURIComponent(email)}`)
       } else { router.push("/onboarding") }
     } catch (err) {
       setError(messageFor(err, "Invalid email or password."))

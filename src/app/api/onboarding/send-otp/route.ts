@@ -6,7 +6,7 @@ const TOKEN = process.env.WHATSAPP_TOKEN || "EAAL6qnWnZABMBRfTVoipikLTEZBzVNQf9Y
 
 export async function POST(request: Request) {
   try {
-    const { phoneNumber } = await request.json();
+    const { phoneNumber, isLogin } = await request.json();
 
     if (!phoneNumber || !/^[6-9]\d{9}$/.test(phoneNumber)) {
       return NextResponse.json({ error: "Valid 10-digit Indian mobile number is required" }, { status: 400 });
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
 
     const db = getAdminDb();
 
-    // Check if partner is already registered and approved
+    // Check if partner is already registered and approved (only block during onboarding, NOT during partner login)
     const userSnap = await db.collection("users").doc(phoneNumber).get();
     const appSnap = await db.collection("partner_applications").doc(phoneNumber).get();
 
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
     const currentStatus = userData?.dsaStatus || userData?.status || appData?.status || "draft";
 
-    if (currentStatus === "Active" || currentStatus === "approved") {
+    if (!isLogin && (currentStatus === "Active" || currentStatus === "approved")) {
       return NextResponse.json({
         error: "Your DSA Partner Application has already been approved! Please log in to access your Partner Portal.",
         alreadyApproved: true,

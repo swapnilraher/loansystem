@@ -13,6 +13,7 @@ import {
   X,
   Lock,
 } from "lucide-react"
+import DocumentViewerModal from "@/components/ui/DocumentViewerModal"
 
 interface PartnerAgreementModalProps {
   partnerData: {
@@ -335,20 +336,13 @@ export default function PartnerAgreementModal({
 
       {/* PDF View Modal */}
       {viewPdfModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-4xl h-[90vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col">
-            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
-              <span className="text-sm font-bold">Preview Partner Agreement (MOU) PDF</span>
-              <button
-                onClick={() => setViewPdfModal(false)}
-                className="p-1 text-slate-400 hover:text-white rounded-lg"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <iframe src={pdfUrl} className="w-full flex-1 border-none" title="Agreement PDF" />
-          </div>
-        </div>
+        <DocumentViewerModal
+          isOpen={viewPdfModal}
+          title={`Preview Partner Agreement (MOU) PDF - ${partnerData.fullName || "Partner"}`}
+          fileUrl={pdfUrl}
+          fileName={`Techstar_Money_Agreement_${partnerData.dsaCode || partnerData.mobileNumber}.pdf`}
+          onClose={() => setViewPdfModal(false)}
+        />
       )}
     </>
   )

@@ -142,6 +142,7 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      { source: '/login', destination: '/partner/login', permanent: true },
       { source: '/index.html', destination: '/', permanent: true },
       { source: '/personal-loan.html', destination: '/personal-loan', permanent: true },
       { source: '/home-loan.html', destination: '/home-loan', permanent: true },
