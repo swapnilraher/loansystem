@@ -31,6 +31,7 @@ import {
 } from "@/components/admin/ui"
 import { FactRow, SectionCard, Select } from "@/components/admin/leads/fields"
 import { leadName } from "@/components/admin/leads/leadFilters"
+import DocumentViewerModal from "@/components/ui/DocumentViewerModal"
 
 const ALL_TYPES = "All types"
 const ALL_STATUSES = "All statuses"
@@ -72,6 +73,7 @@ export default function PartnersPage() {
   const [typeFilter, setTypeFilter] = useState(ALL_TYPES)
   const [selected, setSelected] = useState<Partner | null>(null)
   const [tab, setTab] = useState<"overview" | "leads">("overview")
+  const [viewDoc, setViewDoc] = useState<{ title: string; url?: string; fileName?: string } | null>(null)
 
   /** Lead counts and commission per partner, from confirmed disbursals only. */
   const stats = useMemo(() => {
@@ -394,12 +396,32 @@ export default function PartnersPage() {
                   </div>
                 </SectionCard>
 
-                <SectionCard title="Identity">
+                <SectionCard title="Identity & KYC Documents">
                   <div className="divide-y divide-admin-border">
                     <FactRow label="PAN number" value={selected.panData?.panNumber || "—"} />
                     <FactRow label="PAN name" value={selected.panData?.name || "—"} />
                     <FactRow label="Date of birth" value={selected.kycData?.dob || "—"} />
                     <FactRow label="Address" value={formatAddress(selected.kycData?.address)} />
+                    {(selected as any).mobileNumber && (
+                      <FactRow
+                        label="KYC / Agreement PDF"
+                        value={
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setViewDoc({
+                                title: `MOU Agreement - ${partnerName(selected)}`,
+                                url: `/api/partner/agreement/pdf?mobile=${selected.mobileNumber}`,
+                                fileName: `MOU_Agreement_${selected.dsaCode || selected.mobileNumber}.pdf`,
+                              })
+                            }
+                            className="admin-focus text-admin-xs font-bold text-admin-accent hover:underline flex items-center gap-1"
+                          >
+                            📄 View Signed MOU PDF
+                          </button>
+                        }
+                      />
+                    )}
                   </div>
                 </SectionCard>
 
@@ -470,6 +492,17 @@ export default function PartnersPage() {
         <p className="text-admin-xs text-admin-subtle flex items-center gap-1.5">
           <Network size={12} /> Partners register themselves through the DSA portal.
         </p>
+      )}
+
+      {/* Document Viewer Modal Popup */}
+      {viewDoc && (
+        <DocumentViewerModal
+          isOpen={!!viewDoc}
+          title={viewDoc.title}
+          fileUrl={viewDoc.url}
+          fileName={viewDoc.fileName}
+          onClose={() => setViewDoc(null)}
+        />
       )}
     </div>
   )

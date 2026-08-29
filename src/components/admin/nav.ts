@@ -18,6 +18,7 @@ import {
   Sliders,
   Kanban,
   UserCircle,
+  UserPlus,
   Users,
 } from "lucide-react";
 
@@ -111,6 +112,13 @@ export const NAV_GROUPS: NavGroup[] = [
     id: "growth",
     label: "Growth",
     items: [
+      {
+        name: "Partner Applications",
+        href: "/admin/partner-applications",
+        icon: UserPlus,
+        badge: "New",
+        keywords: "partner applications onboarding pending approval dsa registration",
+      },
       {
         name: "DSA Network",
         href: "/admin/partners",

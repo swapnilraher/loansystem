@@ -192,6 +192,7 @@ export const ROUTE_ROLES: { prefix: string; roles: CrmRole[] }[] = [
   { prefix: "/admin/bankers", roles: ADMIN_ONLY },
   { prefix: "/admin/permissions", roles: ADMIN_AND_MANAGER },
   { prefix: "/admin/partners", roles: ADMIN_AND_MANAGER },
+  { prefix: "/admin/partner-applications", roles: ADMIN_AND_MANAGER },
   { prefix: "/admin/reports", roles: ADMIN_AND_MANAGER },
   { prefix: "/admin/analytics", roles: ADMIN_AND_MANAGER },
   { prefix: "/admin/whatsapp-inbox", roles: ["Admin", "Manager", "Telecaller"] },
