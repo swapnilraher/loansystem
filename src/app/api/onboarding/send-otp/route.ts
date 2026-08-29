@@ -17,6 +17,24 @@ export async function POST(request: Request) {
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     const db = getAdminDb();
+
+    // Check if partner is already registered and approved
+    const userSnap = await db.collection("users").doc(phoneNumber).get();
+    const appSnap = await db.collection("partner_applications").doc(phoneNumber).get();
+
+    const userData = userSnap.exists ? userSnap.data() : null;
+    const appData = appSnap.exists ? appSnap.data() : null;
+
+    const currentStatus = userData?.dsaStatus || userData?.status || appData?.status || "draft";
+
+    if (currentStatus === "Active" || currentStatus === "approved") {
+      return NextResponse.json({
+        error: "Your DSA Partner Application has already been approved! Please log in to access your Partner Portal.",
+        alreadyApproved: true,
+        dsaCode: userData?.dsaCode || appData?.dsaCode || "",
+      }, { status: 400 });
+    }
+
     await db.collection("partner_otp_codes").doc(phoneNumber).set({
       otp,
       expiresAt,

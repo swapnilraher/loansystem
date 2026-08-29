@@ -15,10 +15,23 @@ import {
 import Link from "next/link"
 import PartnerAgreementModal from "@/components/partner/PartnerAgreementModal"
 
+import { useRouter } from "next/navigation"
+
 export default function PartnerDashboard() {
   const { user, profile } = useAuth()
+  const router = useRouter()
   const [leads, setLeads] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (profile) {
+      const currentSt = profile.dsaStatus || profile.status || "draft"
+      if (currentSt !== "Active" && currentSt !== "approved") {
+        const mobile = profile.mobileNumber || ""
+        router.push(mobile ? `/application-status?mobile=${mobile}` : "/onboarding")
+      }
+    }
+  }, [profile, router])
 
   useEffect(() => {
     if (!user) return

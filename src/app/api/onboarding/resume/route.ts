@@ -12,12 +12,20 @@ export async function GET(request: Request) {
 
     const db = getAdminDb();
     const docSnap = await db.collection("partner_applications").doc(mobileNumber).get();
+    const userSnap = await db.collection("users").doc(mobileNumber).get();
 
-    if (!docSnap.exists) {
-      return NextResponse.json({ exists: false }, { status: 200 });
+    const data = docSnap.exists ? docSnap.data() : {};
+    const userData = userSnap.exists ? userSnap.data() : {};
+
+    const status = userData?.dsaStatus || userData?.status || data?.status || "draft";
+    if (status === "Active" || status === "approved") {
+      return NextResponse.json({
+        exists: true,
+        alreadyApproved: true,
+        dsaCode: userData?.dsaCode || data?.dsaCode || "",
+        error: "Your DSA Partner Application has already been approved! Please log in to your Partner Portal.",
+      }, { status: 400 });
     }
-
-    const data = docSnap.data();
 
     return NextResponse.json({
       exists: true,

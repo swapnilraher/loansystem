@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 
 import WhatsAppOtpModal from "@/components/onboarding/WhatsAppOtpModal"
+import PartnerAgreementModal from "@/components/partner/PartnerAgreementModal"
 import { PartnerPortalHeader, PartnerPortalFooter } from "@/components/layout/PartnerPortalShell"
 import ImageCropModal from "@/components/onboarding/ImageCropModal"
 import {
@@ -91,6 +92,10 @@ export default function OnboardingPage() {
   // ─── Screen 1 & 2: Mobile & WhatsApp OTP Verification ───
   const [mobileNumber, setMobileNumber] = useState("")
   const [isMobileVerified, setIsMobileVerified] = useState(false)
+  const [alreadyApproved, setAlreadyApproved] = useState(false)
+  const [approvedDsaCode, setApprovedDsaCode] = useState("")
+  const [isAgreementSigned, setIsAgreementSigned] = useState(false)
+  const [agreementPdfUrl, setAgreementPdfUrl] = useState<string | null>(null)
   const [showOtpModal, setShowOtpModal] = useState(false)
   const [otpLoading, setOtpLoading] = useState(false)
   const [mobileError, setMobileError] = useState<string | null>(null)
@@ -246,6 +251,12 @@ export default function OnboardingPage() {
 
       const data = await res.json()
       if (!res.ok) {
+        if (data.alreadyApproved) {
+          setAlreadyApproved(true)
+          setApprovedDsaCode(data.dsaCode || "")
+          setMobileError(data.error || "Your DSA Partner Application has already been approved! Please log in to your Partner Portal.")
+          return
+        }
         throw new Error(data.error || "Failed to send WhatsApp verification OTP.")
       }
 
@@ -314,6 +325,8 @@ export default function OnboardingPage() {
           setAccountType(app.bankDetails.accountType || "Savings")
           if (app.bankDetails.ifsc) setIfscValid(true)
         }
+        if (app.agreementSigned) setIsAgreementSigned(true)
+        if (app.agreementPdfUrl) setAgreementPdfUrl(app.agreementPdfUrl)
       }
     } catch (e) {
       console.warn("Could not resume draft:", e)
@@ -782,11 +795,6 @@ export default function OnboardingPage() {
 
         <main className="flex-1 flex w-full px-4 py-8 pb-[calc(2rem+env(safe-area-inset-bottom))]">
           <div className="m-auto w-full max-w-4xl bg-admin-surface border border-admin-border rounded-admin-lg shadow-admin-2 overflow-hidden grid grid-cols-1 md:grid-cols-12">
-            {/*
-             * `data-admin-theme="dark"` re-points the --admin-* properties in
-             * this subtree, so the value panel is the CRM's own dark surface
-             * rather than a second palette invented for one screen.
-             */}
             <div
               data-admin-theme="dark"
               className="md:col-span-5 bg-admin-bg text-admin-text p-6 flex flex-col justify-between gap-6"
@@ -834,13 +842,22 @@ export default function OnboardingPage() {
               </div>
 
               {mobileError && (
-                <p
-                  role="alert"
-                  className="flex items-start gap-2 px-3 py-2.5 rounded-admin-sm bg-tone-danger border border-tone-danger-bd text-tone-danger-fg text-admin-sm"
-                >
-                  <AlertCircle size={15} className="shrink-0 mt-0.5" />
-                  {mobileError}
-                </p>
+                <div className="p-3.5 bg-red-500/10 border border-red-500/30 rounded-admin space-y-2 text-red-600">
+                  <p className="text-admin-xs font-semibold flex items-center gap-1.5">
+                    <AlertCircle size={15} />
+                    <span>{mobileError}</span>
+                  </p>
+                  {alreadyApproved && (
+                    <div className="pt-1">
+                      <Link
+                        href="/partner/login"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-admin-accent hover:bg-admin-accent-hover text-white text-admin-xs font-bold rounded-admin shadow-admin-1 transition-all"
+                      >
+                        Log In to Partner Portal &rarr;
+                      </Link>
+                    </div>
+                  )}
+                </div>
               )}
 
               <form onSubmit={handleSendOtp} className="space-y-3" noValidate>
@@ -1584,42 +1601,66 @@ export default function OnboardingPage() {
                 </ReviewRow>
               </div>
 
-              <fieldset className="p-4 bg-admin-accent-soft border border-admin-border rounded-admin space-y-2.5">
-                <legend className="sr-only">Declarations</legend>
-                <label className="flex items-start gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={declareTruth}
-                    onChange={e => setDeclareTruth(e.target.checked)}
-                    className="admin-focus mt-0.5 w-4 h-4 shrink-0 accent-admin-accent"
-                  />
-                  <span className="text-admin-sm text-admin-text leading-relaxed">
-                    I confirm that all information and KYC documents provided by me are true, valid,
-                    and belong to me / my entity.
-                  </span>
-                </label>
+                {/* Official MOU Partner Agreement Step */}
+                <div className="space-y-3 p-4 bg-admin-bg border border-admin-border rounded-admin">
+                  <h4 className="text-admin-sm font-bold text-admin-text flex items-center gap-2">
+                    <FileText size={16} className="text-admin-accent" /> Official Partner MOU Agreement &amp; Code of Conduct
+                  </h4>
+                  <p className="text-admin-xs text-admin-muted leading-relaxed">
+                    Please review and e-sign the official Memorandum of Understanding (MOU) agreement between your firm and Techstar Money Solution Pvt. Ltd. via OTP verification.
+                  </p>
 
-                <label className="flex items-start gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={declareTerms}
-                    onChange={e => setDeclareTerms(e.target.checked)}
-                    className="admin-focus mt-0.5 w-4 h-4 shrink-0 accent-admin-accent"
+                  <PartnerAgreementModal
+                    partnerData={{
+                      mobileNumber: mobileNumber,
+                      email: email,
+                      fullName: fullName || contactPersonName,
+                      dsaCode: "",
+                      agreementSigned: isAgreementSigned,
+                    }}
+                    onSigned={() => {
+                      setIsAgreementSigned(true)
+                      toast.push({ tone: "success", title: "MOU Agreement Signed Successfully", description: "Uploaded to Cloud & Emailed." })
+                    }}
                   />
-                  <span className="text-admin-sm text-admin-text leading-relaxed">
-                    I agree to the Techstar Money Terms &amp; Conditions, RBI compliance guidelines,
-                    and Privacy Policy.
-                  </span>
-                </label>
-              </fieldset>
+                </div>
 
-              <StepNav
-                onBack={back(7)}
-                onSubmit={handleFinalSubmit}
-                submitLabel="Submit application"
-                loading={submitting}
-                disabled={submitting || !declareTruth || !declareTerms}
-              />
+                <fieldset className="p-4 bg-admin-accent-soft border border-admin-border rounded-admin space-y-2.5">
+                  <legend className="sr-only">Declarations</legend>
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={declareTruth}
+                      onChange={e => setDeclareTruth(e.target.checked)}
+                      className="admin-focus mt-0.5 w-4 h-4 shrink-0 accent-admin-accent"
+                    />
+                    <span className="text-admin-sm text-admin-text leading-relaxed">
+                      I confirm that all information and KYC documents provided by me are true, valid,
+                      and belong to me / my entity.
+                    </span>
+                  </label>
+
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={declareTerms}
+                      onChange={e => setDeclareTerms(e.target.checked)}
+                      className="admin-focus mt-0.5 w-4 h-4 shrink-0 accent-admin-accent"
+                    />
+                    <span className="text-admin-sm text-admin-text leading-relaxed">
+                      I agree to the Techstar Money Terms &amp; Conditions, RBI compliance guidelines,
+                      and Privacy Policy.
+                    </span>
+                  </label>
+                </fieldset>
+
+                <StepNav
+                  onBack={back(7)}
+                  onSubmit={handleFinalSubmit}
+                  submitLabel="Submit application"
+                  loading={submitting}
+                  disabled={submitting || !isAgreementSigned || !declareTruth || !declareTerms}
+                />
             </div>
           )}
         </div>
