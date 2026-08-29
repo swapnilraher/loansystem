@@ -129,14 +129,14 @@ export default function WhatsAppOtpModal({
           <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 backdrop-blur-md">
             <MessageSquare className="w-7 h-7 text-white" />
           </div>
-          <h3 className="text-xl font-bold">WhatsApp Verification</h3>
-          <p className="text-emerald-100 text-sm mt-1">We sent a 6-digit OTP code to your WhatsApp</p>
+          <h3 className="text-xl font-bold">Mobile Verification</h3>
+          <p className="text-emerald-100 text-sm mt-1">We sent a 6-digit OTP code to your mobile number</p>
         </div>
 
         {/* Content */}
         <div className="p-6">
           <div className="text-center mb-6">
-            <p className="text-slate-600 text-sm font-medium">OTP sent on WhatsApp to:</p>
+            <p className="text-slate-600 text-sm font-medium">OTP sent to mobile number:</p>
             <div className="flex items-center justify-center gap-2 mt-1">
               <span className="text-slate-900 font-bold text-lg">+91 {phoneNumber}</span>
               <button
@@ -187,7 +187,7 @@ export default function WhatsAppOtpModal({
                 </>
               ) : (
                 <>
-                  Verify WhatsApp OTP
+                  Verify OTP Code
                   <ArrowRight className="w-5 h-5" />
                 </>
               )}
@@ -213,7 +213,7 @@ export default function WhatsAppOtpModal({
                     <RefreshCw className="w-4 h-4 animate-spin" /> Sending...
                   </>
                 ) : (
-                  "Resend OTP via WhatsApp"
+                  "Resend Verification OTP"
                 )}
               </button>
             )}
@@ -221,7 +221,7 @@ export default function WhatsAppOtpModal({
 
           <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-center gap-2 text-slate-400 text-xs">
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span>Encrypted WhatsApp Session Security</span>
+            <span>Encrypted 256-bit Mobile Verification Security</span>
           </div>
         </div>
       </div>

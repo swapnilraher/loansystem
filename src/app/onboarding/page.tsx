@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import {
   AlertCircle,
   AlertTriangle,
@@ -15,6 +16,7 @@ import {
 } from "lucide-react"
 
 import WhatsAppOtpModal from "@/components/onboarding/WhatsAppOtpModal"
+import { PartnerPortalHeader, PartnerPortalFooter } from "@/components/layout/PartnerPortalShell"
 import ImageCropModal from "@/components/onboarding/ImageCropModal"
 import {
   ChoiceGroup,
@@ -265,8 +267,11 @@ export default function OnboardingPage() {
     try {
       const res = await fetch(`/api/onboarding/resume?mobile=${mobileNumber}`)
       const data = await res.json()
-      if (res.ok && data.application) {
-        const app = data.application
+      const app = data.data || data.application
+      if (res.ok && app) {
+        if (app.currentStep && app.currentStep >= 1 && app.currentStep <= 8) {
+          setCurrentStep(app.currentStep)
+        }
         if (app.fullName) setFullName(app.fullName)
         if (app.email) setEmail(app.email)
         if (app.partnerType) setPartnerType(app.partnerType)
@@ -359,7 +364,12 @@ export default function OnboardingPage() {
       mobileNumber,
       isMobileVerified: true,
     })
-    if (ok) setCurrentStep(2)
+    if (ok) {
+      if (!contactPersonName.trim()) {
+        setContactPersonName(fullName.trim())
+      }
+      setCurrentStep(2)
+    }
   }
 
   // ─── Step 2: Check PAN ───
@@ -412,7 +422,12 @@ export default function OnboardingPage() {
       panNumber: panNumber.trim().toUpperCase(),
       panValid: true,
     })
-    if (ok) setCurrentStep(3)
+    if (ok) {
+      if (!contactPersonName.trim()) {
+        setContactPersonName(fullName.trim())
+      }
+      setCurrentStep(3)
+    }
   }
 
   // ─── Step 3 Submit ───
@@ -424,6 +439,20 @@ export default function OnboardingPage() {
     }
     if (!dob) {
       setStepError("Date of Birth is required.")
+      return
+    }
+
+    // Age validation (minimum 18 years old)
+    const birthDate = new Date(dob)
+    const today = new Date()
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const monthDiff = today.getMonth() - birthDate.getMonth()
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+
+    if (age < 18) {
+      setStepError("Applicant must be at least 18 years old to register as a DSA partner.")
       return
     }
 
@@ -749,7 +778,7 @@ export default function OnboardingPage() {
 
     return (
       <div className="partner-root min-h-dvh flex flex-col bg-admin-bg">
-        <SiteHeader />
+        <PartnerPortalHeader subtitle="DSA Partner Onboarding" rightLinkLabel="Partner Login" rightLinkHref="/partner/login" />
 
         <main className="flex-1 flex w-full px-4 py-8 pb-[calc(2rem+env(safe-area-inset-bottom))]">
           <div className="m-auto w-full max-w-4xl bg-admin-surface border border-admin-border rounded-admin-lg shadow-admin-2 overflow-hidden grid grid-cols-1 md:grid-cols-12">
@@ -777,7 +806,7 @@ export default function OnboardingPage() {
                 <ul className="space-y-2 pt-1">
                   {[
                     "Zero setup fees or hidden charges",
-                    "Instant digital onboarding with WhatsApp OTP",
+                    "Instant digital onboarding with Aadhaar Esign",
                     "Industry-best commission slabs on disbursals",
                     "Dedicated Relationship Manager file support",
                   ].map(item => (
@@ -868,7 +897,7 @@ export default function OnboardingPage() {
           </div>
         </main>
 
-        <SiteFooter />
+        <PartnerPortalFooter />
 
         <WhatsAppOtpModal
           isOpen={showOtpModal}
@@ -884,7 +913,7 @@ export default function OnboardingPage() {
   // ─── 8-STEP ONBOARDING WIZARD ───
   return (
     <div className="partner-root min-h-dvh flex flex-col bg-admin-bg">
-      <SiteHeader mobileNumber={mobileNumber} />
+      <PartnerPortalHeader subtitle="DSA Partner Onboarding" mobileNumber={mobileNumber} />
 
       <main className="flex-1 w-full max-w-4xl mx-auto px-4 py-5 space-y-4">
         <Stepper titles={STEP_TITLES} current={currentStep} onJump={setCurrentStep} />
@@ -1010,7 +1039,7 @@ export default function OnboardingPage() {
                   role="status"
                   className={cn(ERROR_SLOT, panValid && "text-admin-accent")}
                 >
-                  {panValid ? "PAN format valid and available." : ""}
+                  {panValid ? "" : ""}
                 </span>
               </div>
 
@@ -1098,7 +1127,28 @@ export default function OnboardingPage() {
               />
 
               <FieldGrid>
-                {/* PIN first — it drives the lookup that fills the rest. */}
+                {/* Address Line 1 & Line 2 upper than PIN code */}
+                <Field label="Address line 1 (shop / office no, building)" className="sm:col-span-2">
+                  <TextInput
+                    required
+                    value={addressLine1}
+                    onChange={e => setAddressLine1(e.target.value)}
+                    placeholder="e.g. Office No 402, Business Hub"
+                    autoComplete="address-line1"
+                    className={INPUT}
+                  />
+                </Field>
+
+                <Field label="Address line 2 (street / landmark)" className="sm:col-span-2">
+                  <TextInput
+                    value={addressLine2}
+                    onChange={e => setAddressLine2(e.target.value)}
+                    placeholder="e.g. Near City Center Mall, Shivaji Nagar"
+                    autoComplete="address-line2"
+                    className={INPUT}
+                  />
+                </Field>
+
                 <div>
                   <Field label="PIN code">
                     <div className="relative">
@@ -1146,27 +1196,6 @@ export default function OnboardingPage() {
                       className={INPUT}
                     />
                   )}
-                </Field>
-
-                <Field label="Address line 1 (shop / office no, building)" className="sm:col-span-2">
-                  <TextInput
-                    required
-                    value={addressLine1}
-                    onChange={e => setAddressLine1(e.target.value)}
-                    placeholder="e.g. Office No 402, Business Hub"
-                    autoComplete="address-line1"
-                    className={INPUT}
-                  />
-                </Field>
-
-                <Field label="Address line 2 (street / landmark)" className="sm:col-span-2">
-                  <TextInput
-                    value={addressLine2}
-                    onChange={e => setAddressLine2(e.target.value)}
-                    placeholder="e.g. Near City Center Mall, Shivaji Nagar"
-                    autoComplete="address-line2"
-                    className={INPUT}
-                  />
                 </Field>
 
                 <Field label="City">
@@ -1596,7 +1625,7 @@ export default function OnboardingPage() {
         </div>
       </main>
 
-      <SiteFooter />
+      <PartnerPortalFooter />
 
       {activeCropModal && (
         <ImageCropModal
@@ -1617,48 +1646,4 @@ export default function OnboardingPage() {
 }
 
 /** Shared bar across the pre-verification screen and the wizard. */
-function SiteHeader({ mobileNumber }: { mobileNumber?: string }) {
-  return (
-    <header className="sticky top-0 z-30 bg-admin-surface border-b border-admin-border">
-      <div className="max-w-4xl mx-auto flex items-center justify-between gap-3 px-4 h-14">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className="w-8 h-8 shrink-0 rounded-admin-sm bg-admin-accent text-admin-accent-fg flex items-center justify-center text-admin-base font-semibold">
-            T
-          </span>
-          <span className="block min-w-0">
-            <span className="block text-admin-sm font-semibold tracking-tight text-admin-text truncate">
-              Techstar Money
-            </span>
-            <span className="block text-admin-2xs font-semibold uppercase tracking-wide text-admin-subtle">
-              Partner onboarding
-            </span>
-          </span>
-        </div>
 
-        <div className="flex items-center gap-1 shrink-0">
-          {mobileNumber && (
-            <span className="hidden sm:inline admin-num text-admin-xs text-admin-muted px-2">
-              +91 {mobileNumber}
-            </span>
-          )}
-          <Link
-            href={mobileNumber ? "/application-status" : "/partner/login"}
-            className="admin-focus inline-flex items-center min-h-11 sm:min-h-9 px-2 rounded-admin-sm text-admin-xs font-semibold text-admin-muted hover:text-admin-text"
-          >
-            {mobileNumber ? "Status tracker" : "Partner login"}
-          </Link>
-        </div>
-      </div>
-    </header>
-  )
-}
-
-function SiteFooter() {
-  return (
-    <footer className="border-t border-admin-border bg-admin-surface py-4 px-4 text-center">
-      <p className="text-admin-2xs text-admin-subtle">
-        © {new Date().getFullYear()} Techstar Money Solution Pvt. Ltd. All rights reserved.
-      </p>
-    </footer>
-  )
-}

@@ -41,7 +41,7 @@ export const getAdminDb = () => {
     cachedDb = getAdminApp().firestore();
     // Enable REST transport fallback to bypass gRPC/firewall blockages
     try {
-      cachedDb.settings({ preferRest: true });
+      cachedDb.settings({ preferRest: true, ignoreUndefinedProperties: true });
     } catch (settingsError) {
       console.warn("Firestore settings could not be applied (already initialized):", settingsError);
     }

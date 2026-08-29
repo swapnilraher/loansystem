@@ -156,14 +156,24 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
               DSA
             </span>
           </p>
-          <span className="w-8 h-8 shrink-0 rounded-admin-sm bg-admin-surface-2 border border-admin-border overflow-hidden flex items-center justify-center text-admin-xs font-semibold uppercase text-admin-muted">
-            {partnerPhoto ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={partnerPhoto} alt="" className="w-full h-full object-cover" />
-            ) : (
-              initial
-            )}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="w-8 h-8 shrink-0 rounded-admin-sm bg-admin-surface-2 border border-admin-border overflow-hidden flex items-center justify-center text-admin-xs font-semibold uppercase text-admin-muted">
+              {partnerPhoto ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={partnerPhoto} alt="" className="w-full h-full object-cover" />
+              ) : (
+                initial
+              )}
+            </span>
+            <button
+              onClick={logout}
+              title="Logout"
+              className="p-1.5 rounded-lg bg-admin-surface-2 border border-admin-border text-tone-danger-fg text-xs font-bold flex items-center gap-1 hover:bg-red-500/10"
+            >
+              <LogOut size={14} />
+              <span>Logout</span>
+            </button>
+          </div>
         </div>
       </header>
 

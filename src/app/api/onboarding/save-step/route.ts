@@ -1,6 +1,21 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 
+function sanitizePayload(obj: any): any {
+  if (obj === undefined) return null;
+  if (obj === null || typeof obj !== "object") return obj;
+  if (obj instanceof Date) return obj;
+  if (Array.isArray(obj)) return obj.map(sanitizePayload);
+  const clean: any = {};
+  for (const key of Object.keys(obj)) {
+    const val = sanitizePayload(obj[key]);
+    if (val !== undefined && val !== null) {
+      clean[key] = val;
+    }
+  }
+  return clean;
+}
+
 export async function POST(request: Request) {
   try {
     const { mobileNumber, step, stepData } = await request.json();
@@ -15,7 +30,7 @@ export async function POST(request: Request) {
     const existingDoc = await docRef.get();
     const existingData = existingDoc.exists ? existingDoc.data() : {};
 
-    const updatedPayload = {
+    const rawPayload = {
       ...existingData,
       ...stepData,
       mobileNumber,
@@ -25,15 +40,17 @@ export async function POST(request: Request) {
     };
 
     if (!existingDoc.exists) {
-      updatedPayload.createdAt = new Date();
-      updatedPayload.applicationId = `TSM-DRAFT-${mobileNumber}`;
+      rawPayload.createdAt = new Date();
+      rawPayload.applicationId = `TSM-DRAFT-${mobileNumber}`;
     }
 
-    await docRef.set(updatedPayload, { merge: true });
+    const cleanPayload = sanitizePayload(rawPayload);
+
+    await docRef.set(cleanPayload, { merge: true });
 
     return NextResponse.json({
       success: true,
-      currentStep: updatedPayload.currentStep,
+      currentStep: cleanPayload.currentStep,
       message: "Progress saved successfully"
     });
   } catch (error: any) {

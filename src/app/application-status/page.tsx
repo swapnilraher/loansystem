@@ -9,14 +9,10 @@ import {
   Clock,
   AlertTriangle,
   XCircle,
-  FileText,
-  Building,
-  Phone,
-  Calendar,
-  ArrowLeft,
   RefreshCw,
-  HelpCircle
 } from "lucide-react";
+import { PartnerPortalHeader, PartnerPortalFooter } from "@/components/layout/PartnerPortalShell";
+import PartnerAgreementModal from "@/components/partner/PartnerAgreementModal";
 
 export default function ApplicationStatusPage() {
   return (
@@ -90,31 +86,15 @@ function ApplicationStatusContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col justify-between font-sans">
-      {/* Header */}
-      <header className="bg-slate-900 text-white py-4 px-6 shadow-md">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-md">
-              T
-            </div>
-            <div>
-              <span className="text-base font-bold tracking-tight">Techstar Money</span>
-              <span className="block text-[10px] text-emerald-400 font-bold uppercase">Application Tracker</span>
-            </div>
-          </div>
-          <Link href="/onboarding/" className="text-xs text-slate-300 hover:text-white font-semibold flex items-center gap-1">
-            <ArrowLeft className="w-3.5 h-3.5" /> Back to Onboarding
-          </Link>
-        </div>
-      </header>
+    <div className="partner-root min-h-screen bg-admin-bg flex flex-col">
+      <PartnerPortalHeader subtitle="Application Tracker" rightLinkLabel="Partner Login" rightLinkHref="/partner/login" />
 
       {/* Main Body */}
-      <main className="flex-1 max-w-3xl w-full mx-auto p-4 sm:p-8 my-4">
-        <div className="bg-white rounded-3xl shadow-xl border border-slate-200 p-6 sm:p-8 space-y-6">
+      <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-8">
+        <div className="bg-admin-surface rounded-admin-lg shadow-admin-2 border border-admin-border p-6 sm:p-8 space-y-6">
           <div>
-            <h1 className="text-2xl font-black text-slate-900">Track DSA Partner Application</h1>
-            <p className="text-slate-500 text-xs mt-1">Enter your Application ID or registered mobile number to check status.</p>
+            <h1 className="text-admin-xl font-bold text-admin-text">Track DSA Partner Application</h1>
+            <p className="text-admin-muted text-admin-xs mt-1">Enter your Application ID or registered mobile number to check status.</p>
           </div>
 
           {/* Search Form */}
@@ -196,6 +176,23 @@ function ApplicationStatusContent() {
                 </div>
               </div>
 
+              {/* Partner Agreement MOU Modal for Approved Application */}
+              {appDetails.status === "approved" && (
+                <div className="animate-fadeIn">
+                  <PartnerAgreementModal
+                    partnerData={{
+                      mobileNumber: appDetails.mobileNumber,
+                      email: appDetails.email,
+                      fullName: appDetails.fullName || appDetails.contactPersonName,
+                      dsaCode: appDetails.dsaCode,
+                      agreementSigned: appDetails.agreementSigned || false,
+                      agreementSignedAt: appDetails.agreementSignedAt,
+                    }}
+                    onSigned={() => fetchStatus()}
+                  />
+                </div>
+              )}
+
               {/* Admin Query Box if Query Raised */}
               {(appDetails.status === "query_raised" || (appDetails.queries && appDetails.queries.length > 0)) && (
                 <div className="p-5 bg-amber-50 border border-amber-200 rounded-2xl space-y-3 animate-fadeIn">
@@ -254,10 +251,7 @@ function ApplicationStatusContent() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-4 px-6 text-center text-xs text-slate-500">
-        © {new Date().getFullYear()} Techstar Money Solution Pvt. Ltd. All rights reserved.
-      </footer>
+      <PartnerPortalFooter />
     </div>
   );
 }

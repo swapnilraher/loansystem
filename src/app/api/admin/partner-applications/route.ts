@@ -10,15 +10,9 @@ export async function GET(request: Request) {
     const status = searchParams.get("status");
 
     const db = getAdminDb();
-    let query: any = db.collection("partner_applications");
+    const snapshot = await db.collection("partner_applications").get();
 
-    if (status && status !== "all") {
-      query = query.where("status", "==", status);
-    }
-
-    const snapshot = await query.orderBy("updatedAt", "desc").get();
-
-    const applications = snapshot.docs.map((doc: any) => {
+    let applications = snapshot.docs.map((doc: any) => {
       const data = doc.data();
       return {
         id: doc.id,
@@ -27,6 +21,16 @@ export async function GET(request: Request) {
         updatedAt: data?.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : data?.updatedAt,
         submittedAt: data?.submittedAt?.toDate ? data.submittedAt.toDate().toISOString() : data?.submittedAt,
       };
+    });
+
+    if (status && status !== "all") {
+      applications = applications.filter((app: any) => app.status === status);
+    }
+
+    applications.sort((a: any, b: any) => {
+      const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+      const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+      return timeB - timeA;
     });
 
     return NextResponse.json({ success: true, applications });

@@ -13,6 +13,7 @@ import {
   Plus
 } from "lucide-react"
 import Link from "next/link"
+import PartnerAgreementModal from "@/components/partner/PartnerAgreementModal"
 
 export default function PartnerDashboard() {
   const { user, profile } = useAuth()
@@ -86,6 +87,20 @@ export default function PartnerDashboard() {
           </div>
         </div>
       </div>
+
+      {/* MOU Agreement Signing Modal / Banner */}
+      {profile?.mobileNumber && (
+        <PartnerAgreementModal
+          partnerData={{
+            mobileNumber: profile.mobileNumber,
+            email: profile.email || user?.email || "",
+            fullName: profile.name || user?.displayName || "Partner",
+            dsaCode: profile.dsaCode || "Pending",
+            agreementSigned: profile.agreementSigned || false,
+            agreementSignedAt: profile.agreementSignedAt,
+          }}
+        />
+      )}
 
       {/* Welcome Banner */}
       <div className="bg-primary rounded-[2rem] p-6 md:p-8 text-white relative overflow-hidden shadow-xl shadow-primary/20">

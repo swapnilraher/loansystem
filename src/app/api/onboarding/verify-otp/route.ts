@@ -41,6 +41,27 @@ export async function POST(request: Request) {
     // Verified! Clear OTP code
     await otpDocRef.delete();
 
+    // Create or update draft partner application so drop-offs are captured in Admin Panel right after mobile verification
+    const now = new Date();
+    const appDocRef = db.collection("partner_applications").doc(phoneNumber);
+    const appDocSnap = await appDocRef.get();
+    if (!appDocSnap.exists) {
+      await appDocRef.set({
+        mobileNumber: phoneNumber,
+        currentStep: 1,
+        status: "draft",
+        mobileVerified: true,
+        createdAt: now,
+        updatedAt: now,
+        applicationId: `TSM-DRAFT-${phoneNumber}`
+      }, { merge: true });
+    } else {
+      await appDocRef.set({
+        mobileVerified: true,
+        updatedAt: now
+      }, { merge: true });
+    }
+
     // Check if partner already has a completed application or existing partner account
     const existingUserSnap = await db.collection("users").where("mobileNumber", "==", phoneNumber).get();
     let isExistingPartner = false;

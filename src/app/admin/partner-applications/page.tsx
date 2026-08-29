@@ -203,6 +203,7 @@ export default function AdminPartnerApplicationsPage() {
               {[
                 { key: "all", label: "All" },
                 { key: "under_review", label: "Under Review" },
+                { key: "draft", label: "Drafts / Drop-offs" },
                 { key: "query_raised", label: "Query" },
                 { key: "approved", label: "Approved" },
                 { key: "rejected", label: "Rejected" },
@@ -235,49 +236,74 @@ export default function AdminPartnerApplicationsPage() {
               </div>
             ) : (
               <div className="divide-y divide-slate-700/60">
-                {filteredApps.map((app) => (
-                  <div
-                    key={app.id}
-                    onClick={() => setSelectedApp(app)}
-                    className={`p-4 hover:bg-slate-700/40 cursor-pointer transition-colors flex items-center justify-between gap-4 ${
-                      selectedApp?.id === app.id ? "bg-slate-700/60 border-l-4 border-emerald-500" : ""
-                    }`}
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-white text-sm">{app.fullName || app.contactPersonName}</span>
-                        <span className="text-[10px] font-mono bg-slate-900 text-slate-300 px-2 py-0.5 rounded">
-                          {app.applicationId || app.mobileNumber}
-                        </span>
-                      </div>
-                      <div className="text-xs text-slate-400 flex items-center gap-3">
-                        <span>📱 +91 {app.mobileNumber}</span>
-                        <span>💳 {app.panNumber || "PAN Pending"}</span>
-                        <span>🏢 {app.partnerType || "Individual"}</span>
-                      </div>
-                    </div>
+                {filteredApps.map((app) => {
+                  const stepNames: Record<number, string> = {
+                    1: "Mobile Verified",
+                    2: "Basic Details",
+                    3: "Business & PAN",
+                    4: "Contact Person",
+                    5: "Office Address",
+                    6: "GST Details",
+                    7: "KYC Documents",
+                    8: "Bank Details",
+                  };
+                  const stepName = stepNames[app.currentStep || 1] || `Step ${app.currentStep || 1}`;
 
-                    <div className="text-right">
-                      {app.status === "approved" ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold rounded-full">
-                          <CheckCircle2 className="w-3 h-3" /> Approved
-                        </span>
-                      ) : app.status === "query_raised" ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[11px] font-bold rounded-full">
-                          <AlertTriangle className="w-3 h-3" /> Query
-                        </span>
-                      ) : app.status === "rejected" ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-500/20 text-red-400 border border-red-500/30 text-[11px] font-bold rounded-full">
-                          <XCircle className="w-3 h-3" /> Rejected
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[11px] font-bold rounded-full">
-                          <Clock className="w-3 h-3" /> Review
-                        </span>
-                      )}
+                  return (
+                    <div
+                      key={app.id}
+                      onClick={() => setSelectedApp(app)}
+                      className={`p-4 hover:bg-slate-700/40 cursor-pointer transition-colors flex items-center justify-between gap-4 ${
+                        selectedApp?.id === app.id ? "bg-slate-700/60 border-l-4 border-emerald-500" : ""
+                      }`}
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white text-sm">
+                            {app.fullName || app.contactPersonName || `Applicant (+91 ${app.mobileNumber})`}
+                          </span>
+                          <span className="text-[10px] font-mono bg-slate-900 text-slate-300 px-2 py-0.5 rounded">
+                            {app.applicationId || app.mobileNumber}
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-400 flex flex-wrap items-center gap-3">
+                          <span>📱 +91 {app.mobileNumber}</span>
+                          <span>💳 {app.panNumber || "PAN Pending"}</span>
+                          <span>🏢 {app.partnerType || "Individual"}</span>
+                          {app.updatedAt && (
+                            <span className="text-[11px] text-slate-500">
+                              🕒 {new Date(app.updatedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        {app.status === "approved" ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold rounded-full">
+                            <CheckCircle2 className="w-3 h-3" /> Approved
+                          </span>
+                        ) : app.status === "query_raised" ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[11px] font-bold rounded-full">
+                            <AlertTriangle className="w-3 h-3" /> Query
+                          </span>
+                        ) : app.status === "rejected" ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-500/20 text-red-400 border border-red-500/30 text-[11px] font-bold rounded-full">
+                            <XCircle className="w-3 h-3" /> Rejected
+                          </span>
+                        ) : app.status === "draft" ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[11px] font-bold rounded-full">
+                            <Clock className="w-3 h-3" /> Draft ({stepName})
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[11px] font-bold rounded-full">
+                            <Clock className="w-3 h-3" /> Review
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -290,12 +316,76 @@ export default function AdminPartnerApplicationsPage() {
               {/* Detail Header */}
               <div className="flex justify-between items-start border-b border-slate-700 pb-4">
                 <div>
-                  <h3 className="text-xl font-bold text-white">{selectedApp.fullName}</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">Application ID: {selectedApp.applicationId}</p>
+                  <h3 className="text-xl font-bold text-white">
+                    {selectedApp.fullName || selectedApp.contactPersonName || `Partner Applicant (+91 ${selectedApp.mobileNumber})`}
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Application ID: {selectedApp.applicationId || selectedApp.mobileNumber}
+                  </p>
                 </div>
                 <button onClick={() => setSelectedApp(null)} className="text-xs text-slate-400 hover:text-white">
                   Close ✕
                 </button>
+              </div>
+
+              {/* Step Progress Tracker */}
+              <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-700/80 space-y-3">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold text-slate-300">
+                    Status:{" "}
+                    {selectedApp.status === "draft" ? (
+                      <span className="text-purple-400 font-extrabold">Incomplete / Draft (Step {selectedApp.currentStep || 1}/8)</span>
+                    ) : selectedApp.status === "approved" ? (
+                      <span className="text-emerald-400 font-extrabold">Approved ({selectedApp.dsaCode})</span>
+                    ) : selectedApp.status === "query_raised" ? (
+                      <span className="text-amber-400 font-extrabold">Query Raised</span>
+                    ) : selectedApp.status === "rejected" ? (
+                      <span className="text-red-400 font-extrabold">Rejected</span>
+                    ) : (
+                      <span className="text-blue-400 font-extrabold">Under Review (Submitted)</span>
+                    )}
+                  </span>
+                  <span className="text-[11px] text-slate-400">
+                    Last update: {selectedApp.updatedAt ? new Date(selectedApp.updatedAt).toLocaleString("en-IN") : "N/A"}
+                  </span>
+                </div>
+
+                {/* 8-Step Tracker */}
+                <div className="grid grid-cols-8 gap-1 pt-1">
+                  {[
+                    { step: 1, label: "Basic" },
+                    { step: 2, label: "Business" },
+                    { step: 3, label: "Contact" },
+                    { step: 4, label: "Address" },
+                    { step: 5, label: "GST" },
+                    { step: 6, label: "KYC" },
+                    { step: 7, label: "Bank" },
+                    { step: 8, label: "Submitted" },
+                  ].map((st) => {
+                    const isDone = (selectedApp.currentStep || 1) >= st.step || selectedApp.status === "submitted" || selectedApp.status === "under_review" || selectedApp.status === "approved";
+                    const isCurrent = (selectedApp.currentStep || 1) === st.step && selectedApp.status === "draft";
+                    return (
+                      <div key={st.step} className="text-center space-y-1">
+                        <div
+                          className={`h-2 rounded-full transition-all ${
+                            isCurrent
+                              ? "bg-purple-500 shadow-sm shadow-purple-500"
+                              : isDone
+                              ? "bg-emerald-500"
+                              : "bg-slate-700"
+                          }`}
+                        />
+                        <span
+                          className={`block text-[9px] font-semibold truncate ${
+                            isCurrent ? "text-purple-300 font-bold" : isDone ? "text-slate-200" : "text-slate-500"
+                          }`}
+                        >
+                          {st.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Sections Breakdown */}

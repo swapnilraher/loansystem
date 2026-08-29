@@ -25,7 +25,28 @@ export async function POST(request: Request) {
       createdAt: new Date(),
     });
 
-    // Send WhatsApp OTP via Meta API
+    // 1. Send SMS via APITXT OTP API
+    const apitxtAuthKey = process.env.APITXT_AUTH_KEY || "DlND6b_O5HBPyIX_vBbgVOms6FhG4SBILVCv3qKQY-o";
+    try {
+      // APITXT OTP API HTTP GET request
+      const smsApiUrl = `https://apitxt.com/api/sendotp?authkey=${encodeURIComponent(apitxtAuthKey)}&mobile=${encodeURIComponent(phoneNumber)}&otp=${encodeURIComponent(otp)}`;
+      await fetch(smsApiUrl).catch((e) => console.warn("APITXT GET dispatch note:", e));
+
+      // APITXT OTP API HTTP POST request fallback
+      await fetch("https://apitxt.com/api/sendotp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          authkey: apitxtAuthKey,
+          mobile: phoneNumber,
+          otp: otp
+        })
+      }).catch((e) => console.warn("APITXT POST dispatch note:", e));
+    } catch (smsErr) {
+      console.warn("APITXT SMS API error:", smsErr);
+    }
+
+    // 2. Send WhatsApp OTP via Meta API
     try {
       const templatePayload = {
         messaging_product: "whatsapp",
@@ -102,7 +123,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ 
       success: true, 
-      message: "OTP sent via WhatsApp",
+      message: "Verification OTP code sent successfully",
       expiresInSeconds: 300
     });
   } catch (error: any) {
