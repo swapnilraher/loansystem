@@ -68,11 +68,14 @@ export default function AdminPartnerApplicationsPage() {
     try {
       const res = await fetch(`/api/admin/partner-applications?status=${filterStatus}`)
       const data = await res.json()
-      if (res.ok && data.applications) {
+      if (res.ok && Array.isArray(data.applications)) {
         setApplications(data.applications)
+      } else {
+        setApplications([])
       }
     } catch (e) {
-      console.error(e)
+      console.error("Fetch partner applications error:", e)
+      setApplications([])
     } finally {
       setLoading(false)
     }

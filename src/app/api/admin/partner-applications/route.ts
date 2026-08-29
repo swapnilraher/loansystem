@@ -4,6 +4,25 @@ import { getAdminDb, getAdminAuth } from "@/lib/firebase-admin";
 const PHONE_ID = process.env.WHATSAPP_PHONE_ID || "1112131761984283";
 const TOKEN = process.env.WHATSAPP_TOKEN || "EAAL6qnWnZABMBRfTVoipikLTEZBzVNQf9YStyNGTSxAGq8kHJ6AXivKPiHcMYxZBO2uuMyh4dCNVZB183wSpqoB0J08pAEsL5rEEqyHWdDfRgD5zxZCYhLX3ZBJW0rcxxQwvztib7jupBBStMxAaISbtrSalquCKiehliYs7ZCBf1VmGZCtqNTS1qhmPTybViZBZCOZBQZDZD";
 
+function formatTimestampToIso(val: any): string | null {
+  if (!val) return null
+  if (typeof val?.toDate === "function") {
+    try {
+      return val.toDate().toISOString()
+    } catch (e) {}
+  }
+  if (typeof val === "object" && typeof val._seconds === "number") {
+    return new Date(val._seconds * 1000).toISOString()
+  }
+  if (typeof val === "object" && typeof val.seconds === "number") {
+    return new Date(val.seconds * 1000).toISOString()
+  }
+  if (val instanceof Date) return val.toISOString()
+  if (typeof val === "string") return val
+  if (typeof val === "number") return new Date(val).toISOString()
+  return null
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -27,8 +46,8 @@ export async function GET(request: Request) {
           status: data.dsaStatus || data.status || "draft",
           dsaCode: data.dsaCode || "",
           applicationId: data.applicationId || `TSM-P-${mobile}`,
-          createdAt: data?.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data?.createdAt,
-          updatedAt: data?.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : data?.updatedAt,
+          createdAt: formatTimestampToIso(data?.createdAt),
+          updatedAt: formatTimestampToIso(data?.updatedAt),
         });
       }
     });
@@ -46,9 +65,9 @@ export async function GET(request: Request) {
           fullName: data.fullName || data.contactPersonName || existing.fullName || "",
           email: data.email || existing.email || "",
           status: data.status || existing.status || "under_review",
-          createdAt: data?.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data?.createdAt || existing.createdAt,
-          updatedAt: data?.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : data?.updatedAt || existing.updatedAt,
-          submittedAt: data?.submittedAt?.toDate ? data.submittedAt.toDate().toISOString() : data?.submittedAt,
+          createdAt: formatTimestampToIso(data?.createdAt) || existing.createdAt,
+          updatedAt: formatTimestampToIso(data?.updatedAt) || existing.updatedAt,
+          submittedAt: formatTimestampToIso(data?.submittedAt),
         });
       }
     });
