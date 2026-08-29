@@ -11,6 +11,7 @@ import {
   Check,
   CheckCircle2,
   Clock,
+  FileText,
   MessageSquare,
   User,
 } from "lucide-react"
