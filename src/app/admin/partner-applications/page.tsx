@@ -73,7 +73,7 @@ export default function AdminPartnerApplicationsPage() {
       }
     } catch (e) {
       console.error(e)
-    } flex: {
+    } finally {
       setLoading(false)
     }
   }
