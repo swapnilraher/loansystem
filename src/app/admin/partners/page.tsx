@@ -564,15 +564,15 @@ export default function PartnersPage() {
                     </div>
                     {(() => {
                       const docObj = selected.documents?.aadhaarFrontDoc || selected.documents?.aadhaarDoc
-                      const url = docObj?.fileUrl || docObj?.base64Data
-                      return url ? (
+                      const url = docObj?.base64Data || (selected.mobileNumber ? `/api/document/proxy?mobile=${selected.mobileNumber}&type=aadhaarFrontDoc` : docObj?.fileUrl)
+                      return (docObj || url) ? (
                         <button
                           type="button"
                           onClick={() =>
                             setSideDoc({
                               title: "Aadhaar Card",
-                              url,
-                              fileName: docObj?.fileName || "Aadhaar_Document",
+                              url: url || docObj?.fileUrl,
+                              fileName: docObj?.fileName || "Aadhaar_Document.pdf",
                             })
                           }
                           className="py-1 px-2 rounded bg-admin-accent-soft text-admin-accent hover:bg-admin-accent hover:text-white font-bold text-admin-2xs transition-colors flex items-center gap-1"
@@ -593,15 +593,15 @@ export default function PartnersPage() {
                     </div>
                     {(() => {
                       const docObj = selected.documents?.panDoc
-                      const url = docObj?.fileUrl || docObj?.base64Data
-                      return url ? (
+                      const url = docObj?.base64Data || (selected.mobileNumber ? `/api/document/proxy?mobile=${selected.mobileNumber}&type=panDoc` : docObj?.fileUrl)
+                      return (docObj || url) ? (
                         <button
                           type="button"
                           onClick={() =>
                             setSideDoc({
                               title: "PAN Card",
-                              url,
-                              fileName: docObj?.fileName || "PAN_Card",
+                              url: url || docObj?.fileUrl,
+                              fileName: docObj?.fileName || "PAN_Card.pdf",
                             })
                           }
                           className="py-1 px-2 rounded bg-admin-accent-soft text-admin-accent hover:bg-admin-accent hover:text-white font-bold text-admin-2xs transition-colors flex items-center gap-1"
@@ -627,7 +627,7 @@ export default function PartnersPage() {
                       onClick={() =>
                         setSideDoc({
                           title: `Signed MOA Agreement - ${partnerName(selected)}`,
-                          url: selected.agreementPdfUrl || `/api/partner/agreement/pdf?mobile=${selected.mobileNumber}`,
+                          url: `/api/partner/agreement/pdf?mobile=${selected.mobileNumber}`,
                           fileName: `MOA_Agreement_${selected.dsaCode || selected.mobileNumber}.pdf`,
                         })
                       }

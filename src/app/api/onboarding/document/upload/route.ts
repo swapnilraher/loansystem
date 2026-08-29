@@ -81,7 +81,7 @@ export async function POST(request: Request) {
       mimeType:    file.type,
       sizeBytes:   file.size,
       fileUrl,
-      base64Data:  uploadMethod === "firestore_base64" ? base64Data : undefined,
+      base64Data:  base64Data,
       cloudinaryId,
       uploadMethod,
       uploadedAt,

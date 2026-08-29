@@ -84,8 +84,26 @@ export default function DocumentViewerModal({
         }
 
         // Handle Remote HTTP / Cloudinary URLs
-        // Fetch as ArrayBuffer to strip Content-Disposition: attachment header
+        // Fetch via /api/document/proxy to strip Content-Disposition: attachment and Cloudinary Access Control Blocked for delivery headers
         if (url.startsWith("http")) {
+          try {
+            const proxyUrl = `/api/document/proxy?url=${encodeURIComponent(url)}`
+            const res = await fetch(proxyUrl)
+            if (res.ok) {
+              const buffer = await res.arrayBuffer()
+              const contentType = res.headers.get("content-type") || (detectedPdf ? "application/pdf" : "image/jpeg")
+              const blob = new Blob([buffer], { type: contentType })
+              const createdUrl = URL.createObjectURL(blob)
+              if (isMounted) {
+                setBlobUrl(createdUrl)
+                setLoading(false)
+              }
+              return
+            }
+          } catch (proxyErr) {
+            console.warn("Proxy fetch warning, trying direct fetch:", proxyErr)
+          }
+
           try {
             const res = await fetch(url)
             if (!res.ok) throw new Error("Failed to fetch remote document")
@@ -99,7 +117,7 @@ export default function DocumentViewerModal({
             }
             return
           } catch (fetchErr) {
-            console.warn("Direct fetch failed, falling back to direct URL:", fetchErr)
+            console.warn("Direct fetch failed, falling back to URL:", fetchErr)
             if (isMounted) {
               setBlobUrl(url)
               setLoading(false)
