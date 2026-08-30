@@ -188,9 +188,9 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
             <button
               onClick={logout}
               title="Logout"
-              className="p-1.5 rounded-lg bg-admin-surface-2 border border-admin-border text-tone-danger-fg text-xs font-bold flex items-center gap-1 hover:bg-red-500/10"
+              className="h-8 px-2.5 rounded-admin bg-admin-surface-2 border border-admin-border text-tone-danger-fg text-admin-2xs font-bold flex items-center gap-1.5 hover:bg-tone-danger-bg hover:border-tone-danger-bd transition-colors"
             >
-              <LogOut size={14} />
+              <LogOut size={13} />
               <span>Logout</span>
             </button>
           </div>
@@ -206,7 +206,7 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
 
       {/* Mobile bottom navigation */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-admin-surface border-t border-admin-border pb-[env(safe-area-inset-bottom)]">
-        <div className="flex items-stretch justify-around">
+        <div className="flex items-stretch justify-around px-1">
           {NAV_ITEMS.map(item => {
             const isActive =
               pathname === item.href || ((pathname ?? "").startsWith(item.href) && item.href !== "/partner")
@@ -216,12 +216,14 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "admin-focus flex-1 flex flex-col items-center justify-center gap-0.5 min-h-14 rounded-admin-sm transition-colors",
-                  isActive ? "text-admin-accent" : "text-admin-subtle hover:text-admin-text"
+                  "admin-focus flex-1 flex flex-col items-center justify-center gap-1 py-1.5 min-h-14 rounded-admin-sm transition-colors text-center",
+                  isActive ? "text-admin-accent font-bold" : "text-admin-subtle hover:text-admin-text"
                 )}
               >
-                <item.icon size={19} className="shrink-0" />
-                <span className="text-admin-2xs font-semibold">{item.label}</span>
+                <item.icon size={18} className="shrink-0" />
+                <span className="text-[10px] leading-tight font-medium truncate max-w-[58px] block">
+                  {item.label}
+                </span>
               </Link>
             )
           })}

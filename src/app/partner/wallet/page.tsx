@@ -201,22 +201,24 @@ export default function PartnerWallet() {
           </div>
 
           <div className="pt-4 border-t border-admin-border/60 flex items-center justify-between gap-3">
-            <button
-              type="button"
+            <AdminButton
+              variant="primary"
+              size="md"
+              icon={Plus}
               onClick={() => setTopUpModalOpen(true)}
-              className="flex-1 py-2 px-3 rounded-admin bg-admin-accent text-white font-bold text-admin-xs hover:bg-admin-accent/90 transition-all text-center flex items-center justify-center gap-1.5 shadow-sm"
+              className="flex-1 justify-center"
             >
-              <Plus size={14} />
-              <span>Add Balance (Max ₹10k)</span>
-            </button>
+              Add Balance (Max ₹10k)
+            </AdminButton>
 
-            <Link
+            <AdminLinkButton
               href="/partner/credit-check"
-              className="py-2 px-3 rounded-admin bg-admin-surface-2 border border-admin-border text-admin-text font-bold text-admin-xs hover:bg-admin-surface-hover transition-colors flex items-center gap-1"
+              variant="secondary"
+              size="md"
+              icon={Zap}
             >
-              <Zap size={14} className="text-admin-accent" />
-              <span>Run Check</span>
-            </Link>
+              Run Check
+            </AdminLinkButton>
           </div>
         </div>
 

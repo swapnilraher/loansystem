@@ -502,18 +502,19 @@ export default function PartnerLeadsPage() {
                         <button
                           type="button"
                           onClick={() => handleOpenWA(lead)}
-                          className="px-2.5 py-1 rounded-admin bg-tone-success-bg text-tone-success-fg font-bold flex items-center gap-1 border border-tone-success-bd"
+                          className="h-8 px-2.5 rounded-admin bg-tone-success-bg text-tone-success-fg font-bold flex items-center gap-1.5 border border-tone-success-bd text-admin-2xs hover:opacity-90 transition-opacity"
                         >
-                          <MessageCircle size={12} />
+                          <MessageCircle size={13} />
                           <span>WhatsApp</span>
                         </button>
                       )}
                       {cleanPhone && (
                         <a
                           href={`tel:${cleanPhone}`}
-                          className="p-1 rounded-admin bg-admin-surface-2 text-admin-text border border-admin-border"
+                          className="h-8 px-2.5 rounded-admin bg-admin-surface-2 text-admin-text border border-admin-border flex items-center gap-1.5 text-admin-2xs font-bold hover:bg-admin-surface-hover transition-colors"
                         >
                           <Phone size={13} />
+                          <span>Call</span>
                         </a>
                       )}
                     </div>

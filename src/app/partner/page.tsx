@@ -304,19 +304,16 @@ export default function PartnerDashboard() {
             </button>
           </div>
 
-          <AdminLinkButton href="/partner/credit-check" variant="secondary" size="md">
-            <ShieldCheck size={15} className="text-admin-accent" />
-            <span>Credit Check</span>
+          <AdminLinkButton href="/partner/credit-check" variant="secondary" size="md" icon={ShieldCheck}>
+            Credit Check
           </AdminLinkButton>
 
-          <AdminLinkButton href="/partner/leads/new" variant="primary" size="md">
-            <Plus size={15} />
-            <span>New Lead</span>
+          <AdminLinkButton href="/partner/leads/new" variant="primary" size="md" icon={Plus}>
+            New Lead
           </AdminLinkButton>
 
-          <AdminLinkButton href="/partner/wallet" variant="secondary" size="md">
-            <Wallet size={15} />
-            <span>Wallet</span>
+          <AdminLinkButton href="/partner/wallet" variant="secondary" size="md" icon={Wallet}>
+            Wallet
           </AdminLinkButton>
         </div>
       </div>
@@ -573,7 +570,7 @@ export default function PartnerDashboard() {
           <button
             type="button"
             onClick={shareOnWhatsApp}
-            className="w-full py-1.5 px-3 rounded-admin bg-tone-success text-tone-success-fg border border-tone-success-bd font-bold text-admin-xs flex items-center justify-center gap-1.5 hover:opacity-90 transition-opacity"
+            className="w-full py-2 px-3 rounded-admin bg-tone-success-bg text-tone-success-fg border border-tone-success-bd font-bold text-admin-xs flex items-center justify-center gap-1.5 hover:opacity-90 transition-opacity"
           >
             <MessageCircle size={14} />
             <span>Share via WhatsApp</span>
