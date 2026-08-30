@@ -206,6 +206,15 @@ export default function OnboardingPage() {
   const [bankMatchScore, setBankMatchScore] = useState<number | null>(null)
   const [bankVerificationStatus] = useState<"pending" | "verified">("pending")
 
+  // Auto-fill account holder name based on account type and profile/business details
+  useEffect(() => {
+    if (accountType === "Savings") {
+      setAccountHolderName(contactPersonName.trim() || fullName.trim())
+    } else {
+      setAccountHolderName(businessName.trim() || contactPersonName.trim() || fullName.trim())
+    }
+  }, [accountType, contactPersonName, fullName, businessName])
+
   // ─── Step 8: Review & Declarations ───
   const [declareTruth, setDeclareTruth] = useState(false)
   const [declareTerms, setDeclareTerms] = useState(false)
@@ -1816,40 +1825,17 @@ export default function OnboardingPage() {
             <form onSubmit={handleStep7Submit} className="space-y-5" noValidate>
               <StepHeader
                 title="Bank account verification"
-                description="Sandbox Pennyless Bank Verification with automated name matching score."
+                description="Enter your bank details for monthly DSA payouts."
               />
 
-              {/* Verification Rule & Attempt Counter Banner */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-admin bg-gradient-to-br from-admin-surface-2 to-admin-surface border border-admin-border text-admin-xs shadow-admin-1">
-                <div className="space-y-0.5">
-                  <p className="font-extrabold text-admin-text flex items-center gap-1.5">
-                    <ShieldCheck size={16} className="text-emerald-600" />
-                    Sandbox Pennyless Verification (Min 50% Name Match)
-                  </p>
-                  <p className="text-admin-2xs text-admin-muted">
-                    Matching Target: <strong>{accountType === "Savings" ? `Applicant Name (${contactPersonName || fullName})` : `Business Name (${businessName || fullName})`}</strong>
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-1 rounded bg-admin-surface border border-admin-border text-admin-2xs font-bold text-admin-text">
-                    Attempts Used: <strong className="admin-num">{bankVerifyAttempts}/3</strong>
-                  </span>
-                  {bankVerified && (
-                    <span className="px-2.5 py-1 rounded bg-tone-success text-tone-success-fg text-admin-2xs font-extrabold flex items-center gap-1">
-                      <CheckCircle2 size={13} /> Bank Verified ({bankMatchScore}% Match)
-                    </span>
-                  )}
-                </div>
-              </div>
-
               <FieldGrid>
-                <Field label="Account holder name" className="sm:col-span-2">
+                <Field label="Account holder name" hint="Auto-filled from applicant/business details." className="sm:col-span-2">
                   <TextInput
-                    required
+                    readOnly
+                    tabIndex={-1}
                     value={accountHolderName}
-                    onChange={e => setAccountHolderName(e.target.value)}
-                    placeholder="e.g. Ramesh Kumar Sharma / Techstar Enterprise"
-                    className={INPUT}
+                    placeholder="Auto-filled from profile"
+                    className={cn(INPUT, "bg-admin-surface-2 cursor-default font-semibold text-admin-text")}
                   />
                 </Field>
 

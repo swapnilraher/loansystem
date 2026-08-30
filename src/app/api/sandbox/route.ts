@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
-const SANDBOX_KEY = process.env.SANDBOX_KEY || "key_live_903e7a0839e5458993990c401da8be3c";
-const SANDBOX_SECRET = process.env.SANDBOX_SECRET || "secret_live_8015a745cf4a433387ff54040e7453bd";
+const SANDBOX_KEY = process.env.API_Keysandbox || process.env.SANDBOX_KEY || "key_live_903e7a0839e5458993990c401da8be3c";
+const SANDBOX_SECRET = process.env.API_Secretsandbox || process.env.API_secret || process.env.SANDBOX_SECRET || "secret_live_8015a745cf4a433387ff54040e7453bd";
 
 async function getAccessToken() {
   try {
@@ -11,15 +11,20 @@ async function getAccessToken() {
         "accept": "application/json",
         "content-type": "application/json",
         "x-api-key": SANDBOX_KEY,
-        "x-api-secret": SANDBOX_SECRET
+        "x-api-secret": SANDBOX_SECRET,
+        "x-api-version": "1.0.0"
       },
       body: JSON.stringify({ apiKey: SANDBOX_KEY }),
       cache: 'no-store'
     });
     const data = await res.json();
-    return data?.access_token || data?.data?.access_token || null;
+    const token = data?.access_token || data?.data?.access_token || data?.token || null;
+    if (!token) {
+      console.error("Sandbox Auth Failed. HTTP Status:", res.status, "Response Data:", data);
+    }
+    return token;
   } catch (err) {
-    console.error("Sandbox authentication token fetch error:", err);
+    console.error("Sandbox authentication token fetch exception:", err);
     return null;
   }
 }
