@@ -81,11 +81,33 @@ export async function POST(request: Request) {
     const now = new Date();
     const currentStep = Math.max(existingData?.currentStep || 1, stepNum);
 
+    // ─── 3. PARTNER REFERRAL TRACKING ───
+    let referringPartnerId = existingData?.referringPartnerId || "";
+    let referringPartnerName = existingData?.referringPartnerName || "";
+    const targetRefCode = String(stepData?.referredByDsaCode || existingData?.referredByDsaCode || "").trim().toUpperCase();
+
+    if (targetRefCode && !referringPartnerId) {
+      try {
+        const refUserSnap = await db.collection("users").where("dsaCode", "==", targetRefCode).limit(1).get();
+        if (!refUserSnap.empty) {
+          const rDoc = refUserSnap.docs[0];
+          referringPartnerId = rDoc.id;
+          const rData = rDoc.data();
+          referringPartnerName = rData.name || rData.fullName || rData.contactPersonName || "Senior Partner";
+        }
+      } catch (rErr) {
+        console.warn("Referral partner lookup note:", rErr);
+      }
+    }
+
     const rawPayload = {
       ...existingData,
       ...stepData,
       mobileNumber: cleanMobile,
       currentStep,
+      referredByDsaCode: targetRefCode || null,
+      referringPartnerId: referringPartnerId || null,
+      referringPartnerName: referringPartnerName || null,
       updatedAt: now,
       status: existingData?.status || "draft",
     };

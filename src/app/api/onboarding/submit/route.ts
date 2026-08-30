@@ -81,20 +81,41 @@ export async function POST(request: Request) {
       {
         mobileNumber: cleanMobile,
         fullName: appData.fullName || appData.contactPersonName || "Partner Applicant",
+        name: appData.fullName || appData.contactPersonName || "Partner Applicant",
         email: appData.email || "",
         role: "partner",
         dsaStatus: "under_review",
         applicationId,
+        referredByDsaCode: appData.referredByDsaCode || null,
+        referringPartnerId: appData.referringPartnerId || null,
         updatedAt: submittedAt,
       },
       { merge: true }
     );
+
+    // ─── LOG IN PARTNER REFERRALS COLLECTION ───
+    if (appData.referredByDsaCode) {
+      const referralLogRef = db.collection("partner_referrals").doc();
+      batch.set(referralLogRef, {
+        id: referralLogRef.id,
+        referrerDsaCode: appData.referredByDsaCode,
+        referringPartnerId: appData.referringPartnerId || "",
+        referringPartnerName: appData.referringPartnerName || "",
+        newPartnerMobile: cleanMobile,
+        newPartnerName: appData.fullName || appData.contactPersonName || "New Partner",
+        newPartnerEmail: appData.email || "",
+        applicationId,
+        status: "under_review",
+        createdAt: submittedAt,
+      });
+    }
 
     const auditRef = db.collection("partner_audit_logs").doc();
     batch.set(auditRef, {
       event: "APPLICATION_SUBMITTED",
       applicationId,
       phoneNumber: cleanMobile,
+      referredByDsaCode: appData.referredByDsaCode || null,
       ip: clientIp,
       timestamp: submittedAt,
     });

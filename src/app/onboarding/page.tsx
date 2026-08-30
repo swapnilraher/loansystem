@@ -146,6 +146,7 @@ export default function OnboardingPage() {
   // ─── Step 1: Basic Details ───
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
+  const [referredByDsaCode, setReferredByDsaCode] = useState("")
 
   // ─── Step 2: Business & PAN Details ───
   const [partnerType, setPartnerType] = useState<PartnerType>("Individual")
@@ -236,6 +237,16 @@ export default function OnboardingPage() {
     )
     first?.focus()
   }, [currentStep])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search)
+      const ref = urlParams.get("ref") || urlParams.get("referral") || urlParams.get("dsa")
+      if (ref) {
+        setReferredByDsaCode(ref.toUpperCase().trim())
+      }
+    }
+  }, [])
 
   /*
    * Designation follows the entity type, but is reset from the two controls
@@ -637,6 +648,7 @@ export default function OnboardingPage() {
       fullName: fullName.trim(),
       email: email.trim(),
       mobileNumber,
+      referredByDsaCode: referredByDsaCode.trim().toUpperCase() || null,
       isMobileVerified: true,
     })
     if (ok) {
@@ -1458,6 +1470,22 @@ export default function OnboardingPage() {
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-tone-success text-tone-success-fg border border-tone-success-bd text-admin-2xs font-semibold">
                       <Check size={11} /> Verified
                     </span>
+                  </div>
+                </Field>
+
+                <Field label="Referral / Senior DSA Partner Code (Optional)" className="sm:col-span-2">
+                  <div className="space-y-1">
+                    <TextInput
+                      value={referredByDsaCode}
+                      onChange={e => setReferredByDsaCode(e.target.value.toUpperCase())}
+                      placeholder="e.g. TMS-552"
+                      className={cn(INPUT, "font-mono font-bold uppercase")}
+                    />
+                    {referredByDsaCode && (
+                      <p className="text-admin-2xs text-tone-success-fg font-semibold flex items-center gap-1 mt-1">
+                        <CheckCircle2 size={12} /> Referred by Senior DSA Partner: <strong className="font-mono">{referredByDsaCode}</strong>
+                      </p>
+                    )}
                   </div>
                 </Field>
               </FieldGrid>

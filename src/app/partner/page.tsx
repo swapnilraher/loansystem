@@ -83,6 +83,7 @@ export default function PartnerDashboard() {
   const [leads, setLeads] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [copiedLink, setCopiedLink] = useState(false)
+  const [copiedPartnerLink, setCopiedPartnerLink] = useState(false)
   const [copiedCode, setCopiedCode] = useState(false)
   const [tableFilter, setTableFilter] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
@@ -137,8 +138,21 @@ export default function PartnerDashboard() {
     "Partner"
   const partnerDsaCode = profile?.dsaCode || (isApproved ? "DSA-ACTIVE" : "PENDING")
   const referralLink = typeof window !== "undefined" ? `${window.location.origin}/apply?ref=${partnerDsaCode}` : `/apply?ref=${partnerDsaCode}`
+  const partnerOnboardingLink = typeof window !== "undefined" ? `${window.location.origin}/onboarding?ref=${partnerDsaCode}` : `/onboarding?ref=${partnerDsaCode}`
 
-  // Metrics Calculations
+  const copyToClipboard = (text: string, type: "link" | "code" | "partnerLink") => {
+    navigator.clipboard.writeText(text)
+    if (type === "link") {
+      setCopiedLink(true)
+      setTimeout(() => setCopiedLink(false), 2000)
+    } else if (type === "partnerLink") {
+      setCopiedPartnerLink(true)
+      setTimeout(() => setCopiedPartnerLink(false), 2000)
+    } else {
+      setCopiedCode(true)
+      setTimeout(() => setCopiedCode(false), 2000)
+    }
+  }
   const totalLeads = leads.length
   const disbursedLeads = useMemo(() => leads.filter(l => {
     const s = String(l.status || "").toLowerCase()
@@ -540,19 +554,33 @@ export default function PartnerDashboard() {
               <Share2 size={16} />
             </div>
             <div>
-              <h4 className="text-admin-xs font-bold text-admin-text">Customer Referral Link</h4>
-              <p className="text-admin-2xs text-admin-muted">Auto-tags applications to your DSA code</p>
+              <h4 className="text-admin-xs font-bold text-admin-text">Referral Sourcing Links</h4>
+              <p className="text-admin-2xs text-admin-muted">Auto-tags leads &amp; sub-partners to your code</p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 p-1.5 bg-admin-surface-2 border border-admin-border rounded-admin text-admin-2xs font-mono text-admin-text truncate">
-            <span className="truncate flex-1">{referralLink}</span>
-            <button
-              type="button"
-              onClick={() => copyToClipboard(referralLink, "link")}
-              className="px-2 py-1 rounded bg-admin-surface border border-admin-border text-admin-text font-sans font-bold hover:bg-admin-surface-hover shrink-0"
-            >
-              {copiedLink ? "Copied!" : "Copy"}
-            </button>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5 p-1.5 bg-admin-surface-2 border border-admin-border rounded-admin text-admin-2xs font-mono text-admin-text truncate">
+              <span className="truncate flex-1 text-[11px]"><strong className="text-admin-muted font-sans font-normal">Customer:</strong> {referralLink}</span>
+              <button
+                type="button"
+                onClick={() => copyToClipboard(referralLink, "link")}
+                className="px-2 py-1 rounded bg-admin-surface border border-admin-border text-admin-text font-sans font-bold hover:bg-admin-surface-hover shrink-0 text-admin-2xs"
+              >
+                {copiedLink ? "Copied!" : "Copy"}
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1.5 p-1.5 bg-admin-surface-2 border border-admin-border rounded-admin text-admin-2xs font-mono text-admin-text truncate">
+              <span className="truncate flex-1 text-[11px]"><strong className="text-admin-muted font-sans font-normal">Partner:</strong> {partnerOnboardingLink}</span>
+              <button
+                type="button"
+                onClick={() => copyToClipboard(partnerOnboardingLink, "partnerLink")}
+                className="px-2 py-1 rounded bg-admin-surface border border-admin-border text-admin-text font-sans font-bold hover:bg-admin-surface-hover shrink-0 text-admin-2xs"
+              >
+                {copiedPartnerLink ? "Copied!" : "Copy"}
+              </button>
+            </div>
           </div>
         </div>
 
