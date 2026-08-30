@@ -248,17 +248,6 @@ export default function PartnerDashboard() {
     })
   }, [leads, searchQuery, tableFilter])
 
-  const copyToClipboard = (text: string, type: "link" | "code") => {
-    navigator.clipboard.writeText(text)
-    if (type === "link") {
-      setCopiedLink(true)
-      setTimeout(() => setCopiedLink(false), 2000)
-    } else {
-      setCopiedCode(true)
-      setTimeout(() => setCopiedCode(false), 2000)
-    }
-  }
-
   const shareOnWhatsApp = () => {
     const text = encodeURIComponent(
       `Hello! Apply for Instant Personal, Business, or Home Loans through TechStar Money Solutions with best interest rates:\n👉 ${referralLink}`
