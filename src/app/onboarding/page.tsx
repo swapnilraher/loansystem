@@ -52,8 +52,8 @@ const STEP_TITLES = [
   "Basic Details",
   "Business & PAN",
   "Contact Person",
-  "Office Address",
   "GST Registration",
+  "Office Address",
   "KYC Documents",
   "Bank Details",
   "Review & Submit",
@@ -789,31 +789,7 @@ export default function OnboardingPage() {
     }
   }
 
-  // ─── Step 4 Submit ───
-  const handleStep4Submit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!addressLine1.trim() || !city.trim() || !district.trim() || !stateName.trim() || !pinCode.trim()) {
-      setStepError("Please fill in all mandatory address fields marked with *.")
-      return
-    }
-    if (!/^\d{6}$/.test(pinCode.trim())) {
-      setStepError("Please enter a valid 6-digit PIN code.")
-      return
-    }
-
-    const ok = await saveProgress(5, {
-      addressLine1: addressLine1.trim(),
-      addressLine2: addressLine2.trim(),
-      area: area.trim(),
-      city: city.trim(),
-      district: district.trim(),
-      stateName: stateName.trim(),
-      pinCode: pinCode.trim(),
-    })
-    if (ok) setCurrentStep(5)
-  }
-
-  // ─── Step 5: GST Verification & Submit ───
+  // ─── Step 4: GST Verification & Submit ───
   const handleVerifyGst = async () => {
     setStepError(null)
     const cleanGst = gstin.trim().toUpperCase()
@@ -884,12 +860,29 @@ export default function OnboardingPage() {
       setGstValid(true)
       setGstin(cleanGst)
 
-      // Intelligent autofill: If business name was empty, autofill with tradeName or legalName
-      if (!businessName.trim() && tradeName) {
-        setBusinessName(tradeName)
+      // 1. Auto-fill and lock Business Name from GST
+      const bestBusinessName = tradeName || legalName
+      if (bestBusinessName) {
+        setBusinessName(bestBusinessName)
       }
 
-      // Intelligent mapping for entity type
+      // 2. Auto-copy Office Address directly from GST pradr
+      const line1 = [addrObj.bno, addrObj.bnm, addrObj.flno, addrObj.st].filter(Boolean).join(", ")
+      const line2 = addrObj.loc || addrObj.locality || ""
+      if (line1) setAddressLine1(line1)
+      if (line2) setAddressLine2(line2)
+      if (addrObj.dst) {
+        setCity(addrObj.dst)
+        setDistrict(addrObj.dst)
+      }
+      if (addrObj.stcd) setStateName(addrObj.stcd)
+      if (addrObj.pncd) {
+        setPinCode(addrObj.pncd)
+        handlePincodeChange(addrObj.pncd)
+      }
+      if (addrObj.loc || addrObj.locality) setArea(addrObj.loc || addrObj.locality)
+
+      // 3. Intelligent mapping for entity type
       if (constitution) {
         const cLower = constitution.toLowerCase()
         if (cLower.includes("proprietor")) {
@@ -912,6 +905,13 @@ export default function OnboardingPage() {
         gstin: cleanGst,
         gstValid: true,
         gstDetails: details,
+        businessName: bestBusinessName || businessName,
+        addressLine1: line1 || addressLine1,
+        addressLine2: line2 || addressLine2,
+        city: addrObj.dst || city,
+        district: addrObj.dst || district,
+        stateName: addrObj.stcd || stateName,
+        pinCode: addrObj.pncd || pinCode,
       })
 
     } catch (err: any) {
@@ -924,18 +924,51 @@ export default function OnboardingPage() {
     }
   }
 
-  const handleStep5Submit = async (e: React.FormEvent) => {
+  // ─── Step 4 Submit (GST Registration -> advances to Step 5 Office Address) ───
+  const handleStep4Submit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (isGstRegistered === "Yes" && !gstValid) {
       setStepError("Please verify your GSTIN or select 'No' if not GST registered.")
       return
     }
 
-    const ok = await saveProgress(6, {
+    const ok = await saveProgress(5, {
       isGstRegistered,
       gstin: isGstRegistered === "Yes" ? gstin.trim().toUpperCase() : null,
       gstValid: isGstRegistered === "Yes" ? gstValid : false,
       gstDetails: isGstRegistered === "Yes" ? gstDetails : null,
+      businessName,
+      addressLine1,
+      addressLine2,
+      area,
+      city,
+      district,
+      stateName,
+      pinCode,
+    })
+    if (ok) setCurrentStep(5)
+  }
+
+  // ─── Step 5 Submit (Office Address -> advances to Step 6 KYC Documents) ───
+  const handleStep5Submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!addressLine1.trim() || !city.trim() || !district.trim() || !stateName.trim() || !pinCode.trim()) {
+      setStepError("Please fill in all mandatory address fields marked with *.")
+      return
+    }
+    if (!/^\d{6}$/.test(pinCode.trim())) {
+      setStepError("Please enter a valid 6-digit PIN code.")
+      return
+    }
+
+    const ok = await saveProgress(6, {
+      addressLine1: addressLine1.trim(),
+      addressLine2: addressLine2.trim(),
+      area: area.trim(),
+      city: city.trim(),
+      district: district.trim(),
+      stateName: stateName.trim(),
+      pinCode: pinCode.trim(),
     })
     if (ok) setCurrentStep(6)
   }
@@ -1521,13 +1554,24 @@ export default function OnboardingPage() {
                   />
 
                   <Field label="Business / Company / Firm Name *" hint="Official registered name of your business/entity.">
-                    <TextInput
-                      required
-                      value={businessName}
-                      onChange={e => setBusinessName(e.target.value)}
-                      placeholder="e.g. Techstar Enterprises / Sharma Financial Services"
-                      className={INPUT}
-                    />
+                    <div className="space-y-1">
+                      <TextInput
+                        required
+                        readOnly={isGstRegistered === "Yes" && gstValid && Boolean(businessName)}
+                        value={businessName}
+                        onChange={e => setBusinessName(e.target.value)}
+                        placeholder="e.g. Techstar Enterprises / Sharma Financial Services"
+                        className={cn(
+                          INPUT,
+                          isGstRegistered === "Yes" && gstValid && Boolean(businessName) && "bg-admin-surface-2 cursor-default font-semibold text-admin-text"
+                        )}
+                      />
+                      {isGstRegistered === "Yes" && gstValid && Boolean(businessName) && (
+                        <p className="text-admin-2xs text-tone-success-fg font-semibold flex items-center gap-1 mt-1">
+                          <CheckCircle2 size={12} /> Auto-fetched from verified GSTIN: <strong className="font-mono">{gstin}</strong>
+                        </p>
+                      )}
+                    </div>
                   </Field>
                 </>
               )}
@@ -1642,16 +1686,132 @@ export default function OnboardingPage() {
             </form>
           )}
 
-          {/* ── STEP 4: OFFICE ADDRESS ── */}
+          {/* ── STEP 4: GST REGISTRATION ── */}
           {currentStep === 4 && (
             <form onSubmit={handleStep4Submit} className="space-y-5" noValidate>
+              <StepHeader
+                title="GST registration"
+                description="Whether your business is registered under GST."
+              />
+
+              <ChoiceGroup
+                label="Is your business GST registered?"
+                value={isGstRegistered}
+                options={YES_NO}
+                onChange={opt => {
+                  setIsGstRegistered(opt)
+                  if (opt === "No") {
+                    setGstin("")
+                    setGstValid(false)
+                    setGstDetails(null)
+                  }
+                }}
+              />
+
+              {isGstRegistered === "Yes" && (
+                <div className="space-y-4">
+                  <Field label="GST number (GSTIN)">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <TextInput
+                        maxLength={15}
+                        value={gstin}
+                        onChange={e => {
+                          setGstin(e.target.value.toUpperCase())
+                          setGstValid(false)
+                          setGstDetails(null)
+                        }}
+                        placeholder="e.g. 27ABCDE1234F1Z5"
+                        aria-describedby="gst-status"
+                        className={cn(INPUT, "flex-1 admin-num uppercase tracking-wide")}
+                      />
+                      <AdminButton
+                        type="button"
+                        onClick={handleVerifyGst}
+                        loading={gstVerifying}
+                        disabled={gstVerifying || gstin.trim().length !== 15}
+                      >
+                        {gstValid ? "Re-verify GST" : "Verify GST"}
+                      </AdminButton>
+                    </div>
+                  </Field>
+
+                  {/* ── Verified GST Profile Card ── */}
+                  {gstValid && gstDetails && (
+                    <div className="rounded-admin border border-tone-success-bd bg-tone-success-bg/40 p-4 space-y-3 animate-in fade-in duration-300">
+                      <div className="flex items-center justify-between border-b border-tone-success-bd/40 pb-2.5">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 size={16} className="text-tone-success-fg shrink-0" />
+                          <span className="text-admin-xs font-bold text-tone-success-fg uppercase tracking-wider">
+                            Verified GST Profile
+                          </span>
+                        </div>
+                        <span className="px-2.5 py-0.5 rounded-full text-admin-2xs font-bold uppercase bg-tone-success text-tone-success-fg border border-tone-success-bd">
+                          {gstDetails.status || "Active"}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-admin-xs">
+                        <div>
+                          <p className="text-admin-subtle font-medium text-admin-2xs">Legal Business Name</p>
+                          <p className="font-bold text-admin-text mt-0.5">{gstDetails.legalName || "N/A"}</p>
+                        </div>
+                        {gstDetails.tradeName && (
+                          <div>
+                            <p className="text-admin-subtle font-medium text-admin-2xs">Trade Name</p>
+                            <p className="font-semibold text-admin-text mt-0.5">{gstDetails.tradeName}</p>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-admin-subtle font-medium text-admin-2xs">Constitution of Business</p>
+                          <p className="font-semibold text-admin-text mt-0.5">{gstDetails.constitution || "N/A"}</p>
+                        </div>
+                        <div>
+                          <p className="text-admin-subtle font-medium text-admin-2xs">Taxpayer Type / Reg Date</p>
+                          <p className="font-semibold text-admin-text mt-0.5">
+                            {gstDetails.taxpayerType || "Regular"} {gstDetails.regDate ? `• ${gstDetails.regDate}` : ""}
+                          </p>
+                        </div>
+                        {gstDetails.address && (
+                          <div className="sm:col-span-2 pt-1 border-t border-tone-success-bd/30">
+                            <p className="text-admin-subtle font-medium text-admin-2xs">Registered Place of Business (Auto-copied to Office Address)</p>
+                            <p className="font-normal text-admin-text mt-0.5 text-admin-2xs leading-relaxed">
+                              {gstDetails.address}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <StepNav
+                onBack={back(3)}
+                loading={savingStep}
+                disabled={savingStep || (isGstRegistered === "Yes" && !gstValid)}
+              />
+            </form>
+          )}
+
+          {/* ── STEP 5: OFFICE ADDRESS ── */}
+          {currentStep === 5 && (
+            <form onSubmit={handleStep5Submit} className="space-y-5" noValidate>
               <StepHeader
                 title="Office address"
                 description="Official operating address of your business."
               />
 
+              {isGstRegistered === "Yes" && gstValid && (
+                <div className="p-3 bg-tone-success-bg/40 border border-tone-success-bd/60 rounded-admin flex items-center justify-between text-admin-xs text-tone-success-fg animate-in fade-in">
+                  <span className="flex items-center gap-1.5 font-bold">
+                    <CheckCircle2 size={15} /> Address auto-fetched from GSTIN: <strong className="font-mono">{gstin}</strong>
+                  </span>
+                  <span className="text-admin-2xs text-admin-muted font-medium">Verify or edit if needed</span>
+                </div>
+              )}
+
               <FieldGrid>
-                {/* Address Line 1 & Line 2 upper than PIN code */}
+                {/* Address Line 1 & Line 2 */}
                 <Field label="Address line 1 (shop / office no, building)" className="sm:col-span-2">
                   <TextInput
                     required
@@ -1753,114 +1913,7 @@ export default function OnboardingPage() {
                 </Field>
               </FieldGrid>
 
-              <StepNav onBack={back(3)} loading={savingStep} disabled={savingStep} />
-            </form>
-          )}
-
-          {/* ── STEP 5: GST ── */}
-          {currentStep === 5 && (
-            <form onSubmit={handleStep5Submit} className="space-y-5" noValidate>
-              <StepHeader
-                title="GST registration"
-                description="Whether your business is registered under GST."
-              />
-
-              <ChoiceGroup
-                label="Is your business GST registered?"
-                value={isGstRegistered}
-                options={YES_NO}
-                onChange={opt => {
-                  setIsGstRegistered(opt)
-                  if (opt === "No") {
-                    setGstin("")
-                    setGstValid(false)
-                    setGstDetails(null)
-                  }
-                }}
-              />
-
-              {isGstRegistered === "Yes" && (
-                <div className="space-y-4">
-                  <Field label="GST number (GSTIN)">
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <TextInput
-                        maxLength={15}
-                        value={gstin}
-                        onChange={e => {
-                          setGstin(e.target.value.toUpperCase())
-                          setGstValid(false)
-                          setGstDetails(null)
-                        }}
-                        placeholder="e.g. 27ABCDE1234F1Z5"
-                        aria-describedby="gst-status"
-                        className={cn(INPUT, "flex-1 admin-num uppercase tracking-wide")}
-                      />
-                      <AdminButton
-                        type="button"
-                        onClick={handleVerifyGst}
-                        loading={gstVerifying}
-                        disabled={gstVerifying || gstin.trim().length !== 15}
-                      >
-                        {gstValid ? "Re-verify GST" : "Verify GST"}
-                      </AdminButton>
-                    </div>
-                  </Field>
-
-                  {/* ── Verified GST Profile Card ── */}
-                  {gstValid && gstDetails && (
-                    <div className="rounded-admin border border-tone-success-bd bg-tone-success-bg/40 p-4 space-y-3 animate-in fade-in duration-300">
-                      <div className="flex items-center justify-between border-b border-tone-success-bd/40 pb-2.5">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 size={16} className="text-tone-success-fg shrink-0" />
-                          <span className="text-admin-xs font-bold text-tone-success-fg uppercase tracking-wider">
-                            Verified GST Profile
-                          </span>
-                        </div>
-                        <span className="px-2.5 py-0.5 rounded-full text-admin-2xs font-bold uppercase bg-tone-success text-tone-success-fg border border-tone-success-bd">
-                          {gstDetails.status || "Active"}
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-admin-xs">
-                        <div>
-                          <p className="text-admin-subtle font-medium text-admin-2xs">Legal Business Name</p>
-                          <p className="font-bold text-admin-text mt-0.5">{gstDetails.legalName || "N/A"}</p>
-                        </div>
-                        {gstDetails.tradeName && (
-                          <div>
-                            <p className="text-admin-subtle font-medium text-admin-2xs">Trade Name</p>
-                            <p className="font-semibold text-admin-text mt-0.5">{gstDetails.tradeName}</p>
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-admin-subtle font-medium text-admin-2xs">Constitution of Business</p>
-                          <p className="font-semibold text-admin-text mt-0.5">{gstDetails.constitution || "N/A"}</p>
-                        </div>
-                        <div>
-                          <p className="text-admin-subtle font-medium text-admin-2xs">Taxpayer Type / Reg Date</p>
-                          <p className="font-semibold text-admin-text mt-0.5">
-                            {gstDetails.taxpayerType || "Regular"} {gstDetails.regDate ? `• ${gstDetails.regDate}` : ""}
-                          </p>
-                        </div>
-                        {gstDetails.address && (
-                          <div className="sm:col-span-2 pt-1 border-t border-tone-success-bd/30">
-                            <p className="text-admin-subtle font-medium text-admin-2xs">Registered Place of Business</p>
-                            <p className="font-normal text-admin-text mt-0.5 text-admin-2xs leading-relaxed">
-                              {gstDetails.address}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <StepNav
-                onBack={back(4)}
-                loading={savingStep}
-                disabled={savingStep || (isGstRegistered === "Yes" && !gstValid)}
-              />
+              <StepNav onBack={back(4)} loading={savingStep} disabled={savingStep} />
             </form>
           )}
 
@@ -2269,15 +2322,7 @@ export default function OnboardingPage() {
                   </p>
                 </ReviewRow>
 
-                <ReviewRow index={4} label="Office address" onEdit={back(4)}>
-                  <p className="text-admin-xs text-admin-muted leading-relaxed">
-                    {addressLine1}
-                    {addressLine2 ? `, ${addressLine2}` : ""}, {city}, {district}, {stateName} -{" "}
-                    {pinCode}
-                  </p>
-                </ReviewRow>
-
-                <ReviewRow index={5} label="GST registration" onEdit={back(5)}>
+                <ReviewRow index={4} label="GST registration" onEdit={back(4)}>
                   <p className="text-admin-sm text-admin-text">
                     {isGstRegistered === "Yes" ? (
                       <>
@@ -2291,6 +2336,14 @@ export default function OnboardingPage() {
                     ) : (
                       "Not GST registered"
                     )}
+                  </p>
+                </ReviewRow>
+
+                <ReviewRow index={5} label="Office address" onEdit={back(5)}>
+                  <p className="text-admin-xs text-admin-muted leading-relaxed">
+                    {addressLine1}
+                    {addressLine2 ? `, ${addressLine2}` : ""}, {city}, {district}, {stateName} -{" "}
+                    {pinCode}
                   </p>
                 </ReviewRow>
 
