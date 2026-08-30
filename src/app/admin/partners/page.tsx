@@ -362,9 +362,9 @@ export default function PartnersPage() {
         id: "disbursed",
         header: "Disbursed",
         card: "meta",
-        sortValue: p => stats[p.id]?.volume ?? 0,
+        sortValue: p => stats?.[p?.id || p?.mobileNumber]?.volume ?? 0,
         cell: p => {
-          const s = stats[p.id]
+          const s = stats?.[p?.id || p?.mobileNumber]
           if (!s || s.disbursed === 0) return <span className="text-admin-subtle">—</span>
           return (
             <span className="admin-num text-admin-text font-medium">{formatINRShort(s.volume)}</span>
@@ -444,7 +444,7 @@ export default function PartnersPage() {
           <DataTable
             columns={columns}
             rows={filtered}
-            getRowId={partner => partner.id || partner.mobileNumber}
+            getRowId={partner => String(partner?.id || partner?.mobileNumber || Math.random())}
             loading={loading}
             onRowClick={partner => {
               setSelected(partner)
