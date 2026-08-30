@@ -191,7 +191,11 @@ export default function PartnerWallet() {
                 {formatINR(walletBalance)}
               </p>
               <p className="text-admin-2xs text-admin-muted mt-1">
-                Available for instant customer credit checks (₹50) &amp; reports (₹149).
+                Reserved for customer credit inquiries (₹50) &amp; bureau reports (₹149).
+              </p>
+              <p className="text-[10px] text-admin-subtle mt-1 font-semibold flex items-center gap-1">
+                <ShieldCheck size={11} className="text-tone-success-fg shrink-0" />
+                <span>Non-transferable utility balance (cannot be withdrawn to bank)</span>
               </p>
             </div>
           </div>

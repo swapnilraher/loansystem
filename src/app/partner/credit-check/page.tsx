@@ -24,7 +24,9 @@ import {
   ExternalLink,
   Zap,
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  Lock,
+  Info
 } from "lucide-react"
 
 import { 
@@ -53,11 +55,14 @@ export default function PartnerCreditCheckPage() {
 
   // Customer Input Form
   const [formData, setFormData] = useState({
-    customerName: "",
+    firstName: "",
+    lastName: "",
     customerMobile: "",
     customerPan: "",
     customerDob: "",
+    customerGender: "Male",
     customerPincode: "",
+    customerConsent: false, // Mandatory Checkbox
   })
 
   const [loading, setLoading] = useState(false)
@@ -71,15 +76,10 @@ export default function PartnerCreditCheckPage() {
   useEffect(() => {
     if (!user) return
 
-    // 1. Listen to user wallet balance
-    const userDocRef = collection(db, "users")
-    const qUser = query(userDocRef, where("mobileNumber", "==", profile?.mobileNumber || user.uid))
-    
     if (profile?.walletBalance !== undefined) {
       setWalletBalance(Number(profile.walletBalance) || 0)
     }
 
-    // 2. Listen to past credit reports
     const qReports = query(
       collection(db, "credit_reports"),
       where("partnerId", "==", user.uid)
@@ -104,17 +104,33 @@ export default function PartnerCreditCheckPage() {
     e.preventDefault()
     setError(null)
 
+    if (!formData.firstName.trim()) {
+      setError("Please enter customer First Name.")
+      return
+    }
+    if (!formData.lastName.trim()) {
+      setError("Please enter customer Last Name.")
+      return
+    }
+    if (!formData.customerDob) {
+      setError("Please enter customer Date of Birth (DOB).")
+      return
+    }
+    if (formData.customerPan.trim().length !== 10) {
+      setError("Please enter a valid 10-character PAN number (e.g. ABCDE1234F).")
+      return
+    }
     if (formData.customerMobile.length !== 10) {
       setError("Please enter a valid 10-digit customer mobile number.")
       return
     }
-    if (formData.customerPan.length !== 10) {
-      setError("Please enter a valid 10-character PAN number.")
+    if (!formData.customerConsent) {
+      setError("You must tick the Customer Consent confirmation box to proceed under CICRA regulations.")
       return
     }
 
     if (walletBalance < currentPrice) {
-      setError(`Insufficient wallet balance. You need ₹${currentPrice}, but currently have ₹${walletBalance}.`)
+      setError(`Insufficient prepaid wallet balance. Required: ₹${currentPrice}, Available: ₹${walletBalance}.`)
       setTopUpModalOpen(true)
       return
     }
@@ -129,11 +145,15 @@ export default function PartnerCreditCheckPage() {
         body: JSON.stringify({
           partnerId: user?.uid,
           partnerMobile: profile?.mobileNumber,
-          customerName: formData.customerName.trim(),
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
+          customerName: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
           customerMobile: formData.customerMobile.trim(),
           customerPan: formData.customerPan.trim().toUpperCase(),
           customerDob: formData.customerDob,
-          customerPincode: formData.customerPincode,
+          customerGender: formData.customerGender,
+          customerPincode: formData.customerPincode.trim(),
+          customerConsent: formData.customerConsent,
           checkType,
           bureau,
         }),
@@ -170,7 +190,7 @@ export default function PartnerCreditCheckPage() {
               Customer Credit Bureau Check
             </h1>
             <span className="px-2 py-0.5 rounded-full text-admin-2xs font-extrabold uppercase tracking-wide bg-admin-accent-soft text-admin-accent border border-admin-accent/20">
-              Live Bureau Gateway
+              CICRA Compliant
             </span>
           </div>
           <p className="text-admin-xs text-admin-muted mt-0.5">
@@ -183,7 +203,7 @@ export default function PartnerCreditCheckPage() {
           <div className="px-3.5 py-2 rounded-admin bg-admin-surface border border-admin-border flex items-center gap-2 shadow-2xs">
             <Wallet size={16} className="text-admin-accent shrink-0" />
             <div className="text-left">
-              <p className="text-admin-2xs text-admin-muted uppercase font-bold leading-none">Wallet Balance</p>
+              <p className="text-admin-2xs text-admin-muted uppercase font-bold leading-none">Prepaid Utility Balance</p>
               <p className="text-admin-sm font-bold font-mono text-admin-text admin-num mt-0.5">
                 {formatINR(walletBalance)}
               </p>
@@ -199,6 +219,14 @@ export default function PartnerCreditCheckPage() {
             Top Up Wallet
           </AdminButton>
         </div>
+      </div>
+
+      {/* ── Non-Transferable Balance Protection Banner ── */}
+      <div className="p-3 bg-admin-surface-2 rounded-admin border border-admin-border flex items-start gap-2.5 text-admin-xs text-admin-muted">
+        <Lock size={15} className="text-admin-accent shrink-0 mt-0.5" />
+        <p className="leading-relaxed">
+          <strong className="text-admin-text">Prepaid Utility Protection:</strong> Funds added to the partner wallet are dedicated strictly for credit bureau inquiries and cannot be transferred/withdrawn to personal bank accounts. Sourcing commission earnings are separate and settled to your bank automatically.
+        </p>
       </div>
 
       {/* ── Check Tier Selection (2 Options: ₹50 vs ₹149) ── */}
@@ -276,7 +304,7 @@ export default function PartnerCreditCheckPage() {
           className="lg:col-span-5 bg-admin-surface rounded-admin border border-admin-border p-5 sm:p-6 shadow-sm space-y-4"
         >
           <div className="flex items-center justify-between pb-3 border-b border-admin-border">
-            <h3 className="text-admin-sm font-bold text-admin-text">Customer Inquiry Form</h3>
+            <h3 className="text-admin-sm font-bold text-admin-text">Customer Details &amp; Consent</h3>
             <span className="text-admin-2xs font-mono font-bold text-admin-accent admin-num">
               Fee: ₹{currentPrice}
             </span>
@@ -322,44 +350,76 @@ export default function PartnerCreditCheckPage() {
             </div>
           </div>
 
-          {/* Customer Name */}
-          <div className="space-y-1">
-            <label className="text-admin-2xs font-bold text-admin-muted uppercase tracking-wider">
-              Customer Full Name <span className="text-tone-danger-fg">*</span>
-            </label>
-            <div className="relative">
-              <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-admin-muted" />
-              <input
-                type="text"
-                required
-                placeholder="As on PAN card"
-                value={formData.customerName}
-                onChange={e => setFormData({ ...formData, customerName: e.target.value })}
-                className="w-full pl-9 pr-3 py-2 bg-admin-surface-2 border border-admin-border rounded-admin text-admin-xs font-semibold text-admin-text focus:outline-none focus:border-admin-accent"
-              />
-            </div>
-          </div>
-
-          {/* Mobile & PAN */}
+          {/* First Name & Last Name */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-admin-2xs font-bold text-admin-muted uppercase tracking-wider">
-                Mobile Number <span className="text-tone-danger-fg">*</span>
+                First Name <span className="text-tone-danger-fg">*</span>
               </label>
               <div className="relative">
-                <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-admin-muted" />
+                <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-admin-muted" />
                 <input
-                  type="tel"
+                  type="text"
                   required
-                  maxLength={10}
-                  placeholder="9876543210"
-                  value={formData.customerMobile}
-                  onChange={e => setFormData({ ...formData, customerMobile: e.target.value.replace(/\D/g, "") })}
-                  className="w-full pl-9 pr-3 py-2 bg-admin-surface-2 border border-admin-border rounded-admin text-admin-xs font-mono font-bold text-admin-text focus:outline-none focus:border-admin-accent admin-num"
+                  placeholder="e.g. Ramesh"
+                  value={formData.firstName}
+                  onChange={e => setFormData({ ...formData, firstName: e.target.value })}
+                  className="w-full pl-9 pr-3 py-2 bg-admin-surface-2 border border-admin-border rounded-admin text-admin-xs font-semibold text-admin-text focus:outline-none focus:border-admin-accent"
                 />
               </div>
             </div>
 
+            <div className="space-y-1">
+              <label className="text-admin-2xs font-bold text-admin-muted uppercase tracking-wider">
+                Last Name <span className="text-tone-danger-fg">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Sharma"
+                value={formData.lastName}
+                onChange={e => setFormData({ ...formData, lastName: e.target.value })}
+                className="w-full px-3 py-2 bg-admin-surface-2 border border-admin-border rounded-admin text-admin-xs font-semibold text-admin-text focus:outline-none focus:border-admin-accent"
+              />
+            </div>
+          </div>
+
+          {/* DOB & Gender */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-admin-2xs font-bold text-admin-muted uppercase tracking-wider">
+                Date of Birth (DOB) <span className="text-tone-danger-fg">*</span>
+              </label>
+              <div className="relative">
+                <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-admin-muted pointer-events-none" />
+                <input
+                  type="date"
+                  required
+                  value={formData.customerDob}
+                  onChange={e => setFormData({ ...formData, customerDob: e.target.value })}
+                  className="w-full pl-9 pr-3 py-2 bg-admin-surface-2 border border-admin-border rounded-admin text-admin-xs font-medium text-admin-text focus:outline-none focus:border-admin-accent"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-admin-2xs font-bold text-admin-muted uppercase tracking-wider">
+                Gender <span className="text-tone-danger-fg">*</span>
+              </label>
+              <select
+                value={formData.customerGender}
+                onChange={e => setFormData({ ...formData, customerGender: e.target.value })}
+                className="w-full px-3 py-2 bg-admin-surface-2 border border-admin-border rounded-admin text-admin-xs font-semibold text-admin-text focus:outline-none focus:border-admin-accent"
+              >
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other / Transgender</option>
+              </select>
+            </div>
+          </div>
+
+          {/* PAN & Mobile */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-admin-2xs font-bold text-admin-muted uppercase tracking-wider">
                 PAN Number <span className="text-tone-danger-fg">*</span>
@@ -377,35 +437,58 @@ export default function PartnerCreditCheckPage() {
                 />
               </div>
             </div>
+
+            <div className="space-y-1">
+              <label className="text-admin-2xs font-bold text-admin-muted uppercase tracking-wider">
+                Mobile Number <span className="text-tone-danger-fg">*</span>
+              </label>
+              <div className="relative">
+                <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-admin-muted" />
+                <input
+                  type="tel"
+                  required
+                  maxLength={10}
+                  placeholder="9876543210"
+                  value={formData.customerMobile}
+                  onChange={e => setFormData({ ...formData, customerMobile: e.target.value.replace(/\D/g, "") })}
+                  className="w-full pl-9 pr-3 py-2 bg-admin-surface-2 border border-admin-border rounded-admin text-admin-xs font-mono font-bold text-admin-text focus:outline-none focus:border-admin-accent admin-num"
+                />
+              </div>
+            </div>
           </div>
 
-          {/* DOB & PIN */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-admin-2xs font-bold text-admin-muted uppercase tracking-wider">
-                Date of Birth (Optional)
-              </label>
-              <input
-                type="date"
-                value={formData.customerDob}
-                onChange={e => setFormData({ ...formData, customerDob: e.target.value })}
-                className="w-full px-3 py-2 bg-admin-surface-2 border border-admin-border rounded-admin text-admin-xs font-medium text-admin-text focus:outline-none focus:border-admin-accent"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-admin-2xs font-bold text-admin-muted uppercase tracking-wider">
-                PIN Code (Optional)
-              </label>
+          {/* PIN Code */}
+          <div className="space-y-1">
+            <label className="text-admin-2xs font-bold text-admin-muted uppercase tracking-wider">
+              PIN Code (Optional)
+            </label>
+            <div className="relative">
+              <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-admin-muted" />
               <input
                 type="text"
                 maxLength={6}
                 placeholder="e.g. 411001"
                 value={formData.customerPincode}
                 onChange={e => setFormData({ ...formData, customerPincode: e.target.value.replace(/\D/g, "") })}
-                className="w-full px-3 py-2 bg-admin-surface-2 border border-admin-border rounded-admin text-admin-xs font-mono font-bold text-admin-text focus:outline-none focus:border-admin-accent admin-num"
+                className="w-full pl-9 pr-3 py-2 bg-admin-surface-2 border border-admin-border rounded-admin text-admin-xs font-mono font-bold text-admin-text focus:outline-none focus:border-admin-accent admin-num"
               />
             </div>
+          </div>
+
+          {/* ── MANDATORY CUSTOMER CONSENT TICK BOX ── */}
+          <div className="p-3.5 bg-admin-surface-2/80 rounded-admin border border-admin-border space-y-2">
+            <label className="flex items-start gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                required
+                checked={formData.customerConsent}
+                onChange={e => setFormData({ ...formData, customerConsent: e.target.checked })}
+                className="w-4 h-4 mt-0.5 rounded border-admin-border text-admin-accent focus:ring-admin-accent shrink-0 cursor-pointer"
+              />
+              <span className="text-admin-2xs text-admin-text font-medium leading-relaxed">
+                <strong className="text-admin-accent font-bold">Customer Consent Declaration:</strong> I hereby declare that I have received explicit authorization &amp; consent from the applicant ({formData.firstName || "Customer"} {formData.lastName}) to fetch their credit information report from {bureau === "CIBIL" ? "TransUnion CIBIL" : "Experian"} as per CICRA Act 2005.
+              </span>
+            </label>
           </div>
 
           {/* Action Button */}
@@ -413,6 +496,7 @@ export default function PartnerCreditCheckPage() {
             type="submit"
             variant="primary"
             size="lg"
+            disabled={!formData.customerConsent || loading}
             loading={loading}
             icon={Zap}
             className="w-full justify-center text-admin-xs font-bold mt-2"
@@ -421,7 +505,7 @@ export default function PartnerCreditCheckPage() {
           </AdminButton>
 
           <p className="text-admin-2xs text-admin-muted text-center leading-relaxed">
-            Fee of ₹{currentPrice} will be deducted from your partner wallet balance automatically.
+            Fee of ₹{currentPrice} will be deducted from your prepaid balance upon verification.
           </p>
         </form>
 
@@ -441,12 +525,12 @@ export default function PartnerCreditCheckPage() {
                     </span>
                   </div>
                   <p className="text-admin-2xs text-admin-muted font-mono admin-num">
-                    PAN: {activeReport.customerPan} • Mobile: {activeReport.customerMobile}
+                    PAN: {activeReport.customerPan} • DOB: {activeReport.customerDob || "—"} • Mobile: {activeReport.customerMobile}
                   </p>
                 </div>
 
                 <div className="text-right">
-                  <span className="text-admin-2xs text-admin-muted">Inquiry Date:</span>
+                  <span className="text-admin-2xs text-admin-muted">Inquiry Timestamp:</span>
                   <p className="text-admin-xs font-bold font-mono text-admin-text admin-num">
                     {new Date(activeReport.reportDate).toLocaleDateString("en-IN")}
                   </p>
@@ -511,18 +595,21 @@ export default function PartnerCreditCheckPage() {
                 </div>
               </div>
 
+              {/* Consent & Audit Trail Footer */}
+              <div className="p-3 bg-admin-surface-2/60 rounded-admin border border-admin-border text-admin-2xs text-admin-muted flex items-center justify-between">
+                <span>Consent Logged: <code className="font-mono text-admin-accent">{activeReport.consentIp || "127.0.0.1"}</code></span>
+                <span>Ref: <code className="font-mono text-admin-accent">{activeReport.id.slice(0, 8)}</code></span>
+              </div>
+
               {/* Action */}
-              <div className="flex items-center justify-between pt-2 border-t border-admin-border">
-                <span className="text-admin-2xs text-admin-muted">
-                  Official report ref: <code className="font-mono text-admin-accent">{activeReport.id.slice(0, 8)}</code>
-                </span>
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-admin-border">
                 <AdminButton
                   variant="secondary"
                   size="sm"
                   icon={Download}
                   onClick={() => window.print()}
                 >
-                  Print / Download Summary
+                  Print / Download Bureau File
                 </AdminButton>
               </div>
             </div>
@@ -536,7 +623,7 @@ export default function PartnerCreditCheckPage() {
                   Live Bureau Inquirer Ready
                 </h4>
                 <p className="text-admin-xs text-admin-muted max-w-sm mx-auto leading-relaxed">
-                  Enter customer details on the left and choose TransUnion CIBIL or Experian to generate instant credit score data.
+                  Enter First Name, Last Name, DOB, PAN, Mobile number and check the customer consent box to run TransUnion CIBIL or Experian inquiries.
                 </p>
               </div>
             </div>
@@ -576,10 +663,10 @@ export default function PartnerCreditCheckPage() {
                   </div>
                   <div>
                     <p className="font-bold text-admin-sm text-admin-text">
-                      {rep.customerName}
+                      {rep.customerName || `${rep.firstName || ""} ${rep.lastName || ""}`}
                     </p>
                     <p className="text-admin-2xs text-admin-muted font-mono admin-num">
-                      PAN: {rep.customerPan} • {rep.bureau} ({rep.checkType === "REPORT" ? "Report" : "Score"})
+                      PAN: {rep.customerPan} • DOB: {rep.customerDob || "—"} • {rep.bureau} ({rep.checkType === "REPORT" ? "Report" : "Score"})
                     </p>
                   </div>
                 </div>

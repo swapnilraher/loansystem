@@ -272,13 +272,16 @@ export default function WalletTopUpModal({
               )}
             </div>
 
-            {/* Use-case description */}
-            <div className="p-3 bg-admin-surface-2 rounded-admin border border-admin-border text-admin-2xs text-admin-muted space-y-1 leading-relaxed">
+            {/* Use-case description & Non-transferable balance protection */}
+            <div className="p-3 bg-admin-surface-2 rounded-admin border border-admin-border text-admin-2xs text-admin-muted space-y-1.5 leading-relaxed">
               <p className="font-semibold text-admin-text flex items-center gap-1">
-                <Zap size={12} className="text-amber-500" /> Wallet Balance Utility:
+                <Zap size={12} className="text-amber-500" /> Utility Balance (Non-Transferable to Bank):
               </p>
-              <p>• <strong>₹50</strong> per Customer Credit Score Check (CIBIL / Experian)</p>
-              <p>• <strong>₹149</strong> per Comprehensive Detailed Credit Bureau Report</p>
+              <p>• <strong>₹50</strong> / inquiry for Instant Credit Score Check (CIBIL / Experian)</p>
+              <p>• <strong>₹149</strong> / report for Comprehensive Credit Bureau Report</p>
+              <p className="text-admin-subtle pt-1 border-t border-admin-border/50 text-[10px]">
+                * Note: Recharged funds cannot be transferred or withdrawn to your bank account and are strictly reserved for partner utility checks.
+              </p>
             </div>
 
             {/* Pay Button */}
