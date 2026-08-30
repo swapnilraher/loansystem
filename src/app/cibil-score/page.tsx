@@ -219,13 +219,13 @@ export default function CibilScorePage() {
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center space-y-4 mb-12">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-warning/10 border border-warning/20 text-warning rounded-full text-xs font-black uppercase tracking-wider">
-              <TrendingUp size={14} /> Bureau Partner Check
+              <TrendingUp size={14} /> Bureau Check • Sandbox Beta Mode
             </div>
             <h1 className="text-4xl sm:text-5xl font-black text-secondary dark:text-white tracking-tight leading-none">
               Check Your Free <span className="text-transparent bg-clip-text bg-gradient-to-r from-warning to-amber-500 drop-shadow-xs italic">CIBIL Score</span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-bold max-w-lg mx-auto">
-              Get an instant credit health analysis from official credit bureaus. Totally secure, encrypted, and has 0% impact on your credit history.
+              Get an instant credit health analysis. Totally secure, encrypted, and has 0% impact on your credit history.
             </p>
           </div>
 
@@ -242,6 +242,14 @@ export default function CibilScorePage() {
                   className="bg-white dark:bg-slate-900 border border-slate-150/80 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl"
                 >
                   <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Sandbox Beta Notice */}
+                    <div className="p-3.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 text-amber-800 dark:text-amber-300 rounded-2xl flex items-start gap-2.5 text-xs font-semibold">
+                      <Zap className="shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" size={15} />
+                      <p className="leading-relaxed text-[11px]">
+                        <strong>Beta Testing &amp; Feature Preview:</strong> This tool is currently in <strong>Sandbox Beta Mode</strong>. You can test the verification workflow and preview sample bureau credit analytics safely with zero impact on credit scores.
+                      </p>
+                    </div>
+
                     {error && (
                       <div className="p-4 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 text-rose-600 dark:text-rose-450 rounded-2xl flex items-start gap-3 text-xs font-semibold">
                         <AlertCircle className="shrink-0 mt-0.5" size={16} />

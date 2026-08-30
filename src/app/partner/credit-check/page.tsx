@@ -26,7 +26,8 @@ import {
   Sparkles,
   ChevronRight,
   Lock,
-  Info
+  Info,
+  FlaskConical
 } from "lucide-react"
 
 import { 
@@ -185,12 +186,15 @@ export default function PartnerCreditCheckPage() {
       {/* ── Top Header with Live Wallet Chip & Top-up ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-admin-border">
         <div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <h1 className="text-admin-xl font-bold tracking-tight text-admin-text">
               Customer Credit Bureau Check
             </h1>
             <span className="px-2 py-0.5 rounded-full text-admin-2xs font-extrabold uppercase tracking-wide bg-admin-accent-soft text-admin-accent border border-admin-accent/20">
               CICRA Compliant
+            </span>
+            <span className="px-2 py-0.5 rounded-full text-admin-2xs font-extrabold uppercase tracking-wide bg-tone-warn-bg text-tone-warn-fg border border-tone-warn-bd flex items-center gap-1">
+              <FlaskConical size={11} /> Sandbox Beta Testing
             </span>
           </div>
           <p className="text-admin-xs text-admin-muted mt-0.5">
@@ -219,6 +223,14 @@ export default function PartnerCreditCheckPage() {
             Top Up Wallet
           </AdminButton>
         </div>
+      </div>
+
+      {/* ── Sandbox / Beta Testing Notice Banner ── */}
+      <div className="p-3 bg-tone-warn-bg/40 rounded-admin border border-tone-warn-bd/60 flex items-start gap-2.5 text-admin-xs text-tone-warn-fg">
+        <FlaskConical size={16} className="text-tone-warn-fg shrink-0 mt-0.5" />
+        <p className="leading-relaxed">
+          <strong>Testing &amp; Feature Preview Mode:</strong> This credit bureau check system is currently running in <strong>Sandbox Beta Simulation</strong> mode. Partners can preview and test the complete inquiry flow, customer consent verification, and credit score analytics without affecting customer credit histories.
+        </p>
       </div>
 
       {/* ── Check Tier Selection (2 Options: ₹50 vs ₹149) ── */}
@@ -508,12 +520,15 @@ export default function PartnerCreditCheckPage() {
               {/* Header */}
               <div className="flex items-center justify-between pb-3 border-b border-admin-border">
                 <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold text-admin-sm text-admin-text">
                       {activeReport.customerName}
                     </span>
                     <span className="px-2 py-0.5 rounded-full text-admin-2xs font-bold uppercase bg-tone-success-bg text-tone-success-fg border border-tone-success-bd">
                       {activeReport.bureau} Verified
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-admin-2xs font-bold uppercase bg-tone-warn-bg text-tone-warn-fg border border-tone-warn-bd flex items-center gap-1">
+                      <FlaskConical size={10} /> Sandbox Test
                     </span>
                   </div>
                   <p className="text-admin-2xs text-admin-muted font-mono admin-num">
