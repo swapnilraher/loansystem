@@ -365,10 +365,15 @@ export default function OnboardingPage() {
           setAadhaarFrontDoc(app.documents.aadhaarDoc)
           setAadhaarCombined(true)
         }
-        if (app.documents?.panDoc) setPanDoc(app.documents.panDoc)
         if (app.bankVerifyAttempts) setBankVerifyAttempts(app.bankVerifyAttempts)
         if (app.bankDetails) {
-          setAccountHolderName(app.bankDetails.accountHolderName || "")
+          if (app.bankDetails.verified && app.bankDetails.accountHolderName) {
+            setAccountHolderName(app.bankDetails.accountHolderName)
+            setBankVerified(true)
+          } else {
+            setAccountHolderName("")
+            setBankVerified(false)
+          }
           setAccountNumber(app.bankDetails.accountNumber || "")
           setConfirmAccountNumber(app.bankDetails.accountNumber || "")
           setIfscCode(app.bankDetails.ifsc || "")
@@ -376,7 +381,6 @@ export default function OnboardingPage() {
           setBranchName(app.bankDetails.branchName || "")
           setAccountType(app.bankDetails.accountType || "Savings")
           if (app.bankDetails.ifsc) setIfscValid(true)
-          if (app.bankDetails.verified) setBankVerified(true)
           if (app.bankDetails.verifiedAccountName) setReturnedBankName(app.bankDetails.verifiedAccountName)
           if (app.bankDetails.nameMatchScore) setBankMatchScore(app.bankDetails.nameMatchScore)
         }
@@ -888,33 +892,43 @@ export default function OnboardingPage() {
       const data = await res.json()
       console.log("Sandbox Bank Verification Response:", data)
 
-      const returnedName = data?.data?.full_name || data?.full_name || data?.data?.account_name || ""
-      const accountExists = Boolean(data?.data?.account_exists ?? true)
+      const returnedName =
+        data?.data?.full_name ||
+        data?.full_name ||
+        data?.data?.account_name ||
+        data?.account_name ||
+        data?.data?.name ||
+        ""
 
       const nextAttempts = bankVerifyAttempts + 1
       setBankVerifyAttempts(nextAttempts)
 
-      if (!res.ok || data.code !== 200 || !accountExists || !returnedName) {
+      if (!res.ok || (data.code && data.code !== 200) || !returnedName) {
         setBankVerified(false)
-        throw new Error(data.message || data.error || "Bank account verification failed. Please check Account Number and IFSC Code.")
+        setAccountHolderName("")
+        const apiError = data?.message || data?.data?.remarks || data?.error || "Bank account verification failed. Please check Account Number and IFSC Code."
+        throw new Error(apiError)
       }
 
-      // Auto-populate fetched Account Holder Name from Bank API!
+      // Auto-populate fetched Account Holder Name from Bank API
       setAccountHolderName(returnedName)
       setReturnedBankName(returnedName)
 
-      // Calculate Name Match Score (Minimum 50% Match Required)
+      // Target Name for Match Comparison:
+      // - Savings Account: Applicant Name (contactPersonName || fullName)
+      // - Current Account: Business / Firm Name (businessName || fullName)
       const targetName = accountType === "Savings"
         ? (contactPersonName.trim() || fullName.trim())
         : (businessName.trim() || contactPersonName.trim() || fullName.trim())
 
+      // Calculate Name Match Score (Minimum 50% Match Required)
       const matchScore = calculateNameMatchScore(returnedName, targetName)
       setBankMatchScore(matchScore)
 
       if (matchScore < 50) {
         setBankVerified(false)
         setStepError(
-          `Bank Account Name mismatch: Bank returned '${returnedName}', which matches only ${matchScore}% with your ${accountType === "Savings" ? "Applicant Name" : "Business Name"} ('${targetName}'). Minimum 50% match is required. (Attempt ${nextAttempts}/3).`
+          `Bank Account Name Mismatch: Bank returned '${returnedName}', which matches only ${matchScore}% with your ${accountType === "Savings" ? "Applicant Name" : "Business Name"} ('${targetName}'). Minimum 50% match is required. (Attempt ${nextAttempts}/3).`
         )
         return
       }
@@ -924,6 +938,7 @@ export default function OnboardingPage() {
       setStepError(null)
     } catch (err: any) {
       setBankVerified(false)
+      setAccountHolderName("")
       setStepError(messageFor(err, "Bank account verification failed. Please check Account Number and IFSC Code."))
     } finally {
       setBankVerifying(false)
@@ -1912,7 +1927,7 @@ export default function OnboardingPage() {
                   </Select>
                 </Field>
 
-                <Field label="Account Holder Name (Fetched from Bank)" hint="Click 'Verify Account Holder' button to fetch official name from Bank API." className="sm:col-span-2">
+                <Field label="Account Holder Name (Fetched from Bank)" hint="Click 'Verify Account Holder' button to fetch official name from Bank." className="sm:col-span-2">
                   <div className="flex flex-col sm:flex-row gap-2">
                     <TextInput
                       readOnly
