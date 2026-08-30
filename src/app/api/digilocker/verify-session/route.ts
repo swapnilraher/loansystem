@@ -13,23 +13,48 @@ export async function POST(request: Request) {
     const protocol = host.includes("localhost") ? "http" : "https";
     const baseUrl = `${protocol}://${host}`;
 
-    // 1. Fetch documents list from DigiLocker via Sandbox API
-    const docsRes = await fetch(`${baseUrl}/api/sandbox`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "get-digilocker-documents",
-        payload: { session_id: sessionId }
-      })
-    });
-
-    const docsData = await docsRes.json();
-    console.log("DigiLocker fetched documents response:", JSON.stringify(docsData));
-
-    // 2. Fetch e-Aadhaar & PAN details if available
+    let statusData: any = null;
+    let docsData: any = null;
     let aadhaarDetails: any = null;
     let panDetails: any = null;
+    let fetchAadhaarDoc: any = null;
+    let fetchPanDoc: any = null;
 
+    // 1. Fetch Session Status
+    try {
+      const statusRes = await fetch(`${baseUrl}/api/sandbox`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "get-digilocker-status",
+          payload: { session_id: sessionId }
+        })
+      });
+      if (statusRes.ok) {
+        statusData = await statusRes.json();
+      }
+    } catch (e) {
+      console.warn("Could not fetch DigiLocker session status:", e);
+    }
+
+    // 2. Fetch Issued Documents List
+    try {
+      const docsRes = await fetch(`${baseUrl}/api/sandbox`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "get-digilocker-documents",
+          payload: { session_id: sessionId }
+        })
+      });
+      if (docsRes.ok) {
+        docsData = await docsRes.json();
+      }
+    } catch (e) {
+      console.warn("Could not fetch DigiLocker documents list:", e);
+    }
+
+    // 3. Fetch e-Aadhaar
     try {
       const eaadhaarRes = await fetch(`${baseUrl}/api/sandbox`, {
         method: "POST",
@@ -46,6 +71,7 @@ export async function POST(request: Request) {
       console.warn("Could not fetch eAadhaar:", e);
     }
 
+    // 4. Fetch PAN
     try {
       const panRes = await fetch(`${baseUrl}/api/sandbox`, {
         method: "POST",
@@ -62,7 +88,43 @@ export async function POST(request: Request) {
       console.warn("Could not fetch DigiLocker PAN:", e);
     }
 
+    // 5. Try fetching document URLs directly via documents/{doc_type}
+    try {
+      const fetchAadhaarRes = await fetch(`${baseUrl}/api/sandbox`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "get-digilocker-fetch-document",
+          payload: { session_id: sessionId, doc_type: "aadhaar" }
+        })
+      });
+      if (fetchAadhaarRes.ok) {
+        fetchAadhaarDoc = await fetchAadhaarRes.json();
+      }
+    } catch (e) {
+      console.warn("Fetch document aadhaar failed:", e);
+    }
+
+    try {
+      const fetchPanRes = await fetch(`${baseUrl}/api/sandbox`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "get-digilocker-fetch-document",
+          payload: { session_id: sessionId, doc_type: "pan" }
+        })
+      });
+      if (fetchPanRes.ok) {
+        fetchPanDoc = await fetchPanRes.json();
+      }
+    } catch (e) {
+      console.warn("Fetch document pan failed:", e);
+    }
+
     const uploadedAt = new Date().toISOString();
+
+    const consentedList: string[] = statusData?.data?.documents_consented || [];
+    const sessionSucceeded = statusData?.data?.status === "succeeded" || statusData?.code === 200;
 
     const isDocListArray = Array.isArray(docsData?.data)
       ? docsData.data
@@ -82,30 +144,36 @@ export async function POST(request: Request) {
       return type.includes("PAN") || type.includes("PANCR");
     });
 
-    // Check if Aadhaar and PAN were granted consent and successfully returned by DigiLocker
+    // Check Aadhaar consent & data availability
     const hasAadhaar = Boolean(
+      consentedList.includes("aadhaar") ||
       (aadhaarDetails && (aadhaarDetails.code === 200 || aadhaarDetails.status === 200 || aadhaarDetails.status === "completed" || aadhaarDetails.status === "success")) ||
       aadhaarDetails?.data?.pdf_url ||
       aadhaarDetails?.pdf_url ||
       aadhaarDetails?.data?.file_url ||
       aadhaarDetails?.data?.uid ||
+      fetchAadhaarDoc?.data?.files?.[0]?.url ||
       hasAadhaarInList ||
-      docsData?.code === 200
+      sessionSucceeded
     );
 
+    // Check PAN consent & data availability
     const hasPan = Boolean(
+      consentedList.includes("pan") ||
       (panDetails && (panDetails.code === 200 || panDetails.status === 200 || panDetails.status === "completed" || panDetails.status === "success")) ||
       panDetails?.data?.pdf_url ||
       panDetails?.pdf_url ||
       panDetails?.data?.file_url ||
       panDetails?.data?.pan ||
+      fetchPanDoc?.data?.files?.[0]?.url ||
       hasPanInList ||
-      docsData?.code === 200
+      sessionSucceeded
     );
 
-    console.log(`DigiLocker Session Verification -> hasAadhaar: ${hasAadhaar}, hasPan: ${hasPan}, docsCount: ${isDocListArray.length}`);
+    console.log(`DigiLocker Session Verification -> hasAadhaar: ${hasAadhaar}, hasPan: ${hasPan}, sessionStatus: ${statusData?.data?.status}`);
 
     const aadhaarUrl =
+      fetchAadhaarDoc?.data?.files?.[0]?.url ||
       aadhaarDetails?.data?.pdf_url ||
       aadhaarDetails?.pdf_url ||
       aadhaarDetails?.data?.file_url ||
@@ -113,6 +181,7 @@ export async function POST(request: Request) {
       "/img/digilocker_aadhaar.pdf";
 
     const panUrl =
+      fetchPanDoc?.data?.files?.[0]?.url ||
       panDetails?.data?.pdf_url ||
       panDetails?.pdf_url ||
       panDetails?.data?.file_url ||

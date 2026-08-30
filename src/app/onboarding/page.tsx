@@ -893,11 +893,16 @@ export default function OnboardingPage() {
       console.log("Sandbox Bank Verification Response:", data)
 
       const returnedName =
+        data?.data?.name_at_bank ||
+        data?.name_at_bank ||
         data?.data?.full_name ||
         data?.full_name ||
         data?.data?.account_name ||
         data?.account_name ||
+        data?.data?.beneficiary_name ||
+        data?.beneficiary_name ||
         data?.data?.name ||
+        data?.name ||
         ""
 
       const nextAttempts = bankVerifyAttempts + 1

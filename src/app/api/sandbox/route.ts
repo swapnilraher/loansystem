@@ -124,7 +124,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Invalid bank account number format." }, { status: 400 });
       }
 
-      url = `https://api.sandbox.co.in/bank/${encodeURIComponent(cleanIfsc)}/accounts/${encodeURIComponent(cleanAcct)}/verify`;
+      url = `https://api.sandbox.co.in/bank/${encodeURIComponent(cleanIfsc)}/accounts/${encodeURIComponent(cleanAcct)}/penniless-verify`;
       options.method = "GET";
       options.headers = {
         "accept": "application/json",
@@ -210,6 +210,37 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Session ID is required." }, { status: 400 });
       }
       url = `https://api.sandbox.co.in/kyc/digilocker/sessions/${cleanSessionId}/status`;
+      options.method = "GET";
+      options.headers = {
+        "accept": "application/json",
+        "authorization": token,
+        "x-api-key": activeKey,
+        "x-api-version": "1.0.0"
+      };
+      delete options.body;
+    }
+    else if (action === 'get-digilocker-fetch-document') {
+      const cleanSessionId = encodeURIComponent(String(payload.session_id || "").trim());
+      const docType = encodeURIComponent(String(payload.doc_type || "").trim());
+      if (!cleanSessionId || !docType) {
+        return NextResponse.json({ error: "Session ID and doc_type are required." }, { status: 400 });
+      }
+      url = `https://api.sandbox.co.in/kyc/digilocker/sessions/${cleanSessionId}/documents/${docType}`;
+      options.method = "GET";
+      options.headers = {
+        "accept": "application/json",
+        "authorization": token,
+        "x-api-key": activeKey,
+        "x-api-version": "1.0.0"
+      };
+      delete options.body;
+    }
+    else if (action === 'get-digilocker-user-profile') {
+      const cleanSessionId = encodeURIComponent(String(payload.session_id || "").trim());
+      if (!cleanSessionId) {
+        return NextResponse.json({ error: "Session ID is required." }, { status: 400 });
+      }
+      url = `https://api.sandbox.co.in/kyc/digilocker/sessions/${cleanSessionId}/user/profile`;
       options.method = "GET";
       options.headers = {
         "accept": "application/json",
