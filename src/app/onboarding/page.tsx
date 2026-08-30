@@ -14,6 +14,9 @@ import {
   FileText,
   MessageSquare,
   User,
+  Sparkles,
+  Upload,
+  ShieldCheck,
 } from "lucide-react"
 
 import WhatsAppOtpModal from "@/components/onboarding/WhatsAppOtpModal"
@@ -68,6 +71,39 @@ function messageFor(err: unknown, fallback: string): string {
   return detail || fallback
 }
 
+/** Calculate String Name Match Percentage (Token Overlap & Inclusion) */
+function calculateNameMatchScore(str1: string, str2: string): number {
+  if (!str1 || !str2) return 0
+  const s1 = str1.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim()
+  const s2 = str2.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim()
+
+  if (s1 === s2) return 100
+
+  const tokens1 = s1.split(/\s+/).filter(Boolean)
+  const tokens2 = s2.split(/\s+/).filter(Boolean)
+
+  if (tokens1.length === 0 || tokens2.length === 0) return 0
+
+  let matchedTokens1 = 0
+  for (const t1 of tokens1) {
+    if (tokens2.some(t2 => t2.includes(t1) || t1.includes(t2))) {
+      matchedTokens1++
+    }
+  }
+
+  let matchedTokens2 = 0
+  for (const t2 of tokens2) {
+    if (tokens1.some(t1 => t1.includes(t2) || t2.includes(t1))) {
+      matchedTokens2++
+    }
+  }
+
+  const score1 = (matchedTokens1 / tokens1.length) * 100
+  const score2 = (matchedTokens2 / tokens2.length) * 100
+
+  return Math.round(Math.max(score1, score2))
+}
+
 /** Controls are thumb-height here; the whole flow is filled on a phone. */
 const INPUT = "h-11 sm:h-10"
 
@@ -110,9 +146,10 @@ export default function OnboardingPage() {
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
 
-  // ─── Step 2: Business & PAN ───
+  // ─── Step 2: Business & PAN Details ───
   const [partnerType, setPartnerType] = useState<PartnerType>("Individual")
   const [firmType, setFirmType] = useState<FirmType>("Proprietorship")
+  const [businessName, setBusinessName] = useState("")
   const [panNumber, setPanNumber] = useState("")
   const [panValid, setPanValid] = useState(false)
   const [panChecking, setPanChecking] = useState(false)
@@ -142,6 +179,9 @@ export default function OnboardingPage() {
   const [gstVerifying, setGstVerifying] = useState(false)
 
   // ─── Step 6: KYC Document Uploads ───
+  const [docUploadMethod, setDocUploadMethod] = useState<"digilocker" | "manual">("digilocker")
+  const [digilockerLoading, setDigilockerLoading] = useState(false)
+  const [digilockerStatus, setDigilockerStatus] = useState<string | null>(null)
   const [aadhaarFrontDoc, setAadhaarFrontDoc] = useState<DocMeta | null>(null)
   const [aadhaarBackDoc, setAadhaarBackDoc] = useState<DocMeta | null>(null)
   const [aadhaarCombined, setAadhaarCombined] = useState(false) // both sides on 1 image/PDF
@@ -149,7 +189,7 @@ export default function OnboardingPage() {
   const [activeCropModal, setActiveCropModal] = useState<DocKey | null>(null)
   const [uploadingDoc, setUploadingDoc] = useState(false)
 
-  // ─── Step 7: Bank Details ───
+  // ─── Step 7: Bank Details & Verification ───
   const [accountHolderName, setAccountHolderName] = useState("")
   const [accountNumber, setAccountNumber] = useState("")
   const [confirmAccountNumber, setConfirmAccountNumber] = useState("")
@@ -159,6 +199,11 @@ export default function OnboardingPage() {
   const [accountType, setAccountType] = useState<"Savings" | "Current">("Savings")
   const [ifscLoading, setIfscLoading] = useState(false)
   const [ifscValid, setIfscValid] = useState(false)
+  const [bankVerifying, setBankVerifying] = useState(false)
+  const [bankVerified, setBankVerified] = useState(false)
+  const [bankVerifyAttempts, setBankVerifyAttempts] = useState(0)
+  const [returnedBankName, setReturnedBankName] = useState<string | null>(null)
+  const [bankMatchScore, setBankMatchScore] = useState<number | null>(null)
   const [bankVerificationStatus] = useState<"pending" | "verified">("pending")
 
   // ─── Step 8: Review & Declarations ───
@@ -269,25 +314,22 @@ export default function OnboardingPage() {
     }
   }
 
-  // ─── 2. On OTP Verified ───
-  const handleOtpVerified = async () => {
-    setShowOtpModal(false)
-    setIsMobileVerified(true)
-    setCurrentStep(1)
-
-    // Try loading any previous draft
+  const loadDraftForMobile = async (targetMobile: string) => {
     try {
-      const res = await fetch(`/api/onboarding/resume?mobile=${mobileNumber}`)
+      const res = await fetch(`/api/onboarding/resume?mobile=${targetMobile}`)
       const data = await res.json()
       const app = data.data || data.application
       if (res.ok && app) {
         if (app.currentStep && app.currentStep >= 1 && app.currentStep <= 8) {
           setCurrentStep(app.currentStep)
+        } else {
+          setCurrentStep(1)
         }
         if (app.fullName) setFullName(app.fullName)
         if (app.email) setEmail(app.email)
         if (app.partnerType) setPartnerType(app.partnerType)
         if (app.firmType) setFirmType(app.firmType)
+        if (app.businessName) setBusinessName(app.businessName)
         if (app.panNumber) {
           setPanNumber(app.panNumber)
           setPanValid(true)
@@ -311,11 +353,11 @@ export default function OnboardingPage() {
         if (app.documents?.aadhaarFrontDoc) setAadhaarFrontDoc(app.documents.aadhaarFrontDoc)
         if (app.documents?.aadhaarBackDoc) setAadhaarBackDoc(app.documents.aadhaarBackDoc)
         if (app.documents?.aadhaarDoc) {
-          // old single-doc resume
           setAadhaarFrontDoc(app.documents.aadhaarDoc)
           setAadhaarCombined(true)
         }
         if (app.documents?.panDoc) setPanDoc(app.documents.panDoc)
+        if (app.bankVerifyAttempts) setBankVerifyAttempts(app.bankVerifyAttempts)
         if (app.bankDetails) {
           setAccountHolderName(app.bankDetails.accountHolderName || "")
           setAccountNumber(app.bankDetails.accountNumber || "")
@@ -325,17 +367,142 @@ export default function OnboardingPage() {
           setBranchName(app.bankDetails.branchName || "")
           setAccountType(app.bankDetails.accountType || "Savings")
           if (app.bankDetails.ifsc) setIfscValid(true)
+          if (app.bankDetails.verified) setBankVerified(true)
+          if (app.bankDetails.verifiedAccountName) setReturnedBankName(app.bankDetails.verifiedAccountName)
+          if (app.bankDetails.nameMatchScore) setBankMatchScore(app.bankDetails.nameMatchScore)
         }
         if (app.agreementSigned) setIsAgreementSigned(true)
         if (app.agreementPdfUrl) setAgreementPdfUrl(app.agreementPdfUrl)
+      } else {
+        setCurrentStep(1)
       }
     } catch (e) {
       console.warn("Could not resume draft:", e)
+      setCurrentStep(1)
     }
   }
 
+  // Auto-restore onboarding session on accidental page refresh
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const savedMobile = localStorage.getItem("tsm_onboarding_mobile")
+    const savedVerified = localStorage.getItem("tsm_onboarding_verified")
+
+    if (savedMobile && savedVerified === "true") {
+      setMobileNumber(savedMobile)
+      setIsMobileVerified(true)
+      loadDraftForMobile(savedMobile)
+    }
+  }, [])
+
+  // ─── 2. On OTP Verified ───
+  const handleOtpVerified = async () => {
+    setShowOtpModal(false)
+    setIsMobileVerified(true)
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem("tsm_onboarding_mobile", mobileNumber)
+      localStorage.setItem("tsm_onboarding_verified", "true")
+    }
+
+    await loadDraftForMobile(mobileNumber)
+  }
+
+  const handleResetMobile = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("tsm_onboarding_mobile")
+      localStorage.removeItem("tsm_onboarding_verified")
+      localStorage.removeItem("tsm_digilocker_session_id")
+    }
+    setMobileNumber("")
+    setIsMobileVerified(false)
+    setCurrentStep(0)
+  }
+
+  // ─── DigiLocker Integration ───
+  const handleInitiateDigilocker = async () => {
+    const cleanNum = mobileNumber.replace(/\D/g, "")
+    if (!cleanNum || cleanNum.length !== 10) {
+      setStepError("Please verify your mobile number before initiating DigiLocker.")
+      return
+    }
+    setDigilockerLoading(true)
+    setStepError(null)
+    try {
+      const res = await fetch("/api/digilocker/initiate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mobileNumber: cleanNum,
+          redirectUrl: `${window.location.origin}/onboarding`
+        })
+      })
+      const data = await res.json()
+      if (!res.ok || !data.authorizationUrl) {
+        throw new Error(data.error || "Could not start DigiLocker verification.")
+      }
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("tsm_digilocker_session_id", data.sessionId)
+        localStorage.setItem("tsm_onboarding_mobile", cleanNum)
+        localStorage.setItem("tsm_onboarding_verified", "true")
+      }
+
+      window.location.href = data.authorizationUrl
+    } catch (err: any) {
+      console.error("DigiLocker Initiate Error:", err)
+      setStepError(messageFor(err, "Failed to connect to DigiLocker gateway. You can use manual upload instead."))
+    } finally {
+      setDigilockerLoading(false)
+    }
+  }
+
+  // Auto-check DigiLocker callback or returning session on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const searchParams = new URLSearchParams(window.location.search)
+    const sessionIdParam = searchParams.get("session_id") || localStorage.getItem("tsm_digilocker_session_id")
+
+    if (sessionIdParam) {
+      const targetMobile = localStorage.getItem("tsm_onboarding_mobile") || mobileNumber
+      if (targetMobile) {
+        setDigilockerLoading(true)
+        fetch("/api/digilocker/verify-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: sessionIdParam, mobileNumber: targetMobile })
+        })
+          .then(r => r.json())
+          .then(data => {
+            if (data.success && data.documents) {
+              if (data.documents.aadhaarFrontDoc) setAadhaarFrontDoc(data.documents.aadhaarFrontDoc)
+              if (data.documents.aadhaarBackDoc) setAadhaarBackDoc(data.documents.aadhaarBackDoc)
+              if (data.documents.panDoc) setPanDoc(data.documents.panDoc)
+              setAadhaarCombined(true)
+              setDigilockerStatus("✓ DigiLocker Verification Complete! Official Aadhaar & PAN imported successfully.")
+              setCurrentStep(7) // Automatically advance to Step 7 (Bank Account Details)
+              localStorage.removeItem("tsm_digilocker_session_id")
+              window.history.replaceState({}, document.title, window.location.pathname)
+            } else if (data.error) {
+              setStepError(`DigiLocker Verification Issue: ${data.error}`)
+            }
+          })
+          .catch(err => {
+            console.warn("DigiLocker verify error:", err)
+          })
+          .finally(() => {
+            setDigilockerLoading(false)
+          })
+      }
+    }
+  }, [mobileNumber])
+
   // ─── 3. Save Progress to Backend ───
   const saveProgress = async (stepNum: number, stepPayload: Record<string, unknown>) => {
+    if (typeof window !== "undefined" && mobileNumber) {
+      localStorage.setItem("tsm_onboarding_mobile", mobileNumber)
+      localStorage.setItem("tsm_onboarding_verified", "true")
+    }
     setSavingStep(true)
     setStepError(null)
     try {
@@ -430,9 +597,15 @@ export default function OnboardingPage() {
       return
     }
 
+    if (partnerType === "Firm" && !businessName.trim()) {
+      setStepError("Business / Company / Firm Name is required.")
+      return
+    }
+
     const ok = await saveProgress(3, {
       partnerType,
       firmType: partnerType === "Firm" ? firmType : null,
+      businessName: partnerType === "Firm" ? businessName.trim() : null,
       panNumber: panNumber.trim().toUpperCase(),
       panValid: true,
     })
@@ -678,22 +851,93 @@ export default function OnboardingPage() {
       return
     }
     if (!ifscValid || !bankName) {
-      setStepError("Please enter a valid 11-digit IFSC code.")
+      setStepError("Please enter a valid 11-character IFSC code.")
       return
     }
 
-    const ok = await saveProgress(8, {
-      bankDetails: {
-        accountHolderName: accountHolderName.trim(),
-        accountNumber: accountNumber.trim(),
-        ifsc: ifscCode.trim().toUpperCase(),
-        bankName,
-        branchName,
-        accountType,
-        verificationStatus: bankVerificationStatus,
-      },
-    })
-    if (ok) setCurrentStep(8)
+    // Rate Limiting Check: Max 3 Attempts Per User
+    if (bankVerifyAttempts >= 3 && !bankVerified) {
+      setStepError("Maximum 3 bank account verification attempts reached for this account. Please re-check your bank details or contact support.")
+      return
+    }
+
+    // Target Name for Match Comparison:
+    // - Savings Account: Applicant Name (contactPersonName || fullName)
+    // - Current Account: Business / Firm Name (businessName || fullName)
+    const targetName = accountType === "Savings"
+      ? (contactPersonName.trim() || fullName.trim())
+      : (businessName.trim() || contactPersonName.trim() || fullName.trim())
+
+    setBankVerifying(true)
+    setStepError(null)
+
+    try {
+      // Call Sandbox Pennyless Bank Account Verification API
+      const res = await fetch("/api/sandbox", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "verify-bank",
+          payload: {
+            ifsc: ifscCode.trim().toUpperCase(),
+            account_number: accountNumber.trim()
+          }
+        })
+      })
+
+      const data = await res.json()
+      console.log("Sandbox Pennyless Bank Verification Response:", data)
+
+      const returnedName = data?.data?.full_name || data?.full_name || data?.data?.account_name || accountHolderName.trim()
+      const accountExists = Boolean(data?.data?.account_exists ?? true)
+
+      const nextAttempts = bankVerifyAttempts + 1
+      setBankVerifyAttempts(nextAttempts)
+
+      if (!res.ok || data.code !== 200 || !accountExists) {
+        throw new Error(data.message || data.error || "Bank account verification failed. Please check Account Number and IFSC Code.")
+      }
+
+      // Calculate Name Match Score (Minimum 50% Match Required)
+      const matchScore = calculateNameMatchScore(returnedName, targetName)
+
+      if (matchScore < 50) {
+        setBankVerified(false)
+        setReturnedBankName(returnedName)
+        setBankMatchScore(matchScore)
+        setStepError(
+          `Bank Account Name mismatch: Bank returned '${returnedName}', which matches only ${matchScore}% with your ${accountType === "Savings" ? "Applicant Name" : "Business Name"} ('${targetName}'). Minimum 50% match is required. Please check your ${accountType === "Savings" ? "Applicant Name" : "Business Name"} or Bank Details (Attempt ${nextAttempts}/3).`
+        )
+        return
+      }
+
+      // Match Successful (>= 50%)
+      setBankVerified(true)
+      setReturnedBankName(returnedName)
+      setBankMatchScore(matchScore)
+
+      const ok = await saveProgress(8, {
+        bankDetails: {
+          accountHolderName: accountHolderName.trim(),
+          accountNumber: accountNumber.trim(),
+          ifsc: ifscCode.trim().toUpperCase(),
+          bankName,
+          branchName,
+          accountType,
+          verified: true,
+          verifiedAccountName: returnedName,
+          nameMatchScore: matchScore,
+          verifiedAt: new Date().toISOString()
+        },
+        bankVerifyAttempts: nextAttempts
+      })
+
+      if (ok) setCurrentStep(8)
+    } catch (err: any) {
+      setStepError(messageFor(err, "Bank account verification failed. Please check Account Number and IFSC Code."))
+    } finally {
+      setBankVerifying(false)
+    }
   }
 
   // ─── Step 8: Final Submission ───
@@ -717,6 +961,11 @@ export default function OnboardingPage() {
 
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to submit application")
+
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("tsm_onboarding_mobile")
+        localStorage.removeItem("tsm_onboarding_verified")
+      }
 
       setSubmittedAppId(data.applicationId)
     } catch (err) {
@@ -934,6 +1183,22 @@ export default function OnboardingPage() {
       <PartnerPortalHeader subtitle="DSA Partner Onboarding" mobileNumber={mobileNumber} />
 
       <main className="flex-1 w-full max-w-4xl mx-auto px-4 py-5 space-y-4">
+        {isMobileVerified && (
+          <div className="flex items-center justify-between px-3.5 py-2 rounded-admin-sm bg-tone-success/15 border border-tone-success-bd text-admin-xs">
+            <div className="flex items-center gap-2 text-tone-success-fg font-semibold">
+              <CheckCircle2 size={15} />
+              <span>Verified Mobile: <strong className="admin-num">+91 {mobileNumber}</strong> (Progress Auto-Saved)</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleResetMobile}
+              className="text-admin-accent hover:underline font-bold text-admin-2xs"
+            >
+              Change Mobile
+            </button>
+          </div>
+        )}
+
         <Stepper titles={STEP_TITLES} current={currentStep} onJump={setCurrentStep} />
 
         {stepError && (
@@ -1017,13 +1282,25 @@ export default function OnboardingPage() {
               />
 
               {partnerType === "Firm" && (
-                <ChoiceGroup
-                  label="Firm type"
-                  value={firmType}
-                  options={FIRM_TYPES}
-                  onChange={applyFirmType}
-                  columns={3}
-                />
+                <>
+                  <ChoiceGroup
+                    label="Firm type"
+                    value={firmType}
+                    options={FIRM_TYPES}
+                    onChange={applyFirmType}
+                    columns={3}
+                  />
+
+                  <Field label="Business / Company / Firm Name *" hint="Official registered name of your business/entity.">
+                    <TextInput
+                      required
+                      value={businessName}
+                      onChange={e => setBusinessName(e.target.value)}
+                      placeholder="e.g. Techstar Enterprises / Sharma Financial Services"
+                      className={INPUT}
+                    />
+                  </Field>
+                </>
               )}
 
               <div>
@@ -1302,7 +1579,7 @@ export default function OnboardingPage() {
                     role="status"
                     className={cn(ERROR_SLOT, "text-admin-accent")}
                   >
-                    {gstValid ? "GSTIN format validated." : ""}
+                    {""}
                   </span>
                 </div>
               )}
@@ -1336,68 +1613,190 @@ export default function OnboardingPage() {
 
               <StepHeader
                 title="KYC documents"
-                description="Aadhaar (front and back) and PAN card. Image or PDF accepted."
+                description="Choose your preferred submission method: Instant DigiLocker Verification or Manual File Upload."
               />
 
-              <section className="p-4 bg-admin-surface-2 border border-admin-border rounded-admin space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-admin-sm font-semibold text-admin-text">Aadhaar card</h3>
-                  <DocStatus
-                    state={
-                      aadhaarFrontDoc && (aadhaarCombined || aadhaarBackDoc)
-                        ? "complete"
-                        : aadhaarFrontDoc
-                          ? "partial"
-                          : "missing"
-                    }
-                  />
-                </div>
-
-                <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={aadhaarCombined}
-                    onChange={e => {
-                      setAadhaarCombined(e.target.checked)
-                      if (e.target.checked) setAadhaarBackDoc(null)
-                    }}
-                    className="admin-focus w-4 h-4 accent-admin-accent"
-                  />
-                  <span className="text-admin-sm text-admin-muted">
-                    Both sides are on one image / PDF
-                  </span>
-                </label>
-
-                <div className={cn("grid gap-3", !aadhaarCombined && "sm:grid-cols-2")}>
-                  <DocSlot
-                    label={aadhaarCombined ? "Aadhaar (both sides)" : "Aadhaar front"}
-                    doc={aadhaarFrontDoc}
-                    onPick={() => setActiveCropModal("aadhaarFront")}
-                    onRemove={() => setAadhaarFrontDoc(null)}
-                  />
-                  {!aadhaarCombined && (
-                    <DocSlot
-                      label="Aadhaar back"
-                      doc={aadhaarBackDoc}
-                      onPick={() => setActiveCropModal("aadhaarBack")}
-                      onRemove={() => setAadhaarBackDoc(null)}
-                    />
+              {/* Upload Method Switcher Tabs */}
+              <div className="grid grid-cols-2 gap-2 p-1 bg-admin-surface-2 border border-admin-border rounded-admin">
+                <button
+                  type="button"
+                  onClick={() => setDocUploadMethod("digilocker")}
+                  className={cn(
+                    "flex items-center justify-center gap-2 py-2.5 px-3 rounded-admin-sm text-admin-xs font-bold transition-all",
+                    docUploadMethod === "digilocker"
+                      ? "bg-admin-accent text-white shadow-admin-1"
+                      : "text-admin-muted hover:text-admin-text bg-transparent"
                   )}
-                </div>
-              </section>
+                >
+                  <Sparkles size={16} />
+                  <span>DigiLocker Instant Upload (Recommended)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDocUploadMethod("manual")}
+                  className={cn(
+                    "flex items-center justify-center gap-2 py-2.5 px-3 rounded-admin-sm text-admin-xs font-bold transition-all",
+                    docUploadMethod === "manual"
+                      ? "bg-admin-accent text-white shadow-admin-1"
+                      : "text-admin-muted hover:text-admin-text bg-transparent"
+                  )}
+                >
+                  <Upload size={16} />
+                  <span>Upload Manually</span>
+                </button>
+              </div>
 
-              <section className="p-4 bg-admin-surface-2 border border-admin-border rounded-admin space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-admin-sm font-semibold text-admin-text">PAN card document</h3>
-                  <DocStatus state={panDoc ? "complete" : "missing"} />
+              {digilockerStatus && (
+                <div className="p-3.5 bg-tone-success/15 border border-tone-success-bd rounded-admin text-tone-success-fg text-admin-xs font-bold flex items-center gap-2">
+                  <CheckCircle2 size={16} />
+                  <span>{digilockerStatus}</span>
                 </div>
-                <DocSlot
-                  label="PAN card"
-                  doc={panDoc}
-                  onPick={() => setActiveCropModal("panDoc")}
-                  onRemove={() => setPanDoc(null)}
-                />
-              </section>
+              )}
+
+              {/* OPTION 1: DIGILOCKER INSTANT UPLOAD */}
+              {docUploadMethod === "digilocker" && (
+                <div className="p-5 bg-gradient-to-br from-admin-surface to-admin-surface-2 border border-admin-border rounded-admin space-y-4 shadow-admin-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-admin-2xs font-extrabold uppercase tracking-wide">
+                          Govt. Authorized Portal
+                        </span>
+                        <span className="text-admin-2xs font-semibold text-admin-muted">DigiLocker Gateway</span>
+                      </div>
+                      <h3 className="text-admin-base font-extrabold text-admin-text">
+                        Fetch Documents Instantly via DigiLocker
+                      </h3>
+                      <p className="text-admin-xs text-admin-muted">
+                        No scanning or photo uploads required. Access official Aadhaar & PAN directly from Meripehchaan DigiLocker.
+                      </p>
+                    </div>
+                    <div className="w-12 h-12 rounded-admin bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                      <ShieldCheck size={26} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                    {[
+                      "⚡ Instant Verification",
+                      "🔒 100% Tamper-Proof",
+                      "📄 Direct Govt. Records"
+                    ].map((feat, idx) => (
+                      <div key={idx} className="p-2.5 bg-admin-surface border border-admin-border rounded-admin-sm text-admin-2xs font-bold text-admin-text flex items-center gap-2">
+                        <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                        <span>{feat}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Document Status Display */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <div className="p-3 bg-admin-surface border border-admin-border rounded-admin flex items-center justify-between">
+                      <div>
+                        <p className="text-admin-xs font-bold text-admin-text">Aadhaar Card</p>
+                        <p className="text-admin-2xs text-admin-muted">
+                          {aadhaarFrontDoc ? "Verified via DigiLocker" : "Pending DigiLocker consent"}
+                        </p>
+                      </div>
+                      <DocStatus state={aadhaarFrontDoc ? "complete" : "missing"} />
+                    </div>
+                    <div className="p-3 bg-admin-surface border border-admin-border rounded-admin flex items-center justify-between">
+                      <div>
+                        <p className="text-admin-xs font-bold text-admin-text">PAN Card</p>
+                        <p className="text-admin-2xs text-admin-muted">
+                          {panDoc ? "Verified via DigiLocker" : "Pending DigiLocker consent"}
+                        </p>
+                      </div>
+                      <DocStatus state={panDoc ? "complete" : "missing"} />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleInitiateDigilocker}
+                    disabled={digilockerLoading}
+                    className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 text-white font-bold rounded-admin shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 text-admin-sm"
+                  >
+                    {digilockerLoading ? (
+                      <>
+                        <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                        Connecting to DigiLocker…
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck size={18} />
+                        Upload & Verify via DigiLocker Instantly
+                        <ArrowRight size={16} />
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* OPTION 2: MANUAL FILE UPLOAD */}
+              {docUploadMethod === "manual" && (
+                <div className="space-y-4">
+                  <section className="p-4 bg-admin-surface-2 border border-admin-border rounded-admin space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-admin-sm font-semibold text-admin-text">Aadhaar card</h3>
+                      <DocStatus
+                        state={
+                          aadhaarFrontDoc && (aadhaarCombined || aadhaarBackDoc)
+                            ? "complete"
+                            : aadhaarFrontDoc
+                              ? "partial"
+                              : "missing"
+                        }
+                      />
+                    </div>
+
+                    <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={aadhaarCombined}
+                        onChange={e => {
+                          setAadhaarCombined(e.target.checked)
+                          if (e.target.checked) setAadhaarBackDoc(null)
+                        }}
+                        className="admin-focus w-4 h-4 accent-admin-accent"
+                      />
+                      <span className="text-admin-sm text-admin-muted">
+                        Both sides are on one image / PDF
+                      </span>
+                    </label>
+
+                    <div className={cn("grid gap-3", !aadhaarCombined && "sm:grid-cols-2")}>
+                      <DocSlot
+                        label={aadhaarCombined ? "Aadhaar (both sides)" : "Aadhaar front"}
+                        doc={aadhaarFrontDoc}
+                        onPick={() => setActiveCropModal("aadhaarFront")}
+                        onRemove={() => setAadhaarFrontDoc(null)}
+                      />
+                      {!aadhaarCombined && (
+                        <DocSlot
+                          label="Aadhaar back"
+                          doc={aadhaarBackDoc}
+                          onPick={() => setActiveCropModal("aadhaarBack")}
+                          onRemove={() => setAadhaarBackDoc(null)}
+                        />
+                      )}
+                    </div>
+                  </section>
+
+                  <section className="p-4 bg-admin-surface-2 border border-admin-border rounded-admin space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-admin-sm font-semibold text-admin-text">PAN card document</h3>
+                      <DocStatus state={panDoc ? "complete" : "missing"} />
+                    </div>
+                    <DocSlot
+                      label="PAN card"
+                      doc={panDoc}
+                      onPick={() => setActiveCropModal("panDoc")}
+                      onRemove={() => setPanDoc(null)}
+                    />
+                  </section>
+                </div>
+              )}
 
               <StepNav
                 onBack={back(5)}
@@ -1412,13 +1811,36 @@ export default function OnboardingPage() {
             </form>
           )}
 
-          {/* ── STEP 7: BANK DETAILS ── */}
+          {/* ── STEP 7: BANK DETAILS & VERIFICATION ── */}
           {currentStep === 7 && (
             <form onSubmit={handleStep7Submit} className="space-y-5" noValidate>
               <StepHeader
-                title="Bank account"
-                description="For monthly DSA payouts and commission disbursals."
+                title="Bank account verification"
+                description="Sandbox Pennyless Bank Verification with automated name matching score."
               />
+
+              {/* Verification Rule & Attempt Counter Banner */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-admin bg-gradient-to-br from-admin-surface-2 to-admin-surface border border-admin-border text-admin-xs shadow-admin-1">
+                <div className="space-y-0.5">
+                  <p className="font-extrabold text-admin-text flex items-center gap-1.5">
+                    <ShieldCheck size={16} className="text-emerald-600" />
+                    Sandbox Pennyless Verification (Min 50% Name Match)
+                  </p>
+                  <p className="text-admin-2xs text-admin-muted">
+                    Matching Target: <strong>{accountType === "Savings" ? `Applicant Name (${contactPersonName || fullName})` : `Business Name (${businessName || fullName})`}</strong>
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-1 rounded bg-admin-surface border border-admin-border text-admin-2xs font-bold text-admin-text">
+                    Attempts Used: <strong className="admin-num">{bankVerifyAttempts}/3</strong>
+                  </span>
+                  {bankVerified && (
+                    <span className="px-2.5 py-1 rounded bg-tone-success text-tone-success-fg text-admin-2xs font-extrabold flex items-center gap-1">
+                      <CheckCircle2 size={13} /> Bank Verified ({bankMatchScore}% Match)
+                    </span>
+                  )}
+                </div>
+              </div>
 
               <FieldGrid>
                 <Field label="Account holder name" className="sm:col-span-2">
@@ -1480,18 +1902,18 @@ export default function OnboardingPage() {
                     role="status"
                     className={cn(ERROR_SLOT, "text-admin-accent")}
                   >
-                    {ifscLoading ? "Looking up bank…" : ifscValid ? "Bank details found." : ""}
+                    {ifscLoading ? "Looking up bank…" : ""}
                   </span>
                 </div>
 
-                <Field label="Account type">
+                <Field label="Account type" hint={accountType === "Savings" ? "Matches against Applicant Name (min 50%)" : "Matches against Business Name (min 50%)"}>
                   <Select
                     value={accountType}
                     onChange={e => setAccountType(e.target.value as "Savings" | "Current")}
                     className={INPUT}
                   >
-                    <option value="Savings">Savings account</option>
-                    <option value="Current">Current account</option>
+                    <option value="Savings">Savings account (Individual / Contact Person)</option>
+                    <option value="Current">Current account (Firm / Business Name)</option>
                   </Select>
                 </Field>
 
@@ -1518,9 +1940,10 @@ export default function OnboardingPage() {
 
               <StepNav
                 onBack={back(6)}
-                loading={savingStep}
+                loading={savingStep || bankVerifying}
                 disabled={
                   savingStep ||
+                  bankVerifying ||
                   !ifscValid ||
                   !bankName ||
                   !accountHolderName.trim() ||

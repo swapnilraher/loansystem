@@ -75,18 +75,20 @@ export async function POST(request: Request) {
 
     const uploadedAt = new Date().toISOString();
 
-    const documentRecord = {
+    const documentRecord: Record<string, any> = {
       documentType,
       fileName:    file.name,
       mimeType:    file.type,
       sizeBytes:   file.size,
       fileUrl,
       base64Data:  base64Data,
-      cloudinaryId,
       uploadMethod,
       uploadedAt,
       status:      "uploaded",
     };
+    if (cloudinaryId) {
+      documentRecord.cloudinaryId = cloudinaryId;
+    }
 
     const db     = getAdminDb();
     const docRef = db.collection("partner_applications").doc(mobileNumber);

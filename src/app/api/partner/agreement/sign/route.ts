@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import nodemailer from "nodemailer"
 import { getAdminDb } from "@/lib/firebase-admin"
 import { generatePartnerAgreementPdf } from "@/lib/pdf-generator"
+import { generateNextDsaCode } from "@/lib/dsaCodeGenerator"
 
 export async function POST(request: Request) {
   try {
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
 
     const now = new Date()
     const signedAtIso = now.toISOString()
-    const dsaCode = userData?.dsaCode || appData?.dsaCode || `TSM-P-${Math.floor(100000 + Math.random() * 900000)}`
+    const dsaCode = userData?.dsaCode || appData?.dsaCode || (await generateNextDsaCode(db))
     const partnerEmail = email || userData?.email || appData?.email || ""
     const partnerName = userData?.fullName || appData?.fullName || appData?.contactPersonName || "Partner"
 

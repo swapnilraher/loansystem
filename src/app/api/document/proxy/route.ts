@@ -34,6 +34,21 @@ export async function GET(request: Request) {
             },
           })
         }
+
+        if (docObj?.fileUrl && docObj.fileUrl.startsWith("http")) {
+          const fetchRes = await fetch(docObj.fileUrl)
+          if (fetchRes.ok) {
+            const arrayBuffer = await fetchRes.arrayBuffer()
+            const contentType = fetchRes.headers.get("content-type") || docObj.mimeType || "application/pdf"
+            return new NextResponse(Buffer.from(arrayBuffer), {
+              status: 200,
+              headers: {
+                "Content-Type": contentType,
+                "Content-Disposition": `inline; filename="${docObj.fileName || "document.pdf"}"`,
+              },
+            })
+          }
+        }
       }
     }
 

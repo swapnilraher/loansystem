@@ -7,7 +7,7 @@ interface WhatsAppOtpModalProps {
   isOpen: boolean;
   phoneNumber: string;
   onClose: () => void;
-  onVerified: (verificationToken: string) => void;
+  onVerified: (verificationToken: string, customToken?: string) => void;
   onChangeNumber: () => void;
 }
 
@@ -87,7 +87,7 @@ export default function WhatsAppOtpModal({
         throw new Error(data.error || "Invalid OTP code");
       }
 
-      onVerified(data.verificationToken);
+      onVerified(data.verificationToken, data.customToken);
     } catch (err: any) {
       setError(err.message || "Failed to verify OTP.");
     } finally {

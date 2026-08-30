@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminDb, getAdminAuth } from "@/lib/firebase-admin";
+import { generateNextDsaCode } from "@/lib/dsaCodeGenerator";
 
 const PHONE_ID = process.env.WHATSAPP_PHONE_ID || "1112131761984283";
 const TOKEN = process.env.WHATSAPP_TOKEN || "EAAL6qnWnZABMBRfTVoipikLTEZBzVNQf9YStyNGTSxAGq8kHJ6AXivKPiHcMYxZBO2uuMyh4dCNVZB183wSpqoB0J08pAEsL5rEEqyHWdDfRgD5zxZCYhLX3ZBJW0rcxxQwvztib7jupBBStMxAaISbtrSalquCKiehliYs7ZCBf1VmGZCtqNTS1qhmPTybViZBZCOZBQZDZD";
@@ -117,9 +118,8 @@ export async function POST(request: Request) {
     const now = new Date();
 
     if (action === "approve") {
-      // 1. Generate Partner ID e.g. TSM-P-100201
-      const partnerSeq = Math.floor(100000 + Math.random() * 900000);
-      const dsaCode = `TSM-P-${partnerSeq}`;
+      // 1. Generate unique sequential Partner ID starting from TMS-550
+      const dsaCode = appData.dsaCode || (await generateNextDsaCode(db));
 
       // 2. Create / Update User record in 'users' collection with role='partner'
       const userRef = db.collection("users").doc(appData.mobileNumber);

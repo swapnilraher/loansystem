@@ -36,7 +36,7 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { user, adminRole, role, accountDisabled, logout, loading } = useAuth()
+  const { user, profile, adminRole, role, accountDisabled, logout, loading } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -305,25 +305,30 @@ export default function AdminLayout({
     return <AdminSplash />
   }
 
-  // Strict Role-Based Access Control: Normal website user attempts to access Admin Panel
+  // Strict Security & Role-Based Access Control: Block Partner Users & Normal Users from Admin Panel
   if (user && !adminRole) {
+    const isPartnerUser = profile?.role === "partner" || Boolean(profile?.dsaCode || profile?.dsaStatus)
     return (
       <div className="admin-root min-h-dvh flex flex-col items-center justify-center bg-admin-bg gap-4 px-6 text-center">
-        <div className="w-14 h-14 rounded-admin-lg bg-tone-danger border border-tone-danger-bd flex items-center justify-center">
-          <ShieldCheck className="text-tone-danger-fg" size={28} />
+        <div className="w-14 h-14 rounded-admin-lg bg-tone-danger border border-tone-danger-bd flex items-center justify-center shadow-lg">
+          <ShieldCheck className="text-tone-danger-fg" size={32} />
         </div>
         <div className="max-w-md space-y-2">
-          <h1 className="text-admin-2xl font-bold text-admin-text">Access Denied (अ‍ॅक्सेस नाकारला)</h1>
+          <h1 className="text-admin-2xl font-black text-admin-text">
+            {isPartnerUser ? "Partner Access Restricted (पार्टनर अ‍ॅक्सेस नाकारला)" : "Access Denied (अ‍ॅक्सेस नाकारला)"}
+          </h1>
           <p className="text-admin-sm text-admin-muted leading-relaxed">
-            तुम्हाला अ‍ॅडमिन पॅनेल वापरण्याची परवानगी नाही. Admin panel access is strictly reserved for authorized staff.
+            {isPartnerUser
+              ? "पार्टनर अकाउंटवरून अ‍ॅडमिन पोर्टलला अ‍ॅक्सेस करता येत नाही. कृपया तुमचे कार्य पूर्ण करण्यासाठी Partner Portal वापरा. Partner accounts cannot access Staff Admin Portal."
+              : "तुम्हाला अ‍ॅडमिन पॅनेल वापरण्याची परवानगी नाही. Admin panel access is strictly reserved for authorized staff only."}
           </p>
         </div>
         <div className="flex items-center gap-3 mt-2">
           <Link
-            href="/dashboard"
-            className="admin-focus h-10 px-5 inline-flex items-center bg-admin-accent text-admin-accent-fg rounded-admin-sm text-admin-sm font-semibold hover:bg-admin-accent-hover transition-colors"
+            href={isPartnerUser ? "/partner" : "/dashboard"}
+            className="admin-focus h-10 px-5 inline-flex items-center bg-admin-accent text-admin-accent-fg rounded-admin-sm text-admin-sm font-bold hover:bg-admin-accent-hover transition-colors shadow-sm"
           >
-            User Dashboard वर जा
+            {isPartnerUser ? "Partner Portal वर जा" : "User Dashboard वर जा"}
           </Link>
           <button
             onClick={logout}

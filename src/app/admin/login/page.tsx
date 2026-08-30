@@ -41,6 +41,7 @@ export default function AdminLoginPage() {
     requestPasswordReset,
     resetPasswordWithOTP,
     user,
+    profile,
     adminRole,
   } = useAuth()
 
@@ -59,8 +60,16 @@ export default function AdminLoginPage() {
   const [newPassword, setNewPassword] = useState("")
 
   useEffect(() => {
-    if (user && adminRole) router.push("/admin")
-  }, [user, adminRole, router])
+    if (user) {
+      if (adminRole) {
+        router.push("/admin")
+      } else if (profile?.role === "partner" || profile?.dsaCode || profile?.dsaStatus) {
+        setError("Partner users cannot sign in to the Staff Admin Portal. Please use the Partner Portal.")
+      } else if (profile) {
+        setError("Your account is not authorized for Staff Admin Portal access.")
+      }
+    }
+  }, [user, adminRole, profile, router])
 
   const signIn = async (event: React.FormEvent) => {
     event.preventDefault()

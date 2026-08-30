@@ -559,8 +559,17 @@ export default function PartnersPage() {
                   {/* Aadhaar Front */}
                   <div className="flex items-center justify-between p-2 bg-admin-bg border border-admin-border rounded-admin text-admin-xs">
                     <div>
-                      <p className="font-semibold text-admin-text">Aadhaar Document</p>
-                      <p className="text-admin-2xs text-admin-subtle">KYC Verification</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-semibold text-admin-text">Aadhaar Document</p>
+                        {selected.documents?.aadhaarFrontDoc?.uploadMethod === "digilocker" && (
+                          <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-admin-2xs font-extrabold flex items-center gap-1">
+                            🛡️ DigiLocker Verified
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-admin-2xs text-admin-subtle">
+                        {selected.documents?.aadhaarFrontDoc?.uploadMethod === "digilocker" ? "Govt. Instant KYC" : "KYC Verification"}
+                      </p>
                     </div>
                     {(() => {
                       const docObj = selected.documents?.aadhaarFrontDoc || selected.documents?.aadhaarDoc
@@ -588,7 +597,14 @@ export default function PartnersPage() {
                   {/* PAN Card */}
                   <div className="flex items-center justify-between p-2 bg-admin-bg border border-admin-border rounded-admin text-admin-xs">
                     <div>
-                      <p className="font-semibold text-admin-text">PAN Card Document</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-semibold text-admin-text">PAN Card Document</p>
+                        {selected.documents?.panDoc?.uploadMethod === "digilocker" && (
+                          <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-admin-2xs font-extrabold flex items-center gap-1">
+                            🛡️ DigiLocker Verified
+                          </span>
+                        )}
+                      </div>
                       <p className="text-admin-2xs text-admin-subtle font-mono">{selected.panNumber || selected.panData?.panNumber || "PAN"}</p>
                     </div>
                     {(() => {

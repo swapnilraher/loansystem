@@ -17,16 +17,18 @@ const NAV_ITEMS = [
 ]
 
 export default function PartnerLayout({ children }: { children: React.ReactNode }) {
-  const { user, profile, loading, logout } = useAuth()
+  const { user, profile, adminRole, loading, logout } = useAuth()
   const pathname = usePathname()
   const router = useRouter()
   const partnerPhoto = profile?.kycData?.photoBase64
     ? `data:image/jpeg;base64,${profile.kycData.photoBase64}`
     : user?.photoURL || ""
 
-  // Redirect checks:
+  // Security & Redirect checks:
   // 1. If not authenticated, redirect to partner login
-  // 2. If authenticated but role is not partner or dsaStatus is not Active/approved, redirect to /onboarding to complete onboarding
+  // 2. If Staff Admin user, redirect to /admin
+  // 3. If Normal Dashboard user with no partner application, redirect to /dashboard
+  // 4. If Partner applicant/member, enforce approval status routing
   useEffect(() => {
     if (loading) return
 
@@ -38,6 +40,18 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
     }
 
     if (!profile) return // still loading profile
+
+    // Block Staff Admin from Partner Portal
+    if (adminRole) {
+      if (!isLoginPage) router.push("/admin")
+      return
+    }
+
+    // Block Normal Dashboard User (non-partner) from Partner Portal
+    if (profile.role !== "partner" && !profile.dsaStatus && !profile.applicationId) {
+      if (!isLoginPage) router.push("/dashboard")
+      return
+    }
 
     const isApproved =
       profile.role === "partner" &&
@@ -56,7 +70,7 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
         router.push("/onboarding")
       }
     }
-  }, [user, profile, loading, pathname, router])
+  }, [user, profile, adminRole, loading, pathname, router])
 
   if (loading) {
     return (

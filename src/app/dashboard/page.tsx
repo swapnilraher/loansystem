@@ -39,7 +39,7 @@ export default function UserDashboard() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("overview")
   const [darkMode, setDarkMode] = useState(false)
-  const { user, profile, logout, updateProfile, loading } = useAuth()
+  const { user, profile, adminRole, logout, updateProfile, loading } = useAuth()
   const [showNewApp, setShowNewApp] = useState(false)
   const [userApplications, setUserApplications] = useState<any[]>([])
   const [appLoading, setAppLoading] = useState(true)
@@ -47,10 +47,16 @@ export default function UserDashboard() {
   const isMounted = useRef(true)
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/?login=true")
+    if (!loading) {
+      if (!user) {
+        router.push("/?login=true")
+      } else if (adminRole) {
+        router.push("/admin")
+      } else if (profile?.role === "partner" && (profile?.dsaStatus === "Active" || profile?.dsaStatus === "approved")) {
+        router.push("/partner")
+      }
     }
-  }, [user, loading, router])
+  }, [user, profile, adminRole, loading, router])
 
   useEffect(() => {
     return () => { isMounted.current = false }

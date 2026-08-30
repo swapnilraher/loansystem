@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAdminDb } from "@/lib/firebase-admin";
+import { getAdminDb, getAdminAuth } from "@/lib/firebase-admin";
 
 export async function POST(request: Request) {
   try {
@@ -73,6 +73,27 @@ export async function POST(request: Request) {
       existingDsaCode = userDoc.dsaCode || "";
     }
 
+    // Generate Firebase Auth user & Custom Token so Firebase Auth signs in on client side
+    let customToken = "";
+    try {
+      const authAdmin = getAdminAuth();
+      const uid = phoneNumber;
+      try {
+        await authAdmin.getUser(uid);
+      } catch (uErr: any) {
+        if (uErr.code === "auth/user-not-found") {
+          await authAdmin.createUser({
+            uid,
+            phoneNumber: `+91${phoneNumber}`,
+            displayName: `Partner ${phoneNumber}`
+          });
+        }
+      }
+      customToken = await authAdmin.createCustomToken(uid);
+    } catch (tokenErr) {
+      console.warn("Custom token generation warning:", tokenErr);
+    }
+
     // Create session token string
     const verificationToken = Buffer.from(`${phoneNumber}_${Date.now()}_verified`).toString("base64");
 
@@ -80,6 +101,7 @@ export async function POST(request: Request) {
       success: true,
       phoneNumber,
       verificationToken,
+      customToken,
       verifiedAt: new Date().toISOString(),
       isExistingPartner,
       existingDsaCode

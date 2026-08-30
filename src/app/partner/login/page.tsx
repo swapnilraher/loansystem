@@ -2,6 +2,8 @@
 
 import React, { useState } from "react"
 import { useAuth } from "@/context/AuthContext"
+import { signInWithCustomToken } from "firebase/auth"
+import { auth } from "@/lib/firebase"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import {
@@ -91,16 +93,22 @@ export default function PartnerLogin() {
     } finally { setOtpLoading(false) }
   }
 
-  const handleOtpVerified = async () => {
+  const handleOtpVerified = async (token?: string, customToken?: string) => {
     setShowOtpModal(false); setLoading(true)
     try {
+      if (customToken) {
+        await signInWithCustomToken(auth, customToken)
+      }
       const res = await fetch(`/api/onboarding/status?mobile=${mobileNumber}`)
       const data = await res.json()
       if (res.ok && data.application) {
         const appSt = data.application.dsaStatus || data.application.status
         (appSt === "approved" || appSt === "Active") ? router.push("/partner") : router.push(`/application-status?mobile=${mobileNumber}`)
       } else { router.push("/onboarding") }
-    } catch { router.push("/onboarding") }
+    } catch (err) {
+      console.error("WhatsApp OTP login error:", err)
+      router.push("/onboarding")
+    }
     finally { setLoading(false) }
   }
 

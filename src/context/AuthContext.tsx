@@ -84,8 +84,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const docRef = doc(db, "users", user.uid);
         const docSnap = await getDoc(docRef);
         
+        let loadedProfile: any = null;
+
         if (docSnap.exists()) {
-          setProfile(docSnap.data());
+          loadedProfile = docSnap.data();
+        } else {
+          // Fallback lookup by mobile number (e.g. if user document is keyed by mobileNumber)
+          const rawMobile = user.phoneNumber || user.uid;
+          const cleanMobile = rawMobile ? rawMobile.replace(/\D/g, "").slice(-10) : "";
+          if (cleanMobile.length === 10) {
+            const mobileDocRef = doc(db, "users", cleanMobile);
+            const mobileSnap = await getDoc(mobileDocRef);
+            if (mobileSnap.exists()) {
+              loadedProfile = mobileSnap.data();
+            } else {
+              const q = query(collection(db, "users"), where("mobileNumber", "==", cleanMobile));
+              const qSnap = await getDocs(q);
+              if (!qSnap.empty) {
+                loadedProfile = qSnap.docs[0].data();
+              }
+            }
+          }
+        }
+
+        if (loadedProfile) {
+          setProfile(loadedProfile);
         } else {
           const newProfile = {
             uid: user.uid,
