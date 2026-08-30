@@ -1,23 +1,35 @@
 import { NextResponse } from "next/server"
+import crypto from "crypto"
 import nodemailer from "nodemailer"
 import { getAdminDb } from "@/lib/firebase-admin"
 import { generatePartnerAgreementPdf } from "@/lib/pdf-generator"
 import { generateNextDsaCode } from "@/lib/dsaCodeGenerator"
 
+const OTP_SALT = process.env.OTP_HASH_SALT || "TSM_SECURE_FINTECH_SALT_2026"
+
+function hashOtp(otp: string, phone: string): string {
+  return crypto
+    .createHmac("sha256", OTP_SALT)
+    .update(`${phone}:${otp.trim()}`)
+    .digest("hex")
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { phoneNumber, otp, email } = body
+    const cleanPhone = String(phoneNumber || "").replace(/\D/g, "")
+    const cleanOtp = String(otp || "").trim()
 
-    if (!phoneNumber) {
+    if (!cleanPhone) {
       return NextResponse.json({ error: "Phone number is required" }, { status: 400 })
     }
 
     const db = getAdminDb()
 
     // 1. If OTP is provided, verify OTP against partner_otp_codes
-    if (otp) {
-      const otpDocRef = db.collection("partner_otp_codes").doc(phoneNumber)
+    if (cleanOtp) {
+      const otpDocRef = db.collection("partner_otp_codes").doc(cleanPhone)
       const otpDoc = await otpDocRef.get()
 
       if (!otpDoc.exists) {
@@ -25,7 +37,27 @@ export async function POST(request: Request) {
       }
 
       const otpData = otpDoc.data()
-      if (otpData?.otp !== otp.trim()) {
+
+      // Check max attempts
+      if ((otpData?.verifyAttempts || 0) >= 5) {
+        await otpDocRef.delete()
+        return NextResponse.json({ error: "Too many failed attempts. Please request a new OTP." }, { status: 429 })
+      }
+
+      // Check expiration
+      const expiresAt = otpData?.expiresAt?.toDate ? otpData.expiresAt.toDate() : new Date(otpData?.expiresAt || 0)
+      if (new Date() > expiresAt) {
+        await otpDocRef.delete()
+        return NextResponse.json({ error: "OTP has expired. Please request a new OTP." }, { status: 400 })
+      }
+
+      // Check OTP match (hashed or fallback plaintext)
+      const expectedHashedOtp = otpData?.hashedOtp
+      const computedHashedOtp = hashOtp(cleanOtp, cleanPhone)
+      const isMatched = expectedHashedOtp ? expectedHashedOtp === computedHashedOtp : otpData?.otp === cleanOtp
+
+      if (!isMatched) {
+        await otpDocRef.update({ verifyAttempts: (otpData?.verifyAttempts || 0) + 1 })
         return NextResponse.json({ error: "Invalid verification OTP code. Please try again." }, { status: 400 })
       }
 
@@ -34,11 +66,11 @@ export async function POST(request: Request) {
     }
 
     // 2. Fetch Partner Profile & Application Data
-    const appDocRef = db.collection("partner_applications").doc(phoneNumber)
+    const appDocRef = db.collection("partner_applications").doc(cleanPhone)
     const appSnap = await appDocRef.get()
     const appData = appSnap.exists ? appSnap.data() : {}
 
-    const userDocRef = db.collection("users").doc(phoneNumber)
+    const userDocRef = db.collection("users").doc(cleanPhone)
     const userSnap = await userDocRef.get()
     const userData = userSnap.exists ? userSnap.data() : {}
 
@@ -63,7 +95,7 @@ export async function POST(request: Request) {
     await userDocRef.set(agreementMeta, { merge: true })
 
     // Also update by UID if user record is keyed by UID
-    const userQuery = await db.collection("users").where("mobileNumber", "==", phoneNumber).get()
+    const userQuery = await db.collection("users").where("mobileNumber", "==", cleanPhone).get()
     userQuery.forEach((docSnap) => {
       docSnap.ref.set(agreementMeta, { merge: true })
     })
@@ -76,7 +108,7 @@ export async function POST(request: Request) {
       firmType: appData?.firmType || userData?.firmType || "",
       designation: appData?.designation || userData?.designation || "Partner",
       dsaCode: dsaCode,
-      mobileNumber: phoneNumber,
+      mobileNumber: cleanPhone,
       email: partnerEmail,
       addressLine1: appData?.addressLine1 || userData?.address?.line1 || "",
       addressLine2: appData?.addressLine2 || userData?.address?.line2 || "",
@@ -90,16 +122,16 @@ export async function POST(request: Request) {
     const pdfBuffer = generatePartnerAgreementPdf(partnerPdfData)
 
     // Upload generated MOU PDF to Cloudinary and store URL in database
-    let agreementPdfUrl: string = `/api/partner/agreement/pdf?mobile=${phoneNumber}`
+    let agreementPdfUrl: string = `/api/partner/agreement/pdf?mobile=${cleanPhone}`
     try {
       const cloudinary = (await import("@/lib/cloudinary")).default
       const base64Pdf = `data:application/pdf;base64,${pdfBuffer.toString("base64")}`
       const uploadRes = await cloudinary.uploader.upload(base64Pdf, {
-        public_id: `MOU_Agreement_${phoneNumber}_${dsaCode}`,
+        public_id: `MOU_Agreement_${cleanPhone}_${dsaCode}`,
         folder: "partner-agreements",
         resource_type: "auto",
         overwrite: true,
-        tags: ["partner-mou", phoneNumber, dsaCode],
+        tags: ["partner-mou", cleanPhone, dsaCode],
       })
       if (uploadRes?.secure_url) {
         agreementPdfUrl = uploadRes.secure_url
@@ -120,7 +152,7 @@ export async function POST(request: Request) {
     await appDocRef.set(pdfMeta, { merge: true })
     await userDocRef.set(pdfMeta, { merge: true })
 
-    const userPdfQuery = await db.collection("users").where("mobileNumber", "==", phoneNumber).get()
+    const userPdfQuery = await db.collection("users").where("mobileNumber", "==", cleanPhone).get()
     userPdfQuery.forEach((docSnap) => {
       docSnap.ref.set(pdfMeta, { merge: true })
     })

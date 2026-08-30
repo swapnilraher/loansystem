@@ -31,7 +31,8 @@ export default function PartnerAgreementModal({
   partnerData,
   onSigned,
 }: PartnerAgreementModalProps) {
-  const [showModal, setShowModal] = useState(!partnerData.agreementSigned)
+  const isAlreadySigned = !!partnerData.agreementSigned
+  const [showModal, setShowModal] = useState(!isAlreadySigned)
   const [viewPdfModal, setViewPdfModal] = useState(false)
   const [step, setStep] = useState<"review" | "otp">("review")
   const [otp, setOtp] = useState("")
@@ -39,7 +40,14 @@ export default function PartnerAgreementModal({
   const [verifying, setVerifying] = useState(false)
   const [error, setError] = useState("")
   const [successMsg, setSuccessMsg] = useState("")
-  const [isSignedLocally, setIsSignedLocally] = useState(partnerData.agreementSigned || false)
+  const [isSignedLocally, setIsSignedLocally] = useState(isAlreadySigned)
+
+  React.useEffect(() => {
+    if (partnerData.agreementSigned) {
+      setShowModal(false)
+      setIsSignedLocally(true)
+    }
+  }, [partnerData.agreementSigned])
 
   const pdfUrl = `/api/partner/agreement/pdf?mobile=${partnerData.mobileNumber}`
 

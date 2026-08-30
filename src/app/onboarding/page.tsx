@@ -23,6 +23,7 @@ import WhatsAppOtpModal from "@/components/onboarding/WhatsAppOtpModal"
 import PartnerAgreementModal from "@/components/partner/PartnerAgreementModal"
 import { PartnerPortalHeader, PartnerPortalFooter } from "@/components/layout/PartnerPortalShell"
 import ImageCropModal from "@/components/onboarding/ImageCropModal"
+import { OnboardingStorage, type OnboardingDraftState } from "@/lib/onboarding-storage"
 import {
   ChoiceGroup,
   DocSlot,
@@ -177,6 +178,7 @@ export default function OnboardingPage() {
   const [gstin, setGstin] = useState("")
   const [gstValid, setGstValid] = useState(false)
   const [gstVerifying, setGstVerifying] = useState(false)
+  const [gstDetails, setGstDetails] = useState<any | null>(null)
 
   // ─── Step 6: KYC Document Uploads ───
   const [docUploadMethod, setDocUploadMethod] = useState<"digilocker" | "manual">("digilocker")
@@ -315,16 +317,68 @@ export default function OnboardingPage() {
   }
 
   const loadDraftForMobile = async (targetMobile: string) => {
+    // 1. Instant local cache restore (Zero-flicker offline/page refresh UX)
+    const localDraft = OnboardingStorage.getDraft(targetMobile)
+    if (localDraft) {
+      if (localDraft.fullName) setFullName(localDraft.fullName)
+      if (localDraft.email) setEmail(localDraft.email)
+      if (localDraft.partnerType) setPartnerType(localDraft.partnerType)
+      if (localDraft.firmType) setFirmType(localDraft.firmType)
+      if (localDraft.businessName) setBusinessName(localDraft.businessName)
+      if (localDraft.panNumber) {
+        setPanNumber(localDraft.panNumber)
+        setPanValid(!!localDraft.panValid)
+      }
+      if (localDraft.contactPersonName) setContactPersonName(localDraft.contactPersonName)
+      if (localDraft.designation) setDesignation(localDraft.designation)
+      if (localDraft.dob) setDob(localDraft.dob)
+      if (localDraft.gender) setGender(localDraft.gender)
+      if (localDraft.addressLine1) setAddressLine1(localDraft.addressLine1)
+      if (localDraft.addressLine2) setAddressLine2(localDraft.addressLine2)
+      if (localDraft.area) setArea(localDraft.area)
+      if (localDraft.city) setCity(localDraft.city)
+      if (localDraft.district) setDistrict(localDraft.district)
+      if (localDraft.stateName) setStateName(localDraft.stateName)
+      if (localDraft.pinCode) setPinCode(localDraft.pinCode)
+      if (localDraft.isGstRegistered) setIsGstRegistered(localDraft.isGstRegistered)
+      if (localDraft.gstin) {
+        setGstin(localDraft.gstin)
+        setGstValid(!!localDraft.gstValid)
+      }
+      if (localDraft.gstDetails) {
+        setGstDetails(localDraft.gstDetails)
+      }
+      if (localDraft.aadhaarFrontDoc) setAadhaarFrontDoc(localDraft.aadhaarFrontDoc)
+      if (localDraft.aadhaarBackDoc) setAadhaarBackDoc(localDraft.aadhaarBackDoc)
+      if (localDraft.panDoc) setPanDoc(localDraft.panDoc)
+      if (localDraft.accountHolderName) setAccountHolderName(localDraft.accountHolderName)
+      if (localDraft.accountNumber) setAccountNumber(localDraft.accountNumber)
+      if (localDraft.confirmAccountNumber) setConfirmAccountNumber(localDraft.confirmAccountNumber)
+      if (localDraft.ifscCode) {
+        setIfscCode(localDraft.ifscCode)
+        setIfscValid(!!localDraft.ifscValid)
+      }
+      if (localDraft.bankName) setBankName(localDraft.bankName)
+      if (localDraft.branchName) setBranchName(localDraft.branchName)
+      if (localDraft.bankVerified) setBankVerified(true)
+      if (localDraft.currentStep && localDraft.currentStep >= 1 && localDraft.currentStep <= 8) {
+        setCurrentStep(localDraft.currentStep)
+      }
+    }
+
+    // 2. Fetch authoritative remote draft from backend Firestore
     try {
       const res = await fetch(`/api/onboarding/resume?mobile=${targetMobile}`)
       const data = await res.json()
       const app = data.data || data.application
       if (res.ok && app) {
-        if (app.currentStep && app.currentStep >= 1 && app.currentStep <= 8) {
-          setCurrentStep(app.currentStep)
+        const targetStep = Math.max(localDraft?.currentStep || 1, app.currentStep || 1)
+        if (targetStep >= 1 && targetStep <= 8) {
+          setCurrentStep(targetStep)
         } else {
           setCurrentStep(1)
         }
+
         if (app.fullName) setFullName(app.fullName)
         if (app.email) setEmail(app.email)
         if (app.partnerType) setPartnerType(app.partnerType)
@@ -350,49 +404,73 @@ export default function OnboardingPage() {
           setGstin(app.gstin)
           setGstValid(true)
         }
+        if (app.gstDetails) {
+          setGstDetails(app.gstDetails)
+        }
         if (app.documents?.aadhaarFrontDoc) setAadhaarFrontDoc(app.documents.aadhaarFrontDoc)
         if (app.documents?.aadhaarBackDoc) setAadhaarBackDoc(app.documents.aadhaarBackDoc)
         if (app.documents?.aadhaarDoc) {
           setAadhaarFrontDoc(app.documents.aadhaarDoc)
           setAadhaarCombined(true)
         }
+        if (app.documents?.panDoc) setPanDoc(app.documents.panDoc)
         if (app.bankVerifyAttempts) setBankVerifyAttempts(app.bankVerifyAttempts)
         if (app.bankDetails) {
           if (app.bankDetails.verified && app.bankDetails.accountHolderName) {
             setAccountHolderName(app.bankDetails.accountHolderName)
             setBankVerified(true)
-          } else {
-            setAccountHolderName("")
-            setBankVerified(false)
           }
-          setAccountNumber(app.bankDetails.accountNumber || "")
-          setConfirmAccountNumber(app.bankDetails.accountNumber || "")
-          setIfscCode(app.bankDetails.ifsc || "")
-          setBankName(app.bankDetails.bankName || "")
-          setBranchName(app.bankDetails.branchName || "")
-          setAccountType(app.bankDetails.accountType || "Savings")
-          if (app.bankDetails.ifsc) setIfscValid(true)
+          if (app.bankDetails.accountNumber) {
+            setAccountNumber(app.bankDetails.accountNumber)
+            setConfirmAccountNumber(app.bankDetails.accountNumber)
+          }
+          if (app.bankDetails.ifsc) {
+            setIfscCode(app.bankDetails.ifsc)
+            setIfscValid(true)
+          }
+          if (app.bankDetails.bankName) setBankName(app.bankDetails.bankName)
+          if (app.bankDetails.branchName) setBranchName(app.bankDetails.branchName)
+          if (app.bankDetails.accountType) setAccountType(app.bankDetails.accountType)
           if (app.bankDetails.verifiedAccountName) setReturnedBankName(app.bankDetails.verifiedAccountName)
           if (app.bankDetails.nameMatchScore) setBankMatchScore(app.bankDetails.nameMatchScore)
         }
         if (app.agreementSigned) setIsAgreementSigned(true)
         if (app.agreementPdfUrl) setAgreementPdfUrl(app.agreementPdfUrl)
-      } else {
+
+        // Save fresh authoritative state to local storage
+        OnboardingStorage.saveDraft({
+          mobileNumber: targetMobile,
+          isMobileVerified: true,
+          currentStep: targetStep,
+          fullName: app.fullName || localDraft?.fullName || "",
+          email: app.email || localDraft?.email || "",
+          partnerType: app.partnerType || localDraft?.partnerType || "Individual",
+          firmType: app.firmType || localDraft?.firmType || "Proprietorship",
+          businessName: app.businessName || localDraft?.businessName || "",
+          panNumber: app.panNumber || localDraft?.panNumber || "",
+          panValid: !!app.panNumber,
+          contactPersonName: app.contactPersonName || localDraft?.contactPersonName || "",
+          designation: app.designation || localDraft?.designation || "Individual",
+          addressLine1: app.addressLine1 || localDraft?.addressLine1 || "",
+          city: app.city || localDraft?.city || "",
+          stateName: app.stateName || localDraft?.stateName || "",
+          pinCode: app.pinCode || localDraft?.pinCode || "",
+        })
+      } else if (!localDraft?.currentStep) {
         setCurrentStep(1)
       }
     } catch (e) {
-      console.warn("Could not resume draft:", e)
-      setCurrentStep(1)
+      console.warn("Could not resume remote draft, relying on local draft:", e)
+      if (!localDraft?.currentStep) setCurrentStep(1)
     }
   }
 
-  // Auto-restore onboarding session on accidental page refresh
+  // Auto-restore onboarding session on accidental page refresh or revisits
   useEffect(() => {
-    if (typeof window === "undefined") return
-    const savedMobile = localStorage.getItem("tsm_onboarding_mobile")
-    const savedVerified = localStorage.getItem("tsm_onboarding_verified")
+    const savedMobile = OnboardingStorage.getSavedMobile()
+    const isVerified = OnboardingStorage.isVerified()
 
-    if (savedMobile && savedVerified === "true") {
+    if (savedMobile && isVerified) {
       setMobileNumber(savedMobile)
       setIsMobileVerified(true)
       loadDraftForMobile(savedMobile)
@@ -404,18 +482,17 @@ export default function OnboardingPage() {
     setShowOtpModal(false)
     setIsMobileVerified(true)
 
-    if (typeof window !== "undefined") {
-      localStorage.setItem("tsm_onboarding_mobile", mobileNumber)
-      localStorage.setItem("tsm_onboarding_verified", "true")
-    }
+    OnboardingStorage.saveDraft({
+      mobileNumber,
+      isMobileVerified: true,
+    })
 
     await loadDraftForMobile(mobileNumber)
   }
 
   const handleResetMobile = () => {
+    OnboardingStorage.clearDraft()
     if (typeof window !== "undefined") {
-      localStorage.removeItem("tsm_onboarding_mobile")
-      localStorage.removeItem("tsm_onboarding_verified")
       localStorage.removeItem("tsm_digilocker_session_id")
     }
     setMobileNumber("")
@@ -511,12 +588,15 @@ export default function OnboardingPage() {
     }
   }, [mobileNumber])
 
-  // ─── 3. Save Progress to Backend ───
+  // ─── 3. Save Progress to Backend & Client Storage ───
   const saveProgress = async (stepNum: number, stepPayload: Record<string, unknown>) => {
-    if (typeof window !== "undefined" && mobileNumber) {
-      localStorage.setItem("tsm_onboarding_mobile", mobileNumber)
-      localStorage.setItem("tsm_onboarding_verified", "true")
-    }
+    OnboardingStorage.saveDraft({
+      ...stepPayload,
+      mobileNumber,
+      isMobileVerified: true,
+      currentStep: stepNum,
+    })
+
     setSavingStep(true)
     setStepError(null)
     try {
@@ -722,21 +802,114 @@ export default function OnboardingPage() {
   }
 
   // ─── Step 5: GST Verification & Submit ───
-  const handleVerifyGst = () => {
+  const handleVerifyGst = async () => {
+    setStepError(null)
     const cleanGst = gstin.trim().toUpperCase()
     const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/
     if (!gstRegex.test(cleanGst)) {
       setStepError("Please enter a valid 15-character GSTIN (e.g. 27ABCDE1234F1Z5).")
       setGstValid(false)
+      setGstDetails(null)
       return
     }
+
     setGstVerifying(true)
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/sandbox", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "verify-gst",
+          payload: { gstin: cleanGst }
+        })
+      })
+      const data = await res.json()
+
+      if (!res.ok || (data.code && data.code !== 200) || data.error) {
+        throw new Error(data.message || data.error || "GSTIN verification failed. Please verify the GST number.")
+      }
+
+      const resData = data.data?.data || data.data
+      if (!resData) {
+        throw new Error("No GST record found for this GSTIN.")
+      }
+
+      const legalName = resData.lgnm || ""
+      const tradeName = resData.tradeNam || legalName
+      const constitution = resData.ctb || ""
+      const status = resData.sts || "Active"
+      const taxpayerType = resData.dty || "Regular"
+      const regDate = resData.rgdt || ""
+      const addrObj = resData.pradr?.addr || {}
+
+      const formattedAddress = [
+        addrObj.bno,
+        addrObj.bnm,
+        addrObj.flno,
+        addrObj.st,
+        addrObj.loc || addrObj.locality,
+        addrObj.dst,
+        addrObj.stcd,
+        addrObj.pncd
+      ].filter(Boolean).join(", ")
+
+      const details = {
+        gstin: cleanGst,
+        legalName,
+        tradeName,
+        constitution,
+        status,
+        taxpayerType,
+        regDate,
+        address: formattedAddress,
+        pincode: addrObj.pncd || "",
+        state: addrObj.stcd || "",
+        district: addrObj.dst || "",
+        natureOfBusiness: Array.isArray(resData.nba) ? resData.nba.join(", ") : (resData.nba || "")
+      }
+
+      setGstDetails(details)
       setGstValid(true)
       setGstin(cleanGst)
+
+      // Intelligent autofill: If business name was empty, autofill with tradeName or legalName
+      if (!businessName.trim() && tradeName) {
+        setBusinessName(tradeName)
+      }
+
+      // Intelligent mapping for entity type
+      if (constitution) {
+        const cLower = constitution.toLowerCase()
+        if (cLower.includes("proprietor")) {
+          setFirmType("Proprietorship")
+          setPartnerType("Firm")
+        } else if (cLower.includes("partnership")) {
+          setFirmType("Partnership")
+          setPartnerType("Firm")
+        } else if (cLower.includes("private limited")) {
+          setFirmType("Private Limited")
+          setPartnerType("Firm")
+        } else if (cLower.includes("limited liability") || cLower.includes("llp")) {
+          setFirmType("LLP")
+          setPartnerType("Firm")
+        }
+      }
+
+      OnboardingStorage.saveDraft({
+        isGstRegistered: "Yes",
+        gstin: cleanGst,
+        gstValid: true,
+        gstDetails: details,
+      })
+
+    } catch (err: any) {
+      console.error("GST Verification Error:", err)
+      setGstValid(false)
+      setGstDetails(null)
+      setStepError(messageFor(err, "Failed to verify GSTIN. Please check the number and try again."))
+    } finally {
       setGstVerifying(false)
-      setStepError(null)
-    }, 600)
+    }
   }
 
   const handleStep5Submit = async (e: React.FormEvent) => {
@@ -750,6 +923,7 @@ export default function OnboardingPage() {
       isGstRegistered,
       gstin: isGstRegistered === "Yes" ? gstin.trim().toUpperCase() : null,
       gstValid: isGstRegistered === "Yes" ? gstValid : false,
+      gstDetails: isGstRegistered === "Yes" ? gstDetails : null,
     })
     if (ok) setCurrentStep(6)
   }
@@ -993,11 +1167,7 @@ export default function OnboardingPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to submit application")
 
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("tsm_onboarding_mobile")
-        localStorage.removeItem("tsm_onboarding_verified")
-      }
-
+      OnboardingStorage.clearDraft()
       setSubmittedAppId(data.applicationId)
     } catch (err) {
       setStepError(messageFor(err, "Failed to submit application. Please try again."))
@@ -1576,12 +1746,13 @@ export default function OnboardingPage() {
                   if (opt === "No") {
                     setGstin("")
                     setGstValid(false)
+                    setGstDetails(null)
                   }
                 }}
               />
 
               {isGstRegistered === "Yes" && (
-                <div>
+                <div className="space-y-4">
                   <Field label="GST number (GSTIN)">
                     <div className="flex flex-col sm:flex-row gap-2">
                       <TextInput
@@ -1590,6 +1761,7 @@ export default function OnboardingPage() {
                         onChange={e => {
                           setGstin(e.target.value.toUpperCase())
                           setGstValid(false)
+                          setGstDetails(null)
                         }}
                         placeholder="e.g. 27ABCDE1234F1Z5"
                         aria-describedby="gst-status"
@@ -1601,17 +1773,58 @@ export default function OnboardingPage() {
                         loading={gstVerifying}
                         disabled={gstVerifying || gstin.trim().length !== 15}
                       >
-                        Verify GST
+                        {gstValid ? "Re-verify GST" : "Verify GST"}
                       </AdminButton>
                     </div>
                   </Field>
-                  <span
-                    id="gst-status"
-                    role="status"
-                    className={cn(ERROR_SLOT, "text-admin-accent")}
-                  >
-                    {""}
-                  </span>
+
+                  {/* ── Verified GST Profile Card ── */}
+                  {gstValid && gstDetails && (
+                    <div className="rounded-admin border border-tone-success-bd bg-tone-success-bg/40 p-4 space-y-3 animate-in fade-in duration-300">
+                      <div className="flex items-center justify-between border-b border-tone-success-bd/40 pb-2.5">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 size={16} className="text-tone-success-fg shrink-0" />
+                          <span className="text-admin-xs font-bold text-tone-success-fg uppercase tracking-wider">
+                            Verified GST Profile
+                          </span>
+                        </div>
+                        <span className="px-2.5 py-0.5 rounded-full text-admin-2xs font-bold uppercase bg-tone-success text-tone-success-fg border border-tone-success-bd">
+                          {gstDetails.status || "Active"}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-admin-xs">
+                        <div>
+                          <p className="text-admin-subtle font-medium text-admin-2xs">Legal Business Name</p>
+                          <p className="font-bold text-admin-text mt-0.5">{gstDetails.legalName || "N/A"}</p>
+                        </div>
+                        {gstDetails.tradeName && (
+                          <div>
+                            <p className="text-admin-subtle font-medium text-admin-2xs">Trade Name</p>
+                            <p className="font-semibold text-admin-text mt-0.5">{gstDetails.tradeName}</p>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-admin-subtle font-medium text-admin-2xs">Constitution of Business</p>
+                          <p className="font-semibold text-admin-text mt-0.5">{gstDetails.constitution || "N/A"}</p>
+                        </div>
+                        <div>
+                          <p className="text-admin-subtle font-medium text-admin-2xs">Taxpayer Type / Reg Date</p>
+                          <p className="font-semibold text-admin-text mt-0.5">
+                            {gstDetails.taxpayerType || "Regular"} {gstDetails.regDate ? `• ${gstDetails.regDate}` : ""}
+                          </p>
+                        </div>
+                        {gstDetails.address && (
+                          <div className="sm:col-span-2 pt-1 border-t border-tone-success-bd/30">
+                            <p className="text-admin-subtle font-medium text-admin-2xs">Registered Place of Business</p>
+                            <p className="font-normal text-admin-text mt-0.5 text-admin-2xs leading-relaxed">
+                              {gstDetails.address}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -2038,7 +2251,18 @@ export default function OnboardingPage() {
 
                 <ReviewRow index={5} label="GST registration" onEdit={back(5)}>
                   <p className="text-admin-sm text-admin-text">
-                    {isGstRegistered === "Yes" ? `GSTIN: ${gstin}` : "Not GST registered"}
+                    {isGstRegistered === "Yes" ? (
+                      <>
+                        <span className="font-semibold">{gstin}</span>
+                        {gstDetails?.legalName && (
+                          <span className="block text-admin-xs text-admin-muted mt-0.5">
+                            {gstDetails.legalName} ({gstDetails.constitution || "Verified"})
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      "Not GST registered"
+                    )}
                   </p>
                 </ReviewRow>
 

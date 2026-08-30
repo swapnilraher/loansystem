@@ -48,27 +48,20 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
     }
 
     // Block Normal Dashboard User (non-partner) from Partner Portal
-    if (profile.role !== "partner" && !profile.dsaStatus && !profile.applicationId) {
+    const hasPartnerAccess =
+      profile.role === "partner" ||
+      !!profile.dsaStatus ||
+      !!profile.applicationId
+
+    if (!hasPartnerAccess) {
       if (!isLoginPage) router.push("/dashboard")
       return
     }
 
-    const isApproved =
-      profile.role === "partner" &&
-      (profile.dsaStatus === "Active" || profile.dsaStatus === "approved")
-
-    if (!isApproved && !isLoginPage) {
-      // If they have a submitted application, send them to the status tracker
-      // Otherwise send back to onboarding to complete
-      if (
-        profile.applicationId ||
-        profile.dsaStatus === "under_review" ||
-        profile.dsaStatus === "queried"
-      ) {
-        router.push("/application-status")
-      } else {
-        router.push("/onboarding")
-      }
+    // Only redirect to onboarding if applicant has an unsubmitted draft with no application ID
+    const currentStatus = String(profile.dsaStatus || profile.status || "").toLowerCase()
+    if (currentStatus === "draft" && !profile.applicationId && !isLoginPage) {
+      router.push("/onboarding")
     }
   }, [user, profile, adminRole, loading, pathname, router])
 
@@ -193,23 +186,7 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
 
       {/* Main content. Bottom padding clears the fixed mobile tab bar. */}
       <main className="flex-1 min-w-0 overflow-x-hidden pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0">
-        <div className="max-w-4xl mx-auto w-full px-4 py-4 md:py-6">
-          {profile?.dsaStatus && profile.dsaStatus !== "Active" && (
-            <div
-              role="status"
-              className="flex items-start gap-2 mb-4 px-3 py-2.5 rounded-admin-sm bg-tone-warn border border-tone-warn-bd text-tone-warn-fg"
-            >
-              <AlertCircle size={15} className="shrink-0 mt-0.5" />
-              <span className="block">
-                <span className="block text-admin-sm font-semibold">
-                  Account {profile.dsaStatus}
-                </span>
-                <span className="block text-admin-xs mt-0.5">
-                  You cannot submit new leads at this time. Please contact Admin for support.
-                </span>
-              </span>
-            </div>
-          )}
+        <div className="max-w-7xl mx-auto w-full px-4 py-4 md:py-6">
           {children}
         </div>
       </main>

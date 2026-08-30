@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
+import { validateStepPayload } from "@/lib/validations/onboarding";
 
 function sanitizePayload(obj: any): any {
   if (obj === undefined) return null;
@@ -19,88 +20,110 @@ function sanitizePayload(obj: any): any {
 export async function POST(request: Request) {
   try {
     const { mobileNumber, step, stepData } = await request.json();
+    const cleanMobile = String(mobileNumber || "").replace(/\D/g, "");
 
-    if (!mobileNumber) {
-      return NextResponse.json({ error: "Mobile number is required" }, { status: 400 });
+    if (!cleanMobile || !/^[6-9]\d{9}$/.test(cleanMobile)) {
+      return NextResponse.json({ error: "Valid mobile number is required" }, { status: 400 });
+    }
+
+    const stepNum = Number(step) || 1;
+
+    // ─── 1. SERVER-SIDE ZOD VALIDATION ───
+    if (stepData && Object.keys(stepData).length > 0) {
+      const validation = validateStepPayload(stepNum, stepData);
+      if (!validation.success) {
+        const errorMessages = validation.error?.issues?.map((i: any) => i.message).join(", ");
+        return NextResponse.json(
+          { error: errorMessages || "Invalid step payload provided." },
+          { status: 400 }
+        );
+      }
     }
 
     const db = getAdminDb();
-    const docRef = db.collection("partner_applications").doc(mobileNumber);
-
+    const docRef = db.collection("partner_applications").doc(cleanMobile);
     const existingDoc = await docRef.get();
     const existingData = existingDoc.exists ? existingDoc.data() : {};
 
-    // ─── STRICT UNIQUE EMAIL CHECK ───
+    // ─── 2. STRICT UNIQUE EMAIL CHECK ───
     const targetEmail = String(stepData?.email || existingData?.email || "").trim().toLowerCase();
 
     if (targetEmail) {
-      // 1. Check if email exists in partner_applications with a different mobile number
+      // Check in partner_applications with a different mobile number
       const appEmailSnap = await db.collection("partner_applications")
         .where("email", "==", targetEmail)
         .get();
 
-      const conflictingApp = appEmailSnap.docs.find(d => d.id !== mobileNumber);
+      const conflictingApp = appEmailSnap.docs.find((d) => d.id !== cleanMobile);
       if (conflictingApp) {
         return NextResponse.json({
-          error: `This Email ID ('${targetEmail}') is already registered with another partner mobile number (${conflictingApp.id}). Duplicate emails are strictly not allowed.`
+          error: `This Email ID ('${targetEmail}') is already registered with another mobile number (${conflictingApp.id}). Duplicate emails are strictly not allowed.`,
         }, { status: 400 });
       }
 
-      // 2. Check if email exists in partners collection with a different mobile number
+      // Check in partners collection with a different mobile number
       const partnerEmailSnap = await db.collection("partners")
         .where("email", "==", targetEmail)
         .get();
 
-      const conflictingPartner = partnerEmailSnap.docs.find(d => {
+      const conflictingPartner = partnerEmailSnap.docs.find((d) => {
         const data = d.data();
-        return (data.mobileNumber && data.mobileNumber !== mobileNumber) || d.id !== mobileNumber;
+        return (data.mobileNumber && data.mobileNumber !== cleanMobile) || d.id !== cleanMobile;
       });
 
       if (conflictingPartner) {
         return NextResponse.json({
-          error: `This Email ID ('${targetEmail}') is already registered with an active DSA partner account. Duplicate emails are strictly not allowed.`
+          error: `This Email ID ('${targetEmail}') is already registered with an active DSA partner account. Duplicate emails are strictly not allowed.`,
         }, { status: 400 });
       }
     }
 
+    const now = new Date();
+    const currentStep = Math.max(existingData?.currentStep || 1, stepNum);
+
     const rawPayload = {
       ...existingData,
       ...stepData,
-      mobileNumber,
-      currentStep: Math.max(existingData?.currentStep || 1, step || 1),
-      updatedAt: new Date(),
-      status: existingData?.status || "draft"
+      mobileNumber: cleanMobile,
+      currentStep,
+      updatedAt: now,
+      status: existingData?.status || "draft",
     };
 
     if (!existingDoc.exists) {
-      rawPayload.createdAt = new Date();
-      rawPayload.applicationId = `TSM-DRAFT-${mobileNumber}`;
+      rawPayload.createdAt = now;
+      rawPayload.applicationId = `TSM-DRAFT-${cleanMobile}`;
     }
 
     const cleanPayload = sanitizePayload(rawPayload);
 
-    await docRef.set(cleanPayload, { merge: true });
+    // ─── 3. ATOMIC BATCH WRITE (Applications + Users) ───
+    const batch = db.batch();
+    batch.set(docRef, cleanPayload, { merge: true });
 
-    // Sync to users collection so partner registrations are visible across all admin panels
-    try {
-      const userRef = db.collection("users").doc(mobileNumber);
-      await userRef.set({
-        mobileNumber,
+    const userRef = db.collection("users").doc(cleanMobile);
+    batch.set(
+      userRef,
+      {
+        mobileNumber: cleanMobile,
         fullName: cleanPayload.fullName || cleanPayload.contactPersonName || "Partner Applicant",
         email: cleanPayload.email || "",
         role: "partner",
         dsaStatus: cleanPayload.status || "draft",
-        applicationId: cleanPayload.applicationId || `TSM-DRAFT-${mobileNumber}`,
-        updatedAt: new Date()
-      }, { merge: true });
-    } catch (uErr) {
-      console.warn("User status sync error in save-step:", uErr);
-    }
+        applicationId: cleanPayload.applicationId || `TSM-DRAFT-${cleanMobile}`,
+        currentStep,
+        updatedAt: now,
+      },
+      { merge: true }
+    );
+
+    await batch.commit();
 
     return NextResponse.json({
       success: true,
       currentStep: cleanPayload.currentStep,
-      message: "Progress saved successfully"
+      message: "Progress saved successfully",
+      savedAt: now.toISOString(),
     });
   } catch (error: any) {
     console.error("Save Step Error:", error);

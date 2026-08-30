@@ -134,6 +134,24 @@ export async function POST(req: Request) {
       };
       delete options.body;
     }
+    else if (action === 'verify-gst') {
+      const cleanGst = String(payload.gstin || "").trim().toUpperCase();
+      if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(cleanGst)) {
+        return NextResponse.json({ error: "Invalid 15-character GSTIN format." }, { status: 400 });
+      }
+      url = "https://api.sandbox.co.in/gst/compliance/public/gstin/search";
+      options.method = "POST";
+      options.headers = {
+        "accept": "application/json",
+        "authorization": token,
+        "content-type": "application/json",
+        "x-api-key": activeKey,
+        "x-api-version": "1.0.0"
+      };
+      options.body = JSON.stringify({
+        "gstin": cleanGst
+      });
+    }
     else if (action === 'initiate-digilocker') {
       if (!payload.redirect_url) {
         return NextResponse.json({ error: "Redirect URL is required for DigiLocker initiation." }, { status: 400 });

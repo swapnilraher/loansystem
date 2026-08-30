@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 
-const PHONE_ID = process.env.WHATSAPP_PHONE_ID || "1112131761984283";
-const TOKEN = process.env.WHATSAPP_TOKEN || "EAAL6qnWnZABMBRfTVoipikLTEZBzVNQf9YStyNGTSxAGq8kHJ6AXivKPiHcMYxZBO2uuMyh4dCNVZB183wSpqoB0J08pAEsL5rEEqyHWdDfRgD5zxZCYhLX3ZBJW0rcxxQwvztib7jupBBStMxAaISbtrSalquCKiehliYs7ZCBf1VmGZCtqNTS1qhmPTybViZBZCOZBQZDZD";
+const PHONE_ID = process.env.WHATSAPP_PHONE_ID;
+const TOKEN = process.env.WHATSAPP_TOKEN;
 
 export async function POST(request: Request) {
   try {
     const payload = await request.json();
     const { mobileNumber, agreementConsent } = payload;
+    const cleanMobile = String(mobileNumber || "").replace(/\D/g, "");
 
-    if (!mobileNumber) {
+    if (!cleanMobile) {
       return NextResponse.json({ error: "Mobile number is required" }, { status: 400 });
     }
 
@@ -17,8 +18,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Declaration and terms consent is required" }, { status: 400 });
     }
 
+    const clientIp = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "127.0.0.1";
     const db = getAdminDb();
-    const docRef = db.collection("partner_applications").doc(mobileNumber);
+    const docRef = db.collection("partner_applications").doc(cleanMobile);
     const docSnap = await docRef.get();
 
     if (!docSnap.exists) {
@@ -48,7 +50,6 @@ export async function POST(request: Request) {
     const randomSeq = Math.floor(100000 + Math.random() * 900000);
     const year = new Date().getFullYear();
     const applicationId = `TSM-DSA-${year}-${randomSeq}`;
-
     const submittedAt = new Date();
 
     const finalApplication = {
@@ -58,87 +59,97 @@ export async function POST(request: Request) {
       submittedAt,
       updatedAt: submittedAt,
       agreementConsent: true,
+      submissionIp: clientIp,
       timeline: [
         ...(appData?.timeline || []),
         {
           title: "Application Submitted",
           description: `Application ${applicationId} submitted successfully for admin review.`,
           timestamp: submittedAt.toISOString(),
-          actor: "applicant"
-        }
-      ]
+          actor: "applicant",
+        },
+      ],
     };
 
-    await docRef.set(finalApplication);
+    // ─── ATOMIC BATCH WRITE (Applications + Users + Audit) ───
+    const batch = db.batch();
+    batch.set(docRef, finalApplication);
 
-    // Update user profile in 'users' collection to mark dsaStatus as under_review
-    try {
-      const userRef = db.collection("users").doc(mobileNumber);
-      await userRef.set({
-        mobileNumber,
+    const userRef = db.collection("users").doc(cleanMobile);
+    batch.set(
+      userRef,
+      {
+        mobileNumber: cleanMobile,
         fullName: appData.fullName || appData.contactPersonName || "Partner Applicant",
         email: appData.email || "",
         role: "partner",
         dsaStatus: "under_review",
         applicationId,
-        updatedAt: submittedAt
-      }, { merge: true });
-    } catch (uErr) {
-      console.warn("User status sync error:", uErr);
-    }
+        updatedAt: submittedAt,
+      },
+      { merge: true }
+    );
 
-    // Send WhatsApp confirmation to Partner
-    try {
-      const partnerMsg = {
-        messaging_product: "whatsapp",
-        to: `${process.env.COUNTRY_CODE || "91"}${mobileNumber}`,
-        type: "text",
-        text: {
-          body: `*Techstar Money - DSA Partner Application Submitted* 🌟\n\nDear ${appData.fullName || 'Partner'},\n\nYour application has been received successfully!\n\n📌 *Application ID:* ${applicationId}\n📌 *Status:* Under Review\n\nOur onboarding team will review your details and documents. Approval may take up to 24 hours.\n\nTrack Status: https://partner.techstarsolution.in/application-status?id=${applicationId}\n\nRegards,\n*Techstar Money Team*`
-        }
-      };
+    const auditRef = db.collection("partner_audit_logs").doc();
+    batch.set(auditRef, {
+      event: "APPLICATION_SUBMITTED",
+      applicationId,
+      phoneNumber: cleanMobile,
+      ip: clientIp,
+      timestamp: submittedAt,
+    });
 
-      await fetch(`https://graph.facebook.com/v17.0/${PHONE_ID}/messages`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(partnerMsg),
-      });
-    } catch (waErr) {
-      console.warn("Notification error:", waErr);
-    }
+    await batch.commit();
 
-    // Send WhatsApp Approval Request to Admin with all application details
-    try {
-      const adminMobiles = [
-        process.env.ADMIN_WHATSAPP || "7020646007",
-        "9579005645"
-      ];
-
-      const adminMessageText = `🚨 *NEW DSA PARTNER APPROVAL REQUEST* 🚨\n\nA new partner has submitted their onboarding application and requires approval!\n\n📌 *Application ID:* ${applicationId}\n👤 *Name:* ${appData.fullName || appData.contactPersonName || 'N/A'}\n📞 *Mobile:* +91 ${mobileNumber}\n📧 *Email:* ${appData.email || 'N/A'}\n🏢 *Type:* ${appData.partnerType || 'Individual'}${appData.firmType ? ` (${appData.firmType})` : ''}\n🆔 *PAN:* ${appData.panNumber || 'N/A'}\n\n📍 *Office Address:*\n${appData.addressLine1 || ''}, ${appData.city || ''}, ${appData.district || ''}, ${appData.stateName || ''} - ${appData.pinCode || ''}\n\n🏦 *Bank Details:*\n• Holder: ${appData.bankDetails?.accountHolderName || 'N/A'}\n• Account: ${appData.bankDetails?.accountNumber || 'N/A'} (${appData.bankDetails?.accountType || 'Savings'})\n• Bank: ${appData.bankDetails?.bankName || 'N/A'}\n• Branch: ${appData.bankDetails?.branchName || 'N/A'}\n• IFSC: ${appData.bankDetails?.ifsc || 'N/A'}\n\n📄 *Documents Uploaded:*\n• Aadhaar & PAN Uploaded\n\n🔗 *Review & Approve Now:*\nhttps://partner.techstarsolution.in/admin/partner-applications`;
-
-      for (const adminNum of adminMobiles) {
-        if (!adminNum) continue;
-        const adminPayload = {
+    // ─── NOTIFY PARTNER VIA WHATSAPP ───
+    if (PHONE_ID && TOKEN) {
+      try {
+        const partnerMsg = {
           messaging_product: "whatsapp",
-          to: `${process.env.COUNTRY_CODE || "91"}${adminNum.replace(/\D/g, "")}`,
+          to: `${process.env.COUNTRY_CODE || "91"}${cleanMobile}`,
           type: "text",
-          text: { body: adminMessageText }
+          text: {
+            body: `*Techstar Money - DSA Partner Application Submitted* 🌟\n\nDear ${appData.fullName || 'Partner'},\n\nYour application has been received successfully!\n\n📌 *Application ID:* ${applicationId}\n📌 *Status:* Under Review\n\nOur onboarding team will review your details and documents. Approval may take up to 24 hours.\n\nTrack Status: https://partner.techstarsolution.in/application-status?id=${applicationId}\n\nRegards,\n*Techstar Money Team*`,
+          },
         };
 
         await fetch(`https://graph.facebook.com/v17.0/${PHONE_ID}/messages`, {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${TOKEN}`,
+            Authorization: `Bearer ${TOKEN}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(partnerMsg),
+        });
+      } catch (waErr) {
+        console.warn("Partner WhatsApp notification error:", waErr);
+      }
+    }
+
+    // ─── NOTIFY ADMIN VIA WHATSAPP ───
+    const adminWhatsApp = process.env.ADMIN_WHATSAPP;
+    if (PHONE_ID && TOKEN && adminWhatsApp) {
+      try {
+        const adminMessageText = `🚨 *NEW DSA PARTNER APPROVAL REQUEST* 🚨\n\nA new partner has submitted their onboarding application!\n\n📌 *Application ID:* ${applicationId}\n👤 *Name:* ${appData.fullName || appData.contactPersonName || 'N/A'}\n📞 *Mobile:* +91 ${cleanMobile}\n📧 *Email:* ${appData.email || 'N/A'}\n🏢 *Type:* ${appData.partnerType || 'Individual'}${appData.firmType ? ` (${appData.firmType})` : ''}\n🆔 *PAN:* ${appData.panNumber || 'N/A'}\n\n📍 *Office Address:*\n${appData.addressLine1 || ''}, ${appData.city || ''}, ${appData.district || ''}, ${appData.stateName || ''} - ${appData.pinCode || ''}\n\n🏦 *Bank Details:*\n• Holder: ${appData.bankDetails?.accountHolderName || 'N/A'}\n• Account: ${appData.bankDetails?.accountNumber || 'N/A'} (${appData.bankDetails?.accountType || 'Savings'})\n• Bank: ${appData.bankDetails?.bankName || 'N/A'}\n• Branch: ${appData.bankDetails?.branchName || 'N/A'}\n• IFSC: ${appData.bankDetails?.ifsc || 'N/A'}\n\n🔗 *Review & Approve Now:*\nhttps://partner.techstarsolution.in/admin/partner-applications`;
+
+        const adminPayload = {
+          messaging_product: "whatsapp",
+          to: `${process.env.COUNTRY_CODE || "91"}${adminWhatsApp.replace(/\D/g, "")}`,
+          type: "text",
+          text: { body: adminMessageText },
+        };
+
+        await fetch(`https://graph.facebook.com/v17.0/${PHONE_ID}/messages`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${TOKEN}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(adminPayload),
         });
+      } catch (adminWaErr) {
+        console.warn("Admin Notification Error:", adminWaErr);
       }
-    } catch (adminWaErr) {
-      console.warn("Admin Notification Error:", adminWaErr);
     }
 
     return NextResponse.json({
@@ -146,7 +157,7 @@ export async function POST(request: Request) {
       applicationId,
       status: "under_review",
       submittedAt: submittedAt.toISOString(),
-      message: "Application submitted successfully"
+      message: "Application submitted successfully",
     });
   } catch (error: any) {
     console.error("Submit Application Error:", error);

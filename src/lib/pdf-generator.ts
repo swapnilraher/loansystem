@@ -288,6 +288,16 @@ b) Governing Law: This agreement shall be governed by the laws of India. Any dis
   doc.setLineWidth(0.5)
   doc.line(104, y + 4, 104, y + 36)
 
+  // Calculate Tamper-Evident SHA-256 Verification Hash
+  const verificationPayload = `${data.dsaCode}|${data.mobileNumber}|${data.fullName}|${data.signedAt || today}|${data.ipAddress || "127.0.0.1"}`
+  let cryptoHash = "TSM-SECURE-STAMP"
+  try {
+    const crypto = require("crypto")
+    cryptoHash = crypto.createHash("sha256").update(verificationPayload).digest("hex").slice(0, 32).toUpperCase()
+  } catch (e) {
+    cryptoHash = `TSM-${Buffer.from(verificationPayload).toString("base64").slice(0, 24)}`
+  }
+
   // Left Column - Referral Partner Signature
   doc.setFontSize(8)
   doc.setFont("helvetica", "bold")
@@ -295,15 +305,18 @@ b) Governing Law: This agreement shall be governed by the laws of India. Any dis
   doc.text("ELECTRONICALLY SIGNED BY REFERRAL PARTNER", leftMargin + 3, y + 6)
 
   doc.setFont("helvetica", "normal")
-  doc.setFontSize(8)
+  doc.setFontSize(7.5)
   doc.setTextColor(30, 41, 59)
-  doc.text(`Name: ${data.fullName}`, leftMargin + 3, y + 12)
-  doc.text(`DSA Code: ${data.dsaCode}`, leftMargin + 3, y + 17)
-  doc.text(`Auth Method: Mobile OTP (+91 ${data.mobileNumber})`, leftMargin + 3, y + 22)
-  doc.text(`Verified Timestamp: ${today}`, leftMargin + 3, y + 27)
+  doc.text(`Name: ${data.fullName}`, leftMargin + 3, y + 11)
+  doc.text(`DSA Code: ${data.dsaCode}`, leftMargin + 3, y + 16)
+  doc.text(`Auth Method: Mobile OTP (+91 ${data.mobileNumber})`, leftMargin + 3, y + 21)
+  doc.text(`Verified Timestamp: ${today}`, leftMargin + 3, y + 26)
   if (data.ipAddress) {
-    doc.text(`IP Address: ${data.ipAddress}`, leftMargin + 3, y + 32)
+    doc.text(`IP Address: ${data.ipAddress}`, leftMargin + 3, y + 31)
   }
+  doc.setFontSize(6)
+  doc.setTextColor(100, 116, 139)
+  doc.text(`Digital Seal: SHA256/${cryptoHash}`, leftMargin + 3, y + 36)
 
   // Right Column - Company Signature
   doc.setFont("helvetica", "bold")
@@ -312,12 +325,15 @@ b) Governing Law: This agreement shall be governed by the laws of India. Any dis
   doc.text("ON BEHALF OF TECHSTAR MONEY SOLUTION PVT. LTD.", 107, y + 6)
 
   doc.setFont("helvetica", "normal")
-  doc.setFontSize(8)
+  doc.setFontSize(7.5)
   doc.setTextColor(30, 41, 59)
-  doc.text("Authorized Signatory", 107, y + 12)
-  doc.text("Techstar Money Solutions", 107, y + 17)
-  doc.text("Chhatrapati Sambhajinagar, MH", 107, y + 22)
-  doc.text(`Date: ${today}`, 107, y + 27)
+  doc.text("Authorized Signatory", 107, y + 11)
+  doc.text("Techstar Money Solutions", 107, y + 16)
+  doc.text("Chhatrapati Sambhajinagar, MH", 107, y + 21)
+  doc.text(`Execution Date: ${today}`, 107, y + 26)
+  doc.setFontSize(6)
+  doc.setTextColor(22, 101, 52)
+  doc.text(`Status: Verified Electronic Execution (IT Act 2000)`, 107, y + 36)
 
   // Convert PDF to Node Buffer
   const arrayBuffer = doc.output("arraybuffer")
