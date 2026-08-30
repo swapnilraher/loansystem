@@ -64,27 +64,60 @@ export async function POST(request: Request) {
 
     const uploadedAt = new Date().toISOString();
 
+    const isDocListArray = Array.isArray(docsData?.data)
+      ? docsData.data
+      : Array.isArray(docsData?.data?.documents)
+      ? docsData.data.documents
+      : Array.isArray(docsData?.documents)
+      ? docsData.documents
+      : [];
+
+    const hasAadhaarInList = isDocListArray.some((d: any) => {
+      const type = String(d?.doctype || d?.doc_type || d?.type || "").toUpperCase();
+      return type.includes("ADHAR") || type.includes("AADHAAR") || type.includes("UID");
+    });
+
+    const hasPanInList = isDocListArray.some((d: any) => {
+      const type = String(d?.doctype || d?.doc_type || d?.type || "").toUpperCase();
+      return type.includes("PAN") || type.includes("PANCR");
+    });
+
     // Check if Aadhaar and PAN were granted consent and successfully returned by DigiLocker
     const hasAadhaar = Boolean(
-      (aadhaarDetails && aadhaarDetails.code === 200) ||
+      (aadhaarDetails && (aadhaarDetails.code === 200 || aadhaarDetails.status === 200 || aadhaarDetails.status === "completed" || aadhaarDetails.status === "success")) ||
       aadhaarDetails?.data?.pdf_url ||
       aadhaarDetails?.pdf_url ||
+      aadhaarDetails?.data?.file_url ||
       aadhaarDetails?.data?.uid ||
-      docsData?.data?.some?.((d: any) => d.doctype === "ADHAR" || d.doctype === "aadhaar")
+      hasAadhaarInList ||
+      docsData?.code === 200
     );
 
     const hasPan = Boolean(
-      (panDetails && panDetails.code === 200) ||
+      (panDetails && (panDetails.code === 200 || panDetails.status === 200 || panDetails.status === "completed" || panDetails.status === "success")) ||
       panDetails?.data?.pdf_url ||
       panDetails?.pdf_url ||
+      panDetails?.data?.file_url ||
       panDetails?.data?.pan ||
-      docsData?.data?.some?.((d: any) => d.doctype === "PANCR" || d.doctype === "pan")
+      hasPanInList ||
+      docsData?.code === 200
     );
 
-    console.log(`DigiLocker Session Verification -> hasAadhaar: ${hasAadhaar}, hasPan: ${hasPan}`);
+    console.log(`DigiLocker Session Verification -> hasAadhaar: ${hasAadhaar}, hasPan: ${hasPan}, docsCount: ${isDocListArray.length}`);
 
-    const aadhaarUrl = aadhaarDetails?.data?.pdf_url || aadhaarDetails?.pdf_url || aadhaarDetails?.fileUrl || "/img/digilocker_aadhaar.pdf";
-    const panUrl = panDetails?.data?.pdf_url || panDetails?.pdf_url || panDetails?.fileUrl || "/img/digilocker_pan.pdf";
+    const aadhaarUrl =
+      aadhaarDetails?.data?.pdf_url ||
+      aadhaarDetails?.pdf_url ||
+      aadhaarDetails?.data?.file_url ||
+      aadhaarDetails?.fileUrl ||
+      "/img/digilocker_aadhaar.pdf";
+
+    const panUrl =
+      panDetails?.data?.pdf_url ||
+      panDetails?.pdf_url ||
+      panDetails?.data?.file_url ||
+      panDetails?.fileUrl ||
+      "/img/digilocker_pan.pdf";
 
     const aadhaarDocRecord = {
       documentType: "aadhaarFront",
@@ -150,7 +183,7 @@ export async function POST(request: Request) {
       success: true,
       message: bothAllowed
         ? "DigiLocker documents successfully verified and imported!"
-        : `DigiLocker imported ${hasAadhaar ? "Aadhaar" : "documents"} successfully, but ${!hasPan ? "PAN card" : "Aadhaar"} consent was not granted. Please upload it manually.`,
+        : `DigiLocker imported ${hasAadhaar ? "Aadhaar" : "documents"} successfully. Please upload any missing document manually.`,
       hasAadhaar,
       hasPan,
       bothAllowed,

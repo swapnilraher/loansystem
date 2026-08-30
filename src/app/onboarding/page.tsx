@@ -1927,7 +1927,7 @@ export default function OnboardingPage() {
                   </Select>
                 </Field>
 
-                <Field label="Account Holder Name (Fetched from Bank)" hint="Click 'Verify Account Holder' button to fetch official name from Bank." className="sm:col-span-2">
+                <Field label="Account Holder Name (Fetched from Bank)" className="sm:col-span-2">
                   <div className="flex flex-col sm:flex-row gap-2">
                     <TextInput
                       readOnly
