@@ -437,255 +437,278 @@ export default function PartnersPage() {
         }
       />
 
-      {/* Split Main Layout: DataTable + Side-by-Side Verification Inspector */}
-      <div className="flex flex-col lg:flex-row gap-4 items-start">
-        {/* Main Table */}
-        <div className="flex-1 w-full min-w-0">
-          <DataTable
-            columns={columns}
-            rows={filtered}
-            getRowId={partner => String(partner?.id || partner?.mobileNumber || Math.random())}
-            loading={loading}
-            onRowClick={partner => {
-              setSelected(partner)
-              setTab("overview")
-              setSideDoc(null)
-            }}
-            emptyTitle="No partners found"
-            emptyDescription="DSA connectors who register through the portal appear here."
-          />
-        </div>
+      {/* Main Full-Width DataTable */}
+      <div className="w-full">
+        <DataTable
+          columns={columns}
+          rows={filtered}
+          getRowId={partner => String(partner?.id || partner?.mobileNumber || Math.random())}
+          loading={loading}
+          onRowClick={partner => {
+            setSelected(partner)
+            setTab("overview")
+            setSideDoc(null)
+          }}
+          emptyTitle="No partners found"
+          emptyDescription="DSA connectors who register through the portal appear here."
+        />
+      </div>
 
-        {/* Selected Partner / Applicant Inspector Drawer */}
-        {selected && (
-          <div className="w-full lg:w-[480px] xl:w-[520px] bg-admin-surface border border-admin-border rounded-admin-lg shadow-admin-2 p-5 space-y-4 shrink-0 max-h-[88vh] overflow-y-auto">
-            {/* Top Bar */}
-            <div className="flex items-start justify-between border-b border-admin-border pb-3">
+      {/* Selected Partner / Applicant Verification & Document Preview Section (BELOW the Table) */}
+      {selected && (
+        <div id="partner-verification-section" className="w-full pt-6 border-t-2 border-admin-border space-y-4 animate-fadeIn">
+          {/* Header */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-admin-surface border border-admin-border rounded-admin-lg p-4 shadow-admin-1">
+            <div className="flex items-center gap-3">
+              <span className="w-10 h-10 rounded-admin bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 flex items-center justify-center font-bold text-admin-lg">
+                📋
+              </span>
               <div>
                 <h3 className="text-admin-base font-bold text-admin-text leading-tight">{partnerName(selected)}</h3>
                 <p className="text-admin-2xs text-admin-subtle admin-num mt-0.5 font-mono">
-                  {selected.dsaCode ? `DSA Code: ${selected.dsaCode}` : `Application ID: ${selected.applicationId || selected.mobileNumber}`}
+                  {selected.dsaCode ? `Partner DSA Code: ${selected.dsaCode}` : `Application ID: ${selected.applicationId || selected.mobileNumber}`} • Mobile: +91 {selected.mobileNumber}
                 </p>
               </div>
-              <button
-                onClick={() => {
-                  setSelected(null)
-                  setSideDoc(null)
-                }}
-                className="p-1 text-admin-subtle hover:text-admin-text rounded-lg"
-              >
-                <X size={18} />
-              </button>
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSelected(null)
+                setSideDoc(null)
+              }}
+              className="py-1.5 px-3.5 bg-admin-bg hover:bg-admin-border text-admin-text text-admin-xs font-bold rounded-admin border border-admin-border flex items-center gap-1.5 transition-colors"
+            >
+              <X size={15} /> Close Details
+            </button>
+          </div>
 
-            {/* Action Bar & Status Controls */}
-            <div className="flex items-center justify-between bg-admin-bg border border-admin-border rounded-admin p-3 text-admin-xs">
-              <div className="flex items-center gap-2">
-                <Select
-                  value={selected.dsaStatus || selected.status || "Active"}
-                  onChange={e => updateStatus(selected.id, e.target.value)}
-                  className="w-auto h-7 text-admin-2xs font-semibold"
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+            {/* Left Column: Partner Application Details & Actions */}
+            <div className="w-full bg-admin-surface border border-admin-border rounded-admin-lg shadow-admin-2 p-5 space-y-4 max-h-[85vh] overflow-y-auto">
+              {/* Action Bar & Status Controls */}
+              <div className="flex items-center justify-between bg-admin-bg border border-admin-border rounded-admin p-3 text-admin-xs">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-admin-subtle text-admin-2xs">Status:</span>
+                  <Select
+                    value={selected.dsaStatus || selected.status || "Active"}
+                    onChange={e => updateStatus(selected.id, e.target.value)}
+                    className="w-auto h-7 text-admin-2xs font-semibold"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="under_review">Under Review</option>
+                    <option value="draft">Draft</option>
+                    <option value="query_raised">Query Raised</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="Inactive">Inactive</option>
+                  </Select>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(true)}
+                  className="admin-focus text-admin-xs font-bold text-admin-accent hover:underline flex items-center gap-1"
                 >
-                  <option value="Active">Active</option>
-                  <option value="under_review">Under Review</option>
-                  <option value="draft">Draft</option>
-                  <option value="query_raised">Query Raised</option>
-                  <option value="rejected">Rejected</option>
-                  <option value="Inactive">Inactive</option>
-                </Select>
+                  <Edit size={13} /> Edit Details
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowEditModal(true)}
-                className="admin-focus text-admin-xs font-bold text-admin-accent hover:underline flex items-center gap-1"
-              >
-                <Edit size={13} /> Edit Details
-              </button>
-            </div>
 
-            {/* Approval Action Bar for Pending Applicants */}
-            {((selected.dsaStatus || selected.status) === "under_review" || (selected.dsaStatus || selected.status) === "submitted" || (selected.dsaStatus || selected.status) === "draft") && (
-              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-admin space-y-2">
-                <p className="text-admin-2xs font-bold text-emerald-900">⚡ Pending Partner Action</p>
-                <div className="flex flex-wrap gap-1.5 justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setShowQueryModal(true)}
-                    className="py-1.5 px-3 bg-amber-600 hover:bg-amber-700 text-white font-bold text-admin-2xs rounded-admin transition-all"
-                  >
-                    Raise Query
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowRejectModal(true)}
-                    className="py-1.5 px-3 bg-red-600 hover:bg-red-700 text-white font-bold text-admin-2xs rounded-admin transition-all"
-                  >
-                    Reject
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleApprove(selected)}
-                    disabled={actionLoading}
-                    className="py-1.5 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-admin-2xs rounded-admin shadow-admin-1 transition-all flex items-center gap-1 disabled:opacity-50"
-                  >
-                    <CheckCircle2 size={13} />
-                    <span>Approve Partner</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Fact Rows */}
-            <div className="space-y-3">
-              <SectionCard title="1. Basic & Entity Info">
-                <div className="divide-y divide-admin-border">
-                  <FactRow label="Partner Name" value={partnerName(selected)} />
-                  <FactRow label="Mobile Number" value={`+91 ${selected.mobileNumber}`} />
-                  <FactRow label="Email Address" value={selected.email || "—"} />
-                  <FactRow label="Business Type" value={`${selected.partnerType || selected.businessType || "Individual"} ${selected.firmType ? `(${selected.firmType})` : ""}`} />
-                  <FactRow label="PAN Number" value={<span className="font-mono font-bold">{selected.panNumber || selected.panData?.panNumber || "—"}</span>} />
-                  <FactRow label="Registered" value={formatDayShort(selected.createdAt) || "Recently"} />
-                </div>
-              </SectionCard>
-
-              <SectionCard title="2. Office Address">
-                <div className="divide-y divide-admin-border">
-                  <FactRow label="Address Line 1" value={selected.addressLine1 || selected.address?.line1 || "—"} />
-                  <FactRow label="City & State" value={`${selected.city || selected.address?.city || ''}, ${selected.stateName || selected.address?.state || ''} - ${selected.pinCode || selected.address?.pincode || ''}`} />
-                  <FactRow label="GST Status" value={`${selected.isGstRegistered || "No"} ${selected.gstin ? `(${selected.gstin})` : ""}`} />
-                </div>
-              </SectionCard>
-
-              <SectionCard title="3. KYC Documents & Signed MOA Agreement">
-                <div className="space-y-2 pt-1">
-                  {/* Aadhaar Front */}
-                  <div className="flex items-center justify-between p-2 bg-admin-bg border border-admin-border rounded-admin text-admin-xs">
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <p className="font-semibold text-admin-text">Aadhaar Document</p>
-                        {selected.documents?.aadhaarFrontDoc?.uploadMethod === "digilocker" && (
-                          <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-admin-2xs font-extrabold flex items-center gap-1">
-                            🛡️ DigiLocker Verified
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-admin-2xs text-admin-subtle">
-                        {selected.documents?.aadhaarFrontDoc?.uploadMethod === "digilocker" ? "Govt. Instant KYC" : "KYC Verification"}
-                      </p>
-                    </div>
-                    {(() => {
-                      const docObj = selected.documents?.aadhaarFrontDoc || selected.documents?.aadhaarDoc || selected.documents?.aadhaar
-                      const targetUrl = docObj?.base64Data || (docObj?.fileUrl && docObj.fileUrl.startsWith("http") ? `/api/document/proxy?url=${encodeURIComponent(docObj.fileUrl)}` : `/api/document/proxy?mobile=${selected.mobileNumber || selected.id}&type=aadhaarFrontDoc`)
-                      return (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setSideDoc({
-                              title: "Aadhaar Card",
-                              url: targetUrl,
-                              fileName: docObj?.fileName || "Aadhaar_Document.pdf",
-                            })
-                          }
-                          className="py-1 px-2 rounded bg-admin-accent-soft text-admin-accent hover:bg-admin-accent hover:text-white font-bold text-admin-2xs transition-colors flex items-center gap-1"
-                        >
-                          <Eye size={12} /> View Document
-                        </button>
-                      )
-                    })()}
-                  </div>
-
-                  {/* PAN Card */}
-                  <div className="flex items-center justify-between p-2 bg-admin-bg border border-admin-border rounded-admin text-admin-xs">
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <p className="font-semibold text-admin-text">PAN Card Document</p>
-                        {selected.documents?.panDoc?.uploadMethod === "digilocker" && (
-                          <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-admin-2xs font-extrabold flex items-center gap-1">
-                            🛡️ DigiLocker Verified
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-admin-2xs text-admin-subtle font-mono">{selected.panNumber || selected.panData?.panNumber || "PAN"}</p>
-                    </div>
-                    {(() => {
-                      const docObj = selected.documents?.panDoc || selected.documents?.panCardDoc || selected.documents?.pan
-                      const targetUrl = docObj?.base64Data || (docObj?.fileUrl && docObj.fileUrl.startsWith("http") ? `/api/document/proxy?url=${encodeURIComponent(docObj.fileUrl)}` : `/api/document/proxy?mobile=${selected.mobileNumber || selected.id}&type=panDoc`)
-                      return (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setSideDoc({
-                              title: "PAN Card",
-                              url: targetUrl,
-                              fileName: docObj?.fileName || "PAN_Card.pdf",
-                            })
-                          }
-                          className="py-1 px-2 rounded bg-admin-accent-soft text-admin-accent hover:bg-admin-accent hover:text-white font-bold text-admin-2xs transition-colors flex items-center gap-1"
-                        >
-                          <Eye size={12} /> View Document
-                        </button>
-                      )
-                    })()}
-                  </div>
-
-                  {/* Signed MOA PDF */}
-                  <div className="flex items-center justify-between p-2 bg-emerald-50 border border-emerald-200 rounded-admin text-admin-xs">
-                    <div>
-                      <p className="font-bold text-emerald-900">Signed MOA Agreement (PDF)</p>
-                      <p className="text-admin-2xs text-emerald-700">
-                        {selected.agreementSigned || selected.agreementData?.signedAt ? "✅ OTP Verified & Executed" : "Pending Signature"}
-                      </p>
-                    </div>
+              {/* Approval Action Bar for Pending Applicants */}
+              {((selected.dsaStatus || selected.status) === "under_review" || (selected.dsaStatus || selected.status) === "submitted" || (selected.dsaStatus || selected.status) === "draft") && (
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-admin space-y-2">
+                  <p className="text-admin-2xs font-bold text-emerald-900">⚡ Pending Partner Action</p>
+                  <div className="flex flex-wrap gap-1.5 justify-end">
                     <button
                       type="button"
-                      onClick={() =>
-                        setSideDoc({
-                          title: `Signed MOA Agreement - ${partnerName(selected)}`,
-                          url: `/api/partner/agreement/pdf?mobile=${selected.mobileNumber}`,
-                          fileName: `MOA_Agreement_${selected.dsaCode || selected.mobileNumber}.pdf`,
-                        })
-                      }
-                      className="py-1 px-2.5 rounded bg-emerald-600 text-white font-bold text-admin-2xs hover:bg-emerald-700 transition-colors flex items-center gap-1 shadow-sm"
+                      onClick={() => setShowQueryModal(true)}
+                      className="py-1.5 px-3 bg-amber-600 hover:bg-amber-700 text-white font-bold text-admin-2xs rounded-admin transition-all"
                     >
-                      <Eye size={12} /> View Signed MOA PDF
+                      Raise Query
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowRejectModal(true)}
+                      className="py-1.5 px-3 bg-red-600 hover:bg-red-700 text-white font-bold text-admin-2xs rounded-admin transition-all"
+                    >
+                      Reject
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApprove(selected)}
+                      disabled={actionLoading}
+                      className="py-1.5 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-admin-2xs rounded-admin shadow-admin-1 transition-all flex items-center gap-1 disabled:opacity-50"
+                    >
+                      <CheckCircle2 size={13} />
+                      <span>Approve Partner</span>
                     </button>
                   </div>
                 </div>
-              </SectionCard>
+              )}
 
-              <SectionCard title="4. Bank Account & Settlement Details">
-                {selected.bankDetails ? (
+              {/* Fact Rows */}
+              <div className="space-y-3">
+                <SectionCard title="1. Basic & Entity Info">
                   <div className="divide-y divide-admin-border">
-                    <FactRow label="Account Holder" value={selected.bankDetails.accountHolderName || selected.bankDetails.nameAtBank || "—"} />
-                    <FactRow label="Bank Name" value={selected.bankDetails.bankName || "—"} />
-                    <FactRow label="IFSC Code" value={<span className="font-mono font-bold text-admin-accent">{selected.bankDetails.ifsc || "—"}</span>} />
-                    <FactRow label="Account Number" value={<span className="font-mono font-bold">{selected.bankDetails.accountNumber || "—"}</span>} />
+                    <FactRow label="Partner Name" value={partnerName(selected)} />
+                    <FactRow label="Mobile Number" value={`+91 ${selected.mobileNumber}`} />
+                    <FactRow label="Email Address" value={selected.email || "—"} />
+                    <FactRow label="Business Type" value={`${selected.partnerType || selected.businessType || "Individual"} ${selected.firmType ? `(${selected.firmType})` : ""}`} />
+                    <FactRow label="PAN Number" value={<span className="font-mono font-bold">{selected.panNumber || selected.panData?.panNumber || "—"}</span>} />
+                    <FactRow label="Registered" value={formatDayShort(selected.createdAt) || "Recently"} />
                   </div>
-                ) : (
-                  <EmptyState
-                    size="sm"
-                    icon={Banknote}
-                    title="No bank details on file"
-                    description="Commission cannot be settled until the partner adds an account."
-                  />
-                )}
-              </SectionCard>
+                </SectionCard>
+
+                <SectionCard title="2. Office Address">
+                  <div className="divide-y divide-admin-border">
+                    <FactRow label="Address Line 1" value={selected.addressLine1 || selected.address?.line1 || "—"} />
+                    <FactRow label="City & State" value={`${selected.city || selected.address?.city || ''}, ${selected.stateName || selected.address?.state || ''} - ${selected.pinCode || selected.address?.pincode || ''}`} />
+                    <FactRow label="GST Status" value={`${selected.isGstRegistered || "No"} ${selected.gstin ? `(${selected.gstin})` : ""}`} />
+                  </div>
+                </SectionCard>
+
+                <SectionCard title="3. KYC Documents & Signed MOA Agreement">
+                  <div className="space-y-2 pt-1">
+                    {/* Aadhaar Front */}
+                    <div className="flex items-center justify-between p-2 bg-admin-bg border border-admin-border rounded-admin text-admin-xs">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-semibold text-admin-text">Aadhaar Document</p>
+                          {selected.documents?.aadhaarFrontDoc?.uploadMethod === "digilocker" && (
+                            <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-admin-2xs font-extrabold flex items-center gap-1">
+                              🛡️ DigiLocker Verified
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-admin-2xs text-admin-subtle">
+                          {selected.documents?.aadhaarFrontDoc?.uploadMethod === "digilocker" ? "Govt. Instant KYC" : "KYC Verification"}
+                        </p>
+                      </div>
+                      {(() => {
+                        const docObj = selected.documents?.aadhaarFrontDoc || selected.documents?.aadhaarDoc || selected.documents?.aadhaar
+                        const targetUrl = docObj?.base64Data || (docObj?.fileUrl && docObj.fileUrl.startsWith("http") ? `/api/document/proxy?url=${encodeURIComponent(docObj.fileUrl)}` : `/api/document/proxy?mobile=${selected.mobileNumber || selected.id}&type=aadhaarFrontDoc`)
+                        return (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSideDoc({
+                                title: "Aadhaar Card",
+                                url: targetUrl,
+                                fileName: docObj?.fileName || "Aadhaar_Document.pdf",
+                              })
+                            }
+                            className="py-1 px-2.5 rounded bg-admin-accent-soft text-admin-accent hover:bg-admin-accent hover:text-white font-bold text-admin-2xs transition-colors flex items-center gap-1"
+                          >
+                            <Eye size={12} /> View Document
+                          </button>
+                        )
+                      })()}
+                    </div>
+
+                    {/* PAN Card */}
+                    <div className="flex items-center justify-between p-2 bg-admin-bg border border-admin-border rounded-admin text-admin-xs">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-semibold text-admin-text">PAN Card Document</p>
+                          {selected.documents?.panDoc?.uploadMethod === "digilocker" && (
+                            <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-admin-2xs font-extrabold flex items-center gap-1">
+                              🛡️ DigiLocker Verified
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-admin-2xs text-admin-subtle font-mono">{selected.panNumber || selected.panData?.panNumber || "PAN"}</p>
+                      </div>
+                      {(() => {
+                        const docObj = selected.documents?.panDoc || selected.documents?.panCardDoc || selected.documents?.pan
+                        const targetUrl = docObj?.base64Data || (docObj?.fileUrl && docObj.fileUrl.startsWith("http") ? `/api/document/proxy?url=${encodeURIComponent(docObj.fileUrl)}` : `/api/document/proxy?mobile=${selected.mobileNumber || selected.id}&type=panDoc`)
+                        return (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSideDoc({
+                                title: "PAN Card",
+                                url: targetUrl,
+                                fileName: docObj?.fileName || "PAN_Card.pdf",
+                              })
+                            }
+                            className="py-1 px-2.5 rounded bg-admin-accent-soft text-admin-accent hover:bg-admin-accent hover:text-white font-bold text-admin-2xs transition-colors flex items-center gap-1"
+                          >
+                            <Eye size={12} /> View Document
+                          </button>
+                        )
+                      })()}
+                    </div>
+
+                    {/* Signed MOA PDF */}
+                    <div className="flex items-center justify-between p-2 bg-emerald-50 border border-emerald-200 rounded-admin text-admin-xs">
+                      <div>
+                        <p className="font-bold text-emerald-900">Signed MOA Agreement (PDF)</p>
+                        <p className="text-admin-2xs text-emerald-700">
+                          {selected.agreementSigned || selected.agreementData?.signedAt ? "✅ OTP Verified & Executed" : "Pending Signature"}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSideDoc({
+                            title: `Signed MOA Agreement - ${partnerName(selected)}`,
+                            url: `/api/partner/agreement/pdf?mobile=${selected.mobileNumber}`,
+                            fileName: `MOA_Agreement_${selected.dsaCode || selected.mobileNumber}.pdf`,
+                          })
+                        }
+                        className="py-1 px-2.5 rounded bg-emerald-600 text-white font-bold text-admin-2xs hover:bg-emerald-700 transition-colors flex items-center gap-1 shadow-sm"
+                      >
+                        <Eye size={12} /> View Signed MOA PDF
+                      </button>
+                    </div>
+                  </div>
+                </SectionCard>
+
+                <SectionCard title="4. Bank Account & Settlement Details">
+                  {selected.bankDetails ? (
+                    <div className="divide-y divide-admin-border">
+                      <FactRow label="Account Holder" value={selected.bankDetails.accountHolderName || selected.bankDetails.nameAtBank || "—"} />
+                      <FactRow label="Bank Name" value={selected.bankDetails.bankName || "—"} />
+                      <FactRow label="IFSC Code" value={<span className="font-mono font-bold text-admin-accent">{selected.bankDetails.ifsc || "—"}</span>} />
+                      <FactRow label="Account Number" value={<span className="font-mono font-bold">{selected.bankDetails.accountNumber || "—"}</span>} />
+                    </div>
+                  ) : (
+                    <EmptyState
+                      size="sm"
+                      icon={Banknote}
+                      title="No bank details on file"
+                      description="Commission cannot be settled until the partner adds an account."
+                    />
+                  )}
+                </SectionCard>
+              </div>
+            </div>
+
+            {/* Right Column: Live Document Preview Panel */}
+            <div className="w-full bg-admin-surface border border-admin-border rounded-admin-lg shadow-admin-2 min-h-[600px] h-[85vh] flex flex-col overflow-hidden">
+              {sideDoc ? (
+                <DocumentViewerModal
+                  isOpen={!!sideDoc}
+                  title={sideDoc.title}
+                  fileUrl={sideDoc.url}
+                  fileName={sideDoc.fileName}
+                  isSideBySide={true}
+                  onClose={() => setSideDoc(null)}
+                />
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-admin-muted space-y-3 bg-slate-950">
+                  <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 shadow-inner">
+                    <FileText size={28} />
+                  </div>
+                  <div className="space-y-1 max-w-xs">
+                    <p className="font-bold text-slate-200 text-admin-sm">No Document Open for Preview</p>
+                    <p className="text-admin-2xs text-slate-400 leading-relaxed">
+                      Click <span className="font-semibold text-emerald-400">"View Document"</span> next to Aadhaar, PAN, or MOA Agreement on the left to preview it here side-by-side.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-        )}
-
-        {/* Attached Side-by-Side Document Preview Panel */}
-        {sideDoc && selected && (
-          <DocumentViewerModal
-            isOpen={!!sideDoc}
-            title={sideDoc.title}
-            fileUrl={sideDoc.url}
-            fileName={sideDoc.fileName}
-            isSideBySide={true}
-            onClose={() => setSideDoc(null)}
-          />
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Raise Query Modal */}
       {showQueryModal && selected && (

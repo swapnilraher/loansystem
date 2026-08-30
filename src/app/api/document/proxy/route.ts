@@ -20,6 +20,43 @@ function resolveMimeFromBase64(base64Str: string): string {
   return "application/pdf"
 }
 
+function convertBufferIfBase64Text(arrayBuffer: ArrayBuffer, defaultMime?: string): { buffer: Buffer; mime: string } {
+  const rawBuffer = Buffer.from(arrayBuffer)
+  const textPreview = rawBuffer.toString("utf-8", 0, Math.min(200, rawBuffer.length)).trim()
+
+  if (textPreview.startsWith("/9j/") || textPreview.startsWith("data:image/jpeg") || textPreview.startsWith("data:image/jpg")) {
+    const fullText = rawBuffer.toString("utf-8").trim()
+    const cleanBase64 = fullText.includes(",") ? fullText.split(",")[1] : fullText
+    return {
+      buffer: Buffer.from(cleanBase64, "base64"),
+      mime: "image/jpeg",
+    }
+  }
+
+  if (textPreview.startsWith("iVBORw0KGgo") || textPreview.startsWith("data:image/png")) {
+    const fullText = rawBuffer.toString("utf-8").trim()
+    const cleanBase64 = fullText.includes(",") ? fullText.split(",")[1] : fullText
+    return {
+      buffer: Buffer.from(cleanBase64, "base64"),
+      mime: "image/png",
+    }
+  }
+
+  if (textPreview.startsWith("JVBERi") || textPreview.startsWith("data:application/pdf")) {
+    const fullText = rawBuffer.toString("utf-8").trim()
+    const cleanBase64 = fullText.includes(",") ? fullText.split(",")[1] : fullText
+    return {
+      buffer: Buffer.from(cleanBase64, "base64"),
+      mime: "application/pdf",
+    }
+  }
+
+  return {
+    buffer: rawBuffer,
+    mime: defaultMime || (textPreview.startsWith("%PDF") ? "application/pdf" : "image/jpeg"),
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -33,11 +70,13 @@ export async function GET(request: Request) {
         const fetchRes = await fetch(rawUrl, { cache: "no-store" })
         if (fetchRes.ok) {
           const arrayBuffer = await fetchRes.arrayBuffer()
-          const contentType = fetchRes.headers.get("content-type") || (rawUrl.toLowerCase().includes(".pdf") ? "application/pdf" : "image/jpeg")
-          return new NextResponse(Buffer.from(arrayBuffer), {
+          const contentType = fetchRes.headers.get("content-type") || ""
+          const { buffer, mime } = convertBufferIfBase64Text(arrayBuffer, contentType)
+
+          return new NextResponse(buffer, {
             status: 200,
             headers: {
-              "Content-Type": contentType,
+              "Content-Type": mime,
               "Content-Disposition": "inline",
               "Cache-Control": "public, max-age=3600",
             },
@@ -138,11 +177,13 @@ export async function GET(request: Request) {
       const fetchRes = await fetch(fileUrl, { cache: "no-store" })
       if (fetchRes.ok) {
         const arrayBuffer = await fetchRes.arrayBuffer()
-        const contentType = fetchRes.headers.get("content-type") || targetDocObj.mimeType || (fileUrl.toLowerCase().includes(".pdf") ? "application/pdf" : "image/jpeg")
-        return new NextResponse(Buffer.from(arrayBuffer), {
+        const contentType = fetchRes.headers.get("content-type") || targetDocObj.mimeType || ""
+        const { buffer, mime } = convertBufferIfBase64Text(arrayBuffer, contentType)
+
+        return new NextResponse(buffer, {
           status: 200,
           headers: {
-            "Content-Type": contentType,
+            "Content-Type": mime,
             "Content-Disposition": `inline; filename="${targetDocObj.fileName || "document"}"`,
             "Cache-Control": "public, max-age=3600",
           },

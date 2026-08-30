@@ -63,11 +63,59 @@ export default function DocumentViewerModal({
             if (res.ok) {
               const buffer = await res.arrayBuffer()
               const contentType = res.headers.get("content-type") || ""
+              const textDecoder = new TextDecoder()
+              const preview = textDecoder.decode(buffer.slice(0, 150)).trim()
+
+              // If response body is text Base64 (like DigiLocker /9j/... or JVBERi...)
+              if (
+                preview.startsWith("/9j/") ||
+                preview.startsWith("data:image") ||
+                preview.startsWith("iVBORw0KGgo")
+              ) {
+                const fullText = textDecoder.decode(buffer).trim()
+                const rawBase64 = fullText.includes(",") ? fullText.split(",")[1] : fullText
+                const bstr = atob(rawBase64)
+                let n = bstr.length
+                const u8arr = new Uint8Array(n)
+                while (n--) {
+                  u8arr[n] = bstr.charCodeAt(n)
+                }
+                const isPng = preview.startsWith("iVBORw0KGgo") || preview.includes("png")
+                const blob = new Blob([u8arr], { type: isPng ? "image/png" : "image/jpeg" })
+                const createdUrl = URL.createObjectURL(blob)
+                if (isMounted) {
+                  setIsPdf(false)
+                  setBlobUrl(createdUrl)
+                  setLoading(false)
+                }
+                return
+              }
+
+              if (preview.startsWith("JVBERi") || preview.startsWith("data:application/pdf")) {
+                const fullText = textDecoder.decode(buffer).trim()
+                const rawBase64 = fullText.includes(",") ? fullText.split(",")[1] : fullText
+                const bstr = atob(rawBase64)
+                let n = bstr.length
+                const u8arr = new Uint8Array(n)
+                while (n--) {
+                  u8arr[n] = bstr.charCodeAt(n)
+                }
+                const blob = new Blob([u8arr], { type: "application/pdf" })
+                const createdUrl = URL.createObjectURL(blob)
+                if (isMounted) {
+                  setIsPdf(true)
+                  setBlobUrl(createdUrl)
+                  setLoading(false)
+                }
+                return
+              }
+
               const isPdfDoc =
                 contentType.includes("pdf") ||
                 mimeType?.includes("pdf") ||
                 url.toLowerCase().includes(".pdf") ||
-                fileName.toLowerCase().endsWith(".pdf")
+                fileName.toLowerCase().endsWith(".pdf") ||
+                preview.startsWith("%PDF")
 
               setIsPdf(isPdfDoc)
               const blob = new Blob([buffer], { type: contentType || (isPdfDoc ? "application/pdf" : "image/jpeg") })
