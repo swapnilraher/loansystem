@@ -7,11 +7,16 @@
  * `STATUS_TONES`. Unknown statuses fall back to `neutral` rather than throwing.
  */
 
-export type Tone = "neutral" | "info" | "violet" | "cyan" | "warn" | "success" | "danger"
+export type Tone = "neutral" | "info" | "violet" | "cyan" | "warn" | "success" | "danger" | "subtle"
 
 /** Utility classes for a tone, driven entirely by the admin token layer. */
 export const TONE_CLASSES: Record<Tone, { soft: string; dot: string; text: string }> = {
   neutral: {
+    soft: "bg-tone-neutral text-tone-neutral-fg border-tone-neutral-bd",
+    dot: "bg-tone-neutral-fg",
+    text: "text-tone-neutral-fg",
+  },
+  subtle: {
     soft: "bg-tone-neutral text-tone-neutral-fg border-tone-neutral-bd",
     dot: "bg-tone-neutral-fg",
     text: "text-tone-neutral-fg",

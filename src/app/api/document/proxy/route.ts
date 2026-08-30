@@ -1,74 +1,172 @@
 import { NextResponse } from "next/server"
 import { getAdminDb } from "@/lib/firebase-admin"
 
+export const runtime = "nodejs"
+
+function getCleanMobile(val: string | null): string {
+  if (!val) return ""
+  const digits = val.replace(/[^0-9]/g, "")
+  return digits.length >= 10 ? digits.slice(-10) : digits
+}
+
+function resolveMimeFromBase64(base64Str: string): string {
+  if (base64Str.startsWith("data:")) {
+    const match = base64Str.match(/data:([^;]+);base64,/)
+    if (match) return match[1]
+  }
+  if (base64Str.startsWith("JVBERi")) return "application/pdf"
+  if (base64Str.startsWith("/9j/")) return "image/jpeg"
+  if (base64Str.startsWith("iVBORw0KGgo")) return "image/png"
+  return "application/pdf"
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
-    const mobile = searchParams.get("mobile")
-    const docType = searchParams.get("type") || "aadhaarFrontDoc"
+    const mobileParam = searchParams.get("mobile") || searchParams.get("id")
+    const docType = (searchParams.get("type") || "aadhaarFrontDoc").trim()
     const rawUrl = searchParams.get("url")
 
-    const db = getAdminDb()
-
-    // 1. If mobile & docType provided, query Firestore partner_applications
-    if (mobile) {
-      const appRef = db.collection("partner_applications").doc(mobile)
-      const appSnap = await appRef.get()
-
-      if (appSnap.exists) {
-        const appData = appSnap.data()
-        const docObj = appData?.documents?.[docType]
-
-        if (docObj?.base64Data) {
-          const parts = docObj.base64Data.split(",")
-          const mimeMatch = parts[0].match(/:(.*?);/)
-          const mime = mimeMatch ? mimeMatch[1] : "application/pdf"
-          const buffer = Buffer.from(parts[1], "base64")
-
-          return new NextResponse(buffer, {
+    // 1. If rawUrl provided, proxy-fetch it server-side to bypass CORS / attachment disposition
+    if (rawUrl && rawUrl.startsWith("http")) {
+      try {
+        const fetchRes = await fetch(rawUrl, { cache: "no-store" })
+        if (fetchRes.ok) {
+          const arrayBuffer = await fetchRes.arrayBuffer()
+          const contentType = fetchRes.headers.get("content-type") || (rawUrl.toLowerCase().includes(".pdf") ? "application/pdf" : "image/jpeg")
+          return new NextResponse(Buffer.from(arrayBuffer), {
             status: 200,
             headers: {
-              "Content-Type": mime,
-              "Content-Disposition": `inline; filename="${docObj.fileName || "document.pdf"}"`,
+              "Content-Type": contentType,
+              "Content-Disposition": "inline",
               "Cache-Control": "public, max-age=3600",
             },
           })
         }
+      } catch (e) {
+        console.warn("Proxy rawUrl fetch warning:", e)
+      }
+    }
 
-        if (docObj?.fileUrl && docObj.fileUrl.startsWith("http")) {
-          const fetchRes = await fetch(docObj.fileUrl)
-          if (fetchRes.ok) {
-            const arrayBuffer = await fetchRes.arrayBuffer()
-            const contentType = fetchRes.headers.get("content-type") || docObj.mimeType || "application/pdf"
-            return new NextResponse(Buffer.from(arrayBuffer), {
-              status: 200,
-              headers: {
-                "Content-Type": contentType,
-                "Content-Disposition": `inline; filename="${docObj.fileName || "document.pdf"}"`,
-              },
-            })
+    const cleanMobile = getCleanMobile(mobileParam)
+    if (!cleanMobile && !mobileParam) {
+      return NextResponse.json({ error: "Mobile number or ID is required" }, { status: 400 })
+    }
+
+    const db = getAdminDb()
+
+    // 2. Look up document in partner_applications and users collections
+    const possibleDocIds = [cleanMobile, mobileParam, `TSM-P-${cleanMobile}`, `partner_${cleanMobile}`].filter(Boolean) as string[]
+    
+    let targetDocObj: any = null
+    let appData: any = null
+
+    for (const docId of possibleDocIds) {
+      const appSnap = await db.collection("partner_applications").doc(docId).get()
+      if (appSnap.exists) {
+        appData = appSnap.data()
+        break
+      }
+    }
+
+    if (!appData) {
+      for (const docId of possibleDocIds) {
+        const userSnap = await db.collection("users").doc(docId).get()
+        if (userSnap.exists) {
+          appData = userSnap.data()
+          break
+        }
+      }
+    }
+
+    if (appData) {
+      const docs = appData.documents || {}
+
+      // Possible key aliases
+      const candidateKeys = [
+        docType,
+        docType.toLowerCase(),
+        docType === "aadhaarFrontDoc" ? "aadhaarDoc" : null,
+        docType === "aadhaarDoc" ? "aadhaarFrontDoc" : null,
+        docType === "panDoc" ? "panCardDoc" : null,
+        docType === "panCardDoc" ? "panDoc" : null,
+      ].filter(Boolean) as string[]
+
+      for (const key of candidateKeys) {
+        if (docs[key]) {
+          targetDocObj = docs[key]
+          break
+        }
+      }
+
+      // Check kycData photo fallback for Aadhaar / PAN
+      if (!targetDocObj && (docType.includes("aadhaar") || docType.includes("kyc"))) {
+        if (appData.kycData?.photoBase64) {
+          targetDocObj = {
+            base64Data: appData.kycData.photoBase64,
+            mimeType: "image/jpeg",
+            fileName: "Aadhaar_KYC_Photo.jpg",
           }
         }
       }
     }
 
-    // 2. If rawUrl provided, proxy-fetch it server-side to strip Cloudinary attachment/restriction headers
-    if (rawUrl && rawUrl.startsWith("http")) {
-      const fetchRes = await fetch(rawUrl)
+    if (!targetDocObj) {
+      return NextResponse.json({ error: "Document not found for this partner" }, { status: 404 })
+    }
+
+    // 3. If base64Data is present
+    const base64Str = targetDocObj.base64Data || (typeof targetDocObj === "string" && targetDocObj.startsWith("data:") ? targetDocObj : null)
+    if (base64Str) {
+      const mime = resolveMimeFromBase64(base64Str)
+      const rawBase64 = base64Str.includes(",") ? base64Str.split(",")[1] : base64Str
+      const buffer = Buffer.from(rawBase64, "base64")
+
+      return new NextResponse(buffer, {
+        status: 200,
+        headers: {
+          "Content-Type": mime,
+          "Content-Disposition": `inline; filename="${targetDocObj.fileName || "document"}"`,
+          "Cache-Control": "public, max-age=3600",
+        },
+      })
+    }
+
+    // 4. If fileUrl is a remote URL
+    const fileUrl = targetDocObj.fileUrl || targetDocObj.url
+    if (fileUrl && typeof fileUrl === "string" && fileUrl.startsWith("http")) {
+      const fetchRes = await fetch(fileUrl, { cache: "no-store" })
       if (fetchRes.ok) {
         const arrayBuffer = await fetchRes.arrayBuffer()
-        const contentType = fetchRes.headers.get("content-type") || "application/pdf"
+        const contentType = fetchRes.headers.get("content-type") || targetDocObj.mimeType || (fileUrl.toLowerCase().includes(".pdf") ? "application/pdf" : "image/jpeg")
         return new NextResponse(Buffer.from(arrayBuffer), {
           status: 200,
           headers: {
             "Content-Type": contentType,
-            "Content-Disposition": "inline",
+            "Content-Disposition": `inline; filename="${targetDocObj.fileName || "document"}"`,
+            "Cache-Control": "public, max-age=3600",
           },
         })
       }
     }
 
-    return NextResponse.json({ error: "Document not found" }, { status: 404 })
+    // 5. If fileUrl is base64 string
+    if (fileUrl && typeof fileUrl === "string" && (fileUrl.startsWith("data:") || fileUrl.length > 200)) {
+      const mime = resolveMimeFromBase64(fileUrl)
+      const rawBase64 = fileUrl.includes(",") ? fileUrl.split(",")[1] : fileUrl
+      const buffer = Buffer.from(rawBase64, "base64")
+
+      return new NextResponse(buffer, {
+        status: 200,
+        headers: {
+          "Content-Type": mime,
+          "Content-Disposition": `inline; filename="${targetDocObj.fileName || "document"}"`,
+          "Cache-Control": "public, max-age=3600",
+        },
+      })
+    }
+
+    return NextResponse.json({ error: "Invalid document format" }, { status: 404 })
   } catch (err: any) {
     console.error("PDF Proxy Error:", err)
     return NextResponse.json({ error: "Failed to load document proxy" }, { status: 500 })

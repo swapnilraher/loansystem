@@ -354,8 +354,8 @@ export default function PartnersPage() {
           if (st === "under_review" || st === "submitted") return <StatusBadge status="Under Review" tone="info" dot />
           if (st === "query_raised") return <StatusBadge status="Query Raised" tone="warn" dot />
           if (st === "rejected") return <StatusBadge status="Rejected" tone="danger" dot />
-          if (st === "draft") return <StatusBadge status={`Draft (${p.currentStep || 1}/8)`} tone="subtle" dot />
-          return <StatusBadge status="Inactive" tone="subtle" dot />
+          if (st === "draft") return <StatusBadge status={`Draft (${p.currentStep || 1}/8)`} tone="neutral" dot />
+          return <StatusBadge status="Inactive" tone="neutral" dot />
         },
       },
       {
@@ -574,15 +574,15 @@ export default function PartnersPage() {
                       </p>
                     </div>
                     {(() => {
-                      const docObj = selected.documents?.aadhaarFrontDoc || selected.documents?.aadhaarDoc
-                      const url = docObj?.base64Data || (selected.mobileNumber ? `/api/document/proxy?mobile=${selected.mobileNumber}&type=aadhaarFrontDoc` : docObj?.fileUrl)
-                      return (docObj || url) ? (
+                      const docObj = selected.documents?.aadhaarFrontDoc || selected.documents?.aadhaarDoc || selected.documents?.aadhaar
+                      const targetUrl = docObj?.base64Data || (docObj?.fileUrl && docObj.fileUrl.startsWith("http") ? `/api/document/proxy?url=${encodeURIComponent(docObj.fileUrl)}` : `/api/document/proxy?mobile=${selected.mobileNumber || selected.id}&type=aadhaarFrontDoc`)
+                      return (
                         <button
                           type="button"
                           onClick={() =>
                             setSideDoc({
                               title: "Aadhaar Card",
-                              url: url || docObj?.fileUrl,
+                              url: targetUrl,
                               fileName: docObj?.fileName || "Aadhaar_Document.pdf",
                             })
                           }
@@ -590,8 +590,6 @@ export default function PartnersPage() {
                         >
                           <Eye size={12} /> View Document
                         </button>
-                      ) : (
-                        <span className="text-admin-subtle text-admin-2xs">Not uploaded</span>
                       )
                     })()}
                   </div>
@@ -610,15 +608,15 @@ export default function PartnersPage() {
                       <p className="text-admin-2xs text-admin-subtle font-mono">{selected.panNumber || selected.panData?.panNumber || "PAN"}</p>
                     </div>
                     {(() => {
-                      const docObj = selected.documents?.panDoc
-                      const url = docObj?.base64Data || (selected.mobileNumber ? `/api/document/proxy?mobile=${selected.mobileNumber}&type=panDoc` : docObj?.fileUrl)
-                      return (docObj || url) ? (
+                      const docObj = selected.documents?.panDoc || selected.documents?.panCardDoc || selected.documents?.pan
+                      const targetUrl = docObj?.base64Data || (docObj?.fileUrl && docObj.fileUrl.startsWith("http") ? `/api/document/proxy?url=${encodeURIComponent(docObj.fileUrl)}` : `/api/document/proxy?mobile=${selected.mobileNumber || selected.id}&type=panDoc`)
+                      return (
                         <button
                           type="button"
                           onClick={() =>
                             setSideDoc({
                               title: "PAN Card",
-                              url: url || docObj?.fileUrl,
+                              url: targetUrl,
                               fileName: docObj?.fileName || "PAN_Card.pdf",
                             })
                           }
@@ -626,8 +624,6 @@ export default function PartnersPage() {
                         >
                           <Eye size={12} /> View Document
                         </button>
-                      ) : (
-                        <span className="text-admin-subtle text-admin-2xs">Not uploaded</span>
                       )
                     })()}
                   </div>

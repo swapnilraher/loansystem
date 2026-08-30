@@ -56,18 +56,47 @@ export default function DocumentViewerModal({
 
     async function loadDocument() {
       try {
-        // Handle raw base64 without prefix
-        if (!url.startsWith("http") && !url.startsWith("data:")) {
-          url = detectedPdf
-            ? `data:application/pdf;base64,${url}`
-            : `data:image/jpeg;base64,${url}`
+        // 1. Handle HTTP or Relative API URLs (e.g. /api/document/proxy?...)
+        if (url.startsWith("http") || url.startsWith("/")) {
+          try {
+            const res = await fetch(url, { cache: "no-store" })
+            if (res.ok) {
+              const buffer = await res.arrayBuffer()
+              const contentType = res.headers.get("content-type") || ""
+              const isPdfDoc =
+                contentType.includes("pdf") ||
+                mimeType?.includes("pdf") ||
+                url.toLowerCase().includes(".pdf") ||
+                fileName.toLowerCase().endsWith(".pdf")
+
+              setIsPdf(isPdfDoc)
+              const blob = new Blob([buffer], { type: contentType || (isPdfDoc ? "application/pdf" : "image/jpeg") })
+              const createdUrl = URL.createObjectURL(blob)
+              if (isMounted) {
+                setBlobUrl(createdUrl)
+                setLoading(false)
+              }
+              return
+            }
+          } catch (fetchErr) {
+            console.warn("Fetch failed, falling back to direct URL:", fetchErr)
+          }
+
+          if (isMounted) {
+            setBlobUrl(url)
+            setLoading(false)
+          }
+          return
         }
 
-        // Handle data URLs
+        // 2. Handle data: URLs
         if (url.startsWith("data:")) {
           const parts = url.split(",")
           const mimeMatch = parts[0].match(/:(.*?);/)
-          const mime = mimeMatch ? mimeMatch[1] : detectedPdf ? "application/pdf" : "image/jpeg"
+          const isPdfDoc = (mimeMatch && mimeMatch[1]?.includes("pdf")) || url.startsWith("data:application/pdf")
+          setIsPdf(isPdfDoc)
+
+          const mime = mimeMatch ? mimeMatch[1] : isPdfDoc ? "application/pdf" : "image/jpeg"
           const bstr = atob(parts[1])
           let n = bstr.length
           const u8arr = new Uint8Array(n)
@@ -83,51 +112,20 @@ export default function DocumentViewerModal({
           return
         }
 
-        // Handle Remote HTTP / Cloudinary URLs
-        // Fetch via /api/document/proxy to strip Content-Disposition: attachment and Cloudinary Access Control Blocked for delivery headers
-        if (url.startsWith("http")) {
-          try {
-            const proxyUrl = `/api/document/proxy?url=${encodeURIComponent(url)}`
-            const res = await fetch(proxyUrl)
-            if (res.ok) {
-              const buffer = await res.arrayBuffer()
-              const contentType = res.headers.get("content-type") || (detectedPdf ? "application/pdf" : "image/jpeg")
-              const blob = new Blob([buffer], { type: contentType })
-              const createdUrl = URL.createObjectURL(blob)
-              if (isMounted) {
-                setBlobUrl(createdUrl)
-                setLoading(false)
-              }
-              return
-            }
-          } catch (proxyErr) {
-            console.warn("Proxy fetch warning, trying direct fetch:", proxyErr)
-          }
-
-          try {
-            const res = await fetch(url)
-            if (!res.ok) throw new Error("Failed to fetch remote document")
-            const buffer = await res.arrayBuffer()
-            const contentType = res.headers.get("content-type") || (detectedPdf ? "application/pdf" : "image/jpeg")
-            const blob = new Blob([buffer], { type: contentType })
-            const createdUrl = URL.createObjectURL(blob)
-            if (isMounted) {
-              setBlobUrl(createdUrl)
-              setLoading(false)
-            }
-            return
-          } catch (fetchErr) {
-            console.warn("Direct fetch failed, falling back to URL:", fetchErr)
-            if (isMounted) {
-              setBlobUrl(url)
-              setLoading(false)
-            }
-            return
-          }
+        // 3. Handle raw base64 string without prefix
+        const isPdfRaw = url.startsWith("JVBERi") || detectedPdf
+        setIsPdf(isPdfRaw)
+        const mime = isPdfRaw ? "application/pdf" : "image/jpeg"
+        const bstr = atob(url)
+        let n = bstr.length
+        const u8arr = new Uint8Array(n)
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n)
         }
-
+        const blob = new Blob([u8arr], { type: mime })
+        const createdUrl = URL.createObjectURL(blob)
         if (isMounted) {
-          setBlobUrl(url)
+          setBlobUrl(createdUrl)
           setLoading(false)
         }
       } catch (err: any) {

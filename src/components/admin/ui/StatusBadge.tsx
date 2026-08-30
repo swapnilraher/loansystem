@@ -28,7 +28,7 @@ export function StatusBadge({
   className,
 }: StatusBadgeProps) {
   const resolved = tone ?? toneForStatus(status)
-  const t = TONE_CLASSES[resolved]
+  const t = (resolved && TONE_CLASSES[resolved]) ? TONE_CLASSES[resolved] : TONE_CLASSES.neutral
   const label = status?.trim() || fallback
 
   return (
