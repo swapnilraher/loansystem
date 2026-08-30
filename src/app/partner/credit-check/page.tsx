@@ -221,14 +221,6 @@ export default function PartnerCreditCheckPage() {
         </div>
       </div>
 
-      {/* ── Non-Transferable Balance Protection Banner ── */}
-      <div className="p-3 bg-admin-surface-2 rounded-admin border border-admin-border flex items-start gap-2.5 text-admin-xs text-admin-muted">
-        <Lock size={15} className="text-admin-accent shrink-0 mt-0.5" />
-        <p className="leading-relaxed">
-          <strong className="text-admin-text">Prepaid Utility Protection:</strong> Funds added to the partner wallet are dedicated strictly for credit bureau inquiries and cannot be transferred/withdrawn to personal bank accounts. Sourcing commission earnings are separate and settled to your bank automatically.
-        </p>
-      </div>
-
       {/* ── Check Tier Selection (2 Options: ₹50 vs ₹149) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Option 1: Quick Score Check */}
@@ -614,17 +606,69 @@ export default function PartnerCreditCheckPage() {
               </div>
             </div>
           ) : (
-            <div className="text-center py-10 space-y-3">
-              <div className="w-14 h-14 rounded-admin bg-admin-surface-2 border border-admin-border text-admin-muted flex items-center justify-center mx-auto">
-                <CreditCard size={28} />
+            <div className="space-y-5 p-2">
+              {/* Header Preview */}
+              <div className="flex items-center justify-between pb-3 border-b border-admin-border">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-admin bg-admin-accent-soft text-admin-accent flex items-center justify-center font-bold">
+                    <ShieldCheck size={18} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-admin-sm text-admin-text">
+                      {bureau === "CIBIL" ? "TransUnion CIBIL" : "Experian"} Credit File Preview
+                    </h4>
+                    <p className="text-admin-2xs text-admin-muted">
+                      Official RBI-licensed credit bureau inquiry
+                    </p>
+                  </div>
+                </div>
+
+                <span className="px-2.5 py-1 rounded-full text-admin-2xs font-extrabold uppercase bg-admin-surface-2 text-admin-accent border border-admin-border">
+                  {checkType === "REPORT" ? "Comprehensive Report (₹149)" : "Quick Score (₹50)"}
+                </span>
               </div>
-              <div className="space-y-1">
-                <h4 className="font-bold text-admin-sm text-admin-text">
-                  Live Bureau Inquirer Ready
-                </h4>
-                <p className="text-admin-xs text-admin-muted max-w-sm mx-auto leading-relaxed">
-                  Enter First Name, Last Name, DOB, PAN, Mobile number and check the customer consent box to run TransUnion CIBIL or Experian inquiries.
-                </p>
+
+              {/* Sample Visual Score Card */}
+              <div className="p-6 rounded-admin bg-gradient-to-br from-admin-surface-2 via-admin-surface to-admin-surface-2 border border-admin-border text-center space-y-3 relative overflow-hidden">
+                <div className="inline-flex items-center justify-center w-28 h-28 rounded-full border-4 border-admin-accent/30 bg-admin-accent-soft/40 text-center shadow-inner">
+                  <div>
+                    <span className="text-2xl font-extrabold font-mono text-admin-accent admin-num">
+                      750+
+                    </span>
+                    <p className="text-[10px] uppercase font-bold text-admin-accent tracking-wider">
+                      Target Band
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-admin-xs font-bold text-admin-text">
+                    Instant Bureau Score &amp; Loan Eligibility Analytics
+                  </p>
+                  <p className="text-admin-2xs text-admin-muted max-w-sm mx-auto">
+                    Fill in applicant details on the left and tick consent to fetch live report data.
+                  </p>
+                </div>
+              </div>
+
+              {/* Bureau Inclusions Grid */}
+              <div className="grid grid-cols-2 gap-2 text-admin-2xs">
+                <div className="p-2.5 bg-admin-surface-2 rounded-admin border border-admin-border flex items-center gap-2">
+                  <CheckCircle2 size={13} className="text-tone-success-fg shrink-0" />
+                  <span className="text-admin-text font-medium">3-Digit Credit Score (300-900)</span>
+                </div>
+                <div className="p-2.5 bg-admin-surface-2 rounded-admin border border-admin-border flex items-center gap-2">
+                  <CheckCircle2 size={13} className="text-tone-success-fg shrink-0" />
+                  <span className="text-admin-text font-medium">Active Loans &amp; Card Accounts</span>
+                </div>
+                <div className="p-2.5 bg-admin-surface-2 rounded-admin border border-admin-border flex items-center gap-2">
+                  <CheckCircle2 size={13} className="text-tone-success-fg shrink-0" />
+                  <span className="text-admin-text font-medium">DPD Overdue Payment Track</span>
+                </div>
+                <div className="p-2.5 bg-admin-surface-2 rounded-admin border border-admin-border flex items-center gap-2">
+                  <CheckCircle2 size={13} className="text-tone-success-fg shrink-0" />
+                  <span className="text-admin-text font-medium">Credit Utilization % &amp; Inquiries</span>
+                </div>
               </div>
             </div>
           )}
