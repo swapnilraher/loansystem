@@ -3,7 +3,7 @@
 import React, { useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
-import { Home, ListPlus, LayoutList, Wallet, User, LogOut, AlertCircle } from "lucide-react"
+import { Home, ListPlus, LayoutList, Wallet, User, LogOut, AlertCircle, ShieldCheck } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import { AdminButton } from "@/components/admin/ui"
 import { cn } from "@/lib/utils"
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { label: "Dashboard", href: "/partner", icon: Home },
   { label: "New Lead", href: "/partner/leads/new", icon: ListPlus },
   { label: "My Leads", href: "/partner/leads", icon: LayoutList },
+  { label: "Credit Check", href: "/partner/credit-check", icon: ShieldCheck },
   { label: "Wallet", href: "/partner/wallet", icon: Wallet },
   { label: "Profile", href: "/partner/profile", icon: User },
 ]

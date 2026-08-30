@@ -304,6 +304,11 @@ export default function PartnerDashboard() {
             </button>
           </div>
 
+          <AdminLinkButton href="/partner/credit-check" variant="secondary" size="md">
+            <ShieldCheck size={15} className="text-admin-accent" />
+            <span>Credit Check</span>
+          </AdminLinkButton>
+
           <AdminLinkButton href="/partner/leads/new" variant="primary" size="md">
             <Plus size={15} />
             <span>New Lead</span>
