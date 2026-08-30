@@ -64,8 +64,24 @@ export async function POST(request: Request) {
 
     const uploadedAt = new Date().toISOString();
 
-    const hasAadhaar = Boolean(aadhaarDetails?.code === 200 || aadhaarDetails?.data?.pdf_url || aadhaarDetails?.pdf_url || docsData?.data?.some?.((d: any) => d.doctype === "ADHAR" || d.doctype === "aadhaar"));
-    const hasPan = Boolean(panDetails?.code === 200 || panDetails?.data?.pdf_url || panDetails?.pdf_url || docsData?.data?.some?.((d: any) => d.doctype === "PANCR" || d.doctype === "pan"));
+    // Check if Aadhaar and PAN were granted consent and successfully returned by DigiLocker
+    const hasAadhaar = Boolean(
+      (aadhaarDetails && aadhaarDetails.code === 200) ||
+      aadhaarDetails?.data?.pdf_url ||
+      aadhaarDetails?.pdf_url ||
+      aadhaarDetails?.data?.uid ||
+      docsData?.data?.some?.((d: any) => d.doctype === "ADHAR" || d.doctype === "aadhaar")
+    );
+
+    const hasPan = Boolean(
+      (panDetails && panDetails.code === 200) ||
+      panDetails?.data?.pdf_url ||
+      panDetails?.pdf_url ||
+      panDetails?.data?.pan ||
+      docsData?.data?.some?.((d: any) => d.doctype === "PANCR" || d.doctype === "pan")
+    );
+
+    console.log(`DigiLocker Session Verification -> hasAadhaar: ${hasAadhaar}, hasPan: ${hasPan}`);
 
     const aadhaarUrl = aadhaarDetails?.data?.pdf_url || aadhaarDetails?.pdf_url || aadhaarDetails?.fileUrl || "/img/digilocker_aadhaar.pdf";
     const panUrl = panDetails?.data?.pdf_url || panDetails?.pdf_url || panDetails?.fileUrl || "/img/digilocker_pan.pdf";
@@ -98,33 +114,49 @@ export async function POST(request: Request) {
       digilockerSessionId: sessionId
     };
 
-    // Save directly to Firestore partner_applications doc
+    const updatedDocuments: Record<string, any> = {};
+    if (hasAadhaar) {
+      updatedDocuments.aadhaarFrontDoc = aadhaarDocRecord;
+      updatedDocuments.aadhaarBackDoc = aadhaarDocRecord;
+      updatedDocuments.aadhaarDoc = aadhaarDocRecord;
+    }
+    if (hasPan) {
+      updatedDocuments.panDoc = panDocRecord;
+    }
+
+    const bothAllowed = hasAadhaar && hasPan;
     const cleanMobile = mobileNumber.replace(/\D/g, "").slice(-10);
     const db = getAdminDb();
     const docRef = db.collection("partner_applications").doc(cleanMobile);
 
-    await docRef.set({
-      documents: {
-        aadhaarFrontDoc: aadhaarDocRecord,
-        aadhaarBackDoc: aadhaarDocRecord,
-        aadhaarDoc: aadhaarDocRecord,
-        panDoc: panDocRecord
-      },
-      aadhaarCombined: true,
-      currentStep: 7, // Automatically advance to Step 7 when both documents are verified!
+    const updatePayload: Record<string, any> = {
+      documents: updatedDocuments,
       updatedAt: new Date()
-    }, { merge: true });
+    };
+
+    if (hasAadhaar) {
+      updatePayload.aadhaarCombined = true;
+    }
+
+    if (bothAllowed) {
+      updatePayload.currentStep = 7;
+    } else {
+      updatePayload.currentStep = 6;
+    }
+
+    await docRef.set(updatePayload, { merge: true });
 
     return NextResponse.json({
       success: true,
-      message: "DigiLocker documents successfully verified and imported!",
+      message: bothAllowed
+        ? "DigiLocker documents successfully verified and imported!"
+        : `DigiLocker imported ${hasAadhaar ? "Aadhaar" : "documents"} successfully, but ${!hasPan ? "PAN card" : "Aadhaar"} consent was not granted. Please upload it manually.`,
       hasAadhaar,
       hasPan,
-      bothAllowed: true,
+      bothAllowed,
       documents: {
-        aadhaarFrontDoc: aadhaarDocRecord,
-        aadhaarBackDoc: aadhaarDocRecord,
-        panDoc: panDocRecord
+        ...(hasAadhaar ? { aadhaarFrontDoc: aadhaarDocRecord, aadhaarBackDoc: aadhaarDocRecord } : {}),
+        ...(hasPan ? { panDoc: panDocRecord } : {})
       }
     });
   } catch (error: any) {

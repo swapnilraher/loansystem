@@ -487,9 +487,15 @@ export default function OnboardingPage() {
               if (data.documents.aadhaarFrontDoc) setAadhaarFrontDoc(data.documents.aadhaarFrontDoc)
               if (data.documents.aadhaarBackDoc) setAadhaarBackDoc(data.documents.aadhaarBackDoc)
               if (data.documents.panDoc) setPanDoc(data.documents.panDoc)
-              setAadhaarCombined(true)
-              setDigilockerStatus("✓ DigiLocker Verification Complete! Official Aadhaar & PAN imported successfully.")
-              setCurrentStep(7) // Automatically advance to Step 7 (Bank Account Details)
+              if (data.hasAadhaar) setAadhaarCombined(true)
+
+              if (data.bothAllowed) {
+                setDigilockerStatus("✓ DigiLocker Verification Complete! Official Aadhaar & PAN imported successfully.")
+                setCurrentStep(7) // Advance to Step 7 ONLY if BOTH documents were granted consent!
+              } else {
+                setDigilockerStatus(`✓ DigiLocker imported ${data.hasAadhaar ? "Aadhaar" : "documents"} successfully. ${!data.hasPan ? "PAN card consent was not granted — please upload your PAN card manually below." : ""}`)
+                setCurrentStep(6) // Return/stay on Step 6 if any document was missing!
+              }
               localStorage.removeItem("tsm_digilocker_session_id")
               window.history.replaceState({}, document.title, window.location.pathname)
             } else if (data.error) {
@@ -845,43 +851,28 @@ export default function OnboardingPage() {
     }
   }
 
-  const handleStep7Submit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!accountHolderName.trim()) {
-      setStepError("Account Holder Name is required.")
-      return
-    }
+  // ─── Step 7: Verify Account Holder via Sandbox Bank API ───
+  const handleVerifyAccountHolder = async () => {
+    setStepError(null)
     if (!accountNumber.trim() || accountNumber.length < 9) {
-      setStepError("Please enter a valid Bank Account Number.")
+      setStepError("Please enter a valid Bank Account Number first.")
       return
     }
     if (accountNumber !== confirmAccountNumber) {
       setStepError("Account Number and Confirmation do not match.")
       return
     }
-    if (!ifscValid || !bankName) {
-      setStepError("Please enter a valid 11-character IFSC code.")
+    if (!ifscValid || !ifscCode.trim()) {
+      setStepError("Please enter a valid 11-character IFSC Code first.")
       return
     }
-
-    // Rate Limiting Check: Max 3 Attempts Per User
     if (bankVerifyAttempts >= 3 && !bankVerified) {
-      setStepError("Maximum 3 bank account verification attempts reached for this account. Please re-check your bank details or contact support.")
+      setStepError("Maximum 3 bank account verification attempts reached for this account.")
       return
     }
-
-    // Target Name for Match Comparison:
-    // - Savings Account: Applicant Name (contactPersonName || fullName)
-    // - Current Account: Business / Firm Name (businessName || fullName)
-    const targetName = accountType === "Savings"
-      ? (contactPersonName.trim() || fullName.trim())
-      : (businessName.trim() || contactPersonName.trim() || fullName.trim())
 
     setBankVerifying(true)
-    setStepError(null)
-
     try {
-      // Call Sandbox Pennyless Bank Account Verification API
       const res = await fetch("/api/sandbox", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -895,58 +886,74 @@ export default function OnboardingPage() {
       })
 
       const data = await res.json()
-      console.log("Sandbox Pennyless Bank Verification Response:", data)
+      console.log("Sandbox Bank Verification Response:", data)
 
-      const returnedName = data?.data?.full_name || data?.full_name || data?.data?.account_name || accountHolderName.trim()
+      const returnedName = data?.data?.full_name || data?.full_name || data?.data?.account_name || ""
       const accountExists = Boolean(data?.data?.account_exists ?? true)
 
       const nextAttempts = bankVerifyAttempts + 1
       setBankVerifyAttempts(nextAttempts)
 
-      if (!res.ok || data.code !== 200 || !accountExists) {
+      if (!res.ok || data.code !== 200 || !accountExists || !returnedName) {
+        setBankVerified(false)
         throw new Error(data.message || data.error || "Bank account verification failed. Please check Account Number and IFSC Code.")
       }
 
+      // Auto-populate fetched Account Holder Name from Bank API!
+      setAccountHolderName(returnedName)
+      setReturnedBankName(returnedName)
+
       // Calculate Name Match Score (Minimum 50% Match Required)
+      const targetName = accountType === "Savings"
+        ? (contactPersonName.trim() || fullName.trim())
+        : (businessName.trim() || contactPersonName.trim() || fullName.trim())
+
       const matchScore = calculateNameMatchScore(returnedName, targetName)
+      setBankMatchScore(matchScore)
 
       if (matchScore < 50) {
         setBankVerified(false)
-        setReturnedBankName(returnedName)
-        setBankMatchScore(matchScore)
         setStepError(
-          `Bank Account Name mismatch: Bank returned '${returnedName}', which matches only ${matchScore}% with your ${accountType === "Savings" ? "Applicant Name" : "Business Name"} ('${targetName}'). Minimum 50% match is required. Please check your ${accountType === "Savings" ? "Applicant Name" : "Business Name"} or Bank Details (Attempt ${nextAttempts}/3).`
+          `Bank Account Name mismatch: Bank returned '${returnedName}', which matches only ${matchScore}% with your ${accountType === "Savings" ? "Applicant Name" : "Business Name"} ('${targetName}'). Minimum 50% match is required. (Attempt ${nextAttempts}/3).`
         )
         return
       }
 
       // Match Successful (>= 50%)
       setBankVerified(true)
-      setReturnedBankName(returnedName)
-      setBankMatchScore(matchScore)
-
-      const ok = await saveProgress(8, {
-        bankDetails: {
-          accountHolderName: accountHolderName.trim(),
-          accountNumber: accountNumber.trim(),
-          ifsc: ifscCode.trim().toUpperCase(),
-          bankName,
-          branchName,
-          accountType,
-          verified: true,
-          verifiedAccountName: returnedName,
-          nameMatchScore: matchScore,
-          verifiedAt: new Date().toISOString()
-        },
-        bankVerifyAttempts: nextAttempts
-      })
-
-      if (ok) setCurrentStep(8)
+      setStepError(null)
     } catch (err: any) {
+      setBankVerified(false)
       setStepError(messageFor(err, "Bank account verification failed. Please check Account Number and IFSC Code."))
     } finally {
       setBankVerifying(false)
     }
+  }
+
+  const handleStep7Submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!bankVerified || !accountHolderName.trim()) {
+      setStepError("Please click 'Verify Account Holder' button to verify your bank account details before continuing.")
+      return
+    }
+
+    const ok = await saveProgress(8, {
+      bankDetails: {
+        accountHolderName: accountHolderName.trim(),
+        accountNumber: accountNumber.trim(),
+        ifsc: ifscCode.trim().toUpperCase(),
+        bankName,
+        branchName,
+        accountType,
+        verified: true,
+        verifiedAccountName: accountHolderName.trim(),
+        nameMatchScore: bankMatchScore || 100,
+        verifiedAt: new Date().toISOString()
+      },
+      bankVerifyAttempts
+    })
+
+    if (ok) setCurrentStep(8)
   }
 
   // ─── Step 8: Final Submission ───
@@ -1829,22 +1836,15 @@ export default function OnboardingPage() {
               />
 
               <FieldGrid>
-                <Field label="Account holder name" hint="Auto-filled from applicant/business details." className="sm:col-span-2">
-                  <TextInput
-                    readOnly
-                    tabIndex={-1}
-                    value={accountHolderName}
-                    placeholder="Auto-filled from profile"
-                    className={cn(INPUT, "bg-admin-surface-2 cursor-default font-semibold text-admin-text")}
-                  />
-                </Field>
-
                 <Field label="Account number">
                   <TextInput
                     type="password"
                     required
                     value={accountNumber}
-                    onChange={e => setAccountNumber(e.target.value)}
+                    onChange={e => {
+                      setAccountNumber(e.target.value)
+                      setBankVerified(false)
+                    }}
                     placeholder="Bank account number"
                     className={cn(INPUT, "admin-num")}
                   />
@@ -1855,7 +1855,10 @@ export default function OnboardingPage() {
                     <TextInput
                       required
                       value={confirmAccountNumber}
-                      onChange={e => setConfirmAccountNumber(e.target.value)}
+                      onChange={e => {
+                        setConfirmAccountNumber(e.target.value)
+                        setBankVerified(false)
+                      }}
                       placeholder="Re-enter account number"
                       aria-invalid={
                         confirmAccountNumber.length > 0 && accountNumber !== confirmAccountNumber
@@ -1877,7 +1880,10 @@ export default function OnboardingPage() {
                       maxLength={11}
                       required
                       value={ifscCode}
-                      onChange={e => handleIfscLookup(e.target.value)}
+                      onChange={e => {
+                        handleIfscLookup(e.target.value)
+                        setBankVerified(false)
+                      }}
                       placeholder="e.g. HDFC0000103"
                       aria-describedby="ifsc-status"
                       className={cn(INPUT, "admin-num uppercase tracking-wide")}
@@ -1892,16 +1898,53 @@ export default function OnboardingPage() {
                   </span>
                 </div>
 
-                <Field label="Account type" hint={accountType === "Savings" ? "Matches against Applicant Name (min 50%)" : "Matches against Business Name (min 50%)"}>
+                <Field label="Account type">
                   <Select
                     value={accountType}
-                    onChange={e => setAccountType(e.target.value as "Savings" | "Current")}
+                    onChange={e => {
+                      setAccountType(e.target.value as "Savings" | "Current")
+                      setBankVerified(false)
+                    }}
                     className={INPUT}
                   >
                     <option value="Savings">Savings account (Individual / Contact Person)</option>
                     <option value="Current">Current account (Firm / Business Name)</option>
                   </Select>
                 </Field>
+
+                <Field label="Account Holder Name (Fetched from Bank)" hint="Click 'Verify Account Holder' button to fetch official name from Bank API." className="sm:col-span-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <TextInput
+                      readOnly
+                      tabIndex={-1}
+                      value={accountHolderName}
+                      placeholder="Click 'Verify Account Holder' button to fetch official name"
+                      className={cn(INPUT, "flex-1 bg-admin-surface-2 cursor-default font-semibold text-admin-text")}
+                    />
+                    <AdminButton
+                      type="button"
+                      onClick={handleVerifyAccountHolder}
+                      loading={bankVerifying}
+                      disabled={bankVerifying || !accountNumber.trim() || accountNumber !== confirmAccountNumber || !ifscValid || (bankVerifyAttempts >= 3 && !bankVerified)}
+                      variant="primary"
+                      className="shrink-0"
+                    >
+                      {bankVerifying ? "Verifying…" : bankVerified ? "✓ Account Verified" : "Verify Account Holder"}
+                    </AdminButton>
+                  </div>
+                </Field>
+
+                {bankVerified && (
+                  <div className="sm:col-span-2 p-3 rounded-admin bg-tone-success/15 border border-tone-success-bd text-tone-success-fg text-admin-xs flex items-center justify-between shadow-admin-1">
+                    <span className="font-semibold flex items-center gap-1.5">
+                      <CheckCircle2 size={16} className="text-emerald-600" />
+                      Verified Bank Account Holder: <strong className="text-admin-text">{accountHolderName}</strong> ({bankMatchScore}% Name Match)
+                    </span>
+                    <span className="text-admin-2xs font-extrabold bg-tone-success px-2.5 py-1 rounded text-tone-success-fg border border-tone-success-bd">
+                      Attempts: {bankVerifyAttempts}/3
+                    </span>
+                  </div>
+                )}
 
                 <Field label="Bank name">
                   <TextInput
@@ -1930,11 +1973,10 @@ export default function OnboardingPage() {
                 disabled={
                   savingStep ||
                   bankVerifying ||
+                  !bankVerified ||
                   !ifscValid ||
                   !bankName ||
-                  !accountHolderName.trim() ||
-                  accountNumber.length < 9 ||
-                  accountNumber !== confirmAccountNumber
+                  !accountHolderName.trim()
                 }
               />
             </form>
