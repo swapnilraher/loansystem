@@ -88,11 +88,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (docSnap.exists()) {
           loadedProfile = docSnap.data();
-        } else {
-          // Fallback lookup by mobile number (e.g. if user document is keyed by mobileNumber)
-          const rawMobile = user.phoneNumber || user.uid;
-          const cleanMobile = rawMobile ? rawMobile.replace(/\D/g, "").slice(-10) : "";
-          if (cleanMobile.length === 10) {
+        }
+
+        // Fallback / enrichment lookup by mobile number (from user.phoneNumber or localStorage)
+        const storedMobile = typeof window !== "undefined" ? localStorage.getItem("tsm_onboarding_mobile") : null;
+        const rawMobile = user.phoneNumber || loadedProfile?.mobileNumber || storedMobile || user.uid;
+        const cleanMobile = rawMobile ? String(rawMobile).replace(/\D/g, "").slice(-10) : "";
+
+        if (cleanMobile.length === 10) {
+          if (!loadedProfile) {
             const mobileDocRef = doc(db, "users", cleanMobile);
             const mobileSnap = await getDoc(mobileDocRef);
             if (mobileSnap.exists()) {
@@ -105,9 +109,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               }
             }
           }
+
+          // If profile is missing name or dsaCode, enrich from partner_applications
+          if (!loadedProfile?.name && !loadedProfile?.fullName) {
+            try {
+              const appRef = doc(db, "partner_applications", cleanMobile);
+              const appSnap = await getDoc(appRef);
+              if (appSnap.exists()) {
+                const appData = appSnap.data();
+                loadedProfile = {
+                  ...(loadedProfile || {}),
+                  ...appData,
+                  mobileNumber: cleanMobile,
+                  role: "partner",
+                  name: appData.fullName || appData.contactPersonName || appData.businessName || "Partner",
+                  fullName: appData.fullName || appData.contactPersonName || "Partner",
+                  dsaCode: appData.dsaCode || loadedProfile?.dsaCode,
+                  dsaStatus: appData.dsaStatus || appData.status || loadedProfile?.dsaStatus,
+                };
+              }
+            } catch (aErr) {
+              console.warn("Could not enrich from partner_applications:", aErr);
+            }
+          }
         }
 
         if (loadedProfile) {
+          const resolvedName = loadedProfile.name || loadedProfile.fullName || loadedProfile.contactPersonName || loadedProfile.businessName || user.displayName || "";
+          if (resolvedName) {
+            loadedProfile.name = resolvedName;
+            loadedProfile.fullName = loadedProfile.fullName || resolvedName;
+          }
           setProfile(loadedProfile);
         } else {
           const newProfile = {

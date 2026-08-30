@@ -84,7 +84,19 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
 
   if (!user) return null
 
-  const initial = profile?.name?.[0] || user.email?.[0] || "P"
+  const partnerDisplayName =
+    profile?.name ||
+    profile?.fullName ||
+    profile?.contactPersonName ||
+    profile?.businessName ||
+    profile?.kycData?.name ||
+    user?.displayName ||
+    "Partner"
+
+  const partnerInitial =
+    partnerDisplayName && partnerDisplayName !== "Partner"
+      ? partnerDisplayName[0]?.toUpperCase()
+      : (user?.email?.[0]?.toUpperCase() || "P")
 
   return (
     /*
@@ -136,12 +148,12 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={partnerPhoto} alt="" className="w-full h-full object-cover" />
               ) : (
-                initial
+                partnerInitial
               )}
             </span>
             <span className="block min-w-0">
               <span className="block text-admin-sm font-semibold text-admin-text truncate">
-                {profile?.name || "Partner"}
+                {partnerDisplayName}
               </span>
               <span className="block text-admin-2xs font-semibold uppercase tracking-wide text-admin-subtle admin-num">
                 {profile?.dsaCode || "Pending"}
@@ -169,7 +181,7 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={partnerPhoto} alt="" className="w-full h-full object-cover" />
               ) : (
-                initial
+                partnerInitial
               )}
             </span>
             <button

@@ -127,8 +127,15 @@ export default function PartnerDashboard() {
   const dsaStatusRaw = String(profile?.dsaStatus || profile?.status || "").toLowerCase()
   const isApproved = dsaStatusRaw === "active" || dsaStatusRaw === "approved"
   const isUnderVerification = !isApproved
+  const partnerName =
+    profile?.name ||
+    profile?.fullName ||
+    profile?.contactPersonName ||
+    profile?.businessName ||
+    profile?.kycData?.name ||
+    user?.displayName ||
+    "Partner"
   const partnerDsaCode = profile?.dsaCode || (isApproved ? "DSA-ACTIVE" : "PENDING")
-  const partnerName = profile?.name || profile?.fullName || user?.displayName || "Partner"
   const referralLink = typeof window !== "undefined" ? `${window.location.origin}/apply?ref=${partnerDsaCode}` : `/apply?ref=${partnerDsaCode}`
 
   // Metrics Calculations
