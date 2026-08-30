@@ -64,24 +64,41 @@ export default function DocumentViewerModal({
               const buffer = await res.arrayBuffer()
               const contentType = res.headers.get("content-type") || ""
               const textDecoder = new TextDecoder()
-              const preview = textDecoder.decode(buffer.slice(0, 150)).trim()
+              const fullText = textDecoder.decode(buffer).trim()
 
-              // If response body is text Base64 (like DigiLocker /9j/... or JVBERi...)
-              if (
-                preview.startsWith("/9j/") ||
-                preview.startsWith("data:image") ||
-                preview.startsWith("iVBORw0KGgo")
-              ) {
-                const fullText = textDecoder.decode(buffer).trim()
-                const rawBase64 = fullText.includes(",") ? fullText.split(",")[1] : fullText
-                const bstr = atob(rawBase64)
+              // 1. Look for XML <Photo> tag in DigiLocker XML
+              const photoMatch = fullText.match(/<photo[^>]*>([\s\S]*?)<\/photo>/i)
+              if (photoMatch) {
+                const cleanB64 = photoMatch[1].replace(/[^A-Za-z0-9+/=]/g, "")
+                if (cleanB64.length > 50) {
+                  const bstr = atob(cleanB64)
+                  let n = bstr.length
+                  const u8arr = new Uint8Array(n)
+                  while (n--) {
+                    u8arr[n] = bstr.charCodeAt(n)
+                  }
+                  const blob = new Blob([u8arr], { type: "image/jpeg" })
+                  const createdUrl = URL.createObjectURL(blob)
+                  if (isMounted) {
+                    setIsPdf(false)
+                    setBlobUrl(createdUrl)
+                    setLoading(false)
+                  }
+                  return
+                }
+              }
+
+              // 2. Look for /9j/ JPEG Base64
+              const jpegMatch = fullText.match(/\/9j\/[A-Za-z0-9+/=]+/)
+              if (jpegMatch && jpegMatch[0].length > 50) {
+                const cleanB64 = jpegMatch[0].replace(/[^A-Za-z0-9+/=]/g, "")
+                const bstr = atob(cleanB64)
                 let n = bstr.length
                 const u8arr = new Uint8Array(n)
                 while (n--) {
                   u8arr[n] = bstr.charCodeAt(n)
                 }
-                const isPng = preview.startsWith("iVBORw0KGgo") || preview.includes("png")
-                const blob = new Blob([u8arr], { type: isPng ? "image/png" : "image/jpeg" })
+                const blob = new Blob([u8arr], { type: "image/jpeg" })
                 const createdUrl = URL.createObjectURL(blob)
                 if (isMounted) {
                   setIsPdf(false)
@@ -91,10 +108,31 @@ export default function DocumentViewerModal({
                 return
               }
 
-              if (preview.startsWith("JVBERi") || preview.startsWith("data:application/pdf")) {
-                const fullText = textDecoder.decode(buffer).trim()
-                const rawBase64 = fullText.includes(",") ? fullText.split(",")[1] : fullText
-                const bstr = atob(rawBase64)
+              // 3. Look for iVBORw0KGgo PNG Base64
+              const pngMatch = fullText.match(/iVBORw0KGgo[A-Za-z0-9+/=]+/)
+              if (pngMatch && pngMatch[0].length > 50) {
+                const cleanB64 = pngMatch[0].replace(/[^A-Za-z0-9+/=]/g, "")
+                const bstr = atob(cleanB64)
+                let n = bstr.length
+                const u8arr = new Uint8Array(n)
+                while (n--) {
+                  u8arr[n] = bstr.charCodeAt(n)
+                }
+                const blob = new Blob([u8arr], { type: "image/png" })
+                const createdUrl = URL.createObjectURL(blob)
+                if (isMounted) {
+                  setIsPdf(false)
+                  setBlobUrl(createdUrl)
+                  setLoading(false)
+                }
+                return
+              }
+
+              // 4. Look for JVBERi PDF Base64
+              const pdfMatch = fullText.match(/JVBERi[A-Za-z0-9+/=]+/)
+              if (pdfMatch && pdfMatch[0].length > 50) {
+                const cleanB64 = pdfMatch[0].replace(/[^A-Za-z0-9+/=]/g, "")
+                const bstr = atob(cleanB64)
                 let n = bstr.length
                 const u8arr = new Uint8Array(n)
                 while (n--) {

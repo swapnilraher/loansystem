@@ -22,35 +22,51 @@ function resolveMimeFromBase64(base64Str: string): string {
 
 function convertBufferIfBase64Text(arrayBuffer: ArrayBuffer, defaultMime?: string): { buffer: Buffer; mime: string } {
   const rawBuffer = Buffer.from(arrayBuffer)
-  const textPreview = rawBuffer.toString("utf-8", 0, Math.min(200, rawBuffer.length)).trim()
+  const fullText = rawBuffer.toString("utf-8").trim()
 
-  if (textPreview.startsWith("/9j/") || textPreview.startsWith("data:image/jpeg") || textPreview.startsWith("data:image/jpg")) {
-    const fullText = rawBuffer.toString("utf-8").trim()
-    const cleanBase64 = fullText.includes(",") ? fullText.split(",")[1] : fullText
+  // 1. Look for XML <Photo> tag in DigiLocker XML
+  const photoMatch = fullText.match(/<photo[^>]*>([\s\S]*?)<\/photo>/i)
+  if (photoMatch) {
+    const cleanB64 = photoMatch[1].replace(/[^A-Za-z0-9+/=]/g, "")
+    if (cleanB64.length > 50) {
+      return {
+        buffer: Buffer.from(cleanB64, "base64"),
+        mime: "image/jpeg",
+      }
+    }
+  }
+
+  // 2. Look for /9j/ JPEG Base64 (ignoring trailing DigiLocker certificate strings like CN=DS...)
+  const jpegMatch = fullText.match(/\/9j\/[A-Za-z0-9+/=]+/)
+  if (jpegMatch && jpegMatch[0].length > 50) {
+    const cleanB64 = jpegMatch[0].replace(/[^A-Za-z0-9+/=]/g, "")
     return {
-      buffer: Buffer.from(cleanBase64, "base64"),
+      buffer: Buffer.from(cleanB64, "base64"),
       mime: "image/jpeg",
     }
   }
 
-  if (textPreview.startsWith("iVBORw0KGgo") || textPreview.startsWith("data:image/png")) {
-    const fullText = rawBuffer.toString("utf-8").trim()
-    const cleanBase64 = fullText.includes(",") ? fullText.split(",")[1] : fullText
+  // 3. Look for iVBORw0KGgo PNG Base64
+  const pngMatch = fullText.match(/iVBORw0KGgo[A-Za-z0-9+/=]+/)
+  if (pngMatch && pngMatch[0].length > 50) {
+    const cleanB64 = pngMatch[0].replace(/[^A-Za-z0-9+/=]/g, "")
     return {
-      buffer: Buffer.from(cleanBase64, "base64"),
+      buffer: Buffer.from(cleanB64, "base64"),
       mime: "image/png",
     }
   }
 
-  if (textPreview.startsWith("JVBERi") || textPreview.startsWith("data:application/pdf")) {
-    const fullText = rawBuffer.toString("utf-8").trim()
-    const cleanBase64 = fullText.includes(",") ? fullText.split(",")[1] : fullText
+  // 4. Look for JVBERi PDF Base64
+  const pdfMatch = fullText.match(/JVBERi[A-Za-z0-9+/=]+/)
+  if (pdfMatch && pdfMatch[0].length > 50) {
+    const cleanB64 = pdfMatch[0].replace(/[^A-Za-z0-9+/=]/g, "")
     return {
-      buffer: Buffer.from(cleanBase64, "base64"),
+      buffer: Buffer.from(cleanB64, "base64"),
       mime: "application/pdf",
     }
   }
 
+  const textPreview = fullText.slice(0, 50)
   return {
     buffer: rawBuffer,
     mime: defaultMime || (textPreview.startsWith("%PDF") ? "application/pdf" : "image/jpeg"),
