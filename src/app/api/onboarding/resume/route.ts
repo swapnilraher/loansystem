@@ -17,12 +17,35 @@ export async function GET(request: Request) {
     const data = docSnap.exists ? docSnap.data() : {};
     const userData = userSnap.exists ? userSnap.data() : {};
 
-    const status = userData?.dsaStatus || userData?.status || data?.status || "draft";
-    if (status === "Active" || status === "approved") {
+    // Check if partner is already registered and approved in 'partners' collection
+    const partnerSnap = await db.collection("partners").doc(mobileNumber).get();
+    let isApprovedPartner = false;
+    let dsaCode = "";
+
+    if (partnerSnap.exists) {
+      const pData = partnerSnap.data();
+      const pStatus = String(pData?.status || pData?.partnerStatus || "").toLowerCase();
+      if (pStatus === "active" || pStatus === "approved") {
+        isApprovedPartner = true;
+        dsaCode = pData?.dsaCode || pData?.partnerId || "";
+      }
+    } else {
+      const partnerQuery = await db.collection("partners").where("mobileNumber", "==", mobileNumber).get();
+      if (!partnerQuery.empty) {
+        const pData = partnerQuery.docs[0].data();
+        const pStatus = String(pData?.status || pData?.partnerStatus || "").toLowerCase();
+        if (pStatus === "active" || pStatus === "approved") {
+          isApprovedPartner = true;
+          dsaCode = pData?.dsaCode || pData?.partnerId || "";
+        }
+      }
+    }
+
+    if (isApprovedPartner) {
       return NextResponse.json({
         exists: true,
         alreadyApproved: true,
-        dsaCode: userData?.dsaCode || data?.dsaCode || "",
+        dsaCode,
         error: "Your DSA Partner Application has already been approved! Please log in to your Partner Portal.",
       }, { status: 400 });
     }

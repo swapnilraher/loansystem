@@ -1959,18 +1959,6 @@ export default function OnboardingPage() {
                   </div>
                 </Field>
 
-                {bankVerified && (
-                  <div className="sm:col-span-2 p-3 rounded-admin bg-tone-success/15 border border-tone-success-bd text-tone-success-fg text-admin-xs flex items-center justify-between shadow-admin-1">
-                    <span className="font-semibold flex items-center gap-1.5">
-                      <CheckCircle2 size={16} className="text-emerald-600" />
-                      Verified Bank Account Holder: <strong className="text-admin-text">{accountHolderName}</strong> ({bankMatchScore}% Name Match)
-                    </span>
-                    <span className="text-admin-2xs font-extrabold bg-tone-success px-2.5 py-1 rounded text-tone-success-fg border border-tone-success-bd">
-                      Attempts: {bankVerifyAttempts}/3
-                    </span>
-                  </div>
-                )}
-
                 <Field label="Bank name">
                   <TextInput
                     readOnly

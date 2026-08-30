@@ -18,20 +18,35 @@ export async function POST(request: Request) {
 
     const db = getAdminDb();
 
-    // Check if partner is already registered and approved (only block during onboarding, NOT during partner login)
-    const userSnap = await db.collection("users").doc(phoneNumber).get();
-    const appSnap = await db.collection("partner_applications").doc(phoneNumber).get();
+    // Check if partner is already registered and approved in 'partners' collection
+    const partnerSnap = await db.collection("partners").doc(phoneNumber).get();
+    let isApprovedPartner = false;
+    let dsaCode = "";
 
-    const userData = userSnap.exists ? userSnap.data() : null;
-    const appData = appSnap.exists ? appSnap.data() : null;
+    if (partnerSnap.exists) {
+      const pData = partnerSnap.data();
+      const pStatus = String(pData?.status || pData?.partnerStatus || "").toLowerCase();
+      if (pStatus === "active" || pStatus === "approved") {
+        isApprovedPartner = true;
+        dsaCode = pData?.dsaCode || pData?.partnerId || "";
+      }
+    } else {
+      const partnerQuery = await db.collection("partners").where("mobileNumber", "==", phoneNumber).get();
+      if (!partnerQuery.empty) {
+        const pData = partnerQuery.docs[0].data();
+        const pStatus = String(pData?.status || pData?.partnerStatus || "").toLowerCase();
+        if (pStatus === "active" || pStatus === "approved") {
+          isApprovedPartner = true;
+          dsaCode = pData?.dsaCode || pData?.partnerId || "";
+        }
+      }
+    }
 
-    const currentStatus = userData?.dsaStatus || userData?.status || appData?.status || "draft";
-
-    if (!isLogin && (currentStatus === "Active" || currentStatus === "approved")) {
+    if (!isLogin && isApprovedPartner) {
       return NextResponse.json({
         error: "Your DSA Partner Application has already been approved! Please log in to access your Partner Portal.",
         alreadyApproved: true,
-        dsaCode: userData?.dsaCode || appData?.dsaCode || "",
+        dsaCode,
       }, { status: 400 });
     }
 
