@@ -206,15 +206,6 @@ export default function OnboardingPage() {
   const [bankMatchScore, setBankMatchScore] = useState<number | null>(null)
   const [bankVerificationStatus] = useState<"pending" | "verified">("pending")
 
-  // Auto-fill account holder name based on account type and profile/business details
-  useEffect(() => {
-    if (accountType === "Savings") {
-      setAccountHolderName(contactPersonName.trim() || fullName.trim())
-    } else {
-      setAccountHolderName(businessName.trim() || contactPersonName.trim() || fullName.trim())
-    }
-  }, [accountType, contactPersonName, fullName, businessName])
-
   // ─── Step 8: Review & Declarations ───
   const [declareTruth, setDeclareTruth] = useState(false)
   const [declareTerms, setDeclareTerms] = useState(false)
@@ -480,6 +471,7 @@ export default function OnboardingPage() {
       const targetMobile = localStorage.getItem("tsm_onboarding_mobile") || mobileNumber
       if (targetMobile) {
         setDigilockerLoading(true)
+        setCurrentStep(6) // Always stay on Step 6 while verifying DigiLocker!
         fetch("/api/digilocker/verify-session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -498,16 +490,19 @@ export default function OnboardingPage() {
                 setCurrentStep(7) // Advance to Step 7 ONLY if BOTH documents were granted consent!
               } else {
                 setDigilockerStatus(`✓ DigiLocker imported ${data.hasAadhaar ? "Aadhaar" : "documents"} successfully. ${!data.hasPan ? "PAN card consent was not granted — please upload your PAN card manually below." : ""}`)
+                setDocUploadMethod("manual") // Auto-switch to manual view so user can upload missing doc!
                 setCurrentStep(6) // Return/stay on Step 6 if any document was missing!
               }
               localStorage.removeItem("tsm_digilocker_session_id")
               window.history.replaceState({}, document.title, window.location.pathname)
             } else if (data.error) {
               setStepError(`DigiLocker Verification Issue: ${data.error}`)
+              setCurrentStep(6)
             }
           })
           .catch(err => {
             console.warn("DigiLocker verify error:", err)
+            setCurrentStep(6)
           })
           .finally(() => {
             setDigilockerLoading(false)
@@ -1724,6 +1719,16 @@ export default function OnboardingPage() {
                       </div>
                     ))}
                   </div>
+
+                  {digilockerLoading && (
+                    <div className="p-5 rounded-admin bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 flex flex-col items-center justify-center gap-3 text-center animate-pulse shadow-admin-1 my-2">
+                      <span className="w-8 h-8 rounded-full border-3 border-emerald-500/30 border-t-emerald-600 animate-spin" />
+                      <div>
+                        <p className="font-bold text-admin-base">Verifying DigiLocker Documents...</p>
+                        <p className="text-admin-xs text-admin-muted mt-0.5">Please wait while we fetch and verify your official e-Aadhaar & PAN card from DigiLocker.</p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Document Status Display */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">

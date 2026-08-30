@@ -30,6 +30,39 @@ export async function POST(request: Request) {
     const existingDoc = await docRef.get();
     const existingData = existingDoc.exists ? existingDoc.data() : {};
 
+    // ─── STRICT UNIQUE EMAIL CHECK ───
+    const targetEmail = String(stepData?.email || existingData?.email || "").trim().toLowerCase();
+
+    if (targetEmail) {
+      // 1. Check if email exists in partner_applications with a different mobile number
+      const appEmailSnap = await db.collection("partner_applications")
+        .where("email", "==", targetEmail)
+        .get();
+
+      const conflictingApp = appEmailSnap.docs.find(d => d.id !== mobileNumber);
+      if (conflictingApp) {
+        return NextResponse.json({
+          error: `This Email ID ('${targetEmail}') is already registered with another partner mobile number (${conflictingApp.id}). Duplicate emails are strictly not allowed.`
+        }, { status: 400 });
+      }
+
+      // 2. Check if email exists in partners collection with a different mobile number
+      const partnerEmailSnap = await db.collection("partners")
+        .where("email", "==", targetEmail)
+        .get();
+
+      const conflictingPartner = partnerEmailSnap.docs.find(d => {
+        const data = d.data();
+        return (data.mobileNumber && data.mobileNumber !== mobileNumber) || d.id !== mobileNumber;
+      });
+
+      if (conflictingPartner) {
+        return NextResponse.json({
+          error: `This Email ID ('${targetEmail}') is already registered with an active DSA partner account. Duplicate emails are strictly not allowed.`
+        }, { status: 400 });
+      }
+    }
+
     const rawPayload = {
       ...existingData,
       ...stepData,
