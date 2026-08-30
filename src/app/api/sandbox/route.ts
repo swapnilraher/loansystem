@@ -1,31 +1,44 @@
 import { NextResponse } from 'next/server';
 
-const SANDBOX_KEY = process.env.API_Keysandbox || process.env.SANDBOX_KEY || "key_live_903e7a0839e5458993990c401da8be3c";
-const SANDBOX_SECRET = process.env.API_Secretsandbox || process.env.API_secret || process.env.SANDBOX_SECRET || "secret_live_8015a745cf4a433387ff54040e7453bd";
-
 async function getAccessToken() {
   try {
+    const rawKey = process.env.SANDBOX_KEY || process.env.API_Keysandbox || "key_live_903e7a0839e5458993990c401da8be3c";
+    const rawSecret = process.env.SANDBOX_SECRET || process.env.API_Secretsandbox || process.env.API_secret || "secret_live_8015a745cf4a433387ff54040e7453bd";
+
+    const key = String(rawKey).trim().replace(/^["']|["']$/g, '');
+    const secret = String(rawSecret).trim().replace(/^["']|["']$/g, '');
+
     const res = await fetch("https://api.sandbox.co.in/authenticate", {
       method: "POST",
       headers: {
         "accept": "application/json",
         "content-type": "application/json",
-        "x-api-key": SANDBOX_KEY,
-        "x-api-secret": SANDBOX_SECRET,
+        "x-api-key": key,
+        "x-api-secret": secret,
         "x-api-version": "1.0.0"
       },
-      body: JSON.stringify({ apiKey: SANDBOX_KEY }),
+      body: JSON.stringify({ apiKey: key }),
       cache: 'no-store'
     });
-    const data = await res.json();
+
+    const data = await res.json().catch(() => ({}));
     const token = data?.access_token || data?.data?.access_token || data?.token || null;
+
     if (!token) {
-      console.error("Sandbox Auth Failed. HTTP Status:", res.status, "Response Data:", data);
+      const errMsg = data?.message || data?.error || data?.reason || `HTTP ${res.status} Authentication Failed`;
+      console.error("Sandbox Auth Failed. Key Prefix:", key.slice(0, 10), "Status:", res.status, "Details:", data);
+      return {
+        token: null,
+        key,
+        secret,
+        error: `Sandbox Auth Failed (${res.status}): ${typeof errMsg === 'object' ? JSON.stringify(errMsg) : errMsg}`
+      };
     }
-    return token;
-  } catch (err) {
+
+    return { token, error: null, key, secret };
+  } catch (err: any) {
     console.error("Sandbox authentication token fetch exception:", err);
-    return null;
+    return { token: null, key: "", secret: "", error: err?.message || "Network exception during Sandbox authentication." };
   }
 }
 
@@ -38,10 +51,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Action and payload are required." }, { status: 400 });
     }
 
-    const token = await getAccessToken();
-    if (!token) {
-      return NextResponse.json({ error: "Failed to authenticate with Sandbox API service." }, { status: 500 });
+    const auth = await getAccessToken();
+    if (!auth.token) {
+      return NextResponse.json({
+        error: auth.error || "Failed to authenticate with Sandbox API service.",
+        code: 401
+      }, { status: 401 });
     }
+
+    const token = auth.token;
+    const activeKey = auth.key;
 
     let url = "";
     let options: RequestInit = {
@@ -50,7 +69,7 @@ export async function POST(req: Request) {
         "accept": "application/json",
         "authorization": token,
         "content-type": "application/json",
-        "x-api-key": SANDBOX_KEY,
+        "x-api-key": activeKey,
         "x-api-version": "2.0"
       }
     };
@@ -110,7 +129,7 @@ export async function POST(req: Request) {
       options.headers = {
         "accept": "application/json",
         "authorization": token,
-        "x-api-key": SANDBOX_KEY,
+        "x-api-key": activeKey,
         "x-api-version": "1.0.0"
       };
       delete options.body;
@@ -124,7 +143,7 @@ export async function POST(req: Request) {
         "accept": "application/json",
         "authorization": token,
         "content-type": "application/json",
-        "x-api-key": SANDBOX_KEY,
+        "x-api-key": activeKey,
         "x-api-version": "1.0.0"
       };
       options.body = JSON.stringify({
@@ -150,7 +169,7 @@ export async function POST(req: Request) {
       options.headers = {
         "accept": "application/json",
         "authorization": token,
-        "x-api-key": SANDBOX_KEY,
+        "x-api-key": activeKey,
         "x-api-version": "1.0.0"
       };
       delete options.body;
@@ -165,7 +184,7 @@ export async function POST(req: Request) {
       options.headers = {
         "accept": "application/json",
         "authorization": token,
-        "x-api-key": SANDBOX_KEY,
+        "x-api-key": activeKey,
         "x-api-version": "1.0.0"
       };
       delete options.body;
@@ -180,7 +199,7 @@ export async function POST(req: Request) {
       options.headers = {
         "accept": "application/json",
         "authorization": token,
-        "x-api-key": SANDBOX_KEY,
+        "x-api-key": activeKey,
         "x-api-version": "1.0.0"
       };
       delete options.body;
@@ -195,7 +214,7 @@ export async function POST(req: Request) {
       options.headers = {
         "accept": "application/json",
         "authorization": token,
-        "x-api-key": SANDBOX_KEY,
+        "x-api-key": activeKey,
         "x-api-version": "1.0.0"
       };
       delete options.body;
