@@ -1526,31 +1526,31 @@ export default function OnboardingPage() {
 
                 <Field label="City">
                   <TextInput
-                    required
+                    readOnly
+                    tabIndex={-1}
                     value={city}
-                    onChange={e => setCity(e.target.value)}
                     placeholder="Auto-filled from PIN code"
-                    className={cn(INPUT, city && "bg-admin-accent-soft")}
+                    className={cn(INPUT, "bg-admin-surface-2 cursor-default font-semibold text-admin-text")}
                   />
                 </Field>
 
                 <Field label="District">
                   <TextInput
-                    required
+                    readOnly
+                    tabIndex={-1}
                     value={district}
-                    onChange={e => setDistrict(e.target.value)}
                     placeholder="Auto-filled from PIN code"
-                    className={cn(INPUT, district && "bg-admin-accent-soft")}
+                    className={cn(INPUT, "bg-admin-surface-2 cursor-default font-semibold text-admin-text")}
                   />
                 </Field>
 
                 <Field label="State" className="sm:col-span-2">
                   <TextInput
-                    required
+                    readOnly
+                    tabIndex={-1}
                     value={stateName}
-                    onChange={e => setStateName(e.target.value)}
                     placeholder="Auto-filled from PIN code"
-                    className={cn(INPUT, stateName && "bg-admin-accent-soft")}
+                    className={cn(INPUT, "bg-admin-surface-2 cursor-default font-semibold text-admin-text")}
                   />
                 </Field>
               </FieldGrid>

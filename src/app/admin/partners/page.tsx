@@ -48,7 +48,8 @@ const ALL_TYPES = "All types"
 const ALL_STATUSES = "All statuses"
 
 function partnerName(partner: any): string {
-  return partner.fullName || partner.contactPersonName || partner.kycData?.name || partner.panData?.name || "Unnamed partner"
+  if (!partner) return "Unnamed partner"
+  return partner.fullName || partner.contactPersonName || partner.kycData?.name || partner.panData?.name || partner.name || "Unnamed partner"
 }
 
 function formatAddress(address: unknown): string {
@@ -103,17 +104,17 @@ export default function PartnersPage() {
       if (res.ok) {
         const data = await res.json()
         if (Array.isArray(data?.applications)) {
-          setPartners(data.applications)
+          setPartners(data.applications.filter(Boolean))
           return
         }
       }
       if (firestorePartners && firestorePartners.length > 0) {
-        setPartners(firestorePartners)
+        setPartners(firestorePartners.filter(Boolean))
       }
     } catch (e) {
       console.warn("Fetch partner applications API warning, using Firestore fallback:", e)
       if (firestorePartners && firestorePartners.length > 0) {
-        setPartners(firestorePartners)
+        setPartners(firestorePartners.filter(Boolean))
       }
     } finally {
       setLoading(false)
@@ -126,7 +127,7 @@ export default function PartnersPage() {
 
   useEffect(() => {
     if (firestorePartners && firestorePartners.length > 0 && partners.length === 0) {
-      setPartners(firestorePartners)
+      setPartners(firestorePartners.filter(Boolean))
       setLoading(false)
     }
   }, [firestorePartners])
@@ -134,8 +135,8 @@ export default function PartnersPage() {
   /** Lead counts and commission per partner, from confirmed disbursals only. */
   const stats = useMemo(() => {
     const byPartner: Record<string, { leads: number; disbursed: number; commission: number; volume: number }> = {}
-    leads.forEach(lead => {
-      if (!lead.partnerId) return
+    ;(leads || []).forEach(lead => {
+      if (!lead || !lead.partnerId) return
       const row = byPartner[lead.partnerId] || { leads: 0, disbursed: 0, commission: 0, volume: 0 }
       row.leads += 1
       if (lead.status === STATUS_DISBURSED) {
@@ -149,13 +150,14 @@ export default function PartnersPage() {
   }, [leads])
 
   const businessTypes = useMemo(
-    () => Array.from(new Set(partners.map(p => p.partnerType || p.businessType).filter(Boolean))).sort(),
+    () => Array.from(new Set((partners || []).filter(Boolean).map(p => p?.partnerType || p?.businessType).filter(Boolean))).sort(),
     [partners]
   )
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
-    return partners.filter(partner => {
+    return (partners || []).filter(Boolean).filter(partner => {
+      if (!partner) return false
       if (
         term &&
         !`${partnerName(partner)} ${partner.dsaCode || ""} ${partner.mobileNumber || ""} ${partner.email || ""} ${partner.panNumber || ""}`
@@ -180,7 +182,7 @@ export default function PartnersPage() {
   }, [partners, search, typeFilter, statusFilter])
 
   const partnerLeads = useMemo(
-    () => (selected ? leads.filter(lead => lead.partnerId === selected.id || lead.partnerId === selected.mobileNumber) : []),
+    () => (selected ? (leads || []).filter(lead => lead && (lead.partnerId === selected.id || lead.partnerId === selected.mobileNumber)) : []),
     [selected, leads]
   )
 
@@ -373,9 +375,9 @@ export default function PartnersPage() {
     [stats]
   )
 
-  const underReviewCount = partners.filter(p => (p.dsaStatus || p.status) === "under_review" || (p.dsaStatus || p.status) === "submitted").length
-  const draftCount       = partners.filter(p => (p.dsaStatus || p.status) === "draft").length
-  const activeCount      = partners.filter(p => (p.dsaStatus || p.status) === "Active" || (p.dsaStatus || p.status) === "approved").length
+  const underReviewCount = (partners || []).filter(p => p && ((p.dsaStatus || p.status) === "under_review" || (p.dsaStatus || p.status) === "submitted")).length
+  const draftCount       = (partners || []).filter(p => p && (p.dsaStatus || p.status) === "draft").length
+  const activeCount      = (partners || []).filter(p => p && ((p.dsaStatus || p.status) === "Active" || (p.dsaStatus || p.status) === "approved")).length
 
   return (
     <div className="partner-root min-h-screen bg-admin-bg p-4 sm:p-6 space-y-4">
@@ -395,7 +397,7 @@ export default function PartnersPage() {
 
       {/* Metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard label="Total Registered" value={partners.length} icon={Network} tone="info" loading={loading} />
+        <StatCard label="Total Registered" value={(partners || []).length} icon={Network} tone="info" loading={loading} />
         <StatCard label="Pending Approval" value={underReviewCount} hint="Requires Admin Sign-off" icon={Clock} tone="warn" loading={loading} />
         <StatCard label="Active Connectors" value={activeCount} hint="Verified DSA Partners" icon={CheckCircle2} tone="success" loading={loading} />
         <StatCard label="Incomplete Drafts" value={draftCount} hint="Onboarding drop-offs" icon={Users} tone="neutral" loading={loading} />
@@ -407,13 +409,13 @@ export default function PartnersPage() {
         onSearchChange={setSearch}
         searchPlaceholder="Search by name, DSA code, mobile or PAN…"
         chips={[
-          { id: ALL_STATUSES, label: "All", count: partners.length },
+          { id: ALL_STATUSES, label: "All", count: (partners || []).length },
           { id: "under_review", label: "Under Review", count: underReviewCount },
           { id: "draft", label: "Drafts / Drop-offs", count: draftCount },
           { id: "Active", label: "Active / Approved", count: activeCount },
-          { id: "query_raised", label: "Query Raised", count: partners.filter(p => (p.dsaStatus || p.status) === "query_raised").length },
-          { id: "rejected", label: "Rejected", count: partners.filter(p => (p.dsaStatus || p.status) === "rejected").length },
-          { id: "Inactive", label: "Inactive", count: partners.filter(p => (p.dsaStatus || p.status) === "Inactive").length },
+          { id: "query_raised", label: "Query Raised", count: (partners || []).filter(p => p && (p.dsaStatus || p.status) === "query_raised").length },
+          { id: "rejected", label: "Rejected", count: (partners || []).filter(p => p && (p.dsaStatus || p.status) === "rejected").length },
+          { id: "Inactive", label: "Inactive", count: (partners || []).filter(p => p && (p.dsaStatus || p.status) === "Inactive").length },
         ]}
         activeChip={statusFilter}
         onChipChange={setStatusFilter}
