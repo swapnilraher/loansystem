@@ -10,7 +10,7 @@ export function generateOrganizationLD() {
     "@type": "Organization",
     name: "Techstar Business Solution Pvt. Ltd.",
     url: "https://techstarsolution.in",
-    logo: "https://techstarsolution.in/img/logo.jpeg",
+    logo: "https://techstarsolution.in/img/logo.webp",
     contactPoint: {
       "@type": "ContactPoint",
       telephone: "+91 7020646007",
@@ -133,7 +133,7 @@ export function generateLocalBusinessLD({ city, loanType, url, street, postalCod
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
     name: `Techstar Business Solution - ${loanType} in ${city}`,
-    image: "https://techstarsolution.in/img/logo.jpeg",
+    image: "https://techstarsolution.in/img/logo.webp",
     telephone: "+91 7020646007",
     url,
     address: {

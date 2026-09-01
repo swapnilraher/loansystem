@@ -36,9 +36,9 @@ export function MobileBottomNav() {
 
   let accountHref = "/dashboard"
   if (adminRole) {
-    accountHref = "/admin/leads"
-  } else if (pathname?.startsWith("/partner") || profile?.kycData || profile?.dsaCode) {
-    accountHref = "/partner"
+    accountHref = "https://admin.techstarsolution.in/leads"
+  } else if (profile?.role === "partner" || profile?.kycData || profile?.dsaCode) {
+    accountHref = "https://partner.techstarsolution.in"
   }
 
   const tabs = [

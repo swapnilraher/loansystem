@@ -25,7 +25,7 @@ export function SEOSchema({ type, data }: SEOSchemaProps) {
       "name": data?.name || "Techstar Money Solution",
       "alternateName": "Techstar Money Solution",
       "url": "https://techstarsolution.in",
-      "logo": "https://techstarsolution.in/img/logo.jpeg",
+      "logo": "https://techstarsolution.in/img/logo.webp",
       "contactPoint": {
         "@type": "ContactPoint",
         "telephone": "+91-9579005645",

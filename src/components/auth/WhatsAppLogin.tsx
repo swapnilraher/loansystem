@@ -405,7 +405,7 @@ export function WhatsAppLogin({ isOpen, onClose }: WhatsAppLoginProps) {
 
               <span className="mx-auto w-16 h-16 rounded-admin overflow-hidden border-[1px] border-admin-border bg-admin-surface shadow-admin-1 flex items-center justify-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/img/logo.jpeg" alt="" className="w-full h-full object-cover" />
+                <img src="/img/logo.webp" alt="" className="w-full h-full object-cover" />
               </span>
               <h2 className="text-admin-2xl! font-semibold! tracking-tight text-admin-text! mt-3">
                 Techstar Money Solution

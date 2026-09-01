@@ -260,16 +260,18 @@ export default function AdminLayout({
     };
   }, [user, adminRole]);
 
+  const isLoginPage = pathname === "/admin/login" || pathname === "/login"
+
   useEffect(() => {
-    if (!loading && pathname !== "/admin/login") {
+    if (!loading && !isLoginPage) {
       if (!user) {
         // Not logged in at all, redirect to admin login page
-        router.push("/admin/login")
+        router.push(pathname.startsWith("/admin") ? "/admin/login" : "/login")
       }
     }
-  }, [user, loading, router, pathname])
+  }, [user, loading, router, pathname, isLoginPage])
 
-  if (pathname === "/admin/login") {
+  if (isLoginPage) {
     // No `justify-center` here: the page centres its own card with auto
     // margins, which is what lets a tall form scroll instead of overflowing
     // past the top of the viewport.
@@ -653,7 +655,7 @@ function AdminSplash() {
 
           <span className="relative w-18 h-18 rounded-admin-lg overflow-hidden border border-admin-border bg-admin-surface shadow-admin-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/img/logo.jpeg" alt="" className="w-full h-full object-cover" />
+            <img src="/img/logo.webp" alt="" className="w-full h-full object-cover" />
           </span>
         </div>
 

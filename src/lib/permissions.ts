@@ -207,8 +207,9 @@ export const ROUTE_ROLES: { prefix: string; roles: CrmRole[] }[] = [
 export function canAccessRoute(role: CrmRole | null, pathname?: string | null): boolean {
   if (!role) return false
   if (!pathname) return true
+  const normalized = pathname.startsWith('/admin') ? pathname : `/admin${pathname.startsWith('/') ? pathname : `/${pathname}`}`
   const match = ROUTE_ROLES
-    .filter(r => pathname === r.prefix || pathname.startsWith(`${r.prefix}/`))
+    .filter(r => normalized === r.prefix || normalized.startsWith(`${r.prefix}/`))
     .sort((a, b) => b.prefix.length - a.prefix.length)[0]
   return match ? match.roles.includes(role) : true
 }

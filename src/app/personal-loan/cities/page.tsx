@@ -33,6 +33,7 @@ export default function PersonalLoanCities() {
             <Link
               href={`/personal-loan-${city.toLowerCase().replace(/ /g, '-')}`}
               className="city-link"
+              prefetch={false}
             >
               {city}
             </Link>

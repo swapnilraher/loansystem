@@ -23,7 +23,7 @@ export default function AuthPage() {
             <div className="relative z-10">
               <a href="/" className="flex items-center gap-3 mb-16">
                 <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white overflow-hidden">
-                  <img src="/img/logo.jpeg" alt="Techstar Money Solution Logo" className="w-full h-full object-cover" />
+                  <img src="/img/logo.webp" alt="Techstar Money Solution Logo" className="w-full h-full object-cover" />
                 </div>
                 <span className="text-3xl font-black italic tracking-tighter">Techstar Money Solution</span>
               </a>

@@ -209,8 +209,9 @@ export const NAV_ITEMS: NavItem[] = NAV_GROUPS.flatMap((group) => group.items);
  */
 export function activeHref(pathname: string | null): string | null {
   if (!pathname) return null;
+  const normalized = pathname.startsWith('/admin') ? pathname : `/admin${pathname.startsWith('/') ? pathname : `/${pathname}`}`;
   const matches = NAV_ITEMS.filter(
-    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
+    (item) => normalized === item.href || normalized.startsWith(`${item.href}/`),
   );
   if (matches.length === 0) return null;
   return matches.reduce((best, item) =>

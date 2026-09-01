@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
 import crypto from "crypto"
-import nodemailer from "nodemailer"
 import { getAdminDb } from "@/lib/firebase-admin"
 import { generatePartnerAgreementPdf } from "@/lib/pdf-generator"
 import { generateNextDsaCode } from "@/lib/dsaCodeGenerator"
+import { sendSignedAgreementEmail } from "@/lib/emailService"
 
 const OTP_SALT = process.env.OTP_HASH_SALT || "TSM_SECURE_FINTECH_SALT_2026"
 
@@ -157,80 +157,88 @@ export async function POST(request: Request) {
       docSnap.ref.set(pdfMeta, { merge: true })
     })
 
-    // 5. Send Email with PDF Attachment via Nodemailer
+    // 5. Send Email with PDF Attachment via EmailService (with duplicate protection & error logging)
+    let emailStatus: "sent" | "failed" | "skipped_duplicate" | "skipped_no_email" = "skipped_no_email"
     let emailSent = false
-    if (partnerEmail) {
+    let emailErrorMsg: string | null = null
+
+    const isAlreadySent =
+      appData?.agreementEmailStatus === "sent" ||
+      !!appData?.agreementEmailSentAt ||
+      userData?.agreementEmailStatus === "sent" ||
+      !!userData?.agreementEmailSentAt
+
+    if (isAlreadySent) {
+      emailStatus = "skipped_duplicate"
+      emailSent = true
+      console.log(`[Agreement Sign] Skipped email dispatch: Confirmation email already sent previously to ${cleanPhone}`)
+    } else if (partnerEmail && partnerEmail.includes("@")) {
       try {
-        const transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST || "smtp.gmail.com",
-          port: Number(process.env.SMTP_PORT ?? 587),
-          secure: false,
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-          },
+        const emailResult = await sendSignedAgreementEmail({
+          to: partnerEmail,
+          partnerName: partnerName,
+          dsaCode: dsaCode,
+          mobileNumber: cleanPhone,
+          firmName: partnerPdfData.firmName,
+          signedAt: signedAtIso,
+          pdfBuffer: pdfBuffer,
         })
 
-        const mailOptions = {
-          from: `"Techstar Money DSA Desk" <${process.env.SMTP_USER || "official@techstarsolution.in"}>`,
-          to: partnerEmail,
-          cc: "official@techstarsolution.in",
-          subject: `🎉 Executed Partner MOU Agreement - Techstar Money Solution Pvt. Ltd. (DSA Code: ${dsaCode})`,
-          text: `Dear ${partnerName},\n\nCongratulations! Your DSA Partner Agreement with Techstar Money Solution Pvt. Ltd. has been successfully executed and signed via OTP Verification.\n\nPartner Details:\n- Name: ${partnerName}\n- Partner Code: ${dsaCode}\n- Registered Mobile: +91 ${phoneNumber}\n- Date of Execution: ${new Date().toLocaleDateString('en-IN')}\n\nPlease find your official executed MOU Agreement PDF attached to this email.\n\nWelcome to Techstar Money Partner Network!\n\nBest regards,\nTechstar Money Solutions Pvt. Ltd.\nhttps://partner.techstarsolution.in`,
-          html: `
-            <div style="font-family: Arial, sans-serif; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; rounded: 12px; padding: 24px;">
-              <div style="text-align: center; border-bottom: 2px solid #1769AA; padding-bottom: 16px; margin-bottom: 20px;">
-                <h2 style="color: #1769AA; margin: 0;">Techstar Money Solution Pvt. Ltd.</h2>
-                <p style="color: #64748b; font-size: 13px; margin: 4px 0 0;">Authorized Partner Network • MOU Agreement</p>
-              </div>
+        if (emailResult.success) {
+          emailSent = true
+          emailStatus = "sent"
 
-              <h3 style="color: #0f172a; margin-top: 0;">Dear ${partnerName},</h3>
-              <p style="line-height: 1.6; color: #334155;">
-                Congratulations! Your <strong>DSA Partner Agreement (MOU)</strong> with <strong>Techstar Money Solution Pvt. Ltd.</strong> has been successfully executed and verified via Mobile OTP.
-              </p>
+          const emailLogMeta = {
+            agreementEmailStatus: "sent",
+            agreementEmailSentAt: new Date().toISOString(),
+            agreementEmailRecipient: partnerEmail,
+            agreementEmailMessageId: emailResult.messageId || null,
+            agreementEmailError: null,
+            updatedAt: now,
+          }
 
-              <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; margin: 20px 0;">
-                <h4 style="margin: 0 0 10px; color: #1769AA;">📌 Partner Credentials & Agreement Summary</h4>
-                <table style="width: 100%; font-size: 13px; color: #334155; border-collapse: collapse;">
-                  <tr><td style="padding: 4px 0; font-weight: bold;">DSA Partner Code:</td><td>${dsaCode}</td></tr>
-                  <tr><td style="padding: 4px 0; font-weight: bold;">Partner Name:</td><td>${partnerName}</td></tr>
-                  <tr><td style="padding: 4px 0; font-weight: bold;">Registered Mobile:</td><td>+91 ${phoneNumber}</td></tr>
-                  <tr><td style="padding: 4px 0; font-weight: bold;">Registered Email:</td><td>${partnerEmail}</td></tr>
-                  <tr><td style="padding: 4px 0; font-weight: bold;">Signature Method:</td><td><span style="color: #16a34a; font-weight: bold;">✅ OTP Verified Electronic Signature</span></td></tr>
-                  <tr><td style="padding: 4px 0; font-weight: bold;">Execution Date:</td><td>${new Date().toLocaleDateString('en-IN')}</td></tr>
-                </table>
-              </div>
+          await appDocRef.set(emailLogMeta, { merge: true })
+          await userDocRef.set(emailLogMeta, { merge: true })
+          userPdfQuery.forEach((docSnap) => {
+            docSnap.ref.set(emailLogMeta, { merge: true })
+          })
+        } else {
+          emailStatus = "failed"
+          emailErrorMsg = emailResult.error || "Email dispatch failed"
 
-              <p style="line-height: 1.6; color: #334155;">
-                📎 <strong>Your official signed MOU PDF is attached to this email.</strong> Please retain a copy for your official records.
-              </p>
+          const emailFailMeta = {
+            agreementEmailStatus: "failed",
+            agreementEmailRecipient: partnerEmail,
+            agreementEmailError: emailErrorMsg,
+            updatedAt: now,
+          }
 
-              <div style="margin-top: 24px; text-align: center;">
-                <a href="https://partner.techstarsolution.in/partner" style="background-color: #1769AA; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-                  Access Partner Portal Dashboard &rarr;
-                </a>
-              </div>
+          await appDocRef.set(emailFailMeta, { merge: true })
+          await userDocRef.set(emailFailMeta, { merge: true })
+        }
+      } catch (mailErr: any) {
+        emailStatus = "failed"
+        emailErrorMsg = mailErr?.message || "Unexpected email error"
+        console.error("[Agreement Sign] Error sending agreement email:", emailErrorMsg)
 
-              <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0 16px;" />
-              <p style="font-size: 11px; color: #94a3b8; text-align: center;">
-                © 2026 Techstar Money Solutions Pvt. Ltd. | Support: 9579005645
-              </p>
-            </div>
-          `,
-          attachments: [
-            {
-              filename: `Techstar_Money_Partner_Agreement_${dsaCode}.pdf`,
-              content: pdfBuffer,
-              contentType: "application/pdf",
-            },
-          ],
+        const emailFailMeta = {
+          agreementEmailStatus: "failed",
+          agreementEmailRecipient: partnerEmail,
+          agreementEmailError: emailErrorMsg,
+          updatedAt: now,
         }
 
-        await transporter.sendMail(mailOptions)
-        emailSent = true
-      } catch (mailErr) {
-        console.error("Failed to dispatch agreement email:", mailErr)
+        await appDocRef.set(emailFailMeta, { merge: true }).catch(() => {})
+        await userDocRef.set(emailFailMeta, { merge: true }).catch(() => {})
       }
+    } else {
+      console.warn(`[Agreement Sign] No registered email found for partner ${cleanPhone}, skipping email.`)
+      const noEmailMeta = {
+        agreementEmailStatus: "skipped_no_email",
+        updatedAt: now,
+      }
+      await appDocRef.set(noEmailMeta, { merge: true }).catch(() => {})
+      await userDocRef.set(noEmailMeta, { merge: true }).catch(() => {})
     }
 
     return NextResponse.json({
@@ -239,6 +247,7 @@ export async function POST(request: Request) {
       dsaCode,
       signedAt: signedAtIso,
       emailSent,
+      emailStatus,
     })
   } catch (error: any) {
     console.error("Agreement Signing API Error:", error)

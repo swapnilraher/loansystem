@@ -57,13 +57,13 @@ export async function generateMetadata({ params }: { params: Promise<{ loan: str
       title,
       description,
       url: canonical,
-      images: [{ url: 'https://techstarsolution.in/img/logo.jpeg' }],
+      images: [{ url: 'https://techstarsolution.in/img/logo.webp' }],
     },
     twitter: {
       title,
       description,
       card: 'summary_large_image' as const,
-      images: ['https://techstarsolution.in/img/logo.jpeg'],
+      images: ['https://techstarsolution.in/img/logo.webp'],
     },
   };
 }

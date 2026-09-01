@@ -153,7 +153,7 @@ export function LoanShowcase() {
                     
                     {/* Header with Logo */}
                     <div className="relative z-10 flex items-center mb-4 gap-3">
-                      <img src="/img/logo.jpeg" alt="Logo" className="w-14 h-14 rounded-full object-cover shadow-md border-2 border-white/30" />
+                      <img src="/img/logo.webp" alt="Logo" className="w-14 h-14 rounded-full object-cover shadow-md border-2 border-white/30" />
                       <span className={`font-black tracking-wider text-sm md:text-base uppercase leading-tight max-w-[150px] ${item.textColor || 'text-white'}`}>Techstar Money Solution</span>
                     </div>
 

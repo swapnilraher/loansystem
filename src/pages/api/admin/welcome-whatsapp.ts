@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const formattedPhone = `${process.env.COUNTRY_CODE || "91"}${phone.replace(/\D/g, '').slice(-10)}`;
 
   try {
-    const messageText = `*Welcome to Techstar Staff Portal, ${name}!* 🌟\n\nYou have been added as a *${role}*.\n\n*Your Login Details:*\nEmail: ${email}\nPassword: ${password}\n\n*Login Link:*\nhttps://techstarsolution.in/admin/login\n\nPlease login and change your password immediately.\n\nRegards,\n*Techstar Team*`;
+    const messageText = `*Welcome to Techstar Staff Portal, ${name}!* 🌟\n\nYou have been added as a *${role}*.\n\n*Your Login Details:*\nEmail: ${email}\nPassword: ${password}\n\n*Login Link:*\nhttps://admin.techstarsolution.in/login\n\nPlease login and change your password immediately.\n\nRegards,\n*Techstar Team*`;
     
     const payload = {
       messaging_product: "whatsapp",

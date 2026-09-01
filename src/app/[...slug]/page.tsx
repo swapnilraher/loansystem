@@ -237,10 +237,10 @@ export default async function LoanPage({ params }: { params: Promise<{ slug: str
         <ul style={{ paddingLeft: '1.25rem' }}>
           {loanTypes.map(type => (
             <li key={type}>
-              <Link href={`/${type}/${state}/${citySlug}`}>{type.replace(/-/g, ' ')} in {row.City}</Link>
+              <Link href={`/${type}/${state}/${citySlug}`} prefetch={false}>{type.replace(/-/g, ' ')} in {row.City}</Link>
             </li>
           ))}
-          <li><Link href={`/personal-loan/${state}`}>All Personal Loans in {row.State}</Link></li>
+          <li><Link href={`/personal-loan/${state}`} prefetch={false}>All Personal Loans in {row.State}</Link></li>
         </ul>
       </section>
     </main>

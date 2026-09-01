@@ -30,13 +30,18 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
   // 2. If Staff Admin user, redirect to /admin
   // 3. If Normal Dashboard user with no partner application, redirect to /dashboard
   // 4. If Partner applicant/member, enforce approval status routing
+  const isLoginPage = pathname === "/partner/login" || pathname === "/login"
+
+  // Security & Redirect checks:
+  // 1. If not authenticated, redirect to partner login
+  // 2. If Staff Admin user, redirect to /admin
+  // 3. If Normal Dashboard user with no partner application, redirect to /dashboard
+  // 4. If Partner applicant/member, enforce approval status routing
   useEffect(() => {
     if (loading) return
 
-    const isLoginPage = pathname === "/partner/login"
-
     if (!user) {
-      if (!isLoginPage) router.push("/partner/login")
+      if (!isLoginPage) router.push(pathname.startsWith("/partner") ? "/partner/login" : "/login")
       return
     }
 
@@ -64,7 +69,7 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
     if (currentStatus === "draft" && !profile.applicationId && !isLoginPage) {
       router.push("/onboarding")
     }
-  }, [user, profile, adminRole, loading, pathname, router])
+  }, [user, profile, adminRole, loading, pathname, router, isLoginPage])
 
   if (loading) {
     return (
@@ -79,7 +84,7 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
   }
 
   // Allow login page to bypass the standard partner dashboard layout
-  if (pathname === "/partner/login") {
+  if (isLoginPage) {
     return <>{children}</>
   }
 

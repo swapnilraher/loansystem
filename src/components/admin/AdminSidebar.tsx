@@ -185,7 +185,7 @@ export function AdminSidebar({
           <span className="w-9 h-9 rounded-admin-sm overflow-hidden border border-admin-border bg-admin-surface shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/img/logo.jpeg"
+              src="/img/logo.webp"
               alt=""
               className="w-full h-full object-cover"
             />

@@ -94,7 +94,7 @@ export function Header() {
                   className={`bg-paytm-blue d-flex align-items-center justify-content-center text-white rounded-xl shadow-sm overflow-hidden transition-all duration-300 ${scrolled ? "w-8 h-8" : "w-10 h-10"
                   }`}
                 >
-                  <img src="/img/logo.jpeg" alt="Techstar Money Solution Logo" className="w-100 h-100 object-cover" />
+                  <img src="/img/logo.webp" alt="Techstar Money Solution Logo" className="w-100 h-100 object-cover" />
                 </motion.div>
                 <span className={`font-black tracking-tight italic group-hover:text-primary transition-all duration-300 ${scrolled ? "fs-6" : "fs-5"
                   } ${theme === "dark" ? "text-white" : "text-paytm-navy"}`}>
@@ -250,7 +250,7 @@ export function Header() {
                       whileHover={{ scale: 1.08, rotate: [0, -5, 5, 0] }}
                       className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white overflow-hidden"
                     >
-                      <img src="/img/logo.jpeg" alt="TechStar Logo" className="w-full h-full object-cover" />
+                      <img src="/img/logo.webp" alt="TechStar Logo" className="w-full h-full object-cover" />
                     </motion.div>
                     <span className={`font-black text-xl italic ${theme === "dark" ? "text-white" : "text-secondary"}`}>Techstar Money Solution</span>
                   </div>
@@ -388,7 +388,7 @@ export function Footer() {
                 whileHover={{ scale: 1.08, rotate: [0, -5, 5, 0] }}
                 className="w-12 h-12 bg-white rounded-3xl d-flex align-items-center justify-content-center overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800 group-hover:border-primary transition-colors"
               >
-                <img src="/img/logo.jpeg" alt="TechStar Logo" className="w-100 h-100 object-cover" />
+                <img src="/img/logo.webp" alt="TechStar Logo" className="w-100 h-100 object-cover" />
               </motion.div>
               <span className="fs-4 font-black tracking-tight italic text-secondary dark:text-white group-hover:text-primary dark:group-hover:text-primary transition-colors">
                 Techstar

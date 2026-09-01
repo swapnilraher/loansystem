@@ -164,7 +164,7 @@ export default function AdminLoginPage() {
         <div className="text-center mb-6">
           <span className="mx-auto w-14 h-14 rounded-admin-lg overflow-hidden border border-admin-border bg-admin-surface shadow-admin-1 flex items-center justify-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/img/logo.jpeg" alt="" className="w-full h-full object-cover" />
+            <img src="/img/logo.webp" alt="" className="w-full h-full object-cover" />
           </span>
           {/* `text-admin-xl` is the size for a CRM page header sitting above a
               dense table. Here the title is the only thing on the screen, so it
