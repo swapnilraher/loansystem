@@ -11,12 +11,15 @@ import {
   Check,
   CheckCircle2,
   Clock,
+  Copy,
+  ExternalLink,
   FileText,
+  Lock,
   MessageSquare,
-  User,
+  ShieldCheck,
   Sparkles,
   Upload,
-  ShieldCheck,
+  User,
 } from "lucide-react"
 
 import WhatsAppOtpModal from "@/components/onboarding/WhatsAppOtpModal"
@@ -214,8 +217,115 @@ export default function OnboardingPage() {
   const [declareTerms, setDeclareTerms] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  // ─── Final Success Screen ───
+  // ─── Final Success / Locked Screen ───
   const [submittedAppId, setSubmittedAppId] = useState<string | null>(null)
+  const [isApplicationLocked, setIsApplicationLocked] = useState(false)
+  const [submittedApplicationData, setSubmittedApplicationData] = useState<any>(null)
+  const [copiedAppId, setCopiedAppId] = useState(false)
+
+  // ─── Step Completion Calculations ───
+  const isStep1Complete = Boolean(
+    fullName.trim() &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+  )
+
+  const isStep2Complete = Boolean(
+    panValid &&
+    (partnerType === "Individual" || (partnerType === "Firm" && businessName.trim()))
+  )
+
+  const isStep3Complete = Boolean(
+    contactPersonName.trim() &&
+    dob
+  )
+
+  const isStep4Complete = Boolean(
+    isGstRegistered === "No" || (isGstRegistered === "Yes" && gstValid && gstin.trim().length === 15)
+  )
+
+  const isStep5Complete = Boolean(
+    addressLine1.trim() &&
+    city.trim() &&
+    stateName.trim() &&
+    pinCode.trim().length === 6
+  )
+
+  const isStep6Complete = Boolean(
+    (aadhaarFrontDoc || aadhaarCombined) &&
+    (aadhaarCombined || aadhaarBackDoc) &&
+    panDoc
+  )
+
+  const isStep7Complete = Boolean(
+    bankVerified ||
+    (accountNumber.trim().length >= 6 && ifscValid && accountHolderName.trim().length > 0)
+  )
+
+  const isStep8Complete = Boolean(
+    isAgreementSigned && declareTruth && declareTerms
+  )
+
+  const completedSteps = React.useMemo(() => {
+    const list: number[] = []
+    if (isStep1Complete) list.push(1)
+    if (isStep2Complete) list.push(2)
+    if (isStep3Complete) list.push(3)
+    if (isStep4Complete) list.push(4)
+    if (isStep5Complete) list.push(5)
+    if (isStep6Complete) list.push(6)
+    if (isStep7Complete) list.push(7)
+    if (isStep8Complete) list.push(8)
+    return list
+  }, [
+    isStep1Complete,
+    isStep2Complete,
+    isStep3Complete,
+    isStep4Complete,
+    isStep5Complete,
+    isStep6Complete,
+    isStep7Complete,
+    isStep8Complete,
+  ])
+
+  // Highest reachable step: first incomplete step or any step whose previous steps are all done
+  const maxReachableStep = React.useMemo(() => {
+    let max = 1
+    for (let s = 1; s <= 8; s++) {
+      if (completedSteps.includes(s)) {
+        max = Math.min(8, s + 1)
+      } else {
+        break
+      }
+    }
+    return Math.max(max, currentStep)
+  }, [completedSteps, currentStep])
+
+  const handleStepJump = (targetStep: number) => {
+    if (targetStep === currentStep) return
+    if (targetStep < currentStep) {
+      setStepError(null)
+      setCurrentStep(targetStep)
+      return
+    }
+
+    // Target step is ahead of current step
+    const allPriorComplete = Array.from({ length: targetStep - 1 }, (_, i) => i + 1).every(s =>
+      completedSteps.includes(s)
+    )
+
+    if (completedSteps.includes(targetStep) || allPriorComplete || targetStep <= maxReachableStep) {
+      setStepError(null)
+      setCurrentStep(targetStep)
+    } else {
+      const firstIncomplete =
+        Array.from({ length: targetStep - 1 }, (_, i) => i + 1).find(
+          s => !completedSteps.includes(s)
+        ) || currentStep
+      setStepError(
+        `Please complete Step ${firstIncomplete} (${STEP_TITLES[firstIncomplete - 1]}) before jumping to Step ${targetStep}.`
+      )
+    }
+  }
 
   /*
    * Move focus to the step's first control whenever the step changes.
@@ -383,6 +493,23 @@ export default function OnboardingPage() {
       const data = await res.json()
       const app = data.data || data.application
       if (res.ok && app) {
+        const isAppSubmitted = Boolean(
+          data.isSubmitted ||
+          data.isLocked ||
+          app.status === "under_review" ||
+          app.status === "approved" ||
+          app.status === "rejected" ||
+          app.submittedAt ||
+          (app.applicationId && !app.applicationId.startsWith("TSM-DRAFT-"))
+        )
+
+        if (isAppSubmitted) {
+          setSubmittedAppId(app.applicationId || data.applicationId || `TSM-DSA-${targetMobile}`)
+          setIsApplicationLocked(true)
+          setSubmittedApplicationData(app)
+          return
+        }
+
         const targetStep = Math.max(localDraft?.currentStep || 1, app.currentStep || 1)
         if (targetStep >= 1 && targetStep <= 8) {
           setCurrentStep(targetStep)
@@ -1213,7 +1340,50 @@ export default function OnboardingPage() {
       if (!res.ok) throw new Error(data.error || "Failed to submit application")
 
       OnboardingStorage.clearDraft()
-      setSubmittedAppId(data.applicationId)
+      const newAppId = data.applicationId || `TSM-DSA-${mobileNumber}`
+      setSubmittedAppId(newAppId)
+      setIsApplicationLocked(true)
+      setSubmittedApplicationData({
+        applicationId: newAppId,
+        status: "under_review",
+        fullName: fullName || contactPersonName,
+        email,
+        mobileNumber,
+        partnerType,
+        firmType,
+        businessName,
+        panNumber,
+        contactPersonName,
+        designation,
+        dob,
+        gender,
+        addressLine1,
+        addressLine2,
+        area,
+        city,
+        district,
+        stateName,
+        pinCode,
+        isGstRegistered,
+        gstin,
+        documents: {
+          aadhaarFrontDoc,
+          aadhaarBackDoc,
+          panDoc,
+        },
+        bankDetails: {
+          accountHolderName,
+          accountNumber,
+          ifsc: ifscCode,
+          bankName,
+          branchName,
+          accountType,
+          verified: bankVerified,
+        },
+        agreementSigned: isAgreementSigned,
+        agreementPdfUrl,
+        submittedAt: new Date().toISOString(),
+      })
     } catch (err) {
       setStepError(messageFor(err, "Failed to submit application. Please try again."))
     } finally {
@@ -1223,60 +1393,189 @@ export default function OnboardingPage() {
 
   const back = useCallback((to: number) => () => setCurrentStep(to), [])
 
-  // ─── Render Success Screen ───
-  if (submittedAppId) {
+  const copyApplicationId = () => {
+    if (!submittedAppId) return
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(submittedAppId)
+      setCopiedAppId(true)
+      setTimeout(() => setCopiedAppId(false), 2500)
+    }
+  }
+
+  // ─── Render Locked / Submitted Screen (No edits allowed) ───
+  if (submittedAppId || isApplicationLocked) {
+    const displayData = submittedApplicationData || {
+      fullName: fullName || contactPersonName,
+      email,
+      mobileNumber,
+      partnerType,
+      firmType,
+      businessName,
+      panNumber,
+      contactPersonName,
+      addressLine1,
+      city,
+      stateName,
+      pinCode,
+      bankDetails: {
+        bankName,
+        accountNumber,
+        ifsc: ifscCode,
+      },
+    }
+
     return (
-      <div className="partner-root min-h-dvh flex bg-admin-bg">
-        <main className="flex-1 flex w-full px-4 py-8 pb-[calc(2rem+env(safe-area-inset-bottom))]">
-          <div className="m-auto w-full max-w-xl bg-admin-surface border border-admin-border rounded-admin-lg shadow-admin-2 p-6 text-center space-y-5">
-            <span className="mx-auto w-16 h-16 rounded-full bg-tone-success text-tone-success-fg border border-tone-success-bd flex items-center justify-center">
-              <CheckCircle2 size={32} />
-            </span>
+      <div className="partner-root min-h-dvh flex flex-col bg-admin-bg">
+        <PartnerPortalHeader subtitle="DSA Partner Onboarding" rightLinkLabel="Partner Login" rightLinkHref="/partner/login" />
 
-            <div className="space-y-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tone-warn text-tone-warn-fg border border-tone-warn-bd text-admin-2xs font-semibold">
-                <Clock size={12} /> Under review
-              </span>
-              <h1 className="text-admin-2xl font-semibold tracking-tight text-admin-text">
-                Application submitted
-              </h1>
-              <p className="max-w-md mx-auto text-admin-sm text-admin-muted leading-relaxed">
-                Your DSA partner application has been received. Our compliance team will review your
-                details and documents. Approval takes up to 24 hours.
-              </p>
+        <main className="flex-1 flex w-full max-w-4xl mx-auto px-4 py-8 pb-[calc(2rem+env(safe-area-inset-bottom))]">
+          <div className="w-full bg-admin-surface border border-admin-border rounded-admin-lg shadow-admin-2 p-6 sm:p-8 space-y-6">
+            {/* Top Status & Lock Banner */}
+            <div className="text-center space-y-3">
+              <div className="mx-auto w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/30 flex items-center justify-center shadow-xs">
+                <ShieldCheck size={36} />
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-admin-xs font-bold uppercase tracking-wider">
+                  <Lock size={13} /> Application Submitted &amp; Locked for Review
+                </span>
+                <h1 className="text-admin-2xl font-black tracking-tight text-admin-text">
+                  Partner Application Under Compliance Review
+                </h1>
+                <p className="max-w-xl mx-auto text-admin-sm text-admin-muted leading-relaxed">
+                  तुमचा DSA Partner अर्ज यशस्वीरित्या सबमिट झालेला असून तो सुरक्षिततेसाठी लॉक (Lock) करण्यात आला आहे. सुरक्षितता व बँकिंग नियमांनुसार एकदा सबमिट झाल्यावर अर्जामध्ये कोणतेही फेरबदल करता येत नाहीत.
+                </p>
+              </div>
             </div>
 
-            <div className="bg-admin-surface-2 border border-admin-border rounded-admin p-4 space-y-1">
-              <span className="block text-admin-2xs font-semibold uppercase tracking-wide text-admin-subtle">
-                Your application ID
-              </span>
-              <span className="block admin-num text-admin-2xl font-semibold tracking-wide text-admin-text">
-                {submittedAppId}
-              </span>
-              <p className="text-admin-xs text-admin-subtle pt-1">
-                A confirmation receipt with tracking details has been sent to your WhatsApp number.
-              </p>
+            {/* Application ID & Quick Tracking Card */}
+            <div className="bg-admin-surface-2 border border-admin-border rounded-admin p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="space-y-1 text-center sm:text-left">
+                <span className="block text-admin-2xs font-bold uppercase tracking-wider text-admin-subtle">
+                  Official Application ID
+                </span>
+                <span className="block admin-num text-admin-2xl font-black tracking-wide text-admin-text font-mono">
+                  {submittedAppId}
+                </span>
+                <p className="text-admin-xs text-admin-muted">
+                  Confirmation receipt &amp; updates sent to WhatsApp (+91 {mobileNumber})
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <AdminButton
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  icon={Copy}
+                  onClick={copyApplicationId}
+                >
+                  {copiedAppId ? "Copied ID" : "Copy ID"}
+                </AdminButton>
+                <AdminLinkButton
+                  href={`/application-status?id=${submittedAppId}`}
+                  variant="primary"
+                  size="sm"
+                >
+                  Live Tracker <ArrowRight size={14} />
+                </AdminLinkButton>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-              <AdminLinkButton
-                href={`/application-status?id=${submittedAppId}`}
-                variant="primary"
-                className="w-full"
+            {/* Read-Only Summary of Submitted Data */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-admin-sm font-bold text-admin-text flex items-center gap-2">
+                  <FileText size={16} className="text-admin-accent" />
+                  Submitted Application Overview (Read-Only)
+                </h3>
+                <span className="text-admin-2xs text-admin-subtle font-semibold flex items-center gap-1">
+                  <Lock size={12} /> Editing Disabled
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="p-3.5 bg-admin-surface-2/60 border border-admin-border/80 rounded-admin space-y-1">
+                  <span className="text-admin-2xs text-admin-subtle font-bold uppercase">Applicant Name</span>
+                  <p className="text-admin-sm font-bold text-admin-text truncate">{displayData.fullName || "—"}</p>
+                  <p className="text-admin-xs text-admin-muted truncate">{displayData.email}</p>
+                </div>
+
+                <div className="p-3.5 bg-admin-surface-2/60 border border-admin-border/80 rounded-admin space-y-1">
+                  <span className="text-admin-2xs text-admin-subtle font-bold uppercase">Business &amp; Entity</span>
+                  <p className="text-admin-sm font-bold text-admin-text truncate">
+                    {displayData.partnerType} {displayData.firmType ? `(${displayData.firmType})` : ""}
+                  </p>
+                  <p className="text-admin-xs text-admin-muted admin-num font-mono">PAN: {displayData.panNumber || "—"}</p>
+                </div>
+
+                <div className="p-3.5 bg-admin-surface-2/60 border border-admin-border/80 rounded-admin space-y-1">
+                  <span className="text-admin-2xs text-admin-subtle font-bold uppercase">Registered Address</span>
+                  <p className="text-admin-xs font-semibold text-admin-text truncate">
+                    {displayData.city ? `${displayData.city}, ${displayData.stateName}` : displayData.addressLine1 || "—"}
+                  </p>
+                  <p className="text-admin-xs text-admin-muted admin-num">PIN: {displayData.pinCode || "—"}</p>
+                </div>
+
+                <div className="p-3.5 bg-admin-surface-2/60 border border-admin-border/80 rounded-admin space-y-1">
+                  <span className="text-admin-2xs text-admin-subtle font-bold uppercase">Bank Account Details</span>
+                  <p className="text-admin-sm font-bold text-admin-text truncate">{displayData.bankDetails?.bankName || bankName || "Bank Verified"}</p>
+                  <p className="text-admin-xs text-admin-muted font-mono">
+                    A/C ····{(displayData.bankDetails?.accountNumber || accountNumber || "").slice(-4)} ({displayData.bankDetails?.ifsc || ifscCode})
+                  </p>
+                </div>
+
+                <div className="p-3.5 bg-admin-surface-2/60 border border-admin-border/80 rounded-admin space-y-1">
+                  <span className="text-admin-2xs text-admin-subtle font-bold uppercase">KYC &amp; Verification</span>
+                  <p className="text-admin-xs font-bold text-emerald-600 flex items-center gap-1">
+                    <CheckCircle2 size={13} /> Official KYC Verified
+                  </p>
+                  <p className="text-admin-2xs text-admin-muted">Aadhaar &amp; PAN card uploaded</p>
+                </div>
+
+                <div className="p-3.5 bg-admin-surface-2/60 border border-admin-border/80 rounded-admin space-y-1">
+                  <span className="text-admin-2xs text-admin-subtle font-bold uppercase">MOU Partnership Agreement</span>
+                  <p className="text-admin-xs font-bold text-emerald-600 flex items-center gap-1">
+                    <CheckCircle2 size={13} /> Digitally Signed via OTP
+                  </p>
+                  <p className="text-admin-2xs text-admin-muted">Official Partnership MOU Active</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Bar */}
+            <div className="pt-3 border-t border-admin-border flex flex-col sm:flex-row items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={handleResetMobile}
+                className="text-admin-xs font-bold text-admin-muted hover:text-admin-text"
               >
-                Track application <ArrowRight size={15} />
-              </AdminLinkButton>
-              <a
-                href="https://wa.me/917020646007?text=Hello%20Techstar%20Money%20Team,%20I%20have%20submitted%20my%20DSA%20Partner%20Application%20ID:%20"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="admin-focus w-full inline-flex items-center justify-center gap-2 h-11 sm:h-9 px-4 rounded-admin-sm border border-admin-border bg-admin-surface text-admin-sm font-semibold text-admin-text hover:bg-admin-surface-2 transition-colors"
-              >
-                <MessageSquare size={15} className="text-admin-accent" /> Contact support
-              </a>
+                ← Onboard Another Number
+              </button>
+
+              <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                <a
+                  href="https://wa.me/917020646007?text=Hello%20Techstar%20Money%20Team,%20I%20have%20submitted%20my%20DSA%20Partner%20Application%20ID:%20"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="admin-focus flex-1 sm:flex-none inline-flex items-center justify-center gap-2 h-10 px-4 rounded-admin-sm border border-admin-border bg-admin-surface text-admin-sm font-bold text-admin-text hover:bg-admin-surface-2 transition-colors"
+                >
+                  <MessageSquare size={15} className="text-emerald-500" /> WhatsApp Support
+                </a>
+                <AdminLinkButton
+                  href={`/application-status?id=${submittedAppId}`}
+                  variant="primary"
+                  className="flex-1 sm:flex-none"
+                >
+                  Track Live Status <ArrowRight size={15} />
+                </AdminLinkButton>
+              </div>
             </div>
           </div>
         </main>
+
+        <PartnerPortalFooter />
       </div>
     )
   }
@@ -1445,7 +1744,13 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        <Stepper titles={STEP_TITLES} current={currentStep} onJump={setCurrentStep} />
+        <Stepper
+          titles={STEP_TITLES}
+          current={currentStep}
+          completedSteps={completedSteps}
+          maxReachableStep={maxReachableStep}
+          onJump={handleStepJump}
+        />
 
         {stepError && (
           <p
@@ -1523,7 +1828,13 @@ export default function OnboardingPage() {
                 </Field>
               </FieldGrid>
 
-              <StepNav loading={savingStep} disabled={savingStep} />
+              <StepNav
+                loading={savingStep}
+                disabled={savingStep}
+                isStepCompleted={isStep1Complete}
+                onSkip={() => handleStepJump(2)}
+                skipLabel="Next step"
+              />
             </form>
           )}
 
@@ -1626,7 +1937,14 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              <StepNav onBack={back(1)} loading={savingStep} disabled={savingStep || !panValid} />
+              <StepNav
+                onBack={back(1)}
+                loading={savingStep}
+                disabled={savingStep || !panValid}
+                isStepCompleted={isStep2Complete}
+                onSkip={() => handleStepJump(3)}
+                skipLabel="Next step"
+              />
             </form>
           )}
 
@@ -1682,7 +2000,14 @@ export default function OnboardingPage() {
                 </Field>
               </FieldGrid>
 
-              <StepNav onBack={back(2)} loading={savingStep} disabled={savingStep} />
+              <StepNav
+                onBack={back(2)}
+                loading={savingStep}
+                disabled={savingStep}
+                isStepCompleted={isStep3Complete}
+                onSkip={() => handleStepJump(4)}
+                skipLabel="Next step"
+              />
             </form>
           )}
 
@@ -1789,6 +2114,9 @@ export default function OnboardingPage() {
                 onBack={back(3)}
                 loading={savingStep}
                 disabled={savingStep || (isGstRegistered === "Yes" && !gstValid)}
+                isStepCompleted={isStep4Complete}
+                onSkip={() => handleStepJump(5)}
+                skipLabel="Next step"
               />
             </form>
           )}
@@ -1913,7 +2241,14 @@ export default function OnboardingPage() {
                 </Field>
               </FieldGrid>
 
-              <StepNav onBack={back(4)} loading={savingStep} disabled={savingStep} />
+              <StepNav
+                onBack={back(4)}
+                loading={savingStep}
+                disabled={savingStep}
+                isStepCompleted={isStep5Complete}
+                onSkip={() => handleStepJump(6)}
+                skipLabel="Next step"
+              />
             </form>
           )}
 
@@ -2060,7 +2395,7 @@ export default function OnboardingPage() {
                     ) : (
                       <>
                         <ShieldCheck size={18} />
-                        Upload & Verify via DigiLocker Instantly
+                        Upload &amp; Verify via DigiLocker Instantly
                         <ArrowRight size={16} />
                       </>
                     )}
@@ -2142,6 +2477,9 @@ export default function OnboardingPage() {
                   (!aadhaarCombined && !aadhaarBackDoc) ||
                   !panDoc
                 }
+                isStepCompleted={isStep6Complete}
+                onSkip={() => handleStepJump(7)}
+                skipLabel="Next step"
               />
             </form>
           )}
@@ -2285,6 +2623,9 @@ export default function OnboardingPage() {
                   !bankName ||
                   !accountHolderName.trim()
                 }
+                isStepCompleted={isStep7Complete}
+                onSkip={() => handleStepJump(8)}
+                skipLabel="Next step"
               />
             </form>
           )}
@@ -2371,66 +2712,65 @@ export default function OnboardingPage() {
                 </ReviewRow>
               </div>
 
-                {/* Official MOU Partner Agreement Step */}
-                <div className="space-y-3 p-4 bg-admin-bg border border-admin-border rounded-admin">
-                  <h4 className="text-admin-sm font-bold text-admin-text flex items-center gap-2">
-                    <FileText size={16} className="text-admin-accent" /> Official Partner MOU Agreement &amp; Code of Conduct
-                  </h4>
-                  <p className="text-admin-xs text-admin-muted leading-relaxed">
-                    Please review and e-sign the official Memorandum of Understanding (MOU) agreement between your firm and Techstar Money Solution Pvt. Ltd. via OTP verification.
-                  </p>
+              {/* Official MOU Partner Agreement Step */}
+              <div className="space-y-3 p-4 bg-admin-bg border border-admin-border rounded-admin">
+                <h4 className="text-admin-sm font-bold text-admin-text flex items-center gap-2">
+                  <FileText size={16} className="text-admin-accent" /> Official Partner MOU Agreement &amp; Code of Conduct
+                </h4>
+                <p className="text-admin-xs text-admin-muted leading-relaxed">
+                  Please review and e-sign the official Memorandum of Understanding (MOU) agreement between your firm and Techstar Money Solution Pvt. Ltd. via OTP verification.
+                </p>
 
-                  <PartnerAgreementModal
-                    partnerData={{
-                      mobileNumber: mobileNumber,
-                      email: email,
-                      fullName: fullName || contactPersonName,
-                      dsaCode: "",
-                      agreementSigned: isAgreementSigned,
-                    }}
-                    onSigned={() => {
-                      setIsAgreementSigned(true)
-                      toast.push({ tone: "success", title: "MOU Agreement Signed Successfully", description: "Uploaded to Cloud & Emailed." })
-                    }}
-                  />
-                </div>
-
-                <fieldset className="p-4 bg-admin-accent-soft border border-admin-border rounded-admin space-y-2.5">
-                  <legend className="sr-only">Declarations</legend>
-                  <label className="flex items-start gap-2.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={declareTruth}
-                      onChange={e => setDeclareTruth(e.target.checked)}
-                      className="admin-focus mt-0.5 w-4 h-4 shrink-0 accent-admin-accent"
-                    />
-                    <span className="text-admin-sm text-admin-text leading-relaxed">
-                      I confirm that all information and KYC documents provided by me are true, valid,
-                      and belong to me / my entity.
-                    </span>
-                  </label>
-
-                  <label className="flex items-start gap-2.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={declareTerms}
-                      onChange={e => setDeclareTerms(e.target.checked)}
-                      className="admin-focus mt-0.5 w-4 h-4 shrink-0 accent-admin-accent"
-                    />
-                    <span className="text-admin-sm text-admin-text leading-relaxed">
-                      I agree to the Techstar Money Terms &amp; Conditions, RBI compliance guidelines,
-                      and Privacy Policy.
-                    </span>
-                  </label>
-                </fieldset>
-
-                <StepNav
-                  onBack={back(7)}
-                  onSubmit={handleFinalSubmit}
-                  submitLabel="Submit application"
-                  loading={submitting}
-                  disabled={submitting || !isAgreementSigned || !declareTruth || !declareTerms}
+                <PartnerAgreementModal
+                  partnerData={{
+                    mobileNumber: mobileNumber,
+                    email: email,
+                    fullName: fullName || contactPersonName,
+                    dsaCode: "",
+                    agreementSigned: isAgreementSigned,
+                  }}
+                  onSigned={() => {
+                    setIsAgreementSigned(true)
+                  }}
                 />
+              </div>
+
+              <fieldset className="p-4 bg-admin-accent-soft border border-admin-border rounded-admin space-y-2.5">
+                <legend className="sr-only">Declarations</legend>
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={declareTruth}
+                    onChange={e => setDeclareTruth(e.target.checked)}
+                    className="admin-focus mt-0.5 w-4 h-4 shrink-0 accent-admin-accent"
+                  />
+                  <span className="text-admin-sm text-admin-text leading-relaxed">
+                    I confirm that all information and KYC documents provided by me are true, valid,
+                    and belong to me / my entity.
+                  </span>
+                </label>
+
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={declareTerms}
+                    onChange={e => setDeclareTerms(e.target.checked)}
+                    className="admin-focus mt-0.5 w-4 h-4 shrink-0 accent-admin-accent"
+                  />
+                  <span className="text-admin-sm text-admin-text leading-relaxed">
+                    I agree to the Techstar Money Terms &amp; Conditions, RBI compliance guidelines,
+                    and Privacy Policy.
+                  </span>
+                </label>
+              </fieldset>
+
+              <StepNav
+                onBack={back(7)}
+                onSubmit={handleFinalSubmit}
+                submitLabel="Submit application"
+                loading={submitting}
+                disabled={submitting || !isAgreementSigned || !declareTruth || !declareTerms}
+              />
             </div>
           )}
         </div>

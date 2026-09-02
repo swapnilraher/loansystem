@@ -18,6 +18,29 @@ export async function POST(request: Request) {
       );
     }
 
+    const cleanNum = mobileNumber.replace(/\D/g, "");
+    const db = getAdminDb();
+    const existingDocSnap = await db.collection("partner_applications").doc(cleanNum).get();
+    if (existingDocSnap.exists) {
+      const existingData = existingDocSnap.data();
+      const status = String(existingData?.status || "").toLowerCase();
+      if (
+        status === "under_review" ||
+        status === "approved" ||
+        status === "rejected" ||
+        Boolean(existingData?.submittedAt) ||
+        (existingData?.applicationId && !existingData.applicationId.startsWith("TSM-DRAFT-"))
+      ) {
+        return NextResponse.json(
+          {
+            error: "Application is already submitted and locked for review. Document uploads are disabled.",
+            locked: true,
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     // ── Validate MIME types ────────────────────────────────────────────────
     const allowedTypes = [
       "image/jpeg",

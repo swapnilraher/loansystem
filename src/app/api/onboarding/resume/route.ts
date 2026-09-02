@@ -50,10 +50,22 @@ export async function GET(request: Request) {
       }, { status: 400 });
     }
 
+    const isSubmitted = Boolean(
+      (data?.status && data.status !== "draft" && data.status !== "pending") ||
+      data?.submittedAt ||
+      (data?.applicationId && !data.applicationId.startsWith("TSM-DRAFT-"))
+    );
+
     return NextResponse.json({
       exists: true,
+      isSubmitted,
+      isLocked: isSubmitted,
+      applicationId: data?.applicationId || null,
+      status: data?.status || "draft",
       data: {
         ...data,
+        isSubmitted,
+        isLocked: isSubmitted,
         createdAt: data?.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data?.createdAt,
         updatedAt: data?.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : data?.updatedAt,
       }

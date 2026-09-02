@@ -45,6 +45,27 @@ export async function POST(request: Request) {
     const existingDoc = await docRef.get();
     const existingData = existingDoc.exists ? existingDoc.data() : {};
 
+    // ─── CHECK IF APPLICATION IS SUBMITTED & LOCKED ───
+    const existingStatus = String(existingData?.status || "").toLowerCase();
+    if (
+      existingDoc.exists &&
+      (existingStatus === "under_review" ||
+        existingStatus === "approved" ||
+        existingStatus === "rejected" ||
+        Boolean(existingData?.submittedAt) ||
+        (existingData?.applicationId && !existingData.applicationId.startsWith("TSM-DRAFT-")))
+    ) {
+      return NextResponse.json(
+        {
+          error: "Application is already submitted and locked for administrative review. Modifications are permanently disabled.",
+          locked: true,
+          applicationId: existingData?.applicationId,
+          status: existingData?.status,
+        },
+        { status: 403 }
+      );
+    }
+
     // ─── 2. STRICT UNIQUE EMAIL CHECK ───
     const targetEmail = String(stepData?.email || existingData?.email || "").trim().toLowerCase();
 

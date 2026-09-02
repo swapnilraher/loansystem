@@ -398,23 +398,6 @@ export function Footer() {
               Empowering millions of Indian borrowers with transparent, hassle-free, and expert-assisted digital financial solutions.
             </p>
             
-            <div className="d-flex flex-column gap-3">
-              <a href="tel:9579005645" className="text-slate-600 dark:text-slate-300 text-decoration-none hover:text-primary dark:hover:text-white transition-all d-flex align-items-center gap-3 text-sm font-bold group">
-                <div className="w-10 h-10 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 d-flex align-items-center justify-content-center group-hover:bg-primary group-hover:border-primary group-hover:text-white transition-all shadow-sm">
-                  <Phone size={16} />
-                </div>
-                +91 9579005645
-              </a>
-              <div className="text-slate-600 dark:text-slate-300 d-flex align-items-center gap-3 text-sm font-bold group">
-                <div className="w-10 h-10 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 d-flex align-items-center justify-content-center shadow-sm">
-                  <svg className="w-4 h-4 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </div>
-                Sadashiv Peth, Pune, MH
-              </div>
-            </div>
           </div>
 
           <div className="col-lg-8 col-md-12">
@@ -423,7 +406,8 @@ export function Footer() {
                 <ShieldCheck size={18} className="text-emerald-500" />
                 <strong className="font-black text-sm uppercase tracking-wider text-slate-700 dark:text-slate-300">Regulatory Disclaimer</strong>
               </div>
-              <p className="m-0">Techstar Money Solution is a registered Direct Selling Agent (DSA) and is not a direct lender. All loan products, interest slabs, processing charges, and approval mandates are directly offered by our matched partner banks and RBI-registered NBFCs. Final approvals and disbursements are subject to credit profile checks and documentation verification by respective institutions. We guarantee 100% data privacy and never charge hidden advisory fees.</p>
+              <p className="m-0 mb-3">Techstar Money Solution is a registered Direct Selling Agent (DSA) and is not a direct lender. All loan products, interest slabs, processing charges, and approval mandates are directly offered by our matched partner banks and RBI-registered NBFCs. Final approvals and disbursements are subject to credit profile checks and documentation verification by respective institutions. We guarantee 100% data privacy and never charge hidden advisory fees.</p>
+              <p className="text-[10px] font-bold opacity-75">GSTN: 27 AANCT3833C1ZB | U66190MR2026PTC478675</p>
             </div>
           </div>
         </div>
