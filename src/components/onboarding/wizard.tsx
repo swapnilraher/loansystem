@@ -4,9 +4,7 @@
  * Shared furniture for the 8-step partner onboarding wizard.
  *
  * Every step in `app/onboarding` repeats the same four things: a title block, a
- * grid of fields, a validation message, and a Back / Continue pair. They were
- * hand-written eight times over, which is why the spacing, the button sizes and
- * the error styling had drifted apart between steps. These are the one copy.
+ * grid of fields, a validation message, and a Back / Continue pair.
  *
  * Everything reads the admin token layer in `app/globals.css` — same tokens as
  * the CRM, no palette of its own.
@@ -21,11 +19,6 @@ import { cn } from "@/lib/utils"
  * One reserved line for a validation message, so the message appears in space
  * that already existed instead of shoving the rest of the form down as you
  * type.
- *
- * `1.5em` rather than a rem figure: `--text-admin-xs` carries line-height 1.5
- * and `em` resolves against this element's own font-size, so the reserved box
- * matches the rendered line exactly. A rem value is measured against the root,
- * which ramps 15px -> 17.5px across breakpoints and leaves the box short.
  */
 export const ERROR_SLOT = "block min-h-[1.5em] text-admin-xs text-tone-danger-fg"
 
@@ -48,9 +41,7 @@ export function FieldGrid({ children, className }: { children: React.ReactNode; 
  * Back / Continue footer.
  *
  * Sticky to the bottom of the viewport on phones so the primary action stays
- * reachable with the on-screen keyboard up — this form is eight steps long and
- * is filled almost entirely on mobile. From `sm` up it settles into a normal
- * static row, because on a desktop a floating bar just eats content height.
+ * reachable with the on-screen keyboard up.
  */
 export function StepNav({
   onBack,
@@ -115,10 +106,6 @@ export function StepNav({
 
 /**
  * Segmented single-choice control — entity type, firm type, GST yes/no.
- *
- * `role="radiogroup"` rather than a row of plain buttons: these are one choice
- * out of N, and a screen reader otherwise announces them as unrelated buttons
- * with no indication that picking one clears the others.
  */
 export function ChoiceGroup<T extends string>({
   label,
@@ -133,8 +120,6 @@ export function ChoiceGroup<T extends string>({
   options: readonly T[]
   onChange: (next: T) => void
   columns?: 2 | 3
-  /* Keyed by string rather than `T`: indexing a generic mapped type here gives
-     TS a union it cannot narrow back to a single component. */
   icons?: Record<string, React.ComponentType<{ size?: number }>>
 }) {
   return (
@@ -244,6 +229,91 @@ export function DocRow({
           {uploaded ? "Re-upload" : "Upload"}
         </AdminButton>
       </div>
+    </div>
+  )
+}
+
+export interface DocMeta {
+  url?: string
+  fileName?: string
+  uploadedAt?: string
+  base64?: string
+}
+
+/** Status pill indicating document upload readiness */
+export function DocStatus({ state }: { state: "complete" | "partial" | "missing" }) {
+  if (state === "complete") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-tone-success text-tone-success-fg border border-tone-success-bd text-admin-2xs font-semibold">
+        <Check size={11} strokeWidth={3} /> Uploaded
+      </span>
+    )
+  }
+  if (state === "partial") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-tone-warn text-tone-warn-fg border border-tone-warn-bd text-admin-2xs font-semibold">
+        Front uploaded
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-admin-surface-2 text-admin-muted border border-admin-border text-admin-2xs font-semibold">
+      Pending
+    </span>
+  )
+}
+
+/** Document slot component with file preview and trigger buttons */
+export function DocSlot({
+  label,
+  doc,
+  onPick,
+  onRemove,
+}: {
+  label: string
+  doc: DocMeta | null
+  onPick: () => void
+  onRemove: () => void
+}) {
+  return (
+    <div className="p-3.5 bg-admin-surface border border-admin-border rounded-admin flex flex-col justify-between gap-3">
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-admin-xs font-semibold text-admin-text">{label}</span>
+        {doc ? (
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+            <Check size={10} strokeWidth={3} /> Attached
+          </span>
+        ) : (
+          <span className="text-admin-2xs text-admin-subtle">Not attached</span>
+        )}
+      </div>
+
+      {doc ? (
+        <div className="space-y-2">
+          <p className="text-admin-2xs text-admin-muted truncate font-mono bg-admin-surface-2 p-1.5 rounded-admin-sm border border-admin-border">
+            {doc.fileName || "document_file"}
+          </p>
+          <div className="flex items-center gap-2">
+            <AdminButton type="button" variant="secondary" size="sm" onClick={onPick} className="flex-1">
+              Change file
+            </AdminButton>
+            <AdminButton type="button" variant="ghost" size="sm" onClick={onRemove} className="text-tone-danger-fg">
+              Remove
+            </AdminButton>
+          </div>
+        </div>
+      ) : (
+        <AdminButton
+          type="button"
+          variant="secondary"
+          size="sm"
+          icon={Upload}
+          onClick={onPick}
+          className="w-full mt-1"
+        >
+          Choose &amp; Crop
+        </AdminButton>
+      )}
     </div>
   )
 }

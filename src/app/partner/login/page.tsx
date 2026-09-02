@@ -152,12 +152,6 @@ export default function PartnerLogin() {
     try {
       await loginWithEmailAndPassword(cleanEmail, password)
 
-      // Check if admin email
-      if (cleanEmail === "swapnil.r.aher@gmail.com") {
-        window.location.href = "https://admin.techstarsolution.in"
-        return
-      }
-
       const res = await fetch(`/api/onboarding/status?email=${encodeURIComponent(cleanEmail)}`)
       const data = await res.json()
 
@@ -186,12 +180,6 @@ export default function PartnerLogin() {
       await signInWithGooglePopup()
       const currentUser = auth.currentUser
       const userEmail = currentUser?.email?.toLowerCase() || ""
-
-      // If Super Admin logs in, send to Admin Subdomain
-      if (userEmail === "swapnil.r.aher@gmail.com") {
-        window.location.href = "https://admin.techstarsolution.in"
-        return
-      }
 
       if (userEmail) {
         const res = await fetch(`/api/onboarding/status?email=${encodeURIComponent(userEmail)}`)

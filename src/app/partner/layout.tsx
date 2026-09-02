@@ -26,12 +26,8 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
     : user?.photoURL || ""
 
   // Security & Redirect checks:
-  // 1. If not authenticated, redirect to partner login
-  // Security & Redirect checks:
-  // 1. If not authenticated, redirect to partner login
-  // 2. If Staff Admin user, redirect to https://admin.techstarsolution.in
-  // 3. If User with no partner application yet, redirect to /onboarding
-  // 4. If Partner applicant/member, enforce approval status routing
+  // 1. If not authenticated, redirect to partner login on partner portal
+  // 2. Keep partner portal contained: never redirect across subdomains
   const isLoginPage = pathname === "/partner/login" || pathname === "/login" || pathname?.endsWith("/login")
 
   useEffect(() => {
@@ -46,27 +42,9 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
 
     if (!profile) return // still loading profile
 
-    // If Staff/Super Admin logs in on Partner Portal, redirect them cleanly to the Admin Portal
-    if (adminRole) {
-      if (!isLoginPage) {
-        if (typeof window !== "undefined") {
-          const host = window.location.host
-          if (host.includes("partner.localhost")) {
-            window.location.href = window.location.origin.replace("partner.", "admin.")
-            return
-          }
-          if (host.includes("partner.techstarsolution.in")) {
-            window.location.href = "https://admin.techstarsolution.in"
-            return
-          }
-        }
-        router.push("/admin")
-      }
-      return
-    }
-
-    // Partner Access Check
+    // Check Partner Access: Admins, Super Admins, Partners, and applicants all have access to partner workspace
     const hasPartnerAccess =
+      adminRole ||
       profile.role === "partner" ||
       profile.role === "admin" ||
       profile.role === "super_admin" ||
