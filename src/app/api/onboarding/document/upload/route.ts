@@ -113,8 +113,7 @@ export async function POST(request: Request) {
       documentRecord.cloudinaryId = cloudinaryId;
     }
 
-    const db     = getAdminDb();
-    const docRef = db.collection("partner_applications").doc(mobileNumber);
+    const docRef = db.collection("partner_applications").doc(cleanNum);
 
     await docRef.set(
       {
