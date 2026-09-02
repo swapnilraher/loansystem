@@ -62,7 +62,7 @@ export default function AdminLoginPage() {
   useEffect(() => {
     if (user) {
       if (adminRole) {
-        router.push("/admin")
+        router.push("/leads")
       } else if (profile?.role === "partner" || profile?.dsaCode || profile?.dsaStatus) {
         setError("Partner users cannot sign in to the Staff Admin Portal. Please use the Partner Portal.")
       } else if (profile) {
@@ -82,7 +82,7 @@ export default function AdminLoginPage() {
     setNotice(null)
     try {
       await loginWithEmailAndPassword(email.trim(), password.trim())
-      router.push("/admin")
+      router.push("/leads")
     } catch (err) {
       console.error("Login error:", err)
       setError(messageFor(err))

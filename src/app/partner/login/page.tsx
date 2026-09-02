@@ -108,7 +108,7 @@ export default function PartnerLogin() {
       if (res.ok && data.application) {
         const appSt = String(data.application.dsaStatus || data.application.status || "").toLowerCase()
         if (appSt === "approved" || appSt === "active") {
-          router.push("/partner")
+          router.push("/")
         } else if (appSt === "under_review" || appSt === "submitted") {
           router.push(`/application-status?mobile=${mobileNumber}`)
         } else {
@@ -133,7 +133,7 @@ export default function PartnerLogin() {
       const data = await res.json()
       if (res.ok && data.application) {
         const appSt = data.application.dsaStatus || data.application.status
-          (appSt === "approved" || appSt === "Active") ? router.push("/partner") : router.push(`/application-status?email=${encodeURIComponent(email)}`)
+          (appSt === "approved" || appSt === "Active") ? router.push("/") : router.push(`/application-status?email=${encodeURIComponent(email)}`)
       } else { router.push("/onboarding") }
     } catch (err) {
       setError(messageFor(err, "Invalid email or password."))
@@ -142,7 +142,7 @@ export default function PartnerLogin() {
 
   const handleGoogleLogin = async () => {
     setLoading(true); setError("")
-    try { await signInWithGooglePopup(); router.push("/partner") }
+    try { await signInWithGooglePopup(); router.push("/") }
     catch (err) { setError(messageFor(err, "Google sign-in failed.")) }
     finally { setLoading(false) }
   }

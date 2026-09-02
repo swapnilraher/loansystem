@@ -96,6 +96,14 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(`${partnerOrigin}${subPath}${url.search}`, 308)
   }
 
+  // Block /login on main domain -> 308 redirect to partner subdomain login
+  if (pathname === '/login') {
+    const partnerOrigin = isLocalhost
+      ? `http://partner.localhost${portSuffix}`
+      : 'https://partner.techstarsolution.in'
+    return NextResponse.redirect(`${partnerOrigin}/login${url.search}`, 308)
+  }
+
   return NextResponse.next()
 }
 
