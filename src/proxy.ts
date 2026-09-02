@@ -68,6 +68,15 @@ function handleRouting(req: NextRequest) {
 
   // ── 3. Partner Subdomain: partner.techstarsolution.in / partner.localhost ──
   if (isPartnerSubdomain) {
+    // If someone visits /admin or /admin/* on partner subdomain, redirect to Admin subdomain
+    if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+      const subPath = pathname.replace(/^\/admin/, '') || '/'
+      const adminOrigin = isLocalhost
+        ? `http://admin.localhost${portSuffix}`
+        : 'https://admin.techstarsolution.in'
+      return NextResponse.redirect(`${adminOrigin}${subPath}${url.search}`, 308)
+    }
+
     // Direct public routes allowed under partner portal
     if (pathname.startsWith('/onboarding') || pathname.startsWith('/application-status')) {
       return NextResponse.next()

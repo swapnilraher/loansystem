@@ -94,57 +94,125 @@ export default function PartnerLogin() {
   }
 
   const handleOtpVerified = async (token?: string, customToken?: string) => {
-    setShowOtpModal(false); setLoading(true)
+    setShowOtpModal(false)
+    setLoading(true)
+    setError("")
+    const cleanMobile = mobileNumber.replace(/\D/g, "").slice(-10)
+
     try {
       if (typeof window !== "undefined") {
-        localStorage.setItem("tsm_onboarding_mobile", mobileNumber)
+        localStorage.setItem("tsm_onboarding_mobile", cleanMobile)
         localStorage.setItem("tsm_onboarding_verified", "true")
       }
+
       if (customToken) {
-        await signInWithCustomToken(auth, customToken)
+        try {
+          await signInWithCustomToken(auth, customToken)
+        } catch (signInErr) {
+          console.warn("Custom token sign in note:", signInErr)
+        }
       }
-      const res = await fetch(`/api/onboarding/status?mobile=${mobileNumber}`)
+
+      const res = await fetch(`/api/onboarding/status?mobile=${cleanMobile}`)
       const data = await res.json()
+
       if (res.ok && data.application) {
-        const appSt = String(data.application.dsaStatus || data.application.status || "").toLowerCase()
-        if (appSt === "approved" || appSt === "active") {
-          router.push("/")
+        const appSt = String(data.application.status || "").toLowerCase()
+        const isApproved = appSt === "approved" || appSt === "active"
+
+        if (isApproved) {
+          window.location.href = "/"
+          return
         } else if (appSt === "under_review" || appSt === "submitted") {
-          router.push(`/application-status?mobile=${mobileNumber}`)
+          const appId = data.application.applicationId || cleanMobile
+          window.location.href = `/application-status?id=${appId}`
+          return
         } else {
-          // Status is draft or incomplete: route directly to onboarding to resume at their exact step!
-          router.push("/onboarding")
+          window.location.href = "/onboarding"
+          return
         }
       } else {
-        router.push("/onboarding")
+        window.location.href = "/onboarding"
+        return
       }
     } catch (err) {
       console.error("WhatsApp OTP login error:", err)
-      router.push("/onboarding")
+      window.location.href = "/onboarding"
+    } finally {
+      setLoading(false)
     }
-    finally { setLoading(false) }
   }
 
   const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault(); setLoading(true); setError("")
+    e.preventDefault()
+    setLoading(true)
+    setError("")
+    const cleanEmail = email.trim().toLowerCase()
+
     try {
-      await loginWithEmailAndPassword(email, password)
-      const res = await fetch(`/api/onboarding/status?email=${encodeURIComponent(email)}`)
+      await loginWithEmailAndPassword(cleanEmail, password)
+
+      // Check if admin email
+      if (cleanEmail === "swapnil.r.aher@gmail.com") {
+        window.location.href = "https://admin.techstarsolution.in"
+        return
+      }
+
+      const res = await fetch(`/api/onboarding/status?email=${encodeURIComponent(cleanEmail)}`)
       const data = await res.json()
+
       if (res.ok && data.application) {
-        const appSt = data.application.dsaStatus || data.application.status
-          (appSt === "approved" || appSt === "Active") ? router.push("/") : router.push(`/application-status?email=${encodeURIComponent(email)}`)
-      } else { router.push("/onboarding") }
+        const appSt = String(data.application.status || "").toLowerCase()
+        if (appSt === "approved" || appSt === "active") {
+          window.location.href = "/"
+          return
+        } else if (appSt === "under_review" || appSt === "submitted") {
+          window.location.href = `/application-status?id=${data.application.applicationId || encodeURIComponent(cleanEmail)}`
+          return
+        }
+      }
+
+      window.location.href = "/"
     } catch (err) {
       setError(messageFor(err, "Invalid email or password."))
-    } finally { setLoading(false) }
+      setLoading(false)
+    }
   }
 
   const handleGoogleLogin = async () => {
-    setLoading(true); setError("")
-    try { await signInWithGooglePopup(); router.push("/") }
-    catch (err) { setError(messageFor(err, "Google sign-in failed.")) }
-    finally { setLoading(false) }
+    setLoading(true)
+    setError("")
+    try {
+      await signInWithGooglePopup()
+      const currentUser = auth.currentUser
+      const userEmail = currentUser?.email?.toLowerCase() || ""
+
+      // If Super Admin logs in, send to Admin Subdomain
+      if (userEmail === "swapnil.r.aher@gmail.com") {
+        window.location.href = "https://admin.techstarsolution.in"
+        return
+      }
+
+      if (userEmail) {
+        const res = await fetch(`/api/onboarding/status?email=${encodeURIComponent(userEmail)}`)
+        const data = await res.json()
+        if (res.ok && data.application) {
+          const appSt = String(data.application.status || "").toLowerCase()
+          if (appSt === "approved" || appSt === "active") {
+            window.location.href = "/"
+            return
+          } else if (appSt === "under_review" || appSt === "submitted") {
+            window.location.href = `/application-status?id=${data.application.applicationId || encodeURIComponent(userEmail)}`
+            return
+          }
+        }
+      }
+
+      window.location.href = "/"
+    } catch (err) {
+      setError(messageFor(err, "Google sign-in failed."))
+      setLoading(false)
+    }
   }
 
   const busy = loading || otpLoading

@@ -27,40 +27,57 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
 
   // Security & Redirect checks:
   // 1. If not authenticated, redirect to partner login
-  // 2. If Staff Admin user, redirect to /admin
-  // 3. If Normal Dashboard user with no partner application, redirect to /dashboard
-  // 4. If Partner applicant/member, enforce approval status routing
-  const isLoginPage = pathname === "/partner/login" || pathname === "/login"
-
   // Security & Redirect checks:
   // 1. If not authenticated, redirect to partner login
-  // 2. If Staff Admin user, redirect to /admin
-  // 3. If Normal Dashboard user with no partner application, redirect to /dashboard
+  // 2. If Staff Admin user, redirect to https://admin.techstarsolution.in
+  // 3. If User with no partner application yet, redirect to /onboarding
   // 4. If Partner applicant/member, enforce approval status routing
+  const isLoginPage = pathname === "/partner/login" || pathname === "/login" || pathname?.endsWith("/login")
+
   useEffect(() => {
     if (loading) return
 
     if (!user) {
-      if (!isLoginPage) router.push(pathname.startsWith("/partner") ? "/partner/login" : "/login")
+      if (!isLoginPage) {
+        router.push(pathname.startsWith("/partner") ? "/partner/login" : "/login")
+      }
       return
     }
 
     if (!profile) return // still loading profile
 
-    // Block Staff Admin from Partner Portal
+    // If Staff/Super Admin logs in on Partner Portal, redirect them cleanly to the Admin Portal
     if (adminRole) {
-      if (!isLoginPage) router.push("/admin")
+      if (!isLoginPage) {
+        if (typeof window !== "undefined") {
+          const host = window.location.host
+          if (host.includes("partner.localhost")) {
+            window.location.href = window.location.origin.replace("partner.", "admin.")
+            return
+          }
+          if (host.includes("partner.techstarsolution.in")) {
+            window.location.href = "https://admin.techstarsolution.in"
+            return
+          }
+        }
+        router.push("/admin")
+      }
       return
     }
 
-    // Block Normal Dashboard User (non-partner) from Partner Portal
+    // Partner Access Check
     const hasPartnerAccess =
       profile.role === "partner" ||
+      profile.role === "admin" ||
+      profile.role === "super_admin" ||
       !!profile.dsaStatus ||
-      !!profile.applicationId
+      !!profile.applicationId ||
+      !!profile.dsaCode
 
     if (!hasPartnerAccess) {
-      if (!isLoginPage) router.push("/dashboard")
+      if (!isLoginPage) {
+        router.push("/onboarding")
+      }
       return
     }
 
