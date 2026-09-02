@@ -11,6 +11,39 @@ function handleRouting(req: NextRequest) {
   const hostname = host.split(':')[0].toLowerCase()
   const pathname = url.pathname
 
+  // Helper to determine if we are in local development
+  const isLocalhost = hostname.includes('localhost') || hostname === '127.0.0.1'
+  const portSuffix = host.includes(':') ? `:${host.split(':')[1]}` : ''
+
+  const isAdminSubdomain =
+    hostname === 'admin.techstarsolution.in' ||
+    hostname === 'admin.localhost' ||
+    hostname.startsWith('admin.')
+
+  const isPartnerSubdomain =
+    hostname === 'partner.techstarsolution.in' ||
+    hostname === 'partner.localhost' ||
+    hostname.startsWith('partner.')
+
+  // ── Block sitemaps and bots indexing on Admin & Partner portals ──
+  if (isAdminSubdomain || isPartnerSubdomain) {
+    if (pathname.startsWith('/sitemap') || pathname === '/sitemap.xml') {
+      return new NextResponse('Sitemap Not Found', {
+        status: 404,
+        headers: { 'Content-Type': 'text/plain', 'X-Robots-Tag': 'noindex, nofollow' },
+      })
+    }
+    if (pathname === '/robots.txt') {
+      return new NextResponse('User-agent: *\nDisallow: /\n', {
+        headers: {
+          'Content-Type': 'text/plain',
+          'X-Robots-Tag': 'noindex, nofollow',
+          'Cache-Control': 'public, max-age=86400',
+        },
+      })
+    }
+  }
+
   // ── 1. Safety: Bypass API routes, Next.js internals, and static assets ──
   if (
     pathname.startsWith('/api') ||
@@ -20,16 +53,8 @@ function handleRouting(req: NextRequest) {
     return NextResponse.next()
   }
 
-  // Helper to determine if we are in local development
-  const isLocalhost = hostname.includes('localhost') || hostname === '127.0.0.1'
-  const portSuffix = host.includes(':') ? `:${host.split(':')[1]}` : ''
-
   // ── 2. Admin Subdomain: admin.techstarsolution.in / admin.localhost ──
-  if (
-    hostname === 'admin.techstarsolution.in' ||
-    hostname === 'admin.localhost' ||
-    hostname.startsWith('admin.')
-  ) {
+  if (isAdminSubdomain) {
     // If already on /admin or /admin/*, let Next.js serve the internal route
     if (pathname === '/admin' || pathname.startsWith('/admin/')) {
       return NextResponse.next()
@@ -42,11 +67,7 @@ function handleRouting(req: NextRequest) {
   }
 
   // ── 3. Partner Subdomain: partner.techstarsolution.in / partner.localhost ──
-  if (
-    hostname === 'partner.techstarsolution.in' ||
-    hostname === 'partner.localhost' ||
-    hostname.startsWith('partner.')
-  ) {
+  if (isPartnerSubdomain) {
     // Direct public routes allowed under partner portal
     if (pathname.startsWith('/onboarding') || pathname.startsWith('/application-status')) {
       return NextResponse.next()

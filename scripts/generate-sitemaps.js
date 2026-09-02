@@ -35,7 +35,7 @@ function dirs(parent) {
 }
 
 // ─── 1. Static pages ───
-const staticPaths = ['/', '/about', '/partner', '/privacy', '/terms', '/blog', '/become-dsa-partner', '/cibil-score'];
+const staticPaths = ['/', '/about', '/privacy', '/terms', '/blog', '/become-dsa-partner', '/cibil-score'];
 const staticEntries = staticPaths.map((p) => {
   if (p === '/') {
     return `  <url>
