@@ -5,10 +5,6 @@ export function proxy(req: NextRequest) {
   return handleRouting(req)
 }
 
-export function middleware(req: NextRequest) {
-  return handleRouting(req)
-}
-
 function handleRouting(req: NextRequest) {
   const url = req.nextUrl.clone()
   const host = req.headers.get('host') || ''
