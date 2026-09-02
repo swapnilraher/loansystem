@@ -11,26 +11,6 @@ export function AIChatbot() {
   const [isPartnerPortal, setIsPartnerPortal] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const [showTooltip, setShowTooltip] = useState(true)
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const host = window.location.hostname.toLowerCase()
-      if (host.startsWith("partner.") || host.startsWith("admin.") || host.includes("partner")) {
-        setIsPartnerPortal(true)
-      }
-    }
-  }, [])
-
-  // Completely remove Chat With Us on Partner Portal, Onboarding, Status tracker, and Admin
-  if (
-    isPartnerPortal ||
-    pathname?.startsWith("/partner") ||
-    pathname?.startsWith("/onboarding") ||
-    pathname?.startsWith("/application-status") ||
-    pathname?.startsWith("/admin")
-  ) {
-    return null
-  }
   const [messages, setMessages] = useState([
     { id: 1, text: "नमस्कार! मी Techstar Money Solution AI आहे. मी तुम्हाला कर्जाबद्दल कशी मदत करू शकेन?", sender: 'ai' }
   ])
@@ -42,14 +22,14 @@ export function AIChatbot() {
   const [chatState, setChatState] = useState<ChatState>('idle')
   const [leadData, setLeadData] = useState({ name: '', mobile: '' })
 
-  const quickReplies = [
-    "💰 वैयक्तिक कर्ज",
-    "🏠 गृह कर्ज",
-    "💼 बिझनेस लोन",
-    "📄 कोणती कागदपत्रे?",
-    "⏱️ किती वेळ लागतो?",
-    "💯 पात्रता काय आहे?"
-  ]
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const host = window.location.hostname.toLowerCase()
+      if (host.startsWith("partner.") || host.startsWith("admin.") || host.includes("partner")) {
+        setIsPartnerPortal(true)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     // Auto scroll to bottom
@@ -63,6 +43,26 @@ export function AIChatbot() {
     const timer = setTimeout(() => setShowTooltip(false), 10000)
     return () => clearTimeout(timer)
   }, [])
+
+  const isHiddenRoute =
+    isPartnerPortal ||
+    pathname?.startsWith("/partner") ||
+    pathname?.startsWith("/onboarding") ||
+    pathname?.startsWith("/application-status") ||
+    pathname?.startsWith("/admin")
+
+  if (isHiddenRoute) {
+    return null
+  }
+
+  const quickReplies = [
+    "💰 वैयक्तिक कर्ज",
+    "🏠 गृह कर्ज",
+    "💼 बिझनेस लोन",
+    "📄 कोणती कागदपत्रे?",
+    "⏱️ किती वेळ लागतो?",
+    "💯 पात्रता काय आहे?"
+  ]
 
   const handleSend = async (text: string) => {
     if (!text.trim()) return

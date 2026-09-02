@@ -9,8 +9,13 @@ export function MobileBottomNav() {
   const pathname = usePathname()
   const { profile, adminRole } = useAuth()
   
-  // Hide on admin, partner, onboarding, and application status routes
+  // Hide on admin, partner, onboarding, and application status routes or subdomains
+  const isSubdomain =
+    typeof window !== "undefined" &&
+    (window.location.hostname.startsWith("admin.") || window.location.hostname.startsWith("partner."))
+
   if (
+    isSubdomain ||
     pathname?.startsWith("/admin") ||
     pathname?.startsWith("/partner") ||
     pathname?.startsWith("/onboarding") ||
