@@ -21,13 +21,23 @@ const serviceAccount = {
   privateKey: getPrivateKey(),
 };
 
-// Singleton pattern for Firebase Admin
 export const getAdminApp = () => {
   if (admin.apps.length > 0) {
     return admin.apps[0];
   }
+  const privKey = getPrivateKey();
+  if (privKey) {
+    return admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: "dsa-loan",
+        clientEmail: "firebase-adminsdk-fbsvc@dsa-loan.iam.gserviceaccount.com",
+        privateKey: privKey,
+      }),
+      storageBucket: "dsa-loan.firebasestorage.app"
+    });
+  }
   return admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
+    projectId: "dsa-loan",
     storageBucket: "dsa-loan.firebasestorage.app"
   });
 };

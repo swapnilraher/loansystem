@@ -59,6 +59,7 @@ import PartnerAgreementModal from "@/components/partner/PartnerAgreementModal"
 import { formatINR, formatINRShort, toAmount } from "@/lib/hooks/useBanks"
 import { timeAgo, toDate } from "@/lib/dates"
 import { cn } from "@/lib/utils"
+import PartnerLandingPage from "@/components/partner/landing/PartnerLandingPage"
 
 const CHART_THEME = {
   grid: "var(--admin-border)",
@@ -77,7 +78,7 @@ const tooltipStyle = {
   padding: "8px 12px",
 }
 
-export default function PartnerDashboard() {
+function PartnerDashboardView() {
   const { user, profile } = useAuth()
   const router = useRouter()
   const [leads, setLeads] = useState<any[]>([])
@@ -787,4 +788,28 @@ export default function PartnerDashboard() {
       </div>
     </div>
   )
+}
+
+export default function PartnerPage() {
+  const { user, loading } = useAuth()
+  const [forceLanding, setForceLanding] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search)
+      if (sp.get("landing") === "true") {
+        setForceLanding(true)
+      }
+    }
+  }, [])
+
+  if ((!user && !loading) || forceLanding) {
+    return <PartnerLandingPage />
+  }
+
+  if (!user && loading) {
+    return <PartnerLandingPage />
+  }
+
+  return <PartnerDashboardView />
 }

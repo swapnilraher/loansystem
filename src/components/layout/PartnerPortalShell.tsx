@@ -28,44 +28,52 @@ export function PartnerPortalHeader({
   rightLinkLabel,
   rightLinkHref,
 }: PartnerPortalHeaderProps) {
-  const linkLabel = rightLinkLabel ?? (mobileNumber ? "Status Tracker" : "Partner Login")
-  const linkHref  = rightLinkHref  ?? (mobileNumber ? "/application-status" : "/partner/login")
+  const linkLabel =
+    rightLinkLabel ?? (mobileNumber ? "Status Tracker" : "Partner Login")
+  const linkHref =
+    rightLinkHref ?? (mobileNumber ? "/application-status" : "/partner/login")
 
   return (
-    <header className="sticky top-0 z-30 bg-admin-surface border-b border-admin-border">
-      <div className="max-w-4xl mx-auto flex items-center justify-between gap-3 px-4 h-14">
-        {/* ── Logo + Brand ── */}
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className="w-9 h-9 shrink-0 rounded-admin overflow-hidden bg-admin-surface-2 border border-admin-border flex items-center justify-center shadow-admin-1">
+    <header
+      className="sticky top-0 z-30"
+      style={{
+        background: "rgba(255,255,255,0.97)",
+        borderBottom: "1px solid #E2E8F0",
+        backdropFilter: "blur(12px)",
+      }}
+    >
+      <div className="max-w-5xl mx-auto flex items-center justify-between gap-3 px-4 h-14">
+        {/* Logo + Brand */}
+        <Link href="/" className="flex items-center gap-3 no-underline group">
+          <span className="w-9 h-9 shrink-0 rounded-xl overflow-hidden bg-blue-600 border border-blue-700/20 flex items-center justify-center shadow-sm">
             <Image
               src="/img/logo.webp"
-              alt="Techstar Money Logo"
+              alt="Techstar Money Solution logo"
               width={36}
               height={36}
               className="object-contain"
-              preload
             />
           </span>
           <span className="block min-w-0">
-            <span className="block text-admin-sm font-semibold tracking-tight text-admin-text truncate">
-              Techstar Money
+            <span className="block text-sm font-extrabold tracking-tight text-slate-900 group-hover:text-blue-700 transition-colors truncate">
+              Techstar Money Solution
             </span>
-            <span className="block text-admin-2xs font-semibold uppercase tracking-wide text-admin-subtle">
+            <span className="block text-[10px] font-semibold uppercase tracking-widest text-slate-400">
               {subtitle}
             </span>
           </span>
-        </div>
+        </Link>
 
-        {/* ── Right Nav ── */}
-        <div className="flex items-center gap-1 shrink-0">
+        {/* Right Nav */}
+        <div className="flex items-center gap-2 shrink-0">
           {mobileNumber && (
-            <span className="hidden sm:inline admin-num text-admin-xs text-admin-muted px-2">
+            <span className="hidden sm:inline text-xs text-slate-400 font-mono px-2">
               +91 {mobileNumber}
             </span>
           )}
           <Link
             href={linkHref}
-            className="admin-focus inline-flex items-center min-h-11 sm:min-h-9 px-2 rounded-admin-sm text-admin-xs font-semibold text-admin-muted hover:text-admin-text transition-colors"
+            className="inline-flex items-center min-h-9 px-4 py-2 rounded-lg text-xs font-bold text-slate-700 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 transition-all no-underline"
           >
             {linkLabel}
           </Link>
@@ -77,9 +85,13 @@ export function PartnerPortalHeader({
 
 export function PartnerPortalFooter() {
   return (
-    <footer className="border-t border-admin-border bg-admin-surface py-4 px-4 text-center">
-      <p className="text-admin-2xs text-admin-subtle">
-        © {new Date().getFullYear()} Techstar Money Solution Pvt. Ltd. All rights reserved.
+    <footer
+      className="py-5 px-4 text-center"
+      style={{ borderTop: "1px solid #E2E8F0", background: "#FFFFFF" }}
+    >
+      <p className="text-xs text-slate-400 font-medium">
+        © {new Date().getFullYear()} Techstar Money Solution Pvt. Ltd. All
+        rights reserved. · CIN: U66190MR2026PTC478675
       </p>
     </footer>
   )

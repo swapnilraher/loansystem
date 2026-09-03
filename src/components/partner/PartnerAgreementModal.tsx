@@ -50,6 +50,7 @@ export default function PartnerAgreementModal({
   }, [partnerData.agreementSigned])
 
   const pdfUrl = `/api/partner/agreement/pdf?mobile=${partnerData.mobileNumber}`
+  const previewPdfUrl = `/api/partner/agreement/pdf?mobile=${partnerData.mobileNumber}&preview=true`
 
   // Send OTP for agreement signing
   const handleRequestOtp = async () => {
@@ -95,11 +96,9 @@ export default function PartnerAgreementModal({
       if (!res.ok) throw new Error(data.error || "Failed to execute agreement signature")
 
       setIsSignedLocally(true)
+      setShowModal(false)
       setSuccessMsg("🎉 Memorandum of Understanding (MOU) executed successfully! Executed agreement PDF has been sent to your email.")
-      setTimeout(() => {
-        setShowModal(false)
-        if (onSigned) onSigned()
-      }, 3000)
+      if (onSigned) onSigned()
     } catch (err: any) {
       setError(err.message || "OTP verification failed. Please try again.")
     } finally {
@@ -107,21 +106,22 @@ export default function PartnerAgreementModal({
     }
   }
 
-  if (isSignedLocally && !showModal) {
+  // Once signed, permanent signed view — no sign option can ever re-appear
+  if (isSignedLocally || isAlreadySigned) {
     return (
       <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 text-xs text-emerald-900">
         <div className="flex items-center gap-2 font-semibold">
-          <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
-          <span>DSA Partner MOU Agreement Executed &amp; Email Dispatched</span>
+          <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+          <span>DSA Partner MOU Agreement Executed &amp; Recorded</span>
         </div>
         <a
           href={pdfUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-colors shrink-0"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-colors shrink-0 text-decoration-none shadow-sm"
         >
-          <Download size={13} />
-          <span>Download MOU PDF</span>
+          <Download size={14} />
+          <span>Download Executed MOU</span>
         </a>
       </div>
     )

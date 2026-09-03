@@ -1,8 +1,8 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "DSA Partner Onboarding | Techstar Money Solution",
-  description: "Complete your DSA Partner onboarding registration with Techstar Money Solution.",
+  title: "Partner Login | Techstar Money Solution",
+  description: "Access your Techstar Money Solution partner account.",
   robots: {
     index: false,
     follow: false,
@@ -15,6 +15,6 @@ export const metadata: Metadata = {
   },
 }
 
-export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
+export default function PartnerLoginLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }

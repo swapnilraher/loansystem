@@ -25,8 +25,8 @@ function handleRouting(req: NextRequest) {
     hostname === 'partner.localhost' ||
     hostname.startsWith('partner.')
 
-  // ── Block sitemaps and bots indexing on Admin & Partner portals ──
-  if (isAdminSubdomain || isPartnerSubdomain) {
+  // ── Block sitemaps and bots indexing on Admin portal ──
+  if (isAdminSubdomain) {
     if (pathname.startsWith('/sitemap') || pathname === '/sitemap.xml') {
       return new NextResponse('Sitemap Not Found', {
         status: 404,
@@ -38,6 +38,50 @@ function handleRouting(req: NextRequest) {
         headers: {
           'Content-Type': 'text/plain',
           'X-Robots-Tag': 'noindex, nofollow',
+          'Cache-Control': 'public, max-age=86400',
+        },
+      })
+    }
+  }
+
+  // ── SEO robots.txt and sitemap.xml for Partner Subdomain (Homepage Only) ──
+  if (isPartnerSubdomain) {
+    if (pathname === '/robots.txt') {
+      const robotsTxt = `User-agent: *
+Allow: /$
+Disallow: /login
+Disallow: /partner/login
+Disallow: /onboarding
+Disallow: /application-status
+Disallow: /leads
+Disallow: /wallet
+Disallow: /profile
+Disallow: /credit-check
+Disallow: /api/
+
+Sitemap: https://partner.techstarsolution.in/sitemap.xml
+`
+      return new NextResponse(robotsTxt, {
+        headers: {
+          'Content-Type': 'text/plain',
+          'Cache-Control': 'public, max-age=86400',
+        },
+      })
+    }
+
+    if (pathname === '/sitemap.xml' || pathname === '/sitemap') {
+      const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://partner.techstarsolution.in/</loc>
+    <lastmod>2026-09-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>`
+      return new NextResponse(sitemapXml, {
+        headers: {
+          'Content-Type': 'application/xml',
           'Cache-Control': 'public, max-age=86400',
         },
       })
@@ -104,12 +148,22 @@ function handleRouting(req: NextRequest) {
   }
 
   // Block and 308 Redirect any /partner or /partner/* to partner subdomain
+  // Exception: on raw localhost (not partner.localhost), allow direct access for local dev preview
   if (pathname === '/partner' || pathname.startsWith('/partner/')) {
-    const subPath = pathname.replace(/^\/partner/, '') || '/'
+    if (!isLocalhost) {
+      const subPath = pathname.replace(/^\/partner/, '') || '/'
+      return NextResponse.redirect(`https://partner.techstarsolution.in${subPath}${url.search}`, 308)
+    }
+    // On localhost: serve internally so JS/CSS chunks load correctly
+    return NextResponse.next()
+  }
+
+  // Block and 308 Redirect /become-dsa-partner to partner subdomain
+  if (pathname === '/become-dsa-partner' || pathname.startsWith('/become-dsa-partner/')) {
     const partnerOrigin = isLocalhost
       ? `http://partner.localhost${portSuffix}`
       : 'https://partner.techstarsolution.in'
-    return NextResponse.redirect(`${partnerOrigin}${subPath}${url.search}`, 308)
+    return NextResponse.redirect(`${partnerOrigin}${url.search}`, 308)
   }
 
   // Block /login on main domain -> 308 redirect to partner subdomain login
@@ -132,6 +186,6 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico, images, documents, static assets
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|pdf|css|js|map|xml|txt)).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|pdf|css|js|map)).*)',
   ],
 }

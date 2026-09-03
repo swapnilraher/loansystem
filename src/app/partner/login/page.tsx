@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { useAuth } from "@/context/AuthContext"
 import { signInWithCustomToken } from "firebase/auth"
 import { auth } from "@/lib/firebase"
@@ -10,7 +10,6 @@ import {
   Mail, Lock, ArrowRight, Smartphone, Eye, EyeOff,
   ShieldCheck, AlertCircle, Building2, Users, Zap, Activity,
 } from "lucide-react"
-import WhatsAppOtpModal from "@/components/onboarding/WhatsAppOtpModal"
 import { PartnerPortalHeader, PartnerPortalFooter } from "@/components/layout/PartnerPortalShell"
 import { cn } from "@/lib/utils"
 
@@ -65,32 +64,147 @@ export default function PartnerLogin() {
 
   const [authMethod, setAuthMethod] = useState<AuthMethod>("otp")
   const [mobileNumber, setMobileNumber] = useState("")
-  const [showOtpModal, setShowOtpModal] = useState(false)
+  const [otpSent, setOtpSent] = useState(false)
+  const [otpValues, setOtpValues] = useState(["", "", "", "", "", ""])
   const [otpLoading, setOtpLoading] = useState(false)
+  const [verifyLoading, setVerifyLoading] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [otpTimer, setOtpTimer] = useState(50)
+  const [canResend, setCanResend] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
+  const [eligibilityError, setEligibilityError] = useState<{
+    message: string
+    marathiMessage?: string
+    redirectUrl?: string
+    actionText?: string
+  } | null>(null)
+
   const isMobileValid = /^[6-9]\d{9}$/.test(mobileNumber)
   const mobileInvalid = mobileNumber.length > 0 && !isMobileValid
 
-  const handleSendMobileOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
+  useEffect(() => {
+    let timer: NodeJS.Timeout
+    if (otpSent && otpTimer > 0) {
+      timer = setInterval(() => {
+        setOtpTimer((prev) => {
+          if (prev <= 1) {
+            setCanResend(true)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+    }
+    return () => clearInterval(timer)
+  }, [otpSent, otpTimer])
+
+  const handleSendMobileOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     if (!isMobileValid) { setError("Enter a valid 10-digit mobile number."); return }
-    setOtpLoading(true); setError("")
+    setOtpLoading(true)
+    setError("")
+    setEligibilityError(null)
     try {
       const res = await fetch("/api/onboarding/send-otp", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber: mobileNumber, isLogin: true }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Failed to send OTP")
-      setShowOtpModal(true)
+      if (!res.ok || data.eligible === false) {
+        if (data.reason === "NOT_REGISTERED") {
+          setEligibilityError({
+            message: data.message || "This mobile number is not registered as a partner.",
+            marathiMessage: data.marathiMessage || "हा मोबाईल नंबर पार्टनर पोर्टलवर नोंदणीकृत नाही. कृपया प्रथम नवीन पार्टनर म्हणून नोंदणी करा.",
+            redirectUrl: data.redirectUrl || `/onboarding?mobile=${mobileNumber}`,
+            actionText: "Register as Partner (नवीन नोंदणी करा) →",
+          })
+          return
+        }
+        if (data.reason === "BLOCKED") {
+          setEligibilityError({
+            message: data.message || "This account has been suspended.",
+            marathiMessage: data.marathiMessage || "हा पार्टनर नंबर ब्लॉक किंवा नामंजूर करण्यात आला आहे. कृपया मदतीसाठी संपर्क साधा.",
+            redirectUrl: "tel:09579005645",
+            actionText: "Call Partner Support (095790 05645)",
+          })
+          return
+        }
+        throw new Error(data.error || "Failed to send OTP")
+      }
+      setOtpSent(true)
+      setOtpTimer(50)
+      setCanResend(false)
+      setOtpValues(["", "", "", "", "", ""])
     } catch (err) {
       setError(messageFor(err, "Unable to send OTP. Check your connection."))
     } finally { setOtpLoading(false) }
+  }
+
+  const handleResendMobileOtp = async () => {
+    if (!canResend || resending) return
+    setResending(true); setError("")
+    try {
+      const res = await fetch("/api/onboarding/send-otp", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phoneNumber: mobileNumber, isLogin: true }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to resend OTP")
+      setOtpTimer(50)
+      setCanResend(false)
+    } catch (err) {
+      setError(messageFor(err, "Failed to resend OTP."))
+    } finally { setResending(false) }
+  }
+
+  const handleOtpBoxChange = (index: number, val: string) => {
+    if (!/^\d*$/.test(val)) return
+    const nextOtp = [...otpValues]
+    nextOtp[index] = val.slice(-1)
+    setOtpValues(nextOtp)
+    if (val && index < 5) {
+      const nextInput = document.getElementById(`login-otp-${index + 1}`)
+      nextInput?.focus()
+    }
+  }
+
+  const handleOtpBoxKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !otpValues[index] && index > 0) {
+      const prevInput = document.getElementById(`login-otp-${index - 1}`)
+      prevInput?.focus()
+    }
+  }
+
+  const handleVerifyInlineOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    const fullOtp = otpValues.join("")
+    if (fullOtp.length < 6) {
+      setError("Please enter the complete 6-digit OTP code.")
+      return
+    }
+
+    setVerifyLoading(true)
+    setError("")
+    try {
+      const res = await fetch("/api/onboarding/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phoneNumber: mobileNumber, otp: fullOtp }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Invalid OTP code")
+
+      await handleOtpVerified(data.verificationToken, data.customToken)
+    } catch (err: any) {
+      setError(err.message || "Failed to verify OTP.")
+    } finally {
+      setVerifyLoading(false)
+    }
   }
 
   const handleOtpVerified = async (token?: string, customToken?: string) => {
@@ -276,6 +390,33 @@ export default function PartnerLogin() {
                 </div>
               )}
 
+              {/* Eligibility Notice */}
+              {eligibilityError && (
+                <div className="p-3.5 rounded-admin bg-amber-50 border border-amber-200 text-amber-900 text-admin-xs space-y-2.5 animate-fadeIn">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle size={15} className="text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-bold text-amber-950 text-admin-xs">
+                        {eligibilityError.marathiMessage}
+                      </div>
+                      <div className="text-[11px] text-amber-800 mt-0.5">
+                        {eligibilityError.message}
+                      </div>
+                    </div>
+                  </div>
+                  {eligibilityError.redirectUrl && (
+                    <div className="pt-1">
+                      <Link
+                        href={eligibilityError.redirectUrl}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-admin-sm bg-amber-600 hover:bg-amber-700 text-white font-bold text-admin-xs text-decoration-none shadow-xs transition-colors"
+                      >
+                        <span>{eligibilityError.actionText || "Continue →"}</span>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Tabs */}
               <div role="tablist" className="grid grid-cols-2 gap-1 p-1 bg-admin-bg border border-admin-border rounded-admin">
                 {(["otp", "email"] as AuthMethod[]).map(m => (
@@ -332,16 +473,81 @@ export default function PartnerLogin() {
                     </p>
                   </div>
 
-                  <button
-                    type="submit"
-                    disabled={busy || !isMobileValid}
-                    className="admin-focus group w-full h-10 sm:h-11 rounded-admin bg-admin-accent hover:bg-admin-accent/90 disabled:opacity-50 disabled:cursor-not-allowed text-white text-admin-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-admin-1"
-                  >
-                    {otpLoading
-                      ? <><span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" />Sending OTP...</>
-                      : <>Get Verification OTP <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5 shrink-0" /></>
-                    }
-                  </button>
+                  {/* If OTP not yet sent: show Get OTP button */}
+                  {!otpSent ? (
+                    <button
+                      type="submit"
+                      disabled={busy || !isMobileValid}
+                      className="admin-focus group w-full h-10 sm:h-11 rounded-admin bg-admin-accent hover:bg-admin-accent/90 disabled:opacity-50 disabled:cursor-not-allowed text-white text-admin-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-admin-1"
+                    >
+                      {otpLoading
+                        ? <><span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" />Sending OTP...</>
+                        : <>Get Verification OTP <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5 shrink-0" /></>
+                      }
+                    </button>
+                  ) : (
+                    /* Inline OTP Verification directly underneath mobile number */
+                    <div className="space-y-4 pt-3 border-t border-admin-border animate-fadeIn">
+                      <div className="flex items-center justify-between text-admin-xs">
+                        <span className="text-admin-muted">
+                          Code sent via WhatsApp to <strong>+91 {mobileNumber}</strong>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => { setOtpSent(false); setOtpValues(["", "", "", "", "", ""]); setError("") }}
+                          className="text-admin-accent font-bold hover:underline"
+                        >
+                          Change
+                        </button>
+                      </div>
+
+                      {/* 6-box OTP Input */}
+                      <div className="flex justify-between gap-1.5 sm:gap-2">
+                        {otpValues.map((digit, idx) => (
+                          <input
+                            key={idx}
+                            id={`login-otp-${idx}`}
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={1}
+                            autoFocus={idx === 0}
+                            value={digit}
+                            onChange={e => handleOtpBoxChange(idx, e.target.value)}
+                            onKeyDown={e => handleOtpBoxKeyDown(idx, e)}
+                            className="w-10 sm:w-12 h-11 sm:h-12 text-center text-lg font-bold rounded-admin border border-admin-border bg-admin-bg text-admin-text focus:border-admin-accent focus:ring-2 focus:ring-admin-accent/20"
+                          />
+                        ))}
+                      </div>
+
+                      {/* Resend & Timer */}
+                      <div className="flex items-center justify-between text-admin-xs">
+                        <span className="text-admin-muted">
+                          {canResend ? "Didn't receive code?" : `Resend in ${otpTimer}s`}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={!canResend || resending}
+                          onClick={handleResendMobileOtp}
+                          className="text-admin-accent font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:underline"
+                        >
+                          {resending ? "Sending..." : "Resend OTP on WhatsApp"}
+                        </button>
+                      </div>
+
+                      {/* Verify Button */}
+                      <button
+                        type="button"
+                        onClick={handleVerifyInlineOtp}
+                        disabled={verifyLoading || otpValues.join("").length < 6}
+                        className="admin-focus group w-full h-10 sm:h-11 rounded-admin bg-admin-accent hover:bg-admin-accent/90 disabled:opacity-50 disabled:cursor-not-allowed text-white text-admin-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-admin-1"
+                      >
+                        {verifyLoading
+                          ? <><span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" />Verifying OTP...</>
+                          : <>Verify OTP &amp; Log In <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5 shrink-0" /></>
+                        }
+                      </button>
+                    </div>
+                  )}
                 </form>
               ) : (
                 <form onSubmit={handleEmailLogin} noValidate className="space-y-4">
@@ -451,14 +657,6 @@ export default function PartnerLogin() {
 
       {/* ── Shared Footer (same as onboarding) ── */}
       <PartnerPortalFooter />
-
-      <WhatsAppOtpModal
-        isOpen={showOtpModal}
-        phoneNumber={mobileNumber}
-        onClose={() => setShowOtpModal(false)}
-        onVerified={handleOtpVerified}
-        onChangeNumber={() => setShowOtpModal(false)}
-      />
     </div>
   )
 }

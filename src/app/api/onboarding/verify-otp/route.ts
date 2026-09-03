@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { getAdminDb, getAdminAuth } from "@/lib/firebase-admin";
+import { memoryOtpStore } from "@/lib/otp-store";
 
 const OTP_SALT = process.env.OTP_HASH_SALT || "TSM_SECURE_FINTECH_SALT_2026";
 
@@ -21,27 +22,42 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Phone number and OTP are required" }, { status: 400 });
     }
 
-    const clientIp = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "127.0.0.1";
-    const db = getAdminDb();
-    const otpDocRef = db.collection("partner_otp_codes").doc(cleanPhone);
-    const otpDoc = await otpDocRef.get();
+    let data: any = null;
+    let otpDocRef: any = null;
 
-    if (!otpDoc.exists) {
+    try {
+      const db = getAdminDb();
+      if (db) {
+        otpDocRef = db.collection("partner_otp_codes").doc(cleanPhone);
+        const otpDoc = await otpDocRef.get();
+        if (otpDoc.exists) {
+          data = otpDoc.data();
+        }
+      }
+    } catch (dbErr) {
+      console.warn("Firestore verify-otp fallback (using memory store):", dbErr);
+    }
+
+    if (!data) {
+      data = memoryOtpStore.get(cleanPhone);
+    }
+
+    if (!data) {
       return NextResponse.json({ error: "No active OTP found. Please request a new OTP." }, { status: 404 });
     }
 
-    const data = otpDoc.data();
-
     // Check attempts limit (max 5 attempts)
     if ((data?.verifyAttempts || 0) >= 5) {
-      await otpDocRef.delete();
+      try { await otpDocRef?.delete(); } catch {}
+      memoryOtpStore.delete(cleanPhone);
       return NextResponse.json({ error: "Too many failed attempts. Please request a new OTP." }, { status: 429 });
     }
 
     // Check expiration
     const expiresAt = data?.expiresAt?.toDate ? data.expiresAt.toDate() : new Date(data?.expiresAt || 0);
     if (new Date() > expiresAt) {
-      await otpDocRef.delete();
+      try { await otpDocRef?.delete(); } catch {}
+      memoryOtpStore.delete(cleanPhone);
       return NextResponse.json({ error: "OTP has expired. Please request a new OTP." }, { status: 400 });
     }
 
@@ -51,12 +67,19 @@ export async function POST(request: Request) {
     const isMatched = expectedHashedOtp ? expectedHashedOtp === computedHashedOtp : data?.otp === cleanOtp;
 
     if (!isMatched) {
-      await otpDocRef.update({ verifyAttempts: (data?.verifyAttempts || 0) + 1 });
+      try {
+        await otpDocRef?.update({ verifyAttempts: (data?.verifyAttempts || 0) + 1 });
+      } catch {}
+      if (data) {
+        data.verifyAttempts = (data.verifyAttempts || 0) + 1;
+        memoryOtpStore.set(cleanPhone, data);
+      }
       return NextResponse.json({ error: "Invalid verification OTP code. Please check and try again." }, { status: 400 });
     }
 
     // Verified! Erase ephemeral OTP record
-    await otpDocRef.delete();
+    try { await otpDocRef?.delete(); } catch {}
+    memoryOtpStore.delete(cleanPhone);
 
     const now = new Date();
 

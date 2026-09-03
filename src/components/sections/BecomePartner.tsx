@@ -13,7 +13,7 @@ export function BecomePartner() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    router.push('/onboarding')
+    window.location.href = "https://partner.techstarsolution.in/onboarding"
   }
 
   const benefits = [

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { getAdminDb } from "@/lib/firebase-admin";
+import { checkPartnerEligibility } from "@/app/api/partner/check-eligibility/route";
+import { memoryOtpStore } from "@/lib/otp-store";
 
 const PHONE_ID = process.env.WHATSAPP_PHONE_ID;
 const TOKEN = process.env.WHATSAPP_TOKEN;
@@ -26,12 +28,25 @@ export async function POST(request: Request) {
     const db = getAdminDb();
     const now = new Date();
 
-    // ─── 1. RATE LIMITING (Sliding Window: Max 5 OTPs per 10 minutes) ───
-    const otpDocRef = db.collection("partner_otp_codes").doc(cleanPhone);
-    const existingOtpSnap = await otpDocRef.get();
-    
-    if (existingOtpSnap.exists) {
-      const existingData = existingOtpSnap.data();
+    // ─── 1. RATE LIMITING & ELIGIBILITY ───
+    let existingData: any = null;
+    let otpDocRef: any = null;
+
+    try {
+      const db = getAdminDb();
+      if (db) {
+        otpDocRef = db.collection("partner_otp_codes").doc(cleanPhone);
+        const existingOtpSnap = await otpDocRef.get();
+        if (existingOtpSnap.exists) {
+          existingData = existingOtpSnap.data();
+        }
+      }
+    } catch (dbErr) {
+      console.warn("Firestore rate limiting check fallback (using memory store):", dbErr);
+      existingData = memoryOtpStore.get(cleanPhone);
+    }
+
+    if (existingData) {
       const lastSent = existingData?.lastSentAt?.toDate ? existingData.lastSentAt.toDate() : new Date(existingData?.lastSentAt || 0);
       const diffMs = now.getTime() - lastSent.getTime();
       const attemptsCount = existingData?.sendAttempts || 0;
@@ -52,35 +67,19 @@ export async function POST(request: Request) {
       }
     }
 
-    // ─── 2. CHECK APPROVED PARTNER STATUS ───
-    const partnerSnap = await db.collection("partners").doc(cleanPhone).get();
-    let isApprovedPartner = false;
-    let dsaCode = "";
-
-    if (partnerSnap.exists) {
-      const pData = partnerSnap.data();
-      const pStatus = String(pData?.status || pData?.partnerStatus || "").toLowerCase();
-      if (pStatus === "active" || pStatus === "approved") {
-        isApprovedPartner = true;
-        dsaCode = pData?.dsaCode || pData?.partnerId || "";
-      }
-    } else {
-      const partnerQuery = await db.collection("partners").where("mobileNumber", "==", cleanPhone).get();
-      if (!partnerQuery.empty) {
-        const pData = partnerQuery.docs[0].data();
-        const pStatus = String(pData?.status || pData?.partnerStatus || "").toLowerCase();
-        if (pStatus === "active" || pStatus === "approved") {
-          isApprovedPartner = true;
-          dsaCode = pData?.dsaCode || pData?.partnerId || "";
-        }
-      }
-    }
-
-    if (!isLogin && isApprovedPartner) {
+    // ─── 2. CHECK PARTNER ELIGIBILITY BEFORE SENDING OTP ───
+    const eligibility = await checkPartnerEligibility(cleanPhone, isLogin ? "login" : "onboarding");
+    if (!eligibility.eligible) {
       return NextResponse.json({
-        error: "Your DSA Partner Application has already been approved! Please log in to access your Partner Portal.",
-        alreadyApproved: true,
-        dsaCode,
+        eligible: false,
+        error: eligibility.marathiMessage || eligibility.message,
+        message: eligibility.message,
+        marathiMessage: eligibility.marathiMessage,
+        reason: eligibility.reason,
+        status: eligibility.status,
+        redirectUrl: eligibility.redirectUrl,
+        dsaCode: eligibility.dsaCode,
+        applicationId: eligibility.applicationId,
       }, { status: 400 });
     }
 
@@ -89,17 +88,33 @@ export async function POST(request: Request) {
     const hashedOtp = hashOtp(otp, cleanPhone);
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes validity
 
-    const previousAttempts = existingOtpSnap.exists ? existingOtpSnap.data()?.sendAttempts || 0 : 0;
+    const previousAttempts = existingData?.sendAttempts || 0;
 
-    await otpDocRef.set({
+    // Save to Firestore and memory fallback
+    try {
+      if (otpDocRef) {
+        await otpDocRef.set({
+          hashedOtp,
+          expiresAt,
+          phoneNumber: cleanPhone,
+          verifyAttempts: 0,
+          sendAttempts: previousAttempts + 1,
+          lastSentAt: now,
+          ip: clientIp,
+          createdAt: now,
+        });
+      }
+    } catch (saveErr) {
+      console.warn("Firestore OTP write fallback (using memory store):", saveErr);
+    }
+
+    memoryOtpStore.set(cleanPhone, {
       hashedOtp,
       expiresAt,
       phoneNumber: cleanPhone,
       verifyAttempts: 0,
       sendAttempts: previousAttempts + 1,
       lastSentAt: now,
-      ip: clientIp,
-      createdAt: now,
     });
 
     // ─── 4. IMMUTABLE AUDIT LOG ───

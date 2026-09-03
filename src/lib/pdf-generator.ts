@@ -9,6 +9,11 @@ export interface PartnerAgreementData {
   dsaCode: string
   mobileNumber: string
   email: string
+  panNumber?: string
+  bankAccountNumber?: string
+  bankName?: string
+  ifscCode?: string
+  gstin?: string
   addressLine1?: string
   addressLine2?: string
   city?: string
@@ -16,6 +21,7 @@ export interface PartnerAgreementData {
   pinCode?: string
   signedAt?: string
   ipAddress?: string
+  isPreview?: boolean
 }
 
 export function generatePartnerAgreementPdf(data: PartnerAgreementData): Buffer {
@@ -137,10 +143,25 @@ export function generatePartnerAgreementPdf(data: PartnerAgreementData): Buffer 
   }
 
   // ── Document Title ──────────────────────────────────────────────────────
+  // Mask PAN: e.g. ABCDE••••F
+  const maskedPan = data.panNumber && data.panNumber.length === 10
+    ? `${data.panNumber.slice(0, 5)}••••${data.panNumber.slice(9)}`
+    : (data.panNumber || "—")
+
+  // Mask Bank Account: e.g. ••••••••1234
+  const cleanBankAcct = data.bankAccountNumber ? data.bankAccountNumber.replace(/\s+/g, "") : ""
+  const maskedBank = cleanBankAcct.length >= 4
+    ? `••••••••${cleanBankAcct.slice(-4)}`
+    : (cleanBankAcct || "—")
+
+  // ── Document Title ──────────────────────────────────────────────────────
   doc.setFont("helvetica", "bold")
   doc.setFontSize(13)
   doc.setTextColor(15, 41, 66)
-  doc.text("MEMORANDUM OF UNDERSTANDING (MOU)", 105, y, { align: "center" })
+  const docTitle = data.isPreview
+    ? "MEMORANDUM OF UNDERSTANDING (MOU) — PREVIEW COPY"
+    : "MEMORANDUM OF UNDERSTANDING (MOU)"
+  doc.text(docTitle, 105, y, { align: "center" })
 
   y += 4
   doc.setLineWidth(0.4)
@@ -151,23 +172,29 @@ export function generatePartnerAgreementPdf(data: PartnerAgreementData): Buffer 
   // ── Document Details Box ───────────────────────────────────────────────
   doc.setFillColor(248, 250, 252)
   doc.setDrawColor(226, 232, 240)
-  doc.roundedRect(leftMargin, y, contentWidth, 24, 2, 2, "FD")
+  doc.roundedRect(leftMargin, y, contentWidth, 34, 2, 2, "FD")
 
-  doc.setFontSize(9)
+  doc.setFontSize(8.5)
   doc.setFont("helvetica", "bold")
   doc.setTextColor(15, 23, 42)
-  doc.text(`Partner Code (DSA Code): ${data.dsaCode}`, leftMargin + 4, y + 6)
-  doc.text(`Date of Execution: ${today}`, leftMargin + 100, y + 6)
+  doc.text(`Partner Code: ${data.dsaCode}`, leftMargin + 4, y + 5.5)
+  doc.text(`Date of Execution: ${today}`, leftMargin + 95, y + 5.5)
 
   doc.setFont("helvetica", "normal")
   doc.setTextColor(71, 85, 105)
-  doc.text(`Partner Name: ${data.fullName}`, leftMargin + 4, y + 12)
-  doc.text(`Mobile: +91 ${data.mobileNumber}`, leftMargin + 100, y + 12)
+  doc.text(`Partner Name: ${data.fullName}`, leftMargin + 4, y + 11.5)
+  doc.text(`Mobile: +91 ${data.mobileNumber}`, leftMargin + 95, y + 11.5)
 
-  doc.text(`Email: ${data.email || "N/A"}`, leftMargin + 4, y + 18)
-  doc.text(`Category: ${data.partnerType || "Individual"} ${data.firmType ? `(${data.firmType})` : ""}`, leftMargin + 100, y + 18)
+  doc.text(`PAN (Masked): ${maskedPan}`, leftMargin + 4, y + 17.5)
+  doc.text(`Email: ${data.email || "N/A"}`, leftMargin + 95, y + 17.5)
 
-  y += 30
+  doc.text(`Bank A/C: ${maskedBank} ${data.bankName ? `(${data.bankName})` : ""}`, leftMargin + 4, y + 23.5)
+  doc.text(`IFSC Code: ${data.ifscCode || "—"}`, leftMargin + 95, y + 23.5)
+
+  doc.text(`Category: ${data.partnerType || "Individual"} ${data.firmType ? `(${data.firmType})` : ""}`, leftMargin + 4, y + 29.5)
+  doc.text(`GSTIN: ${data.gstin || "Not Applicable"}`, leftMargin + 95, y + 29.5)
+
+  y += 40
 
   // ── Preamble ────────────────────────────────────────────────────────────
   doc.setFont("helvetica", "normal")

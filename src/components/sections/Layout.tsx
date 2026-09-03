@@ -56,7 +56,7 @@ export function Header() {
     { name: "Home", href: "/", icon: Home },
     { name: "Personal Loan", href: "/personal-loan", icon: User },
     { name: "Home Loan", href: "/home-loan", icon: Home },
-    { name: "Become DSA Partner", href: "/become-dsa-partner", icon: Briefcase },
+    { name: "Become DSA Partner", href: "https://partner.techstarsolution.in", icon: Briefcase },
     { name: "My Account", href: "/dashboard", icon: LayoutDashboard },
   ]
 
@@ -459,7 +459,7 @@ export function Footer() {
                 { name: "About Us", href: "/about" },
                 { name: "Privacy Policy", href: "/privacy" },
                 { name: "Terms & Conditions", href: "/terms" },
-                { name: "Become a Partner", href: "/become-dsa-partner" }
+                { name: "Become a Partner", href: "https://partner.techstarsolution.in" }
               ].map((link) => (
                 <li key={link.name}>
                   <a href={link.href} className="text-slate-500 hover:text-amber-500 dark:text-slate-500 dark:hover:text-white hover:pl-1 text-decoration-none transition-all duration-300 block">

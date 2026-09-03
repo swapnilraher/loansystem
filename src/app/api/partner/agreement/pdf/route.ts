@@ -24,6 +24,13 @@ export async function GET(request: Request) {
     const dsaCode = userData?.dsaCode || appData?.dsaCode || "TSM-PARTNER"
     const partnerEmail = userData?.email || appData?.email || ""
 
+    const isPreview = searchParams.get("preview") === "true" || (!appData?.agreementSigned && !userData?.agreementSigned)
+    const panNumber = appData?.panNumber || userData?.pan || ""
+    const bankAccountNumber = appData?.bankDetails?.accountNumber || userData?.bankAccountNumber || ""
+    const bankName = appData?.bankDetails?.bankName || userData?.bankName || ""
+    const ifscCode = appData?.bankDetails?.ifsc || userData?.ifscCode || ""
+    const gstin = appData?.gstin || userData?.gstin || ""
+
     const pdfBuffer = generatePartnerAgreementPdf({
       fullName: partnerName,
       firmName: appData?.firmName || userData?.firmName || "",
@@ -33,6 +40,11 @@ export async function GET(request: Request) {
       dsaCode: dsaCode,
       mobileNumber: mobile || appData?.mobileNumber || "",
       email: partnerEmail,
+      panNumber: panNumber,
+      bankAccountNumber: bankAccountNumber,
+      bankName: bankName,
+      ifscCode: ifscCode,
+      gstin: gstin,
       addressLine1: appData?.addressLine1 || userData?.address?.line1 || "",
       addressLine2: appData?.addressLine2 || userData?.address?.line2 || "",
       city: appData?.city || userData?.address?.city || "",
@@ -40,6 +52,7 @@ export async function GET(request: Request) {
       pinCode: appData?.pinCode || userData?.address?.pincode || "",
       signedAt: appData?.agreementSignedAt || userData?.agreementSignedAt || new Date().toISOString(),
       ipAddress: appData?.agreementIp || userData?.agreementIp || "127.0.0.1",
+      isPreview: isPreview,
     })
 
     return new NextResponse(pdfBuffer, {
