@@ -40,3 +40,15 @@ export const WHATSAPP_MEDIA_HEADERS = {
 
 /** Re-exported for server callers; the definition is client-safe. */
 export { mediaProxyPath } from "./whatsappMediaShared"
+
+/**
+ * WhatsApp Business Account id — the parent of the phone number, and the only
+ * node that can list approved message templates
+ * (`GET /{WABA_ID}/message_templates`). The phone id cannot.
+ *
+ * Same fallback-in-source pattern as the credentials above, and the same
+ * caveat: it lives in `whatsapp-API.env`, which Next does not load, so the
+ * literal is what actually runs until it is moved into the environment.
+ */
+export const WHATSAPP_WABA_ID =
+  process.env.WHATSAPP_WABA_ID || process.env.WABA_ID || "1493282642455205"
