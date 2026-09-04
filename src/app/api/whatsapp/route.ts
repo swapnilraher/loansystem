@@ -47,7 +47,7 @@ export async function POST(request: Request) {
             {
               type: "image",
               image: {
-                link: mediaUrl || "https://partner.techstarsolution.in/og-image.png"
+                link: mediaUrl || "https://res.cloudinary.com/ugpy6fko/image/upload/v1788543861/wa-campaigns/u3xz2l1lpx7wylsxitog.png"
               }
             }
           ]
