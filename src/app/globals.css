@@ -339,6 +339,65 @@
   --color-wa-active: var(--wa-active);
 }
 
+/* ==========================================================================
+   PARTNER BRAND SURFACE
+   --------------------------------------------------------------------------
+   The partner-facing auth + onboarding flows (`.partner-root`) lead with a
+   Razorpay-ish blue that the admin accent deliberately is not -- these are the
+   only screens a prospective DSA sees before they are a user, so they carry
+   the marketing brand rather than the CRM's neutral chrome.
+
+   Same arrangement as the WhatsApp surface above: real brand values, kept as
+   tokens so components still obey "no raw hex", with dark handled in the same
+   place as everything else. Everything structural on these screens -- borders,
+   text, surfaces, tones -- stays on the admin tokens.
+
+   NOT in here: the four Google-brand hex in the Google logo SVG on
+   /partner/login. That mark is licensed artwork with fixed colours; theming it
+   would misrepresent it.
+   ========================================================================== */
+:root {
+  --brand: #1769AA;
+  --brand-bright: #2186D6;
+  --brand-strong: #1357A0;
+  --brand-line: #C7D9F5;
+  --brand-ring: #E3EBF8;
+  --brand-muted: #667085;
+  --brand-node: #ffffff;
+  --brand-fg: #ffffff;
+  --brand-hover: #13598E;
+  --brand-soft: #EEF4FC;
+  --brand-soft-fg: #0F4C7F;
+}
+
+[data-admin-theme="dark"] {
+  --brand: #57A9E8;
+  --brand-bright: #3E9BE0;
+  --brand-strong: #1B6FC0;
+  --brand-line: #24425F;
+  --brand-ring: #1E374E;
+  --brand-muted: #93A1B5;
+  --brand-node: #131C26;
+  --brand-fg: #ffffff;
+  --brand-hover: #7ABDEE;
+  --brand-soft: #16283A;
+  --brand-soft-fg: #9CCBF0;
+}
+
+@theme inline {
+  --color-brand: var(--brand);
+  --color-brand-bright: var(--brand-bright);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-line: var(--brand-line);
+  --color-brand-ring: var(--brand-ring);
+  --color-brand-muted: var(--brand-muted);
+  --color-brand-node: var(--brand-node);
+  --color-brand-fg: var(--brand-fg);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-soft-fg: var(--brand-soft-fg);
+}
+
 @theme inline {
   --color-admin-bg: var(--admin-bg);
   --color-admin-surface: var(--admin-surface);

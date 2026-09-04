@@ -5,12 +5,19 @@ import Link from "next/link"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-type Variant = "primary" | "secondary" | "ghost" | "danger"
+type Variant = "primary" | "brand" | "secondary" | "ghost" | "danger"
 type Size = "sm" | "md"
 
 const VARIANTS: Record<Variant, string> = {
   primary:
     "bg-admin-accent text-admin-accent-fg border border-transparent hover:bg-admin-accent-hover",
+  /*
+   * The partner-facing auth + onboarding flows only. Those screens lead with
+   * the marketing brand blue, not the CRM emerald -- see PARTNER BRAND
+   * SURFACE in globals.css. Everything inside /admin stays on `primary`.
+   */
+  brand:
+    "bg-brand text-brand-fg border border-transparent hover:bg-brand-hover",
   secondary:
     "bg-admin-surface text-admin-text border border-admin-border hover:bg-admin-surface-2 hover:border-admin-border-strong",
   ghost:

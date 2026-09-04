@@ -33,27 +33,32 @@ function NetworkSVG() {
     <svg viewBox="0 0 320 210" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="w-full max-w-[320px]">
       <defs>
         <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#2186D6" /><stop offset="100%" stopColor="#1357A0" />
+          <stop offset="0%" style={{ stopColor: "var(--brand-bright)" }} />
+          <stop offset="100%" style={{ stopColor: "var(--brand-strong)" }} />
         </linearGradient>
-        <filter id="ns"><feDropShadow dx="0" dy="1.5" stdDeviation="2.5" floodColor="#1769AA" floodOpacity="0.1" /></filter>
-        <filter id="cs"><feDropShadow dx="0" dy="4" stdDeviation="7" floodColor="#1769AA" floodOpacity="0.22" /></filter>
+        <filter id="ns">
+          <feDropShadow dx="0" dy="1.5" stdDeviation="2.5" floodOpacity="0.1" style={{ floodColor: "var(--brand)" }} />
+        </filter>
+        <filter id="cs">
+          <feDropShadow dx="0" dy="4" stdDeviation="7" floodOpacity="0.22" style={{ floodColor: "var(--brand)" }} />
+        </filter>
       </defs>
       {nodes.map(n => (
-        <line key={n.s} x1={cx} y1={cy} x2={n.x} y2={n.y} stroke="#C7D9F5" strokeWidth="1.2" strokeDasharray="4 3" />
+        <line key={n.s} x1={cx} y1={cy} x2={n.x} y2={n.y} className="stroke-brand-line" strokeWidth="1.2" strokeDasharray="4 3" />
       ))}
       {nodes.map(n => (
         <g key={n.s}>
-          <circle cx={n.x} cy={n.y} r={22} fill="white" stroke="#E3EBF8" strokeWidth="1.2" filter="url(#ns)" />
-          <text x={n.x} y={n.y - 3} textAnchor="middle" fontSize="8" fontWeight="700" fill="#1769AA" fontFamily="Inter,sans-serif">{n.s}</text>
-          <text x={n.x} y={n.y + 7} textAnchor="middle" fontSize="6.5" fill="#667085" fontFamily="Inter,sans-serif">{n.l}</text>
+          <circle cx={n.x} cy={n.y} r={22} className="fill-brand-node stroke-brand-ring" strokeWidth="1.2" filter="url(#ns)" />
+          <text x={n.x} y={n.y - 3} textAnchor="middle" fontSize="8" fontWeight="700" className="fill-brand" fontFamily="Inter,sans-serif">{n.s}</text>
+          <text x={n.x} y={n.y + 7} textAnchor="middle" fontSize="6.5" className="fill-brand-muted" fontFamily="Inter,sans-serif">{n.l}</text>
         </g>
       ))}
       <rect x={cx - 42} y={cy - 24} width="84" height="48" rx="10" fill="url(#cg)" filter="url(#cs)" />
       <text x={cx} y={cy - 9} textAnchor="middle" fontSize="7.5" fontWeight="700" fill="rgba(255,255,255,0.7)" fontFamily="Inter,sans-serif" letterSpacing="0.08em">TECHSTAR</text>
       <text x={cx} y={cy + 2} textAnchor="middle" fontSize="8" fontWeight="700" fill="white" fontFamily="Inter,sans-serif">MONEY</text>
       <text x={cx} y={cy + 13} textAnchor="middle" fontSize="6" fill="rgba(255,255,255,0.6)" fontFamily="Inter,sans-serif">Partner Network</text>
-      <circle cx={cx} cy={cy} r={35} stroke="#1769AA" strokeWidth="0.8" strokeOpacity="0.1" fill="none" />
-      <circle cx={cx} cy={cy} r={48} stroke="#1769AA" strokeWidth="0.6" strokeOpacity="0.06" fill="none" />
+      <circle cx={cx} cy={cy} r={35} className="stroke-brand" strokeWidth="0.8" strokeOpacity="0.1" fill="none" />
+      <circle cx={cx} cy={cy} r={48} className="stroke-brand" strokeWidth="0.6" strokeOpacity="0.06" fill="none" />
     </svg>
   )
 }

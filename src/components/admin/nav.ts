@@ -174,10 +174,10 @@ export const NAV_GROUPS: NavGroup[] = [
         keywords: "bot flows replies",
       },
       {
-        name: "Automation",
+        name: "WhatsApp Campaigns",
         href: "/admin/automation",
         icon: Sliders,
-        keywords: "rules triggers workflows",
+        keywords: "bulk broadcast excel blast marketing automation templates",
       },
       {
         name: "Cloud Storage",

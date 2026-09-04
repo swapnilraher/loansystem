@@ -33,6 +33,9 @@ import {
   Zap,
 } from "lucide-react"
 
+import { AdminButton } from "@/components/admin/ui/Button"
+import { FormErrorRegion, type ErrorKind } from "@/components/onboarding/FormErrorRegion"
+import { OnboardingStepHeader } from "@/components/onboarding/OnboardingStepHeader"
 import PartnerAgreementModal from "@/components/partner/PartnerAgreementModal"
 import { PartnerPortalHeader, PartnerPortalFooter } from "@/components/layout/PartnerPortalShell"
 import ImageCropModal from "@/components/onboarding/ImageCropModal"
@@ -58,6 +61,51 @@ function messageFor(err: unknown, fallback: string): string {
   return detail || fallback
 }
 
+/**
+ * "Offline" and "the request timed out" are not validation failures and must
+ * not read like one: a partner who has lost signal needs to be told to check
+ * their connection, not to check the form they filled in correctly.
+ *
+ * A `fetch` that rejects rather than resolving is always transport -- the
+ * server never got the request or never answered. Everything that resolves
+ * with a non-2xx has a real message from our own API and stays "validation".
+ */
+function classifyError(err: unknown): ErrorKind {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return "offline"
+  const name = (err as { name?: string })?.name
+  if (name === "AbortError" || name === "TimeoutError") return "timeout"
+  if (err instanceof TypeError) return "network"
+  return "validation"
+}
+
+function messageForKind(kind: ErrorKind, fallback: string): string {
+  if (kind === "offline") return "You are offline. Your answers are safe on this device — reconnect and try again."
+  if (kind === "timeout") return "That request took too long. Nothing was lost — press the button again to retry."
+  if (kind === "network") return "Could not reach Techstar Money. Check your connection and try again."
+  return fallback
+}
+
+/** Fetch with a hard ceiling, so a hung request becomes a timeout the UI can name. */
+const REQUEST_TIMEOUT_MS = 30000
+
+async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  return fetch(input, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
+}
+
+/** After this many wrong codes the OTP form stops accepting input. */
+const MAX_OTP_ATTEMPTS = 5
+
+/** "12 minutes ago" beats an ISO string when the point is "is this recent?". */
+function formatWhen(d: Date): string {
+  const mins = Math.round((Date.now() - d.getTime()) / 60000)
+  if (mins < 1) return "just now"
+  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`
+  const hrs = Math.round(mins / 60)
+  if (hrs < 24) return `${hrs} hour${hrs === 1 ? "" : "s"} ago`
+  const days = Math.round(hrs / 24)
+  return `${days} day${days === 1 ? "" : "s"} ago`
+}
+
 /** Name matching utility for Bank vs Applicant */
 function calculateNameMatchScore(str1: string, str2: string): number {
   if (!str1 || !str2) return 0
@@ -78,6 +126,87 @@ function calculateNameMatchScore(str1: string, str2: string): number {
   return Math.round(Math.max((matchedTokens1 / tokens1.length) * 100, (matchedTokens2 / tokens2.length) * 100))
 }
 
+/**
+ * One document slot: idle, uploading, uploaded, or failed.
+ *
+ * Failure keeps the tile in place with a Retry rather than reverting to the
+ * empty state -- reverting reads as "nothing happened", which is exactly the
+ * wrong message when a 4 MB photo has just been thrown away by a dropped
+ * connection.
+ */
+function DocTile({
+  docKey,
+  doc,
+  progress,
+  failed,
+  onPick,
+  onRetry,
+}: {
+  docKey: DocKey
+  doc: DocMeta | null
+  progress?: number
+  failed: boolean
+  onPick: () => void
+  onRetry: () => void
+}) {
+  const uploading = typeof progress === "number" && progress < 100 && !doc
+
+  if (uploading) {
+    return (
+      <div className="space-y-2" aria-live="polite">
+        <div className="flex items-center justify-between text-admin-xs font-bold text-admin-muted">
+          <span>Uploading…</span>
+          <span className="admin-num">{progress}%</span>
+        </div>
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-admin-surface-3">
+          <div className="h-full rounded-full bg-brand transition-[width]" style={{ width: `${progress}%` }} />
+        </div>
+      </div>
+    )
+  }
+
+  if (failed) {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5 text-admin-xs font-bold text-tone-danger-fg">
+          <AlertCircle size={14} /> Upload failed
+        </div>
+        <AdminButton type="button" size="sm" variant="secondary" icon={RefreshCw} onClick={onRetry} className="w-full">
+          Retry upload
+        </AdminButton>
+      </div>
+    )
+  }
+
+  if (doc) {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5 text-admin-xs font-bold text-tone-success-fg">
+          <CheckCircle2 size={14} className="shrink-0" />
+          <span className="truncate" title={doc.fileName}>{doc.fileName || "Uploaded"}</span>
+        </div>
+        <AdminButton type="button" size="sm" variant="secondary" icon={Crop} onClick={onPick} className="w-full">
+          Replace / crop
+        </AdminButton>
+      </div>
+    )
+  }
+
+  return (
+    <AdminButton
+      type="button"
+      size="sm"
+      variant="brand"
+      icon={Upload}
+      onClick={onPick}
+      className="w-full"
+      aria-label={`Upload ${docKey}`}
+    >
+      Upload &amp; crop
+    </AdminButton>
+  )
+}
+
 export default function OnboardingPage() {
   // ─── Inline Mobile & OTP Verification States ───
   const [mobileNumber, setMobileNumber] = useState("")
@@ -90,7 +219,13 @@ export default function OnboardingPage() {
   const [canResend, setCanResend] = useState(false)
   const [resending, setResending] = useState(false)
   const [mobileError, setMobileError] = useState<string | null>(null)
+  const [mobileErrorKind, setMobileErrorKind] = useState<ErrorKind>("validation")
   const [resuming, setResuming] = useState(false)
+
+  // Wrong codes entered against the current OTP. Reset by a resend or a number
+  // change, because both issue a fresh code.
+  const [otpAttempts, setOtpAttempts] = useState(0)
+  const otpLockedOut = otpAttempts >= MAX_OTP_ATTEMPTS
 
   // Guards automatic verification so one OTP is submitted exactly once.
   const autoVerifiedRef = useRef("")
@@ -108,6 +243,34 @@ export default function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [savingStep, setSavingStep] = useState(false)
   const [stepError, setStepError] = useState<string | null>(null)
+  const [stepErrorKind, setStepErrorKind] = useState<ErrorKind>("validation")
+  // The id of the field a validation message is about, so the input can carry
+  // aria-invalid and be scrolled to rather than leaving the partner to hunt.
+  const [invalidField, setInvalidField] = useState<string | null>(null)
+
+  // What a returning partner is told was restored, and from when. A form that
+  // silently refills itself reads as a bug, not a convenience.
+  const [restoredNote, setRestoredNote] = useState<string | null>(null)
+
+  // Set only when the local draft and the server draft disagree about how far
+  // this application got. Whichever is newer is applied; this records that a
+  // choice was made so it can be shown and reversed.
+  const [draftConflict, setDraftConflict] = useState<{
+    localStep: number
+    serverStep: number
+    localSavedAt: Date
+    applied: "local" | "server"
+  } | null>(null)
+
+  // Per-document upload progress, so a slow connection shows movement on the
+  // tile that was pressed rather than a page-wide spinner.
+  const [uploadProgress, setUploadProgress] = useState<Partial<Record<DocKey, number>>>({})
+  const [uploadFailed, setUploadFailed] = useState<DocKey | null>(null)
+
+  // The step pane, so forward/back can restore scroll instead of jumping.
+  const stepPaneRef = useRef<HTMLDivElement | null>(null)
+  const scrollByStep = useRef<Record<number, number>>({})
+  const pendingFocusStep = useRef<number | null>(null)
 
   // ─── Step 1 Fields ───
   const [partnerType, setPartnerType] = useState<PartnerType>("Individual")
@@ -132,6 +295,9 @@ export default function OnboardingPage() {
   const [pinCode, setPinCode] = useState("")
   const [pincodeLoading, setPincodeLoading] = useState(false)
   const [pincodeAreas, setPincodeAreas] = useState<string[]>([])
+  // A lookup that fails is not a validation error -- the address can still be
+  // typed by hand -- so it gets its own quiet note next to the field.
+  const [pincodeNote, setPincodeNote] = useState<string | null>(null)
 
   // ─── Step 2: GST Fields ───
   const [isGstRegistered, setIsGstRegistered] = useState<"Yes" | "No">("No")
@@ -161,6 +327,7 @@ export default function OnboardingPage() {
   const [accountType, setAccountType] = useState<"Savings" | "Current">("Savings")
   const [ifscLoading, setIfscLoading] = useState(false)
   const [ifscValid, setIfscValid] = useState(false)
+  const [ifscNote, setIfscNote] = useState<string | null>(null)
   const [bankVerifying, setBankVerifying] = useState(false)
   const [bankVerified, setBankVerified] = useState(false)
   const [bankVerifyAttempts, setBankVerifyAttempts] = useState(0)
@@ -213,6 +380,60 @@ export default function OnboardingPage() {
     }
   }, [])
 
+  /*
+   * Moving between steps must not throw the partner to a random scroll offset.
+   * The outgoing step's position is remembered, the incoming step is restored
+   * to where it was left (or the top, first time), and its first control takes
+   * focus so a keyboard or screen-reader user lands inside the form rather
+   * than back at the document root.
+   */
+  useEffect(() => {
+    if (!isMobileVerified) return
+    const target = scrollByStep.current[currentStep] ?? 0
+    window.scrollTo({ top: target, behavior: "auto" })
+
+    const pane = stepPaneRef.current
+    if (!pane) return
+    const first = pane.querySelector<HTMLElement>(
+      "input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button[type=submit]:not([disabled])"
+    )
+    // Only steal focus for a step the partner navigated to, never on the
+    // first paint of a resumed draft -- that would scroll them past the
+    // "here is what we restored" notice they need to read.
+    if (first && pendingFocusStep.current === currentStep) {
+      first.focus({ preventScroll: true })
+      pendingFocusStep.current = null
+    }
+  }, [currentStep, isMobileVerified])
+
+  /**
+   * Report a validation failure and put the partner in front of the field it
+   * is about. Browsers only do this for native constraint validation; every
+   * rule on this form is custom, so without it the message appears at the top
+   * of a long form and the offending field stays offscreen.
+   */
+  const rejectField = useCallback((fieldId: string | null, message: string) => {
+    setStepErrorKind("validation")
+    setStepError(message)
+    setInvalidField(fieldId)
+    if (!fieldId) return
+    // After paint, so the reserved error region has its height.
+    requestAnimationFrame(() => {
+      const el = document.getElementById(fieldId)
+      if (!el) return
+      el.scrollIntoView({ behavior: "smooth", block: "center" })
+      ;(el as HTMLElement).focus({ preventScroll: true })
+    })
+  }, [])
+
+  /** Remember where this step was left before leaving it. */
+  const goToStep = useCallback((next: number) => {
+    scrollByStep.current[currentStep] = window.scrollY
+    pendingFocusStep.current = next
+    setStepError(null)
+    setCurrentStep(next)
+  }, [currentStep])
+
   // Auto-fill designation based on entity type
   useEffect(() => {
     if (partnerType === "Individual") {
@@ -228,7 +449,11 @@ export default function OnboardingPage() {
 
   // Load draft data
   const loadDraftForMobile = async (mob: string) => {
+    const localMeta = OnboardingStorage.getDraftMeta()
     const localDraft = OnboardingStorage.getDraft()
+    if (localMeta.expired) {
+      setRestoredNote("Your saved draft on this device had expired and was cleared. Anything you completed earlier is still on your account.")
+    }
     if (localDraft) {
       if (localDraft.fullName) setFullName(localDraft.fullName)
       if (localDraft.email) setEmail(localDraft.email)
@@ -339,9 +564,34 @@ export default function OnboardingPage() {
         if (d.agreementSigned) setIsAgreementSigned(true)
         if (d.agreementPdfUrl) setAgreementPdfUrl(d.agreementPdfUrl)
 
-        // Open the pane the server says is pending.
-        if (data.currentStep && [1, 2, 3].includes(data.currentStep)) {
-          setCurrentStep(data.currentStep)
+        /*
+         * Reconciliation. Both drafts have just been written into the same
+         * state, server last, so the server copy is what is on screen. That is
+         * the right default -- it is the record the application is actually
+         * built from, and it carries progress made on other devices. But when
+         * this device got further, saying nothing means silently discarding
+         * work the partner can remember doing, so the disagreement is shown.
+         */
+        const serverStep = [1, 2, 3].includes(data.currentStep) ? data.currentStep : 1
+        const localStep = localMeta.currentStep && [1, 2, 3].includes(localMeta.currentStep)
+          ? localMeta.currentStep
+          : null
+
+        setCurrentStep(serverStep)
+
+        if (localStep && localMeta.savedAt && localStep !== serverStep) {
+          setDraftConflict({
+            localStep,
+            serverStep,
+            localSavedAt: localMeta.savedAt,
+            applied: "server",
+          })
+        } else if (localMeta.savedAt && serverStep > 1) {
+          setRestoredNote(
+            `Picked up where you left off — step ${serverStep} of 3, last saved ${formatWhen(localMeta.savedAt)}.`
+          )
+        } else if (serverStep > 1) {
+          setRestoredNote(`Picked up where you left off — step ${serverStep} of 3, restored from your account.`)
         }
 
         OnboardingStorage.saveDraft({
@@ -352,7 +602,12 @@ export default function OnboardingPage() {
         })
       }
     } catch (e) {
-      console.warn("Could not resume remote draft:", e)
+      console.error("[onboarding] resume draft failed", { mobile: mob, error: e })
+      const kind = classifyError(e)
+      setStepErrorKind(kind)
+      setStepError(
+        messageForKind(kind, "Could not load your saved application. Anything on this device is still here — refresh to try again.")
+      )
     } finally {
       setResuming(false)
     }
@@ -360,6 +615,27 @@ export default function OnboardingPage() {
 
   // ─── Inline OTP Handlers ───
   const isMobileValid = /^[6-9]\d{9}$/.test(mobileNumber.replace(/\D/g, ""))
+
+  /**
+   * Editing a verified number invalidates the verification rather than
+   * silently keeping it. The application is keyed by mobile number, so
+   * carrying a verified flag onto a different number would attach the KYC to
+   * the wrong account.
+   */
+  const handleMobileEdited = (raw: string) => {
+    const next = raw.replace(/\D/g, "").slice(0, 10)
+    setMobileNumber(next)
+    setMobileError(null)
+    if (isMobileVerified && next !== OnboardingStorage.getSavedMobile()) {
+      setIsMobileVerified(false)
+      setOtpSent(false)
+      setOtpValues(["", "", "", "", "", ""])
+      setOtpAttempts(0)
+      autoVerifiedRef.current = ""
+      setMobileErrorKind("info")
+      setMobileError("You changed the number, so it needs verifying again. Your answers are still here.")
+    }
+  }
 
   const handleSendMobileOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
@@ -371,7 +647,7 @@ export default function OnboardingPage() {
     setMobileError(null)
     setEligibilityInfo(null)
     try {
-      const res = await fetch("/api/onboarding/send-otp", {
+      const res = await fetchWithTimeout("/api/onboarding/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber: mobileNumber }),
@@ -411,9 +687,13 @@ export default function OnboardingPage() {
       setOtpTimer(50)
       setCanResend(false)
       setOtpValues(["", "", "", "", "", ""])
+      setOtpAttempts(0)
       autoVerifiedRef.current = ""
     } catch (err: any) {
-      setMobileError(messageFor(err, "Unable to send verification OTP."))
+      console.error("[onboarding] send OTP failed", { mobile: mobileNumber, error: err })
+      const kind = classifyError(err)
+      setMobileErrorKind(kind)
+      setMobileError(messageForKind(kind, messageFor(err, "Unable to send verification OTP.")))
     } finally {
       setOtpLoading(false)
     }
@@ -424,19 +704,30 @@ export default function OnboardingPage() {
     setResending(true)
     setMobileError(null)
     try {
-      const res = await fetch("/api/onboarding/send-otp", {
+      const res = await fetchWithTimeout("/api/onboarding/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber: mobileNumber }),
       })
       const data = await res.json()
+      if (res.status === 429) {
+        throw new Error(
+          data.error || "Too many code requests. Please wait a few minutes before asking for another one."
+        )
+      }
       if (!res.ok) throw new Error(data.error || "Failed to resend OTP")
       setOtpTimer(50)
       setCanResend(false)
       setOtpValues(["", "", "", "", "", ""])
+      // A new code means a clean slate: the old attempts were against a code
+      // that no longer exists.
+      setOtpAttempts(0)
       autoVerifiedRef.current = ""
     } catch (err) {
-      setMobileError(messageFor(err, "Failed to resend OTP."))
+      console.error("[onboarding] resend OTP failed", { mobile: mobileNumber, error: err })
+      const kind = classifyError(err)
+      setMobileErrorKind(kind)
+      setMobileError(messageForKind(kind, messageFor(err, "Failed to resend OTP.")))
     } finally {
       setResending(false)
     }
@@ -481,13 +772,40 @@ export default function OnboardingPage() {
     setVerifyLoading(true)
     setMobileError(null)
     try {
-      const res = await fetch("/api/onboarding/verify-otp", {
+      const res = await fetchWithTimeout("/api/onboarding/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber: mobileNumber, otp: fullOtp }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Invalid OTP code")
+
+      /*
+       * Wrong, expired and rate-limited are three different problems with
+       * three different next actions -- retype, request a new code, wait --
+       * and collapsing them into "Invalid OTP" leaves the partner retyping a
+       * code that can never work. The server distinguishes them; so does this.
+       */
+      if (!res.ok) {
+        const reason = String(data.reason || data.code || "").toUpperCase()
+        const raw = String(data.error || "")
+        if (res.status === 429 || reason.includes("RATE") || reason.includes("TOO_MANY")) {
+          throw new Error(
+            data.error || "Too many attempts on this number. Please wait a few minutes before trying again."
+          )
+        }
+        if (reason.includes("EXPIRE") || /expir/i.test(raw)) {
+          throw new Error("That code has expired. Use Resend OTP on WhatsApp to get a fresh one.")
+        }
+        // Anything left is a wrong code, and that is the one worth counting.
+        setOtpAttempts(prev => prev + 1)
+        const used = otpAttempts + 1
+        const left = MAX_OTP_ATTEMPTS - used
+        throw new Error(
+          left > 0
+            ? `That code is not correct. ${left} attempt${left === 1 ? "" : "s"} left before you need a new code.`
+            : "That was the last attempt on this code. Request a new one to continue."
+        )
+      }
 
       // OTP section collapses into the green verified strip and the pending
       // step opens inline underneath it.
@@ -503,9 +821,13 @@ export default function OnboardingPage() {
         currentStepKey: data.currentStepKey,
       })
       await loadDraftForMobile(mobileNumber)
+      setOtpAttempts(0)
     } catch (err: any) {
+      console.error("[onboarding] verify OTP failed", { mobile: mobileNumber, error: err })
       autoVerifiedRef.current = ""
-      setMobileError(err.message || "Failed to verify OTP.")
+      const kind = classifyError(err)
+      setMobileErrorKind(kind)
+      setMobileError(messageForKind(kind, err?.message || "Failed to verify OTP."))
     } finally {
       setVerifyLoading(false)
     }
@@ -515,12 +837,12 @@ export default function OnboardingPage() {
   // Auto-submit as soon as all six digits are present.
   useEffect(() => {
     const fullOtp = otpValues.join("")
-    if (!otpSent || isMobileVerified || verifyLoading) return
+    if (!otpSent || isMobileVerified || verifyLoading || otpLockedOut) return
     if (fullOtp.length !== 6) return
     if (autoVerifiedRef.current === fullOtp) return
     autoVerifiedRef.current = fullOtp
     handleVerifyInlineOtp()
-  }, [otpValues, otpSent, isMobileVerified, verifyLoading, handleVerifyInlineOtp])
+  }, [otpValues, otpSent, isMobileVerified, verifyLoading, otpLockedOut, handleVerifyInlineOtp])
 
   const handleResetMobile = () => {
     OnboardingStorage.clearDraft()
@@ -529,7 +851,34 @@ export default function OnboardingPage() {
     setIsMobileVerified(false)
     setOtpSent(false)
     setOtpValues(["", "", "", "", "", ""])
+    setOtpAttempts(0)
+    setMobileError(null)
+    setRestoredNote(null)
+    setDraftConflict(null)
     setCurrentStep(1)
+  }
+
+  /**
+   * Discarding the local draft without touching the server record. The point
+   * is the PII: on a shared or kiosk machine this is how a partner leaves
+   * without their details sitting in the next person's devtools.
+   */
+  const handleDiscardLocalDraft = () => {
+    OnboardingStorage.clearDraft()
+    setRestoredNote(null)
+    setDraftConflict(null)
+    window.location.reload()
+  }
+
+  /**
+   * Applying the local draft after a conflict was shown. Only the step moves:
+   * field values from both drafts are already merged in state, and re-running
+   * the local hydrate would clobber newer server answers.
+   */
+  const handlePreferLocalDraft = () => {
+    if (!draftConflict) return
+    goToStep(draftConflict.localStep)
+    setDraftConflict({ ...draftConflict, applied: "local" })
   }
 
   // ─── Save Step Progress ───
@@ -543,7 +892,7 @@ export default function OnboardingPage() {
     setSavingStep(true)
     setStepError(null)
     try {
-      const res = await fetch("/api/onboarding/save-step", {
+      const res = await fetchWithTimeout("/api/onboarding/save-step", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -556,7 +905,12 @@ export default function OnboardingPage() {
       if (!res.ok) throw new Error(data.error || "Failed to save step progress.")
       return true
     } catch (err) {
-      setStepError(messageFor(err, "Failed to save progress. Please try again."))
+      console.error("[onboarding] save step failed", { step: stepNum, mobile: mobileNumber, error: err })
+      const kind = classifyError(err)
+      setStepErrorKind(kind)
+      // Nothing is cleared here: the form keeps every answer so the partner
+      // can press Continue again once they are back online.
+      setStepError(messageForKind(kind, messageFor(err, "Failed to save progress. Please try again.")))
       return false
     } finally {
       setSavingStep(false)
@@ -572,8 +926,20 @@ export default function OnboardingPage() {
       return
     }
     setPincodeLoading(true)
+    setPincodeNote(null)
     try {
-      const res = await fetch(`https://api.postalpincode.in/pincode/${clean}`)
+      const res = await fetchWithTimeout(`https://api.postalpincode.in/pincode/${clean}`)
+      /*
+       * This was the one fetch on the page that never checked `res.ok`. A 5xx
+       * from the postal API returns an HTML error body, `data[0]` is
+       * undefined, the Success branch quietly does not run, and the partner
+       * watches the spinner stop with City and State still empty and nothing
+       * telling them why. They can always type the address by hand -- so this
+       * is a note, not a blocking error.
+       */
+      if (!res.ok) {
+        throw new Error(`Pincode lookup returned ${res.status}`)
+      }
       const data = await res.json()
       if (data?.[0]?.Status === "Success" && data[0].PostOffice?.length > 0) {
         const po: PostOffice[] = data[0].PostOffice
@@ -583,9 +949,12 @@ export default function OnboardingPage() {
         const areas = [...new Set(po.map(p => p.Name).filter((n): n is string => Boolean(n)))]
         setPincodeAreas(areas)
         if (areas.length === 1) setArea(areas[0])
+      } else {
+        setPincodeNote("We could not find that PIN code. Please fill in City and State yourself.")
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error("[onboarding] pincode lookup failed", { pincode: clean, error: err })
+      setPincodeNote("Could not look up that PIN code just now — please type City and State yourself.")
     } finally {
       setPincodeLoading(false)
     }
@@ -595,39 +964,40 @@ export default function OnboardingPage() {
   const handleStep1Submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setStepError(null)
+    setInvalidField(null)
 
     // Name validations based on business type
     if (partnerType === "Individual") {
       if (!fullName.trim()) {
-        setStepError("Full Name as per PAN is required.")
+        rejectField("ob-fullName", "Full name as printed on your PAN card is required.")
         return
       }
     } else {
       if (!businessName.trim()) {
-        setStepError("Business / Firm Name is required.")
+        rejectField("ob-businessName", "Business / firm name is required.")
         return
       }
       if (!contactPersonName.trim()) {
-        setStepError("Contact Person Name is required.")
+        rejectField("ob-contactPersonName", "Contact person name is required.")
         return
       }
     }
 
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setStepError("Please provide a valid Email Address.")
+      rejectField("ob-email", "Please provide a valid email address — this is where your partner ID is sent.")
       return
     }
 
     // PAN validation (pure regex format, no Check PAN button needed)
     const cleanPan = panNumber.trim().toUpperCase()
     if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(cleanPan)) {
-      setStepError("Please enter a valid 10-character PAN number (e.g. ABCDE1234F).")
+      rejectField("ob-pan", "Please enter a valid 10-character PAN number (e.g. ABCDE1234F).")
       return
     }
 
     // DOB age validation (strictly 18 to 80 years)
     if (!dob) {
-      setStepError("Date of Birth is required.")
+      rejectField("ob-dob", "Date of birth is required.")
       return
     }
     const birthDate = new Date(dob)
@@ -637,13 +1007,25 @@ export default function OnboardingPage() {
       age--
     }
     if (age < 18 || age > 80) {
-      setStepError("Applicant age must be between 18 and 80 years to register as a DSA partner.")
+      rejectField("ob-dob", "Applicant age must be between 18 and 80 years to register as a DSA partner.")
       return
     }
 
-    // Address validations
-    if (!addressLine1.trim() || !city.trim() || !stateName.trim() || pinCode.trim().length !== 6) {
-      setStepError("Please complete all mandatory address fields (Line 1, City, State, 6-digit Pincode).")
+    // Address validations, each pointing at the field that is actually empty.
+    if (pinCode.trim().length !== 6) {
+      rejectField("ob-pincode", "A 6-digit PIN code is required.")
+      return
+    }
+    if (!addressLine1.trim()) {
+      rejectField("ob-addressLine1", "Address line 1 is required.")
+      return
+    }
+    if (!city.trim()) {
+      rejectField("ob-city", "City / district is required.")
+      return
+    }
+    if (!stateName.trim()) {
+      rejectField("ob-state", "State is required.")
       return
     }
 
@@ -690,7 +1072,7 @@ export default function OnboardingPage() {
     }
     setGstVerifying(true)
     try {
-      const res = await fetch("/api/sandbox", {
+      const res = await fetchWithTimeout("/api/sandbox", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "verify-gst", payload: { gstin: cleanGst } }),
@@ -746,33 +1128,67 @@ export default function OnboardingPage() {
         if (addrObj.pncd) setPinCode(addrObj.pncd)
       }
     } catch (err: any) {
+      console.error("[onboarding] GST verification failed", { gstin: cleanGst, error: err })
       setGstValid(false)
       setGstDetails(null)
-      setStepError(messageFor(err, "Failed to verify GSTIN."))
+      const kind = classifyError(err)
+      setStepErrorKind(kind)
+      setStepError(messageForKind(kind, messageFor(err, "Failed to verify GSTIN.")))
     } finally {
       setGstVerifying(false)
     }
   }
 
   // ─── Step 2: Document Upload & Crop Handler ───
-  const handleDocumentCropped = async (file: File) => {
-    if (!activeCropModal) return
-    const docType = activeCropModal
+  /** The file the partner last picked per slot, so Retry does not re-prompt. */
+  const lastPickedFile = useRef<Partial<Record<DocKey, File>>>({})
+
+  const uploadDocument = async (docType: DocKey, file: File) => {
     setUploadingDoc(true)
+    setUploadFailed(null)
     setStepError(null)
+    lastPickedFile.current[docType] = file
 
     const formData = new FormData()
     formData.append("file", file)
     formData.append("documentType", docType)
     formData.append("mobileNumber", mobileNumber)
 
+    /*
+     * XHR rather than fetch purely for `upload.onprogress`: fetch still has no
+     * upload progress event in any shipping browser, and a KYC photo over a
+     * rural 3G link is exactly where a percentage stops the partner assuming
+     * the page has hung and pressing the button again.
+     */
     try {
-      const res = await fetch("/api/onboarding/document/upload", {
-        method: "POST",
-        body: formData,
+      const data = await new Promise<any>((resolve, reject) => {
+        const xhr = new XMLHttpRequest()
+        xhr.open("POST", "/api/onboarding/document/upload")
+        xhr.timeout = 120000
+        xhr.upload.onprogress = e => {
+          if (!e.lengthComputable) return
+          setUploadProgress(prev => ({ ...prev, [docType]: Math.round((e.loaded / e.total) * 100) }))
+        }
+        xhr.onload = () => {
+          let parsed: any = {}
+          try {
+            parsed = JSON.parse(xhr.responseText || "{}")
+          } catch {
+            return reject(new Error("The server sent back an unreadable response. Please try again."))
+          }
+          if (xhr.status < 200 || xhr.status >= 300) {
+            return reject(new Error(parsed.error || "Document upload failed"))
+          }
+          resolve(parsed)
+        }
+        xhr.onerror = () => reject(new TypeError("Network error during upload"))
+        xhr.ontimeout = () => {
+          const e = new Error("Upload timed out")
+          e.name = "TimeoutError"
+          reject(e)
+        }
+        xhr.send(formData)
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Document upload failed")
 
       if (docType === "aadhaarFront") {
         setAadhaarFrontDoc(data.document)
@@ -782,11 +1198,32 @@ export default function OnboardingPage() {
       } else if (docType === "panDoc") {
         setPanDoc(data.document)
       }
+      setUploadProgress(prev => ({ ...prev, [docType]: 100 }))
     } catch (err) {
-      setStepError(messageFor(err, "Failed to upload document."))
+      console.error("[onboarding] document upload failed", { docType, name: file.name, size: file.size, error: err })
+      const kind = classifyError(err)
+      setStepErrorKind(kind)
+      setStepError(messageForKind(kind, messageFor(err, "Failed to upload document.")))
+      setUploadFailed(docType)
+      setUploadProgress(prev => ({ ...prev, [docType]: undefined }))
     } finally {
       setUploadingDoc(false)
       setActiveCropModal(null)
+    }
+  }
+
+  const handleDocumentCropped = async (file: File) => {
+    if (!activeCropModal) return
+    await uploadDocument(activeCropModal, file)
+  }
+
+  /** Re-send the file already chosen, for a failure that was the network's fault. */
+  const handleRetryUpload = (docType: DocKey) => {
+    const file = lastPickedFile.current[docType]
+    if (file) {
+      void uploadDocument(docType, file)
+    } else {
+      setActiveCropModal(docType)
     }
   }
 
@@ -800,17 +1237,21 @@ export default function OnboardingPage() {
     }
     setIfscLoading(true)
     try {
-      const res = await fetch(`/api/onboarding/ifsc?code=${clean}`)
+      const res = await fetchWithTimeout(`/api/onboarding/ifsc?code=${clean}`)
       const data = await res.json()
       if (res.ok && data.valid && data.details) {
         setBankName(data.details.BANK || "")
         setBranchName(data.details.BRANCH || "")
         setIfscValid(true)
+        setIfscNote(null)
       } else {
         setIfscValid(false)
+        setIfscNote("We could not match that IFSC code. Check it against your passbook or cheque.")
       }
-    } catch {
+    } catch (err) {
+      console.error("[onboarding] IFSC lookup failed", { ifsc: clean, error: err })
       setIfscValid(false)
+      setIfscNote("Could not look up that IFSC just now — check your connection and re-enter it.")
     } finally {
       setIfscLoading(false)
     }
@@ -832,7 +1273,7 @@ export default function OnboardingPage() {
     }
     setBankVerifying(true)
     try {
-      const res = await fetch("/api/sandbox", {
+      const res = await fetchWithTimeout("/api/sandbox", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -864,8 +1305,11 @@ export default function OnboardingPage() {
       setBankMatchScore(score)
       setBankVerified(true)
     } catch (err: any) {
+      console.error("[onboarding] bank verification failed", { ifsc: ifscCode, error: err })
       setBankVerified(false)
-      setStepError(messageFor(err, "Bank verification failed."))
+      const kind = classifyError(err)
+      setStepErrorKind(kind)
+      setStepError(messageForKind(kind, messageFor(err, "Bank verification failed.")))
     } finally {
       setBankVerifying(false)
     }
@@ -875,42 +1319,43 @@ export default function OnboardingPage() {
   const handleStep2Submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setStepError(null)
+    setInvalidField(null)
 
     // GST validation
     if (isGstRegistered === "Yes" && (!gstValid || gstin.trim().length !== 15)) {
-      setStepError("Please enter and verify your 15-character GSTIN, or select 'No'.")
+      rejectField("ob-gstin", "Enter and verify your 15-character GSTIN, or answer No to the GST question.")
       return
     }
 
     // Documents validation
     if (!aadhaarFrontDoc) {
-      setStepError("Please upload Aadhaar Front document.")
+      rejectField("ob-documents", "Upload the front of your Aadhaar card.")
       return
     }
     if (!aadhaarCombined && !aadhaarBackDoc) {
-      setStepError("Please upload Aadhaar Back document, or select 'Both sides on single document'.")
+      rejectField("ob-documents", "Upload the back of your Aadhaar card, or tick “both sides on one file”.")
       return
     }
     if (!panDoc) {
-      setStepError("Please upload PAN Card document.")
+      rejectField("ob-documents", "Upload your PAN card document.")
       return
     }
 
     // Bank validation
     if (!accountNumber.trim() || accountNumber.trim().length < 8) {
-      setStepError("Please enter a valid Bank Account Number.")
+      rejectField("ob-accountNumber", "Enter a valid bank account number — commission payouts go here.")
       return
     }
     if (accountNumber !== confirmAccountNumber) {
-      setStepError("Account Numbers do not match.")
+      rejectField("ob-confirmAccountNumber", "The two account numbers do not match.")
       return
     }
     if (!ifscCode.trim() || ifscCode.trim().length !== 11) {
-      setStepError("Please enter a valid 11-digit IFSC code.")
+      rejectField("ob-ifsc", "Enter a valid 11-character IFSC code.")
       return
     }
     if (!accountHolderName.trim()) {
-      setStepError("Please enter Account Holder Name.")
+      rejectField("ob-accountHolderName", "Enter the account holder's name exactly as your bank has it.")
       return
     }
 
@@ -947,18 +1392,22 @@ export default function OnboardingPage() {
   const handleFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!declareTruth || !declareTerms) {
-      setStepError("Please accept all confirmation checkboxes before submitting.")
+      rejectField("ob-declarations", "Please tick both confirmations before submitting.")
       return
     }
     if (!isAgreementSigned) {
-      setStepError("Please sign the official Partner MOU Agreement via OTP before final submission.")
+      rejectField("ob-agreement", "Sign the Partner MOU with an OTP before submitting the application.")
       return
     }
+
+    // Belt and braces alongside the disabled button: a slow connection lets a
+    // determined double-tap land twice before React re-renders.
+    if (submitting) return
 
     setSubmitting(true)
     setStepError(null)
     try {
-      const res = await fetch("/api/onboarding/submit", {
+      const res = await fetchWithTimeout("/api/onboarding/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -967,7 +1416,19 @@ export default function OnboardingPage() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Failed to submit application")
+
+      /*
+       * Submitting is idempotent server-side. When the first request did land
+       * and only its response was lost, the retry comes back as
+       * already-submitted -- which is a success from where the partner sits,
+       * not an error, so it routes to the same locked screen instead of a red
+       * message about an application that exists and is fine.
+       */
+      const alreadyIn =
+        res.status === 409 ||
+        String(data.reason || "").toUpperCase().includes("ALREADY") ||
+        data.alreadySubmitted === true
+      if (!res.ok && !alreadyIn) throw new Error(data.error || "Failed to submit application")
 
       OnboardingStorage.clearDraft()
       const newAppId = data.applicationId || `TSM-DSA-${mobileNumber}`
@@ -996,7 +1457,10 @@ export default function OnboardingPage() {
         agreementSigned: isAgreementSigned,
       })
     } catch (err) {
-      setStepError(messageFor(err, "Failed to submit application."))
+      console.error("[onboarding] final submit failed", { mobile: mobileNumber, error: err })
+      const kind = classifyError(err)
+      setStepErrorKind(kind)
+      setStepError(messageForKind(kind, messageFor(err, "Failed to submit application.")))
     } finally {
       setSubmitting(false)
     }
@@ -1012,47 +1476,47 @@ export default function OnboardingPage() {
   // ─── Render Screen: Locked Application (After Submission) ───
   if (submittedAppId || isApplicationLocked) {
     return (
-      <div className="min-h-dvh flex flex-col bg-slate-50">
+      <div className="partner-root min-h-dvh flex flex-col bg-admin-bg text-admin-text">
         <PartnerPortalHeader subtitle="DSA Partner Onboarding" rightLinkLabel="Track Live" rightLinkHref={`/application-status?id=${submittedAppId}`} />
 
         <main className="flex-1 flex w-full max-w-3xl mx-auto px-4 py-10">
-          <div className="w-full bg-white border border-slate-200 rounded-3xl shadow-xl p-6 sm:p-10 space-y-6 text-center">
-            <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto shadow-sm">
+          <div className="w-full bg-admin-surface border border-admin-border rounded-admin-lg shadow-admin-3 p-6 sm:p-10 space-y-6 text-center">
+            <div className="w-16 h-16 rounded-full bg-tone-success text-tone-success-fg border border-tone-success-bd flex items-center justify-center mx-auto shadow-admin-1">
               <ShieldCheck size={36} />
             </div>
 
             <div className="space-y-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold uppercase tracking-wider">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-tone-success text-tone-success-fg text-admin-xs font-bold uppercase tracking-wider">
                 <Lock size={13} /> Application Submitted &amp; Locked
               </span>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              <h1 className="text-admin-2xl sm:text-admin-2xl font-black text-admin-text tracking-tight">
                 Partner Application Under Review
               </h1>
               {/* Requirement #1: Removed 'सुरक्षितता व बँकिंग नियमांनुसार एकदा सबमिट झाल्यावर अर्जामध्ये कोणतेही फेरबदल करता येत नाहीत' */}
-              <p className="max-w-xl mx-auto text-sm text-slate-600 leading-relaxed">
+              <p className="max-w-xl mx-auto text-admin-sm text-admin-muted leading-relaxed">
                 तुमचा DSA Partner अर्ज यशस्वीरित्या सबमिट झालेला असून तो सुरक्षिततेसाठी लॉक (Lock) करण्यात आला आहे.
               </p>
             </div>
 
             {/* Application ID Card */}
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
+            <div className="bg-admin-surface-2 border border-admin-border rounded-admin-lg p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
               <div>
-                <span className="block text-xs font-bold uppercase text-slate-400">Official Application ID</span>
-                <span className="block text-2xl font-black text-slate-900 font-mono mt-0.5">{submittedAppId}</span>
-                <span className="block text-xs text-slate-500 mt-1">Updates will be sent to WhatsApp (+91 {mobileNumber})</span>
+                <span className="block text-admin-xs font-bold uppercase text-admin-subtle">Official Application ID</span>
+                <span className="block text-admin-2xl font-black text-admin-text font-mono mt-0.5">{submittedAppId}</span>
+                <span className="block text-admin-xs text-admin-muted mt-1">Updates will be sent to WhatsApp (+91 {mobileNumber})</span>
               </div>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={copyAppId}
-                  className="px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 shadow-sm"
+                  className="px-3.5 py-2 bg-admin-surface border border-admin-border-strong rounded-admin text-admin-xs font-bold text-admin-text hover:bg-admin-surface-2 flex items-center gap-1.5 shadow-admin-1"
                 >
                   <Copy size={14} />
                   <span>{copiedAppId ? "Copied!" : "Copy ID"}</span>
                 </button>
                 <Link
                   href={`/application-status?id=${submittedAppId}`}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 flex items-center gap-1.5 shadow-sm text-decoration-none"
+                  className="px-4 py-2 bg-brand text-brand-fg rounded-admin text-admin-xs font-bold hover:bg-brand-hover flex items-center gap-1.5 shadow-admin-1"
                 >
                   <span>Track Status</span>
                   <ArrowRight size={14} />
@@ -1060,11 +1524,11 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+            <div className="pt-4 border-t border-admin-border flex items-center justify-between">
               <button
                 type="button"
                 onClick={handleResetMobile}
-                className="text-xs font-bold text-slate-500 hover:text-slate-800"
+                className="text-admin-xs font-bold text-admin-muted hover:text-admin-text"
               >
                 ← Onboard Another Account
               </button>
@@ -1072,7 +1536,7 @@ export default function OnboardingPage() {
                 href={`https://wa.me/919579005645?text=Hello%20Techstar%20Money,%20my%20DSA%20Application%20ID%20is%20${submittedAppId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 text-decoration-none"
+                className="text-admin-xs font-bold text-tone-success-fg hover:brightness-95 flex items-center gap-1"
               >
                 <MessageSquare size={14} /> WhatsApp Support
               </a>
@@ -1104,11 +1568,30 @@ export default function OnboardingPage() {
 
   const isStep3Done = Boolean(isAgreementSigned && declareTruth && declareTerms)
 
+  /** One definition, read by both the sidebar list and the step header. */
+  const STEPS = [
+    { id: 1, title: "Basic details", desc: "Personal, business & address", done: isStep1Done },
+    { id: 2, title: "Business & KYC", desc: "GST, documents & bank account", done: isStep2Done },
+    { id: 3, title: "Review & submit", desc: "MOU agreement execution", done: isStep3Done },
+  ]
+
+  /**
+   * Why a step is not open yet. Steps 2 and 3 are gated on real prerequisites,
+   * and a deep link or a stale tab that lands on one must say what is missing
+   * rather than render an empty shell.
+   */
+  const lockReasonFor = (id: number): string | null => {
+    if (!isMobileVerified) return "Verify your mobile number first — the application is keyed to it."
+    if (id === 2 && !isStep1Done) return "Finish step 1 first: we need your name, PAN, date of birth and address."
+    if (id === 3 && !isStep2Done) return "Finish step 2 first: KYC documents and a payout bank account are required before the MOU."
+    return null
+  }
+
   return (
-    <div className="min-h-dvh flex flex-col bg-slate-50 font-sans" style={{ color: "#0F172A" }}>
+    <div className="partner-root min-h-dvh flex flex-col bg-admin-bg font-sans text-admin-text">
       {/* Top Banner */}
-      <div className="bg-slate-900 text-slate-300 py-1.5 px-4 text-center text-xs font-medium border-b border-slate-800 flex items-center justify-center gap-2">
-        <Sparkles size={13} className="text-amber-400" />
+      <div className="bg-admin-text text-admin-subtle py-1.5 px-4 text-center text-admin-xs font-medium border-b border-admin-border flex items-center justify-center gap-2">
+        <Sparkles size={13} className="text-tone-warn-fg" />
         <span>Complete Onboarding to unlock <strong>Direct Bank Commission Payouts &amp; Zero Setup Fees</strong></span>
       </div>
 
@@ -1116,18 +1599,18 @@ export default function OnboardingPage() {
       <div className="flex-1 flex flex-col md:flex-row w-full max-w-7xl mx-auto">
 
         {/* ─── LEFT SIDEBAR (Razorpay Style) ─── */}
-        <aside className="w-full md:w-80 lg:w-96 bg-white border-r border-slate-200 p-5 md:p-8 flex flex-col justify-between shrink-0">
+        <aside className="w-full md:w-80 lg:w-96 bg-admin-surface border-r border-admin-border p-5 md:p-8 flex flex-col justify-between shrink-0">
           <div className="space-y-6">
             {/* User Profile Header */}
-            <div className="flex items-center gap-3 pb-5 border-b border-slate-100">
-              <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-blue-200 shrink-0">
+            <div className="flex items-center gap-3 pb-5 border-b border-admin-border">
+              <div className="w-11 h-11 rounded-admin-lg bg-brand text-brand-fg flex items-center justify-center font-bold text-admin-sm shadow-admin-2 shadow-admin-2 shrink-0">
                 {(fullName || businessName || "TS").slice(0, 2).toUpperCase()}
               </div>
               <div className="min-w-0">
-                <div className="text-sm font-extrabold text-slate-900 truncate">
+                <div className="text-admin-sm font-extrabold text-admin-text truncate">
                   {fullName || businessName || (mobileNumber ? `+91 ${mobileNumber}` : "New DSA Partner")}
                 </div>
-                <div className="text-xs text-slate-400 font-medium truncate">
+                <div className="text-admin-xs text-admin-subtle font-medium truncate">
                   {partnerType} {partnerType === "Firm" ? `(${firmType})` : ""}
                 </div>
               </div>
@@ -1135,73 +1618,81 @@ export default function OnboardingPage() {
 
             {/* Stepper Header */}
             <div>
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Onboarding Flow</div>
-              <div className="text-lg font-black text-slate-900">DSA Partner Channel</div>
+              <div className="text-admin-xs font-bold uppercase tracking-wider text-admin-subtle">Onboarding Flow</div>
+              <div className="text-admin-lg font-black text-admin-text">DSA Partner Channel</div>
             </div>
 
-            {/* Stepper Steps (3 Steps) */}
-            <div className="space-y-3">
-              {[
-                { id: 1, title: "Basic details", desc: "Personal, business & address", done: isStep1Done },
-                { id: 2, title: "Business & KYC details", desc: "GST, documents & bank account", done: isStep2Done },
-                { id: 3, title: "Review & submit", desc: "MOU agreement execution", done: isStep3Done },
-              ].map((s) => {
-                const isActive = currentStep === s.id
+            {/*
+              * One bordered group rather than three separate cards. Correcting
+              * the Bootstrap cascade shrank the padding these relied on and
+              * left them floating; a divided list reads as a single flow, which
+              * is what a stepper is.
+              */}
+            <ol className="rounded-admin-lg border border-admin-border overflow-hidden divide-y divide-admin-border">
+              {STEPS.map((st) => {
+                const isActive = currentStep === st.id
+                const locked = lockReasonFor(st.id)
                 return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    disabled={!isMobileVerified}
-                    onClick={() => {
-                      if (s.id <= currentStep || (s.id === 2 && isStep1Done) || (s.id === 3 && isStep2Done)) {
-                        setCurrentStep(s.id)
-                      }
-                    }}
-                    className={cn(
-                      "w-full text-left p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 text-decoration-none",
-                      isActive
-                        ? "bg-blue-50/70 border-blue-200 shadow-sm"
-                        : "bg-white border-transparent hover:bg-slate-50"
-                    )}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div
-                        className={cn(
-                          "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors",
-                          s.done
-                            ? "bg-emerald-600 text-white"
-                            : isActive
-                            ? "bg-blue-600 text-white"
-                            : "bg-slate-100 text-slate-500"
-                        )}
-                      >
-                        {s.done ? <Check size={14} /> : s.id}
-                      </div>
-                      <div className="min-w-0">
-                        <div className={cn("text-xs font-bold leading-tight truncate", isActive ? "text-blue-950" : "text-slate-800")}>
-                          {s.title}
-                        </div>
-                        <div className="text-[11px] text-slate-400 truncate">{s.desc}</div>
-                      </div>
-                    </div>
-                    <ArrowRight size={14} className={cn("shrink-0", isActive ? "text-blue-600" : "text-slate-300")} />
-                  </button>
+                  <li key={st.id}>
+                    <button
+                      type="button"
+                      disabled={Boolean(locked)}
+                      aria-current={isActive ? "step" : undefined}
+                      title={locked ?? undefined}
+                      onClick={() => goToStep(st.id)}
+                      className={cn(
+                        "admin-focus w-full text-left px-3.5 py-3 transition-colors flex items-center justify-between gap-3 min-h-11",
+                        "disabled:cursor-not-allowed disabled:opacity-60",
+                        isActive
+                          ? "bg-brand-soft"
+                          : "bg-admin-surface hover:bg-admin-surface-2"
+                      )}
+                    >
+                      <span className="flex items-center gap-3 min-w-0">
+                        <span
+                          className={cn(
+                            "w-7 h-7 rounded-full flex items-center justify-center text-admin-xs font-bold shrink-0 transition-colors",
+                            st.done
+                              ? "bg-tone-success text-tone-success-fg"
+                              : isActive
+                                ? "bg-brand text-brand-fg"
+                                : "bg-admin-surface-3 text-admin-subtle"
+                          )}
+                        >
+                          {st.done ? <Check size={14} /> : st.id}
+                        </span>
+                        <span className="min-w-0 block">
+                          <span className={cn("block text-admin-xs font-bold leading-tight truncate", isActive ? "text-brand-soft-fg" : "text-admin-text")}>
+                            {st.title}
+                          </span>
+                          <span className="block text-admin-2xs text-admin-subtle truncate">
+                            {locked && isMobileVerified ? "Locked" : st.desc}
+                          </span>
+                        </span>
+                      </span>
+                      {locked && isMobileVerified ? (
+                        <Lock size={13} className="shrink-0 text-admin-subtle" />
+                      ) : (
+                        <ArrowRight size={14} className={cn("shrink-0", isActive ? "text-brand" : "text-admin-subtle")} />
+                      )}
+                    </button>
+                  </li>
                 )
               })}
-            </div>
+            </ol>
           </div>
 
           {/* Sidebar Footer */}
-          <div className="pt-6 border-t border-slate-100 text-xs text-slate-400 space-y-2 mt-6">
-            <div className="flex items-center gap-1.5 font-bold text-slate-700">
-              <HelpCircle size={14} className="text-blue-600" />
+          <div className="pt-6 border-t border-admin-border text-admin-xs text-admin-subtle space-y-2 mt-6">
+            <div className="flex items-center gap-1.5 font-bold text-admin-text">
+              <HelpCircle size={14} className="text-brand" />
               <span>Need Assistance?</span>
             </div>
-            <p className="text-[11px] leading-relaxed text-slate-500">
+            <p className="text-admin-2xs leading-relaxed text-admin-muted">
               Our partner operations desk in Chhatrapati Sambhajinagar is ready to help you.
             </p>
             <div className="flex items-center gap-3 pt-1">
-              <a href="tel:09579005645" className="font-bold text-slate-800 hover:text-blue-600 text-decoration-none">
+              <a href="tel:09579005645" className="admin-focus admin-touch inline-flex items-center font-bold text-admin-text hover:text-brand">
                 📞 095790 05645
               </a>
               <span>·</span>
@@ -1209,7 +1700,7 @@ export default function OnboardingPage() {
                 href="https://wa.me/919579005645"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-bold text-emerald-600 hover:text-emerald-700 text-decoration-none"
+                className="admin-focus admin-touch inline-flex items-center font-bold text-tone-success-fg hover:brightness-95"
               >
                 WhatsApp
               </a>
@@ -1218,76 +1709,59 @@ export default function OnboardingPage() {
         </aside>
 
         {/* ─── RIGHT MAIN PANE ─── */}
-        <main className="flex-1 bg-white p-5 md:p-10 flex flex-col justify-between">
+        <main className="flex-1 bg-admin-surface p-5 md:p-10 flex flex-col">
           <div>
             {/* Top Navigation & Brand Header */}
-            <div className="flex items-center justify-between pb-6 border-b border-slate-100 mb-6">
-              <div className="flex items-center gap-2">
-                {currentStep > 1 && isMobileVerified && (
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(prev => prev - 1)}
-                    className="flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors"
-                  >
-                    <ArrowLeft size={14} /> Back
-                  </button>
-                )}
-              </div>
+            <div className="flex items-center justify-between pb-6 border-b border-admin-border mb-6">
+              {/* Back lives in OnboardingStepHeader now, one per step. */}
+              <div />
               <div className="flex items-center gap-2 text-right">
                 <a
                   href="tel:09579005645"
                   title="Call Support (095790 05645)"
-                  className="w-8 h-8 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-700 transition-colors text-decoration-none shadow-xs"
+                  className="admin-focus admin-touch w-8 h-8 rounded-admin border border-admin-border bg-admin-surface-2 hover:bg-admin-surface-3 flex items-center justify-center text-admin-text transition-colors shadow-admin-1"
                 >
-                  <Headphones size={15} className="text-blue-600" />
+                  <Headphones size={15} className="text-brand" />
                 </a>
-                <div className="w-8 h-8 rounded-lg overflow-hidden border border-slate-200 flex items-center justify-center p-0.5">
+                <div className="w-8 h-8 rounded-admin-sm overflow-hidden border border-admin-border flex items-center justify-center p-0.5">
                   <Image src="/img/logo.webp" alt="Techstar Money" width={30} height={30} className="object-contain" />
                 </div>
                 <div>
-                  <div className="text-xs font-extrabold text-slate-900 leading-none">Techstar Money Solution</div>
-                  <div className="text-[10px] font-semibold text-slate-400">Partner Channel</div>
+                  <div className="text-admin-xs font-extrabold text-admin-text leading-none">Techstar Money Solution</div>
+                  <div className="text-admin-2xs font-semibold text-admin-subtle">Partner Channel</div>
                 </div>
               </div>
             </div>
 
-            {/* Error Strip */}
-            {stepError && (
-              <div className="mb-6 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2 shadow-sm">
-                <AlertCircle size={16} className="shrink-0 text-rose-600" />
-                <span>{stepError}</span>
-              </div>
+            {/* Step error. Always rendered so a message never shifts the form. */}
+            {isMobileVerified && (
+              <FormErrorRegion message={stepError} kind={stepErrorKind} id="onboarding-step-error" className="mb-4" />
             )}
 
             {/* ─── PRE-OTP / INLINE OTP FORM ON SAME SCREEN ─── */}
             {!isMobileVerified ? (
               <div className="max-w-xl mx-auto py-6 space-y-6">
                 <div className="space-y-1 text-center sm:text-left">
-                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                  <h2 className="text-admin-2xl sm:text-admin-2xl font-black text-admin-text tracking-tight">
                     Verify Your Mobile Number
                   </h2>
-                  <p className="text-xs sm:text-sm text-slate-500 font-medium">
+                  <p className="text-admin-xs sm:text-admin-sm text-admin-muted font-medium">
                     We will send a 6-digit verification code directly to your WhatsApp number.
                   </p>
                 </div>
 
-                {mobileError && (
-                  <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
-                    <AlertCircle size={16} className="shrink-0 text-rose-600" />
-                    <span>{mobileError}</span>
-                  </div>
-                )}
+                <FormErrorRegion message={mobileError} kind={mobileErrorKind} id="onboard-mobile-error" />
 
                 {/* Eligibility Warning Banner */}
                 {eligibilityInfo && (
-                  <div className="p-4 rounded-2xl bg-amber-50 border-2 border-amber-200 text-amber-950 text-xs space-y-3 animate-fadeIn shadow-sm">
+                  <div className="p-4 rounded-admin-lg bg-tone-warn border-2 border-tone-warn-bd text-tone-warn-fg text-admin-xs space-y-3 animate-fadeIn shadow-admin-1">
                     <div className="flex items-start gap-2.5">
-                      <AlertTriangle size={20} className="text-amber-600 shrink-0 mt-0.5" />
+                      <AlertTriangle size={20} className="text-tone-warn-fg shrink-0 mt-0.5" />
                       <div>
-                        <div className="font-bold text-sm text-amber-950 leading-snug">
+                        <div className="font-bold text-admin-sm text-tone-warn-fg leading-snug">
                           {eligibilityInfo.marathiMessage}
                         </div>
-                        <div className="text-xs text-amber-800 mt-1 leading-relaxed">
+                        <div className="text-admin-xs text-tone-warn-fg mt-1 leading-relaxed">
                           {eligibilityInfo.message}
                         </div>
                       </div>
@@ -1296,7 +1770,7 @@ export default function OnboardingPage() {
                       <div className="pt-1">
                         <Link
                           href={eligibilityInfo.redirectUrl}
-                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs text-decoration-none shadow-sm transition-colors"
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-admin bg-tone-warn-fg hover:brightness-95 text-brand-fg font-bold text-admin-xs shadow-admin-1 transition-colors"
                         >
                           <span>{eligibilityInfo.actionText || "Proceed →"}</span>
                         </Link>
@@ -1305,13 +1779,13 @@ export default function OnboardingPage() {
                   </div>
                 )}
 
-                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-5">
+                <div className="bg-admin-surface border border-admin-border rounded-admin-lg p-6 shadow-admin-1 space-y-5">
                   <div className="space-y-2">
-                    <label htmlFor="onboard-mobile" className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    <label htmlFor="onboard-mobile" className="block text-admin-xs font-bold text-admin-text uppercase tracking-wider">
                       Mobile Number (WhatsApp Enabled)
                     </label>
-                    <div className="flex h-12 rounded-xl border border-slate-300 bg-slate-50 overflow-hidden focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
-                      <span className="flex items-center px-3.5 bg-slate-100 border-r border-slate-300 text-xs font-bold text-slate-700 select-none">
+                    <div className="flex h-12 rounded-admin border border-admin-border-strong bg-admin-surface-2 overflow-hidden focus-within:border-brand focus-within:ring-2 focus-within:ring-brand-soft transition-all">
+                      <span className="flex items-center px-3.5 bg-admin-surface-3 border-r border-admin-border-strong text-admin-xs font-bold text-admin-text select-none">
                         +91
                       </span>
                       <input
@@ -1321,11 +1795,11 @@ export default function OnboardingPage() {
                         placeholder="Enter 10-digit mobile number"
                         disabled={otpSent}
                         value={mobileNumber}
-                        onChange={e => {
-                          setMobileNumber(e.target.value.replace(/\D/g, ""))
-                          setMobileError(null)
-                        }}
-                        className="w-full px-3.5 bg-transparent text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                        onChange={e => handleMobileEdited(e.target.value)}
+                        aria-invalid={Boolean(mobileError) || undefined}
+                        aria-describedby="onboard-mobile-error"
+                        autoComplete="tel-national"
+                        className="w-full px-3.5 bg-transparent text-admin-sm font-semibold text-admin-text placeholder:text-admin-subtle focus:outline-none"
                       />
                     </div>
                   </div>
@@ -1335,7 +1809,7 @@ export default function OnboardingPage() {
                       type="button"
                       disabled={otpLoading || !isMobileValid}
                       onClick={handleSendMobileOtp}
-                      className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-blue-200 shadow-blue-100"
+                      className="w-full h-12 rounded-admin bg-brand hover:bg-brand-hover disabled:opacity-50 text-brand-fg font-bold text-admin-sm transition-all flex items-center justify-center gap-2 shadow-admin-2 hover:shadow-admin-3 shadow-admin-1"
                     >
                       {otpLoading ? (
                         <><RefreshCw size={16} className="animate-spin" /> Sending Code...</>
@@ -1345,15 +1819,15 @@ export default function OnboardingPage() {
                     </button>
                   ) : (
                     /* Inline OTP Form underneath mobile number */
-                    <div className="space-y-4 pt-4 border-t border-slate-100 animate-fadeIn">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-600">
+                    <div className="space-y-4 pt-4 border-t border-admin-border animate-fadeIn">
+                      <div className="flex items-center justify-between text-admin-xs">
+                        <span className="text-admin-muted">
                           Code sent to WhatsApp <strong>+91 {mobileNumber}</strong>
                         </span>
                         <button
                           type="button"
                           onClick={() => { setOtpSent(false); setOtpValues(["", "", "", "", "", ""]); autoVerifiedRef.current = "" }}
-                          className="text-blue-600 font-bold hover:underline"
+                          className="text-brand font-bold hover:underline"
                         >
                           Change Number
                         </button>
@@ -1374,19 +1848,45 @@ export default function OnboardingPage() {
                             onKeyDown={e => handleOtpBoxKeyDown(i, e)}
                             onPaste={handleOtpPaste}
                             autoComplete={i === 0 ? "one-time-code" : "off"}
-                            disabled={verifyLoading}
-                            className="w-11 sm:w-13 h-12 sm:h-14 text-center text-xl font-black rounded-xl border border-slate-300 bg-slate-50 text-slate-900 focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all"
+                            disabled={verifyLoading || otpLockedOut}
+                            aria-label={`Digit ${i + 1} of 6`}
+                            aria-invalid={Boolean(mobileError) || undefined}
+                            aria-describedby="onboard-mobile-error"
+                            className="admin-focus w-11 sm:w-13 h-12 sm:h-14 text-center text-admin-xl font-black rounded-admin border border-admin-border-strong bg-admin-surface-2 text-admin-text focus:border-brand focus:bg-admin-surface transition-all disabled:opacity-50"
                           />
                         ))}
                       </div>
 
-                      <div className="flex items-center justify-between text-xs text-slate-500">
-                        <span>{canResend ? "Didn't receive code?" : `Resend in ${otpTimer}s`}</span>
+                      {otpLockedOut && (
+                        <div
+                          role="alert"
+                          className="rounded-admin border border-tone-warn-bd bg-tone-warn p-3.5 text-admin-xs text-tone-warn-fg space-y-2"
+                        >
+                          <div className="font-bold">
+                            That is {MAX_OTP_ATTEMPTS} incorrect attempts on this code.
+                          </div>
+                          <p className="leading-relaxed">
+                            For your security this code is now closed. Request a new one below, or call
+                            our partner desk on 095790 05645 if the code is not arriving on WhatsApp.
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between gap-3 text-admin-xs text-admin-muted">
+                        <span>
+                          {canResend
+                            ? "Didn't receive the code?"
+                            : (
+                              // Saying only "disabled" invites repeated tapping.
+                              <>Resend available in <span className="admin-num font-bold text-admin-text">{otpTimer}s</span></>
+                            )}
+                        </span>
                         <button
                           type="button"
                           disabled={!canResend || resending}
                           onClick={handleResendMobileOtp}
-                          className="text-blue-600 font-bold disabled:opacity-40 hover:underline"
+                          title={canResend ? undefined : `You can ask for a new code in ${otpTimer} seconds`}
+                          className="admin-focus admin-touch text-brand font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:underline"
                         >
                           {resending ? "Sending..." : "Resend OTP on WhatsApp"}
                         </button>
@@ -1394,9 +1894,9 @@ export default function OnboardingPage() {
 
                       <button
                         type="button"
-                        disabled={verifyLoading || otpValues.join("").length < 6}
+                        disabled={verifyLoading || otpLockedOut || otpValues.join("").length < 6}
                         onClick={handleVerifyInlineOtp}
-                        className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-md"
+                        className="w-full h-12 rounded-admin bg-brand hover:bg-brand-hover disabled:opacity-50 text-brand-fg font-bold text-admin-sm transition-all flex items-center justify-center gap-2 shadow-admin-2"
                       >
                         {verifyLoading ? (
                           <><RefreshCw size={16} className="animate-spin" /> Verifying...</>
@@ -1412,40 +1912,124 @@ export default function OnboardingPage() {
               /* ─── ONBOARDING FLOW STARTS ON SAME SCREEN ─── */
               <div className="space-y-6">
                 {/* Verified Mobile Number Strip at Top */}
-                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 size={16} className="text-emerald-600" />
-                    <span className="text-slate-700">Mobile Number Verified:</span>
-                    <strong className="font-mono text-slate-900 font-bold">+91 {mobileNumber}</strong>
-                    {resuming && (
-                      <span className="text-slate-500 font-medium">· restoring your saved progress...</span>
-                    )}
+                <div className="flex flex-wrap items-center justify-between gap-2 p-3.5 rounded-admin-lg bg-tone-success border border-tone-success-bd text-admin-xs">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <CheckCircle2 size={16} className="text-tone-success-fg shrink-0" />
+                    <span className="min-w-0">
+                      <span className="text-admin-text">Verified </span>
+                      <strong className="admin-num font-bold text-admin-text whitespace-nowrap">+91 {mobileNumber}</strong>
+                      {resuming && (
+                        <span className="block text-admin-2xs text-admin-muted font-medium">Restoring your saved progress…</span>
+                      )}
+                    </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleResetMobile}
-                    className="text-xs font-bold text-slate-500 hover:text-slate-800"
-                  >
-                    Change
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={handleDiscardLocalDraft}
+                      title="Remove the copy of this application saved in this browser"
+                      className="admin-focus admin-touch rounded-admin-sm px-2 py-1 text-admin-xs font-bold text-admin-muted hover:text-admin-text"
+                    >
+                      Discard draft
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleResetMobile}
+                      className="admin-focus admin-touch rounded-admin-sm px-2 py-1 text-admin-xs font-bold text-admin-muted hover:text-admin-text"
+                    >
+                      Change number
+                    </button>
+                  </div>
                 </div>
 
-                {/* ─── STEP 1: BASIC & BUSINESS DETAILS ─── */}
-                {currentStep === 1 && (
-                  <form onSubmit={handleStep1Submit} className="space-y-6">
-                    <div>
-                      <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                        Personal &amp; Business Information
-                      </h2>
-                      <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
-                        We can fetch details to make your onboarding smoother and faster.
-                      </p>
+                {/*
+                  * What was restored, and when. A form that silently refills
+                  * itself makes people doubt every value in it.
+                  */}
+                {restoredNote && !draftConflict && (
+                  <div className="flex items-start gap-2 rounded-admin border border-tone-info-bd bg-tone-info px-3 py-2.5 text-admin-xs font-semibold text-tone-info-fg">
+                    <Clock size={14} className="mt-px shrink-0" />
+                    <span>{restoredNote}</span>
+                  </div>
+                )}
+
+                {/* Local and server drafts disagreed — say so, and offer the other one. */}
+                {draftConflict && (
+                  <div className="rounded-admin-lg border border-tone-warn-bd bg-tone-warn p-3.5 text-admin-xs text-tone-warn-fg space-y-2.5">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle size={15} className="mt-px shrink-0" />
+                      <div className="space-y-1">
+                        <div className="font-bold">Two versions of this application</div>
+                        <p className="leading-relaxed">
+                          Your account has you on step {draftConflict.serverStep}; this device was left on
+                          step {draftConflict.localStep}, {formatWhen(draftConflict.localSavedAt)}. We opened{" "}
+                          {draftConflict.applied === "server" ? "the one from your account" : "the one from this device"}.
+                        </p>
+                      </div>
                     </div>
+                    {draftConflict.applied === "server" && (
+                      <div className="flex flex-wrap gap-2 pl-6">
+                        <AdminButton
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          onClick={handlePreferLocalDraft}
+                        >
+                          Use this device&rsquo;s version
+                        </AdminButton>
+                        <AdminButton
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setDraftConflict(null)}
+                        >
+                          Keep my account&rsquo;s version
+                        </AdminButton>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div ref={stepPaneRef} className="space-y-6 pb-2 sm:pb-0">
+
+                {/*
+                  * A gated step reached by deep link or a stale tab explains the
+                  * gate instead of rendering an empty shell.
+                  */}
+                {lockReasonFor(currentStep) && (
+                  <div className="rounded-admin-lg border border-admin-border bg-admin-surface-2 p-6 text-center space-y-3">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-admin-surface-3 text-admin-muted">
+                      <Lock size={20} />
+                    </div>
+                    <div className="space-y-1">
+                      <h2 className="text-admin-lg font-bold text-admin-text">Step {currentStep} is not open yet</h2>
+                      <p className="mx-auto max-w-md text-admin-sm text-admin-muted">{lockReasonFor(currentStep)}</p>
+                    </div>
+                    <AdminButton
+                      type="button"
+                      variant="brand"
+                      icon={ArrowLeft}
+                      onClick={() => goToStep(currentStep === 3 && isStep1Done ? 2 : 1)}
+                    >
+                      Go to the step that needs finishing
+                    </AdminButton>
+                  </div>
+                )}
+
+                {/* ─── STEP 1: BASIC & BUSINESS DETAILS ─── */}
+                {currentStep === 1 && !lockReasonFor(1) && (
+                  <form onSubmit={handleStep1Submit} className="space-y-6">
+                    <OnboardingStepHeader
+                      steps={STEPS}
+                      currentStep={1}
+                      title="Personal &amp; business information"
+                      subtitle="We can fetch details to make your onboarding smoother and faster."
+                    />
 
                     {/* Business Type Selector */}
                     <div className="space-y-2">
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                        Select Business Entity Type <span className="text-rose-500">*</span>
+                      <label className="block text-admin-xs font-bold text-admin-text uppercase tracking-wider">
+                        Select Business Entity Type <span className="text-tone-danger-fg">*</span>
                       </label>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         {[
@@ -1473,10 +2057,10 @@ export default function OnboardingPage() {
                                 }
                               }}
                               className={cn(
-                                "p-3 rounded-xl border text-xs font-bold text-left transition-all",
+                                "p-3 rounded-admin border text-admin-xs font-bold text-left transition-all",
                                 isSelected
-                                  ? "bg-blue-50 border-blue-600 text-blue-900 shadow-sm"
-                                  : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                                  ? "bg-brand-soft border-brand text-brand-soft-fg shadow-admin-1"
+                                  : "bg-admin-surface border-admin-border text-admin-text hover:bg-admin-surface-2"
                               )}
                             >
                               {t.label}
@@ -1489,44 +2073,53 @@ export default function OnboardingPage() {
                     {/* Conditional Name Fields */}
                     {partnerType === "Individual" ? (
                       <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-slate-700 uppercase">
-                          Full Name (as per PAN Card) <span className="text-rose-500">*</span>
+                        <label className="block text-admin-xs font-bold text-admin-text uppercase">
+                          Full Name (as per PAN Card) <span className="text-tone-danger-fg">*</span>
                         </label>
                         <input
                           type="text"
                           required
                           value={fullName}
                           onChange={e => setFullName(e.target.value)}
+                            id="ob-fullName"
+                            aria-invalid={invalidField === "ob-fullName" || undefined}
+                            aria-describedby={invalidField === "ob-fullName" ? "onboarding-step-error" : undefined}
                           placeholder="e.g. Ramesh Shankar Patil"
-                          className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                          className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand focus:ring-2 focus:ring-brand-soft"
                         />
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                          <label className="block text-xs font-bold text-slate-700 uppercase">
-                            Business / Company Name <span className="text-rose-500">*</span>
+                          <label className="block text-admin-xs font-bold text-admin-text uppercase">
+                            Business / Company Name <span className="text-tone-danger-fg">*</span>
                           </label>
                           <input
                             type="text"
                             required
                             value={businessName}
                             onChange={e => setBusinessName(e.target.value)}
+                            id="ob-businessName"
+                            aria-invalid={invalidField === "ob-businessName" || undefined}
+                            aria-describedby={invalidField === "ob-businessName" ? "onboarding-step-error" : undefined}
                             placeholder="e.g. Patil Financial Services"
-                            className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                            className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand focus:ring-2 focus:ring-brand-soft"
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="block text-xs font-bold text-slate-700 uppercase">
-                            Contact Person Name <span className="text-rose-500">*</span>
+                          <label className="block text-admin-xs font-bold text-admin-text uppercase">
+                            Contact Person Name <span className="text-tone-danger-fg">*</span>
                           </label>
                           <input
                             type="text"
                             required
                             value={contactPersonName}
                             onChange={e => setContactPersonName(e.target.value)}
+                            id="ob-contactPersonName"
+                            aria-invalid={invalidField === "ob-contactPersonName" || undefined}
+                            aria-describedby={invalidField === "ob-contactPersonName" ? "onboarding-step-error" : undefined}
                             placeholder="e.g. Ramesh Patil"
-                            className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                            className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand focus:ring-2 focus:ring-brand-soft"
                           />
                         </div>
                       </div>
@@ -1535,22 +2128,25 @@ export default function OnboardingPage() {
                     {/* Email & PAN (PAN without check button) */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-slate-700 uppercase">
-                          Email Address <span className="text-rose-500">*</span>
+                        <label className="block text-admin-xs font-bold text-admin-text uppercase">
+                          Email Address <span className="text-tone-danger-fg">*</span>
                         </label>
                         <input
                           type="email"
                           required
                           value={email}
                           onChange={e => setEmail(e.target.value)}
+                            id="ob-email"
+                            aria-invalid={invalidField === "ob-email" || undefined}
+                            aria-describedby={invalidField === "ob-email" ? "onboarding-step-error" : undefined}
                           placeholder="e.g. ramesh@example.com"
-                          className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                          className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand focus:ring-2 focus:ring-brand-soft"
                         />
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-slate-700 uppercase">
-                          Permanent Account Number (PAN) <span className="text-rose-500">*</span>
+                        <label className="block text-admin-xs font-bold text-admin-text uppercase">
+                          Permanent Account Number (PAN) <span className="text-tone-danger-fg">*</span>
                         </label>
                         <input
                           type="text"
@@ -1558,8 +2154,11 @@ export default function OnboardingPage() {
                           maxLength={10}
                           value={panNumber}
                           onChange={e => setPanNumber(e.target.value.toUpperCase().slice(0, 10))}
+                            id="ob-pan"
+                            aria-invalid={invalidField === "ob-pan" || undefined}
+                            aria-describedby={invalidField === "ob-pan" ? "onboarding-step-error" : undefined}
                           placeholder="ABCDE1234F"
-                          className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-sm font-mono font-bold text-slate-900 uppercase focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                          className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-mono font-bold text-admin-text uppercase focus:border-brand focus:ring-2 focus:ring-brand-soft"
                         />
                       </div>
                     </div>
@@ -1567,8 +2166,8 @@ export default function OnboardingPage() {
                     {/* Date of Birth (Age filter 18 to 80 years) & Gender */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-slate-700 uppercase">
-                          Date of Birth (वय १८ ते ८० वर्षे) <span className="text-rose-500">*</span>
+                        <label className="block text-admin-xs font-bold text-admin-text uppercase">
+                          Date of Birth (वय १८ ते ८० वर्षे) <span className="text-tone-danger-fg">*</span>
                         </label>
                         <input
                           type="date"
@@ -1577,19 +2176,22 @@ export default function OnboardingPage() {
                           max={maxDobStr}
                           value={dob}
                           onChange={e => setDob(e.target.value)}
-                          className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                            id="ob-dob"
+                            aria-invalid={invalidField === "ob-dob" || undefined}
+                            aria-describedby={invalidField === "ob-dob" ? "onboarding-step-error" : undefined}
+                          className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand focus:ring-2 focus:ring-brand-soft"
                         />
-                        <span className="text-[11px] text-slate-400">Must be between 18 and 80 years old</span>
+                        <span className="text-admin-2xs text-admin-subtle">Must be between 18 and 80 years old</span>
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-slate-700 uppercase">
-                          Gender <span className="text-rose-500">*</span>
+                        <label className="block text-admin-xs font-bold text-admin-text uppercase">
+                          Gender <span className="text-tone-danger-fg">*</span>
                         </label>
                         <select
                           value={gender}
                           onChange={e => setGender(e.target.value)}
-                          className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                          className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand focus:ring-2 focus:ring-brand-soft"
                         >
                           <option value="Male">Male</option>
                           <option value="Female">Female</option>
@@ -1600,7 +2202,7 @@ export default function OnboardingPage() {
 
                     {/* Referral Code (Optional) */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-slate-700 uppercase">
+                      <label className="block text-admin-xs font-bold text-admin-text uppercase">
                         Referral / Senior DSA Partner Code (Optional)
                       </label>
                       <input
@@ -1608,18 +2210,18 @@ export default function OnboardingPage() {
                         value={referredByDsaCode}
                         onChange={e => setReferredByDsaCode(e.target.value.toUpperCase())}
                         placeholder="e.g. TSM-REF-1042"
-                        className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-sm font-mono font-semibold text-slate-900 uppercase focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                        className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-mono font-semibold text-admin-text uppercase focus:border-brand focus:ring-2 focus:ring-brand-soft"
                       />
                     </div>
 
                     {/* Address & Pincode */}
-                    <div className="space-y-4 pt-4 border-t border-slate-100">
-                      <div className="text-sm font-bold text-slate-900">Office / Residential Address</div>
+                    <div className="space-y-4 pt-4 border-t border-admin-border">
+                      <div className="text-admin-sm font-bold text-admin-text">Office / Residential Address</div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="space-y-1.5">
-                          <label className="block text-xs font-bold text-slate-700 uppercase">
-                            PIN Code <span className="text-rose-500">*</span>
+                          <label className="block text-admin-xs font-bold text-admin-text uppercase">
+                            PIN Code <span className="text-tone-danger-fg">*</span>
                           </label>
                           <div className="relative">
                             <input
@@ -1628,123 +2230,144 @@ export default function OnboardingPage() {
                               required
                               value={pinCode}
                               onChange={e => handlePincodeChange(e.target.value)}
+                            id="ob-pincode"
+                            aria-invalid={invalidField === "ob-pincode" || undefined}
+                            aria-describedby={invalidField === "ob-pincode" ? "onboarding-step-error" : undefined}
                               placeholder="6-digit Pincode"
-                              className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-sm font-mono font-bold text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                              className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-mono font-bold text-admin-text focus:border-brand focus:ring-2 focus:ring-brand-soft"
                             />
                             {pincodeLoading && (
-                              <RefreshCw size={15} className="animate-spin text-blue-600 absolute right-3 top-3.5" />
+                              <RefreshCw size={15} className="animate-spin text-brand absolute right-3 top-3.5" />
+                            )}
+                          </div>
+                          <div className="min-h-4">
+                            {pincodeNote && (
+                              <span role="status" className="block text-admin-2xs text-tone-warn-fg">{pincodeNote}</span>
                             )}
                           </div>
                         </div>
 
                         <div className="space-y-1.5 sm:col-span-2">
-                          <label className="block text-xs font-bold text-slate-700 uppercase">
-                            Address Line 1 (House/Building/Flat No) <span className="text-rose-500">*</span>
+                          <label className="block text-admin-xs font-bold text-admin-text uppercase">
+                            Address Line 1 (House/Building/Flat No) <span className="text-tone-danger-fg">*</span>
                           </label>
                           <input
                             type="text"
                             required
                             value={addressLine1}
                             onChange={e => setAddressLine1(e.target.value)}
+                            id="ob-addressLine1"
+                            aria-invalid={invalidField === "ob-addressLine1" || undefined}
+                            aria-describedby={invalidField === "ob-addressLine1" ? "onboarding-step-error" : undefined}
                             placeholder="e.g. Office No 18, Morya Pride"
-                            className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                            className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand focus:ring-2 focus:ring-brand-soft"
                           />
                         </div>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="space-y-1.5">
-                          <label className="block text-xs font-bold text-slate-700 uppercase">Address Line 2 (Street/Area)</label>
+                          <label className="block text-admin-xs font-bold text-admin-text uppercase">Address Line 2 (Street/Area)</label>
                           <input
                             type="text"
                             value={addressLine2}
                             onChange={e => setAddressLine2(e.target.value)}
                             placeholder="e.g. Mayur Park, Harsul"
-                            className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                            className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand focus:ring-2 focus:ring-brand-soft"
                           />
                         </div>
 
                         <div className="space-y-1.5">
-                          <label className="block text-xs font-bold text-slate-700 uppercase">
-                            City / District <span className="text-rose-500">*</span>
+                          <label className="block text-admin-xs font-bold text-admin-text uppercase">
+                            City / District <span className="text-tone-danger-fg">*</span>
                           </label>
                           <input
                             type="text"
                             required
                             value={city}
                             onChange={e => setCity(e.target.value)}
+                            id="ob-city"
+                            aria-invalid={invalidField === "ob-city" || undefined}
+                            aria-describedby={invalidField === "ob-city" ? "onboarding-step-error" : undefined}
                             placeholder="e.g. Chhatrapati Sambhajinagar"
-                            className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                            className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand focus:ring-2 focus:ring-brand-soft"
                           />
                         </div>
 
                         <div className="space-y-1.5">
-                          <label className="block text-xs font-bold text-slate-700 uppercase">
-                            State <span className="text-rose-500">*</span>
+                          <label className="block text-admin-xs font-bold text-admin-text uppercase">
+                            State <span className="text-tone-danger-fg">*</span>
                           </label>
                           <input
                             type="text"
                             required
                             value={stateName}
                             onChange={e => setStateName(e.target.value)}
+                            id="ob-state"
+                            aria-invalid={invalidField === "ob-state" || undefined}
+                            aria-describedby={invalidField === "ob-state" ? "onboarding-step-error" : undefined}
                             placeholder="e.g. Maharashtra"
-                            className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                            className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand focus:ring-2 focus:ring-brand-soft"
                           />
                         </div>
                       </div>
                     </div>
 
-                    {/* Action Button */}
-                    <div className="pt-6 border-t border-slate-100 flex items-center justify-between gap-3">
-                      <button
+                    {/*
+                      * Sticky on phones so the primary action stays reachable
+                      * with the keyboard up, static from sm: where the form
+                      * already fits. `bottom-0` plus safe-area padding keeps it
+                      * clear of the iOS home indicator.
+                      */}
+                    <div className="sticky bottom-0 -mx-5 mt-2 flex items-center justify-between gap-3 border-t border-admin-border bg-admin-surface/95 px-5 py-3 backdrop-blur pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:static sm:mx-0 sm:bg-transparent sm:px-0 sm:pt-6 sm:backdrop-blur-none">
+                      <AdminButton
                         type="button"
+                        variant="secondary"
                         onClick={() => {
                           saveProgress(1, { fullName, businessName, email, panNumber, dob })
                           window.location.href = "/"
                         }}
-                        className="px-5 h-12 rounded-xl bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 font-bold text-sm transition-all shadow-xs"
                       >
-                        Save &amp; Exit
-                      </button>
-                      <button
+                        Save &amp; exit
+                      </AdminButton>
+                      <AdminButton
                         type="submit"
+                        variant="brand"
+                        loading={savingStep}
                         disabled={savingStep}
-                        className="w-full sm:w-auto px-8 h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
+                        className="flex-1 sm:flex-none sm:px-8"
                       >
-                        {savingStep ? (
-                          <><RefreshCw size={16} className="animate-spin" /> Saving...</>
-                        ) : (
-                          <>Continue <ArrowRight size={16} /></>
-                        )}
-                      </button>
+                        {savingStep ? "Saving…" : "Continue"}
+                        {!savingStep && <ArrowRight size={15} />}
+                      </AdminButton>
                     </div>
                   </form>
                 )}
 
                 {/* ─── STEP 2: BUSINESS KYC, GST & BANKING (MERGED 2, 3, 4) ─── */}
-                {currentStep === 2 && (
+                {currentStep === 2 && !lockReasonFor(2) && (
                   <form onSubmit={handleStep2Submit} className="space-y-8">
-                    <div>
-                      <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                        Business KYC, Documents &amp; Bank Details
-                      </h2>
-                      <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
-                        Add GST details (optional), upload identity documents with crop adjustment, and link payout bank account.
-                      </p>
-                    </div>
+                    <OnboardingStepHeader
+                      steps={STEPS}
+                      currentStep={2}
+                      title="Business KYC, documents &amp; bank details"
+                      subtitle="Add GST details (optional), upload identity documents, and link your payout bank account."
+                      onBack={() => goToStep(1)}
+                      backLabel="Basic details"
+                    />
 
                     {/* SECTION A: GST DETAILS */}
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4">
+                    <div className="bg-admin-surface-2 border border-admin-border rounded-admin-lg p-5 space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Building size={18} className="text-blue-600" />
-                          <span className="text-sm font-bold text-slate-900">GST Registration Details</span>
+                          <Building size={18} className="text-brand" />
+                          <span className="text-admin-sm font-bold text-admin-text">GST Registration Details</span>
                         </div>
-                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">Optional</span>
+                        <span className="text-admin-2xs font-bold px-2 py-0.5 rounded-full bg-admin-surface-3 text-admin-text">Optional</span>
                       </div>
 
                       <div className="space-y-2">
-                        <label className="block text-xs font-bold text-slate-700">Do you have a GST Registration?</label>
+                        <label className="block text-admin-xs font-bold text-admin-text">Do you have a GST Registration?</label>
                         <div className="flex gap-3">
                           {["No", "Yes"].map(opt => (
                             <button
@@ -1758,10 +2381,10 @@ export default function OnboardingPage() {
                                 }
                               }}
                               className={cn(
-                                "px-4 py-2 rounded-xl text-xs font-bold border transition-all",
+                                "px-4 py-2 rounded-admin text-admin-xs font-bold border transition-all",
                                 isGstRegistered === opt
-                                  ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                                  : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
+                                  ? "bg-brand text-brand-fg border-brand shadow-admin-1"
+                                  : "bg-admin-surface text-admin-text border-admin-border-strong hover:bg-admin-surface-3"
                               )}
                             >
                               {opt}
@@ -1772,8 +2395,8 @@ export default function OnboardingPage() {
 
                       {isGstRegistered === "Yes" && (
                         <div className="space-y-3 pt-2">
-                          <label className="block text-xs font-bold text-slate-700 uppercase">
-                            GSTIN (15 characters) <span className="text-rose-500">*</span>
+                          <label className="block text-admin-xs font-bold text-admin-text uppercase">
+                            GSTIN (15 characters) <span className="text-tone-danger-fg">*</span>
                           </label>
                           <div className="flex gap-2">
                             <input
@@ -1781,14 +2404,17 @@ export default function OnboardingPage() {
                               maxLength={15}
                               value={gstin}
                               onChange={e => setGstin(e.target.value.toUpperCase().slice(0, 15))}
+                            id="ob-gstin"
+                            aria-invalid={invalidField === "ob-gstin" || undefined}
+                            aria-describedby={invalidField === "ob-gstin" ? "onboarding-step-error" : undefined}
                               placeholder="27ABCDE1234F1Z5"
-                              className="flex-1 h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-sm font-mono font-bold text-slate-900 uppercase focus:border-blue-600"
+                              className="flex-1 h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-mono font-bold text-admin-text uppercase focus:border-brand"
                             />
                             <button
                               type="button"
                               disabled={gstVerifying || gstin.length !== 15}
                               onClick={handleVerifyGst}
-                              className="px-4 h-11 rounded-xl bg-slate-800 text-white text-xs font-bold hover:bg-slate-900 disabled:opacity-50 flex items-center gap-1.5"
+                              className="px-4 h-11 rounded-admin bg-admin-text text-brand-fg text-admin-xs font-bold hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5"
                             >
                               {gstVerifying ? <RefreshCw size={14} className="animate-spin" /> : <Check size={14} />}
                               <span>Verify GST</span>
@@ -1796,12 +2422,12 @@ export default function OnboardingPage() {
                           </div>
 
                           {gstValid && gstDetails && (
-                            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 space-y-1">
+                            <div className="p-3 rounded-admin bg-tone-success border border-tone-success-bd text-admin-xs text-tone-success-fg space-y-1">
                               <div className="font-bold flex items-center gap-1.5">
-                                <CheckCircle2 size={14} className="text-emerald-600" />
+                                <CheckCircle2 size={14} className="text-tone-success-fg" />
                                 <span>GST Verified: {gstDetails.tradeName || gstDetails.legalName}</span>
                               </div>
-                              <div className="text-[11px] text-emerald-700">Address: {gstDetails.address}</div>
+                              <div className="text-admin-2xs text-tone-success-fg">Address: {gstDetails.address}</div>
                             </div>
                           )}
                         </div>
@@ -1809,156 +2435,123 @@ export default function OnboardingPage() {
                     </div>
 
                     {/* SECTION B: KYC DOCUMENTS & CROP OPTION */}
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4">
+                    <div className="bg-admin-surface-2 border border-admin-border rounded-admin-lg p-5 space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <FileText size={18} className="text-blue-600" />
-                          <span className="text-sm font-bold text-slate-900">KYC Identity Documents</span>
+                          <FileText size={18} className="text-brand" />
+                          <span className="text-admin-sm font-bold text-admin-text">KYC Identity Documents</span>
                         </div>
-                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">Mandatory</span>
+                        <span className="text-admin-2xs font-bold px-2 py-0.5 rounded-full bg-brand-soft text-brand-soft-fg">Mandatory</span>
                       </div>
+
+                      <p id="ob-documents" className="text-admin-2xs text-admin-subtle">
+                        PDF, JPG, PNG or WebP — up to 5&nbsp;MB per document.
+                      </p>
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         {/* Aadhaar Front */}
-                        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-2 flex flex-col justify-between">
+                        <div className="bg-admin-surface border border-admin-border rounded-admin p-4 space-y-2 flex flex-col justify-between">
                           <div>
-                            <div className="text-xs font-bold text-slate-900">Aadhaar Card (Front)</div>
-                            <div className="text-[11px] text-slate-400">Clear photo or scan</div>
+                            <div className="text-admin-xs font-bold text-admin-text">Aadhaar Card (Front)</div>
+                            <div className="text-admin-2xs text-admin-subtle">Clear photo or scan</div>
                           </div>
 
-                          {aadhaarFrontDoc ? (
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600">
-                                <CheckCircle2 size={14} /> Uploaded
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => setActiveCropModal("aadhaarFront")}
-                                className="w-full py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold text-slate-700 flex items-center justify-center gap-1"
-                              >
-                                <Crop size={12} /> Crop / Adjust
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setActiveCropModal("aadhaarFront")}
-                              className="w-full py-2 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-lg text-xs font-bold text-blue-700 flex items-center justify-center gap-1.5"
-                            >
-                              <Upload size={13} /> Upload &amp; Crop
-                            </button>
-                          )}
+                          <DocTile
+                            docKey="aadhaarFront"
+                            doc={aadhaarFrontDoc}
+                            progress={uploadProgress.aadhaarFront}
+                            failed={uploadFailed === "aadhaarFront"}
+                            onPick={() => setActiveCropModal("aadhaarFront")}
+                            onRetry={() => handleRetryUpload("aadhaarFront")}
+                          />
                         </div>
 
                         {/* Aadhaar Back */}
-                        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-2 flex flex-col justify-between">
+                        <div className="bg-admin-surface border border-admin-border rounded-admin p-4 space-y-2 flex flex-col justify-between">
                           <div>
-                            <div className="text-xs font-bold text-slate-900">Aadhaar Card (Back)</div>
-                            <div className="text-[11px] text-slate-400">Address side</div>
+                            <div className="text-admin-xs font-bold text-admin-text">Aadhaar Card (Back)</div>
+                            <div className="text-admin-2xs text-admin-subtle">Address side</div>
                           </div>
 
                           {aadhaarCombined ? (
-                            <div className="text-xs font-bold text-slate-500 py-2">Combined on Front</div>
-                          ) : aadhaarBackDoc ? (
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600">
-                                <CheckCircle2 size={14} /> Uploaded
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => setActiveCropModal("aadhaarBack")}
-                                className="w-full py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold text-slate-700 flex items-center justify-center gap-1"
-                              >
-                                <Crop size={12} /> Crop / Adjust
-                              </button>
-                            </div>
+                            <div className="text-admin-xs font-bold text-admin-muted py-2">Combined on Front</div>
                           ) : (
-                            <button
-                              type="button"
-                              onClick={() => setActiveCropModal("aadhaarBack")}
-                              className="w-full py-2 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-lg text-xs font-bold text-blue-700 flex items-center justify-center gap-1.5"
-                            >
-                              <Upload size={13} /> Upload &amp; Crop
-                            </button>
+                            <DocTile
+                              docKey="aadhaarBack"
+                              doc={aadhaarBackDoc}
+                              progress={uploadProgress.aadhaarBack}
+                              failed={uploadFailed === "aadhaarBack"}
+                              onPick={() => setActiveCropModal("aadhaarBack")}
+                              onRetry={() => handleRetryUpload("aadhaarBack")}
+                            />
                           )}
                         </div>
 
                         {/* PAN Card */}
-                        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-2 flex flex-col justify-between">
+                        <div className="bg-admin-surface border border-admin-border rounded-admin p-4 space-y-2 flex flex-col justify-between">
                           <div>
-                            <div className="text-xs font-bold text-slate-900">PAN Card Document</div>
-                            <div className="text-[11px] text-slate-400">Front side photo</div>
+                            <div className="text-admin-xs font-bold text-admin-text">PAN Card Document</div>
+                            <div className="text-admin-2xs text-admin-subtle">Front side photo</div>
                           </div>
 
-                          {panDoc ? (
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600">
-                                <CheckCircle2 size={14} /> Uploaded
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => setActiveCropModal("panDoc")}
-                                className="w-full py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold text-slate-700 flex items-center justify-center gap-1"
-                              >
-                                <Crop size={12} /> Crop / Adjust
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setActiveCropModal("panDoc")}
-                              className="w-full py-2 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-lg text-xs font-bold text-blue-700 flex items-center justify-center gap-1.5"
-                            >
-                              <Upload size={13} /> Upload &amp; Crop
-                            </button>
-                          )}
+                          <DocTile
+                            docKey="panDoc"
+                            doc={panDoc}
+                            progress={uploadProgress.panDoc}
+                            failed={uploadFailed === "panDoc"}
+                            onPick={() => setActiveCropModal("panDoc")}
+                            onRetry={() => handleRetryUpload("panDoc")}
+                          />
                         </div>
                       </div>
 
-                      <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-600">
+                      <label className="flex items-center gap-2 cursor-pointer text-admin-xs font-medium text-admin-muted">
                         <input
                           type="checkbox"
                           checked={aadhaarCombined}
                           onChange={e => setAadhaarCombined(e.target.checked)}
-                          className="w-4 h-4 rounded text-blue-600 accent-blue-600"
+                          className="w-4 h-4 rounded text-brand accent-[var(--brand)]"
                         />
                         <span>Both sides of Aadhaar Card are on one image / PDF file</span>
                       </label>
                     </div>
 
                     {/* SECTION C: BANK DETAILS */}
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4">
+                    <div className="bg-admin-surface-2 border border-admin-border rounded-admin-lg p-5 space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Zap size={18} className="text-blue-600" />
-                          <span className="text-sm font-bold text-slate-900">Payout Bank Account</span>
+                          <Zap size={18} className="text-brand" />
+                          <span className="text-admin-sm font-bold text-admin-text">Payout Bank Account</span>
                         </div>
-                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Direct Transfer</span>
+                        <span className="text-admin-2xs font-bold px-2 py-0.5 rounded-full bg-tone-success text-tone-success-fg">Direct Transfer</span>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                          <label className="block text-xs font-bold text-slate-700 uppercase">
-                            Account Holder Name <span className="text-rose-500">*</span>
+                          <label className="block text-admin-xs font-bold text-admin-text uppercase">
+                            Account Holder Name <span className="text-tone-danger-fg">*</span>
                           </label>
                           <input
                             type="text"
                             required
                             value={accountHolderName}
                             onChange={e => setAccountHolderName(e.target.value)}
+                            id="ob-accountHolderName"
+                            aria-invalid={invalidField === "ob-accountHolderName" || undefined}
+                            aria-describedby={invalidField === "ob-accountHolderName" ? "onboarding-step-error" : undefined}
                             placeholder="Name as per Bank records"
-                            className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-900 focus:border-blue-600"
+                            className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand"
                           />
                         </div>
 
                         <div className="space-y-1.5">
-                          <label className="block text-xs font-bold text-slate-700 uppercase">
-                            Account Type <span className="text-rose-500">*</span>
+                          <label className="block text-admin-xs font-bold text-admin-text uppercase">
+                            Account Type <span className="text-tone-danger-fg">*</span>
                           </label>
                           <select
                             value={accountType}
                             onChange={e => setAccountType(e.target.value as "Savings" | "Current")}
-                            className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-900 focus:border-blue-600"
+                            className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand"
                           >
                             <option value="Savings">Savings Account</option>
                             <option value="Current">Current Account</option>
@@ -1968,38 +2561,44 @@ export default function OnboardingPage() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                          <label className="block text-xs font-bold text-slate-700 uppercase">
-                            Bank Account Number <span className="text-rose-500">*</span>
+                          <label className="block text-admin-xs font-bold text-admin-text uppercase">
+                            Bank Account Number <span className="text-tone-danger-fg">*</span>
                           </label>
                           <input
                             type="text"
                             required
                             value={accountNumber}
                             onChange={e => setAccountNumber(e.target.value.replace(/\s+/g, ""))}
+                            id="ob-accountNumber"
+                            aria-invalid={invalidField === "ob-accountNumber" || undefined}
+                            aria-describedby={invalidField === "ob-accountNumber" ? "onboarding-step-error" : undefined}
                             placeholder="Enter bank account number"
-                            className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-sm font-mono font-bold text-slate-900 focus:border-blue-600"
+                            className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-mono font-bold text-admin-text focus:border-brand"
                           />
                         </div>
 
                         <div className="space-y-1.5">
-                          <label className="block text-xs font-bold text-slate-700 uppercase">
-                            Confirm Account Number <span className="text-rose-500">*</span>
+                          <label className="block text-admin-xs font-bold text-admin-text uppercase">
+                            Confirm Account Number <span className="text-tone-danger-fg">*</span>
                           </label>
                           <input
                             type="text"
                             required
                             value={confirmAccountNumber}
                             onChange={e => setConfirmAccountNumber(e.target.value.replace(/\s+/g, ""))}
+                            id="ob-confirmAccountNumber"
+                            aria-invalid={invalidField === "ob-confirmAccountNumber" || undefined}
+                            aria-describedby={invalidField === "ob-confirmAccountNumber" ? "onboarding-step-error" : undefined}
                             placeholder="Re-enter bank account number"
-                            className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-sm font-mono font-bold text-slate-900 focus:border-blue-600"
+                            className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-mono font-bold text-admin-text focus:border-brand"
                           />
                         </div>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="space-y-1.5">
-                          <label className="block text-xs font-bold text-slate-700 uppercase">
-                            IFSC Code <span className="text-rose-500">*</span>
+                          <label className="block text-admin-xs font-bold text-admin-text uppercase">
+                            IFSC Code <span className="text-tone-danger-fg">*</span>
                           </label>
                           <input
                             type="text"
@@ -2007,15 +2606,23 @@ export default function OnboardingPage() {
                             required
                             value={ifscCode}
                             onChange={e => handleIfscChange(e.target.value)}
+                            id="ob-ifsc"
+                            aria-invalid={invalidField === "ob-ifsc" || undefined}
+                            aria-describedby={invalidField === "ob-ifsc" ? "onboarding-step-error" : undefined}
                             placeholder="e.g. SBIN0001234"
-                            className="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-white text-sm font-mono font-bold text-slate-900 uppercase focus:border-blue-600"
+                            className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-mono font-bold text-admin-text uppercase focus:border-brand"
                           />
                         </div>
 
                         <div className="space-y-1.5 sm:col-span-2">
-                          <label className="block text-xs font-bold text-slate-700 uppercase">Bank &amp; Branch</label>
-                          <div className="h-11 px-3.5 rounded-xl border border-slate-200 bg-slate-100 flex items-center text-xs font-bold text-slate-700 truncate">
-                            {ifscLoading ? "Looking up IFSC..." : bankName ? `${bankName} (${branchName})` : "Will auto-populate from IFSC"}
+                          <label className="block text-admin-xs font-bold text-admin-text uppercase">Bank &amp; Branch</label>
+                          <div className="h-11 px-3.5 rounded-admin border border-admin-border bg-admin-surface-3 flex items-center text-admin-xs font-bold text-admin-text truncate">
+                            {ifscLoading ? "Looking up IFSC…" : bankName ? `${bankName} (${branchName})` : "Will auto-populate from IFSC"}
+                          </div>
+                          <div className="min-h-4">
+                            {ifscNote && (
+                              <span role="status" className="block text-admin-2xs text-tone-warn-fg">{ifscNote}</span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -2025,74 +2632,67 @@ export default function OnboardingPage() {
                           type="button"
                           disabled={bankVerifying || !accountNumber || !ifscCode}
                           onClick={handleVerifyBankAccount}
-                          className="px-4 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-slate-900 disabled:opacity-50 flex items-center gap-1.5"
+                          className="px-4 py-2 bg-admin-text text-brand-fg rounded-admin text-admin-xs font-bold hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5"
                         >
                           {bankVerifying ? <RefreshCw size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
                           <span>Verify Account Holder</span>
                         </button>
 
                         {bankVerified && (
-                          <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
+                          <span className="text-admin-xs font-bold text-tone-success-fg flex items-center gap-1">
                             <CheckCircle2 size={14} /> Bank Account Verified ✓
                           </span>
                         )}
                       </div>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="pt-6 border-t border-slate-100 flex justify-between items-center gap-3">
+                    <div className="sticky bottom-0 -mx-5 mt-2 flex items-center justify-between gap-2 border-t border-admin-border bg-admin-surface/95 px-5 py-3 backdrop-blur pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:static sm:mx-0 sm:bg-transparent sm:px-0 sm:pt-6 sm:backdrop-blur-none">
                       <div className="flex items-center gap-2">
-                        <button
+                        <AdminButton type="button" variant="secondary" icon={ArrowLeft} onClick={() => goToStep(1)}>
+                          Back
+                        </AdminButton>
+                        <AdminButton
                           type="button"
-                          onClick={() => setCurrentStep(1)}
-                          className="px-5 h-12 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm"
+                          variant="ghost"
+                          className="hidden sm:inline-flex"
+                          onClick={() => { window.location.href = "/" }}
                         >
-                          ← Back
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            window.location.href = "/"
-                          }}
-                          className="px-4 h-12 rounded-xl bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 font-bold text-sm transition-all shadow-xs"
-                        >
-                          Save &amp; Exit
-                        </button>
+                          Save &amp; exit
+                        </AdminButton>
                       </div>
-                      <button
+                      <AdminButton
                         type="submit"
+                        variant="brand"
+                        loading={savingStep}
                         disabled={savingStep}
-                        className="px-8 h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-all flex items-center gap-2 shadow-lg shadow-blue-200"
+                        className="flex-1 sm:flex-none sm:px-8"
                       >
-                        {savingStep ? (
-                          <><RefreshCw size={16} className="animate-spin" /> Saving...</>
-                        ) : (
-                          <>Continue <ArrowRight size={16} /></>
-                        )}
-                      </button>
+                        {savingStep ? "Saving…" : "Continue"}
+                        {!savingStep && <ArrowRight size={15} />}
+                      </AdminButton>
                     </div>
                   </form>
                 )}
 
                 {/* ─── STEP 3: REVIEW, MOU & SUBMIT ─── */}
-                {currentStep === 3 && (
+                {currentStep === 3 && !lockReasonFor(3) && (
                   <form onSubmit={handleFinalSubmit} className="space-y-8">
-                    <div>
-                      <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                        Review &amp; Sign MOU Agreement
-                      </h2>
-                      <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
-                        Review your application details and execute your official digital Partner MOU before submitting.
-                      </p>
-                    </div>
+                    <OnboardingStepHeader
+                      steps={STEPS}
+                      currentStep={3}
+                      title="Review &amp; sign MOU agreement"
+                      subtitle="Check your details and execute the official digital Partner MOU before submitting."
+                      onBack={() => goToStep(2)}
+                      backLabel="Business & KYC"
+                    />
 
                     {/* Summary Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-admin-xs">
                       {/* Personal & Business */}
-                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                        <div className="font-bold text-slate-900 text-sm flex items-center justify-between">
+                      <div className="p-4 rounded-admin-lg bg-admin-surface-2 border border-admin-border space-y-2">
+                        <div className="font-bold text-admin-text text-admin-sm flex items-center justify-between">
                           <span>Applicant Details</span>
-                          <button type="button" onClick={() => setCurrentStep(1)} className="text-blue-600 font-bold text-xs hover:underline">Edit</button>
+                          <button type="button" onClick={() => setCurrentStep(1)} className="text-brand font-bold text-admin-xs hover:underline">Edit</button>
                         </div>
                         <div>Name: <strong>{fullName || contactPersonName}</strong></div>
                         <div>Entity: <strong>{partnerType} {partnerType === "Firm" ? `(${firmType})` : ""}</strong></div>
@@ -2104,10 +2704,10 @@ export default function OnboardingPage() {
                       </div>
 
                       {/* Address & Bank */}
-                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                        <div className="font-bold text-slate-900 text-sm flex items-center justify-between">
+                      <div className="p-4 rounded-admin-lg bg-admin-surface-2 border border-admin-border space-y-2">
+                        <div className="font-bold text-admin-text text-admin-sm flex items-center justify-between">
                           <span>Bank &amp; Address Details</span>
-                          <button type="button" onClick={() => setCurrentStep(2)} className="text-blue-600 font-bold text-xs hover:underline">Edit</button>
+                          <button type="button" onClick={() => setCurrentStep(2)} className="text-brand font-bold text-admin-xs hover:underline">Edit</button>
                         </div>
                         <div>Address: <strong>{addressLine1}, {city}, {stateName} - {pinCode}</strong></div>
                         <div>Bank: <strong>{bankName || "Verified Bank"}</strong></div>
@@ -2117,10 +2717,10 @@ export default function OnboardingPage() {
                       </div>
 
                       {/* KYC Documents */}
-                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 sm:col-span-2">
-                        <div className="font-bold text-slate-900 text-sm flex items-center justify-between">
+                      <div className="p-4 rounded-admin-lg bg-admin-surface-2 border border-admin-border space-y-2 sm:col-span-2">
+                        <div className="font-bold text-admin-text text-admin-sm flex items-center justify-between">
                           <span>KYC Documents</span>
-                          <button type="button" onClick={() => setCurrentStep(2)} className="text-blue-600 font-bold text-xs hover:underline">Edit</button>
+                          <button type="button" onClick={() => setCurrentStep(2)} className="text-brand font-bold text-admin-xs hover:underline">Edit</button>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           {[
@@ -2130,9 +2730,9 @@ export default function OnboardingPage() {
                           ].map(({ label, doc }) => (
                             <div key={label} className="flex items-center gap-1.5">
                               {doc ? (
-                                <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+                                <CheckCircle2 size={14} className="text-tone-success-fg shrink-0" />
                               ) : (
-                                <AlertCircle size={14} className="text-amber-500 shrink-0" />
+                                <AlertCircle size={14} className="text-tone-warn-fg shrink-0" />
                               )}
                               <span className="truncate">
                                 {label}: <strong>{doc ? "Uploaded" : "Pending"}</strong>
@@ -2140,20 +2740,20 @@ export default function OnboardingPage() {
                             </div>
                           ))}
                         </div>
-                        <div className="text-[11px] text-slate-500">
+                        <div className="text-admin-2xs text-admin-muted">
                           Source: <strong>{docUploadMethod === "digilocker" ? "DigiLocker (verified)" : "Manual upload"}</strong>
                         </div>
                       </div>
                     </div>
 
                     {/* MOU Agreement Section */}
-                    <div className="p-5 rounded-2xl bg-blue-50/60 border-2 border-blue-200 space-y-4">
+                    <div id="ob-agreement" className="p-5 rounded-admin-lg bg-brand-soft border-2 border-brand-ring space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <FileText size={20} className="text-blue-600" />
+                          <FileText size={20} className="text-brand" />
                           <div>
-                            <div className="text-sm font-black text-slate-900">Partner Memorandum of Understanding (MOU)</div>
-                            <div className="text-xs text-slate-500">Official legal partnership agreement with Techstar Money Solution Pvt. Ltd.</div>
+                            <div className="text-admin-sm font-black text-admin-text">Partner Memorandum of Understanding (MOU)</div>
+                            <div className="text-admin-xs text-admin-muted">Official legal partnership agreement with Techstar Money Solution Pvt. Ltd.</div>
                           </div>
                         </div>
                       </div>
@@ -2164,9 +2764,9 @@ export default function OnboardingPage() {
                           href={`/api/partner/agreement/pdf?mobile=${mobileNumber}&preview=true`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-4 py-2.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 text-xs font-bold flex items-center gap-1.5 text-decoration-none shadow-sm"
+                          className="px-4 py-2.5 rounded-admin bg-admin-surface border border-admin-border-strong hover:bg-admin-surface-3 text-admin-text text-admin-xs font-bold flex items-center gap-1.5 shadow-admin-1"
                         >
-                          <Eye size={15} className="text-blue-600" />
+                          <Eye size={15} className="text-brand" />
                           <span>Preview MOU Agreement (स्वाक्षरीपूर्वी पाहा)</span>
                         </a>
 
@@ -2187,51 +2787,45 @@ export default function OnboardingPage() {
                     </div>
 
                     {/* Declarations */}
-                    <div className="space-y-3 p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                      <label className="flex items-start gap-2.5 cursor-pointer text-xs font-semibold text-slate-700">
+                    <div id="ob-declarations" className="space-y-3 p-4 rounded-admin-lg bg-admin-surface-2 border border-admin-border">
+                      <label className="flex items-start gap-2.5 cursor-pointer text-admin-xs font-semibold text-admin-text">
                         <input
                           type="checkbox"
                           checked={declareTruth}
                           onChange={e => setDeclareTruth(e.target.checked)}
-                          className="w-4 h-4 rounded mt-0.5 accent-blue-600"
+                          className="w-4 h-4 rounded mt-0.5 accent-[var(--brand)]"
                         />
                         <span>I confirm that all personal, business, KYC, and bank details provided are true, complete, and authentic.</span>
                       </label>
 
-                      <label className="flex items-start gap-2.5 cursor-pointer text-xs font-semibold text-slate-700">
+                      <label className="flex items-start gap-2.5 cursor-pointer text-admin-xs font-semibold text-admin-text">
                         <input
                           type="checkbox"
                           checked={declareTerms}
                           onChange={e => setDeclareTerms(e.target.checked)}
-                          className="w-4 h-4 rounded mt-0.5 accent-blue-600"
+                          className="w-4 h-4 rounded mt-0.5 accent-[var(--brand)]"
                         />
                         <span>I accept the Techstar Money Solution Private Limited DSA Partner Terms, Code of Conduct, and Operating Policies.</span>
                       </label>
                     </div>
 
-                    {/* Submit Actions */}
-                    <div className="pt-6 border-t border-slate-100 flex justify-between items-center">
-                      <button
-                        type="button"
-                        onClick={() => setCurrentStep(2)}
-                        className="px-6 h-12 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm"
-                      >
-                        ← Back to Step 2
-                      </button>
-                      <button
+                    <div className="sticky bottom-0 -mx-5 mt-2 flex items-center justify-between gap-2 border-t border-admin-border bg-admin-surface/95 px-5 py-3 backdrop-blur pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:static sm:mx-0 sm:bg-transparent sm:px-0 sm:pt-6 sm:backdrop-blur-none">
+                      <AdminButton type="button" variant="secondary" icon={ArrowLeft} onClick={() => goToStep(2)}>
+                        Back
+                      </AdminButton>
+                      <AdminButton
                         type="submit"
+                        variant="brand"
+                        loading={submitting}
                         disabled={submitting || !declareTruth || !declareTerms || !isAgreementSigned}
-                        className="px-8 h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-sm transition-all flex items-center gap-2 shadow-lg shadow-emerald-200"
+                        className="flex-1 sm:flex-none sm:px-8"
                       >
-                        {submitting ? (
-                          <><RefreshCw size={16} className="animate-spin" /> Submitting Application...</>
-                        ) : (
-                          <>🚀 Submit DSA Partner Application</>
-                        )}
-                      </button>
+                        {submitting ? "Submitting…" : "Submit application"}
+                      </AdminButton>
                     </div>
                   </form>
                 )}
+                </div>
               </div>
             )}
           </div>
@@ -2250,6 +2844,13 @@ export default function OnboardingPage() {
         }
         onClose={() => setActiveCropModal(null)}
         onConfirm={handleDocumentCropped}
+        onReject={(reason) => {
+          // A file rejected inside the modal is still this step's problem to
+          // report, so it lands in the same region as every other step error.
+          console.error("[onboarding] document rejected before upload", { docType: activeCropModal, reason })
+          setStepErrorKind("validation")
+          setStepError(reason)
+        }}
       />
 
       <PartnerPortalFooter />

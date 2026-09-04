@@ -1,19 +1,56 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Camera, Image as ImageIcon, RotateCw, ZoomIn, ZoomOut, Check, X, Upload } from "lucide-react";
+import { AlertCircle, Camera, Image as ImageIcon, RotateCw, ZoomIn, ZoomOut, Check, X, Upload } from "lucide-react";
 
 interface ImageCropModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (croppedFile: File) => void;
+  /**
+   * Called when a picked file is rejected before any upload is attempted, so
+   * the reason lands in the step's own error region instead of dying silently
+   * inside this modal.
+   */
+  onReject?: (reason: string) => void;
   title?: string;
+}
+
+/**
+ * Upload limits, enforced here rather than only server-side so a partner on a
+ * 3G connection is told about an 8 MB photo instantly instead of after a
+ * minute of upload. `/api/onboarding/document/upload` still validates.
+ */
+export const MAX_DOC_BYTES = 5 * 1024 * 1024;
+export const ACCEPTED_DOC_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"];
+export const ACCEPT_ATTR = ".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf";
+
+/** "8.2 MB" — the number in the rejection message has to be the real one. */
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export function validateDocFile(file: File): string | null {
+  const type = (file.type || "").toLowerCase();
+  if (type && !ACCEPTED_DOC_TYPES.includes(type)) {
+    return `"${file.name}" is not a supported format. Upload a PDF, JPG, PNG or WebP.`;
+  }
+  if (file.size > MAX_DOC_BYTES) {
+    return `"${file.name}" is ${formatBytes(file.size)}. The limit is ${formatBytes(MAX_DOC_BYTES)} — please compress it or take a lower-resolution photo.`;
+  }
+  if (file.size === 0) {
+    return `"${file.name}" is empty. Please pick the file again.`;
+  }
+  return null;
 }
 
 export default function ImageCropModal({
   isOpen,
   onClose,
   onConfirm,
+  onReject,
   title = "Upload Document",
 }: ImageCropModalProps) {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
@@ -21,6 +58,8 @@ export default function ImageCropModal({
   const [zoom, setZoom] = useState(1);
   const [fileName, setFileName] = useState("document.jpg");
   const [isMobile, setIsMobile] = useState(false);
+  const [pickError, setPickError] = useState<string | null>(null);
+  const [pickedSize, setPickedSize] = useState<number | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -37,24 +76,53 @@ export default function ImageCropModal({
     checkMobile();
   }, []);
 
+  // A rejection from the previous document must not greet the next one.
+  useEffect(() => {
+    if (!isOpen) {
+      setPickError(null);
+      setPickedSize(null);
+      setImageSrc(null);
+      setRotation(0);
+      setZoom(1);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setFileName(file.name);
-      // PDFs – just pass directly without canvas render
-      if (file.type === "application/pdf") {
-        onConfirm(file);
-        onClose();
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImageSrc(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    // Reset the input so picking the same file twice still fires onChange
+    // after a rejection.
+    e.target.value = "";
+    if (!file) return;
+
+    const problem = validateDocFile(file);
+    if (problem) {
+      setPickError(problem);
+      onReject?.(problem);
+      return;
     }
+
+    setPickError(null);
+    setFileName(file.name);
+    setPickedSize(file.size);
+
+    // PDFs – just pass directly without canvas render
+    if (file.type === "application/pdf") {
+      onConfirm(file);
+      onClose();
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => {
+      const msg = `Could not read "${file.name}". The file may be corrupt — try another copy.`;
+      setPickError(msg);
+      onReject?.(msg);
+    };
+    reader.onload = () => {
+      setImageSrc(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleRotate = () => {
@@ -110,7 +178,14 @@ export default function ImageCropModal({
         <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
           <h3 className="font-bold text-base flex items-center gap-2">
             <Camera className="w-5 h-5 text-blue-400" />
-            {title}
+            <span>
+              {title}
+              {pickedSize !== null && (
+                <span className="block text-admin-2xs font-medium opacity-70">
+                  {fileName} · {formatBytes(pickedSize)}
+                </span>
+              )}
+            </span>
           </h3>
           <button onClick={onClose} className="p-1 hover:bg-slate-800 rounded-lg transition-colors">
             <X className="w-5 h-5 text-slate-400" />
@@ -121,7 +196,7 @@ export default function ImageCropModal({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*,application/pdf"
+          accept={ACCEPT_ATTR}
           className="hidden"
           onChange={handleFileSelect}
         />
@@ -135,6 +210,16 @@ export default function ImageCropModal({
           onChange={handleFileSelect}
         />
 
+        {pickError && (
+          <div
+            role="alert"
+            className="mx-4 mt-4 flex items-start gap-2 rounded-admin border border-tone-danger-bd bg-tone-danger px-3 py-2.5 text-admin-xs font-semibold text-tone-danger-fg"
+          >
+            <AlertCircle className="mt-px h-4 w-4 shrink-0" />
+            <span>{pickError}</span>
+          </div>
+        )}
+
         {/* Content Body */}
         <div className="p-4 flex-1 overflow-y-auto flex flex-col items-center justify-center bg-slate-100">
           {!imageSrc ? (
@@ -144,7 +229,7 @@ export default function ImageCropModal({
               </div>
               <h4 className="font-semibold text-slate-800 text-lg mb-1">Choose Document Source</h4>
               <p className="text-slate-500 text-xs mb-6 max-w-xs mx-auto">
-                Upload a clear image or PDF (JPG, PNG, PDF up to 10 MB)
+                Upload a clear image or PDF — JPG, PNG, WebP or PDF, up to {formatBytes(MAX_DOC_BYTES)}
               </p>
 
               <div className={`grid gap-3 max-w-xs mx-auto ${isMobile ? "grid-cols-2" : "grid-cols-1"}`}>

@@ -3,6 +3,7 @@ import { getAdminStorage } from "@/lib/firebase-admin";
 import { firestoreFetch } from '@/lib/firestore-rest';
 import { sendLeadNotificationToAdmins } from "@/lib/notificationService";
 import { createWaIncomingNotification } from "@/lib/waNotifications";
+import { applyCampaignStatus } from "@/lib/waCampaigns";
 import { lookupPincode, pincodeLeadFields, type PincodeDetails } from "@/lib/pincode";
 import { currentDistrictName } from "@/lib/locationMatch";
 import {
@@ -1387,6 +1388,43 @@ function isDuplicateMessage(msgId: string): boolean {
 async function handleWebhookRequest(request: Request, pendingPromises: Promise<any>[]): Promise<Response> {
   try {
     const body = await request.json();
+
+    /**
+     * Delivery receipts.
+     *
+     * Meta sends `statuses` on the same webhook as inbound messages, and this
+     * handler used to drop them on the floor — which is why a bulk campaign had
+     * no way to know whether anything actually arrived. Each receipt carries the
+     * `wamid` of the outgoing message, which `applyCampaignStatus` maps back to
+     * the campaign recipient it belongs to.
+     *
+     * A receipt for anything else (an inbox reply, an OTP) resolves to nothing
+     * and is ignored, so this stays cheap for the overwhelming majority of
+     * callbacks. Failures never propagate: WhatsApp must get its 200 whatever
+     * happens here, or it will retry the delivery forever.
+     */
+    const statuses = body?.entry?.[0]?.changes?.[0]?.value?.statuses;
+    if (Array.isArray(statuses) && statuses.length > 0) {
+      pendingPromises.push(
+        (async () => {
+          for (const status of statuses) {
+            try {
+              const at = status?.timestamp
+                ? new Date(Number(status.timestamp) * 1000)
+                : new Date();
+              const errorText =
+                status?.errors?.[0]?.error_data?.details ||
+                status?.errors?.[0]?.title ||
+                "";
+              await applyCampaignStatus(status?.id, status?.status, errorText, at);
+            } catch (error) {
+              console.error("[Webhook] Campaign status update failed:", error);
+            }
+          }
+        })()
+      );
+      return NextResponse.json({ ok: true }); // a status event carries no message
+    }
 
     // Extract message from Facebook webhook payload
     const messages = body?.entry?.[0]?.changes?.[0]?.value?.messages;
