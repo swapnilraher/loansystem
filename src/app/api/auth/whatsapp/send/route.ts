@@ -117,6 +117,27 @@ export async function POST(request: Request) {
       }
 
       if (!response.ok) {
+        // Fallback: Try sending direct text message if template dispatch fails
+        const textPayload = {
+          messaging_product: "whatsapp",
+          to: `${process.env.COUNTRY_CODE || "91"}${phoneNumber}`,
+          type: "text",
+          text: {
+            body: `*Techstar Money - Verification OTP*\n\nYour verification code is: *${otp}*\n\nValid for 5 minutes. Do not share this OTP with anyone.`,
+          },
+        };
+
+        response = await fetch(`https://graph.facebook.com/v17.0/${PHONE_ID}/messages`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${TOKEN}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(textPayload),
+        });
+      }
+
+      if (!response.ok) {
         const errorData = await response.json();
         console.error("WhatsApp Error:", errorData);
         return NextResponse.json({ error: "Failed to send WhatsApp message" }, { status: 500 });
