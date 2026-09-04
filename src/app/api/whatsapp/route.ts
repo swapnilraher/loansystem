@@ -10,7 +10,7 @@ const TOKEN = WHATSAPP_TOKEN;
 // Outbound WhatsApp message sender (for OTP, notifications, manual messages)
 export async function POST(request: Request) {
   try {
-    const { phone, message, leadId, senderName, senderUid, mediaType, mediaUrl, filename, mediaId, templateName, templateLang, customerName } = await request.json();
+    const { phone, message, leadId, senderName, senderUid, mediaType, mediaUrl, filename, mediaId, templateName, templateLang, customerName, customername, name } = await request.json();
     
     if (!phone) {
       return NextResponse.json({ success: false, error: "Phone number is required" }, { status: 400 });
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     };
 
     if (templateName) {
-      const nameVal = customerName || senderName || "Partner";
+      const nameVal = customerName || customername || name || senderName || "Partner";
       body.type = "template";
       body.template = {
         name: templateName,
