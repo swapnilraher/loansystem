@@ -169,7 +169,8 @@ async function sendOne(
 
   if (message.mode === "template") {
     const components: Record<string, unknown>[] = []
-    const isConnector = message.templateName === "connector"
+    const tName = String(message.templateName || "").trim().toLowerCase()
+    const isConnector = tName === "connector" || tName.includes("connector")
     const imgUrl = message.imageUrl || (isConnector ? "https://res.cloudinary.com/ugpy6fko/image/upload/v1788543861/wa-campaigns/u3xz2l1lpx7wylsxitog.png" : "")
 
     // A template whose header is an IMAGE must be given one, and it has to be a
@@ -182,35 +183,39 @@ async function sendOne(
       })
     }
 
-    const rawParams = message.bodyParams.length > 0
-      ? message.bodyParams
-      : (isConnector ? ["{{Name}}"] : [])
-
-    if (rawParams.length > 0) {
+    if (isConnector) {
+      const recipientName = (recipient.name || "").trim() || "Partner"
       components.push({
         type: "body",
-        parameters: rawParams.map(param => {
-          const filled = fillName(param, recipient.name) || recipient.name || "Partner"
-          if (isConnector) {
+        parameters: [
+          {
+            type: "text",
+            parameter_name: "customer_name",
+            text: recipientName,
+          },
+        ],
+      })
+    } else {
+      const rawParams = message.bodyParams.length > 0 ? message.bodyParams : []
+      if (rawParams.length > 0) {
+        components.push({
+          type: "body",
+          parameters: rawParams.map((param, idx) => {
+            const filled = fillName(param, recipient.name) || recipient.name || "Customer"
             return {
               type: "text",
-              parameter_name: "customer_name",
               text: filled,
             }
-          }
-          return {
-            type: "text",
-            text: filled,
-          }
-        }),
-      })
+          }),
+        })
+      }
     }
 
     const langCode = isConnector ? "en" : (message.templateLanguage || "en_US")
 
     body.type = "template"
     body.template = {
-      name: message.templateName,
+      name: isConnector ? "connector" : message.templateName,
       language: { code: langCode },
       ...(components.length > 0 ? { components } : {}),
     }
@@ -226,6 +231,7 @@ async function sendOne(
   }
 
   try {
+    console.log(`[waCampaigns] Dispatching to ${recipient.phone}:`, JSON.stringify(body))
     const response = await fetch(`${GRAPH_BASE}/${WHATSAPP_PHONE_ID}/messages`, {
       method: "POST",
       headers: {
@@ -239,10 +245,11 @@ async function sendOne(
     if (!response.ok) {
       const error = result?.error
       const detail = error?.error_data?.details || error?.message || "WhatsApp rejected the message."
-      console.error(`[waCampaigns] Send failed for ${recipient.phone}:`, detail)
+      console.error(`[waCampaigns] Send failed for ${recipient.phone}:`, detail, JSON.stringify(result))
       return { ok: false, messageId: "", error: String(detail).slice(0, 500) }
     }
 
+    console.log(`[waCampaigns] Send success for ${recipient.phone}:`, result?.messages?.[0]?.id)
     return {
       ok: true,
       messageId: result?.messages?.[0]?.id || "",

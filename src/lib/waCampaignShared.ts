@@ -216,7 +216,8 @@ export function previewMessage(
     }
   }
 
-  const isConnector = message.templateName === "connector"
+  const tName = String(message.templateName || "").trim().toLowerCase()
+  const isConnector = tName === "connector" || tName.includes("connector")
   const defaultBody = isConnector
     ? "Hello {{customer_name}}\n\n💰 Loan Business करता? अधिक कमवायचंय?\nआता Join करा Techstar Money Solution सोबत आणि मिळवा:\n\n🔹 50+ Loan Partners\n🔹 Highest Payout Opportunities\n🔹 Flexible Payout\n🔹 Fast Digital Onboarding\n🔹 Banks + NBFCs + Fintechs\n\n🚀 More Leads | More Loans | More Earnings\n\nआजच Techstar चे Loan Connector / DSA Partner बना!"
     : ""

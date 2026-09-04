@@ -98,7 +98,21 @@ export default function WhatsAppCampaignsPage() {
       const response = await authedFetch("/api/admin/wa-campaigns/templates")
       const result = await response.json()
       if (!result.success) throw new Error(result.error || "Could not load templates.")
-      setTemplates(result.templates || [])
+      const list: WaTemplate[] = result.templates || []
+      setTemplates(list)
+      setMessage1(prev => {
+        if (!prev.templateName && list.some(t => t.name === "connector")) {
+          return {
+            ...prev,
+            templateName: "connector",
+            templateLanguage: "en",
+            bodyParams: ["{{Name}}"],
+            imageUrl: "https://res.cloudinary.com/ugpy6fko/image/upload/v1788543861/wa-campaigns/u3xz2l1lpx7wylsxitog.png",
+            imageSource: "url",
+          }
+        }
+        return prev
+      })
     } catch (error) {
       setTemplateError(error instanceof Error ? error.message : "Could not load templates.")
     } finally {

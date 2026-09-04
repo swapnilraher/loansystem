@@ -60,8 +60,9 @@ export async function GET(request: Request) {
 /** Keeps only the fields the worker reads, so nothing unexpected is stored. */
 function cleanMessage(raw: unknown): CampaignMessage {
   const value = (raw || {}) as Partial<CampaignMessage>
-  const templateName = String(value.templateName || "").trim()
-  const isConnector = templateName === "connector"
+  const rawTemplate = String(value.templateName || "").trim()
+  const isConnector = rawTemplate.toLowerCase() === "connector" || rawTemplate.toLowerCase().includes("connector")
+  const templateName = isConnector ? "connector" : rawTemplate
   return {
     enabled: value.enabled === true,
     mode: value.mode === "custom" ? "custom" : "template",

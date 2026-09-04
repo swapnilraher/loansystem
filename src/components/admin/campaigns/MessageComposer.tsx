@@ -60,16 +60,16 @@ export default function MessageComposer({
       // filled in. Anything else starts blank and has to be typed.
       message.bodyParams[i] ?? (i === 0 ? "{{Name}}" : "")
     )
-    const isConnector = name === "connector"
+    const isConnector = (name || "").toLowerCase() === "connector" || (name || "").toLowerCase().includes("connector")
     const defaultImg = isConnector ? "https://res.cloudinary.com/ugpy6fko/image/upload/v1788543861/wa-campaigns/u3xz2l1lpx7wylsxitog.png" : ""
     set({
-      templateName: name || "",
-      templateLanguage: language || (isConnector ? "en" : "en_US"),
-      bodyParams: params,
+      templateName: isConnector ? "connector" : (name || ""),
+      templateLanguage: isConnector ? "en" : (language || "en_US"),
+      bodyParams: params.length > 0 ? params : (isConnector ? ["{{Name}}"] : []),
       imageUrl: message.imageUrl || defaultImg,
-      imageSource: message.imageUrl || defaultImg ? "url" : "none",
+      imageSource: (message.imageUrl || defaultImg) ? "url" : "none",
       // A template without an image header cannot carry one.
-      ...(chosen && !chosen.hasImageHeader ? { imageUrl: "", imageSource: "none" as CampaignImageSource } : {}),
+      ...(chosen && !chosen.hasImageHeader && !isConnector ? { imageUrl: "", imageSource: "none" as CampaignImageSource } : {}),
     })
   }
 
