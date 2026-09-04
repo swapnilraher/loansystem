@@ -9,9 +9,13 @@ export interface OnboardingDraftState {
   currentStep: number;
   lastSavedAt: string;
 
+  /** Canonical step key mirrored from the server (see `onboarding-steps`). */
+  currentStepKey: string;
+
   // Step 1
   fullName: string;
   email: string;
+  referredByDsaCode: string;
 
   // Step 2
   partnerType: "Individual" | "Firm";
@@ -47,6 +51,10 @@ export interface OnboardingDraftState {
   aadhaarBackDoc: any;
   aadhaarCombined: boolean;
   panDoc: any;
+
+  /** Nested shapes as persisted server-side, so a server draft rehydrates as-is. */
+  bankDetails?: Record<string, any>;
+  documents?: Record<string, any>;
 
   // Step 7
   accountHolderName: string;

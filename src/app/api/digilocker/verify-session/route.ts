@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
+import { extractImageSource, extractAnyFileUrl, uploadDigilockerImage } from "@/lib/digilockerAssets";
+import { stepFieldsFor } from "@/lib/onboarding-steps";
 
 export async function POST(request: Request) {
   try {
@@ -172,46 +174,77 @@ export async function POST(request: Request) {
 
     console.log(`DigiLocker Session Verification -> hasAadhaar: ${hasAadhaar}, hasPan: ${hasPan}, sessionStatus: ${statusData?.data?.status}`);
 
-    const aadhaarUrl =
-      fetchAadhaarDoc?.data?.files?.[0]?.url ||
-      aadhaarDetails?.data?.pdf_url ||
-      aadhaarDetails?.pdf_url ||
-      aadhaarDetails?.data?.file_url ||
-      aadhaarDetails?.fileUrl ||
-      "/img/digilocker_aadhaar.pdf";
+    const cleanMobile = mobileNumber.replace(/\D/g, "").slice(-10);
 
-    const panUrl =
-      fetchPanDoc?.data?.files?.[0]?.url ||
-      panDetails?.data?.pdf_url ||
-      panDetails?.pdf_url ||
-      panDetails?.data?.file_url ||
-      panDetails?.fileUrl ||
-      "/img/digilocker_pan.pdf";
+    // -- AADHAAR & PAN AS ORIGINAL IMAGES --
+    // Images coming back from DigiLocker are uploaded to Cloudinary as image
+    // assets. They are never converted into (or wrapped in) a PDF.
+    const aadhaarImageSource =
+      extractImageSource(aadhaarDetails) || extractImageSource(fetchAadhaarDoc);
+    const panImageSource = extractImageSource(panDetails) || extractImageSource(fetchPanDoc);
+
+    const [aadhaarImage, panImage] = await Promise.all([
+      hasAadhaar && aadhaarImageSource
+        ? uploadDigilockerImage(aadhaarImageSource, {
+            publicId: `aadhaar_${cleanMobile}`,
+            folder: "partner-kyc/digilocker",
+            tags: ["digilocker", "aadhaar", cleanMobile],
+          })
+        : Promise.resolve(null),
+      hasPan && panImageSource
+        ? uploadDigilockerImage(panImageSource, {
+            publicId: `pan_${cleanMobile}`,
+            folder: "partner-kyc/digilocker",
+            tags: ["digilocker", "pan", cleanMobile],
+          })
+        : Promise.resolve(null),
+    ]);
+
+    // Fall back to whatever document reference DigiLocker issued when no
+    // image was available (e.g. an issuer that only exposes a PDF).
+    const aadhaarFallbackUrl =
+      extractAnyFileUrl(fetchAadhaarDoc) || extractAnyFileUrl(aadhaarDetails) || "";
+    const panFallbackUrl = extractAnyFileUrl(fetchPanDoc) || extractAnyFileUrl(panDetails) || "";
+
+    const aadhaarUrl = aadhaarImage?.secureUrl || aadhaarFallbackUrl;
+    const panUrl = panImage?.secureUrl || panFallbackUrl;
 
     const aadhaarDocRecord = {
       documentType: "aadhaarFront",
-      fileName: "DigiLocker_Aadhaar.pdf",
-      mimeType: "application/pdf",
-      sizeBytes: 102400,
+      fileName: aadhaarImage
+        ? `DigiLocker_Aadhaar.${aadhaarImage.format || "jpg"}`
+        : "DigiLocker_Aadhaar",
+      mimeType: aadhaarImage ? `image/${aadhaarImage.format || "jpeg"}` : "application/pdf",
+      sizeBytes: aadhaarImage?.bytes ?? null,
       fileUrl: aadhaarUrl,
-      base64Data: aadhaarDetails?.data?.base64 || aadhaarDetails?.base64 || undefined,
+      cloudinaryId: aadhaarImage?.publicId || null,
+      cloudinaryAssetId: aadhaarImage?.assetId || null,
+      resourceType: aadhaarImage?.resourceType || null,
+      source: "digilocker",
       uploadMethod: "digilocker",
       uploadedAt,
-      status: "verified",
+      // Consent can be granted without the issuer returning a retrievable
+      // file; that is recorded rather than papered over with a dead URL.
+      status: aadhaarUrl ? "verified" : "consented_no_file",
+      fileMissing: !aadhaarUrl,
       digilockerVerified: true,
       digilockerSessionId: sessionId
     };
 
     const panDocRecord = {
       documentType: "panDoc",
-      fileName: "DigiLocker_PAN.pdf",
-      mimeType: "application/pdf",
-      sizeBytes: 102400,
+      fileName: panImage ? `DigiLocker_PAN.${panImage.format || "jpg"}` : "DigiLocker_PAN",
+      mimeType: panImage ? `image/${panImage.format || "jpeg"}` : "application/pdf",
+      sizeBytes: panImage?.bytes ?? null,
       fileUrl: panUrl,
-      base64Data: panDetails?.data?.base64 || panDetails?.base64 || undefined,
+      cloudinaryId: panImage?.publicId || null,
+      cloudinaryAssetId: panImage?.assetId || null,
+      resourceType: panImage?.resourceType || null,
+      source: "digilocker",
       uploadMethod: "digilocker",
       uploadedAt,
-      status: "verified",
+      status: panUrl ? "verified" : "consented_no_file",
+      fileMissing: !panUrl,
       digilockerVerified: true,
       digilockerSessionId: sessionId
     };
@@ -227,12 +260,16 @@ export async function POST(request: Request) {
     }
 
     const bothAllowed = hasAadhaar && hasPan;
-    const cleanMobile = mobileNumber.replace(/\D/g, "").slice(-10);
     const db = getAdminDb();
     const docRef = db.collection("partner_applications").doc(cleanMobile);
+    const existingSnap = await docRef.get();
+    const existingData = existingSnap.exists ? existingSnap.data() : {};
 
     const updatePayload: Record<string, any> = {
-      documents: updatedDocuments,
+      documents: { ...(existingData?.documents || {}), ...updatedDocuments },
+      docUploadMethod: "digilocker",
+      digilockerSessionId: sessionId,
+      digilockerVerifiedAt: uploadedAt,
       updatedAt: new Date()
     };
 
@@ -240,13 +277,53 @@ export async function POST(request: Request) {
       updatePayload.aadhaarCombined = true;
     }
 
-    if (bothAllowed) {
-      updatePayload.currentStep = 7;
-    } else {
-      updatePayload.currentStep = 6;
+    // -- CLOUDINARY REFERENCES ON THE APPLICATION --
+    if (aadhaarImage) {
+      updatePayload.aadhaar_image_url = aadhaarImage.secureUrl;
+      updatePayload.aadhaar_cloudinary_public_id = aadhaarImage.publicId;
+      updatePayload.aadhaar_cloudinary_asset_id = aadhaarImage.assetId;
+      updatePayload.aadhaar_image_format = aadhaarImage.format;
+
+      // The Aadhaar image doubles as the partner profile photo -- referenced,
+      // never uploaded a second time.
+      if (!existingData?.profile_photo_url) {
+        updatePayload.profile_photo_url = aadhaarImage.secureUrl;
+        updatePayload.profilePhotoUrl = aadhaarImage.secureUrl;
+        updatePayload.profile_photo_source = "digilocker_aadhaar";
+      }
     }
 
+    if (panImage) {
+      updatePayload.pan_image_url = panImage.secureUrl;
+      updatePayload.pan_cloudinary_public_id = panImage.publicId;
+      updatePayload.pan_cloudinary_asset_id = panImage.assetId;
+      updatePayload.pan_image_format = panImage.format;
+    }
+
+    Object.assign(
+      updatePayload,
+      stepFieldsFor({ ...existingData, ...updatePayload }, { mobileVerified: true })
+    );
+
     await docRef.set(updatePayload, { merge: true });
+
+    // Mirror the profile photo onto the user record so the portal avatar works
+    // straight after login.
+    if (updatePayload.profile_photo_url) {
+      try {
+        await db.collection("users").doc(cleanMobile).set(
+          {
+            profile_photo_url: updatePayload.profile_photo_url,
+            profilePhotoUrl: updatePayload.profile_photo_url,
+            photoURL: updatePayload.profile_photo_url,
+            updatedAt: new Date()
+          },
+          { merge: true }
+        );
+      } catch (photoErr) {
+        console.warn("Profile photo sync note:", photoErr);
+      }
+    }
 
     return NextResponse.json({
       success: true,
@@ -256,6 +333,11 @@ export async function POST(request: Request) {
       hasAadhaar,
       hasPan,
       bothAllowed,
+      aadhaarImageUrl: aadhaarImage?.secureUrl || null,
+      panImageUrl: panImage?.secureUrl || null,
+      profilePhotoUrl: updatePayload.profile_photo_url || existingData?.profile_photo_url || null,
+      currentStep: updatePayload.currentStep,
+      currentStepKey: updatePayload.currentStepKey,
       documents: {
         ...(hasAadhaar ? { aadhaarFrontDoc: aadhaarDocRecord, aadhaarBackDoc: aadhaarDocRecord } : {}),
         ...(hasPan ? { panDoc: panDocRecord } : {})

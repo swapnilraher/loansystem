@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { getAdminDb } from "@/lib/firebase-admin";
-import { checkPartnerEligibility } from "@/app/api/partner/check-eligibility/route";
+import { checkPartnerEligibility } from "@/lib/partnerEligibility";
 import { memoryOtpStore } from "@/lib/otp-store";
 
 const PHONE_ID = process.env.WHATSAPP_PHONE_ID;
@@ -202,8 +202,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
+      eligible: true,
       message: "Verification OTP sent successfully",
       expiresInSeconds: 300,
+      status: eligibility.status,
+      applicationId: eligibility.applicationId,
+      onboardingState: eligibility.onboardingState,
     });
   } catch (error: any) {
     console.error("Onboarding OTP Send Error:", error);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { validateStepPayload } from "@/lib/validations/onboarding";
+import { stepFieldsFor } from "@/lib/onboarding-steps";
 
 function sanitizePayload(obj: any): any {
   if (obj === undefined) return null;
@@ -140,7 +141,13 @@ export async function POST(request: Request) {
 
     const cleanPayload = sanitizePayload(rawPayload);
 
-    // ─── 3. ATOMIC BATCH WRITE (Applications + Users) ───
+    // ─── 4. PERSIST PER-STEP COMPLETION STATE ───
+    // Derived from the merged document, so every completed step survives a
+    // refresh, a logout, or a sign-in from another device.
+    const stepFields = stepFieldsFor(cleanPayload, { mobileVerified: true });
+    Object.assign(cleanPayload, stepFields);
+
+    // ─── 5. ATOMIC BATCH WRITE (Applications + Users) ───
     const batch = db.batch();
     batch.set(docRef, cleanPayload, { merge: true });
 
@@ -154,7 +161,8 @@ export async function POST(request: Request) {
         role: "partner",
         dsaStatus: cleanPayload.status || "draft",
         applicationId: cleanPayload.applicationId || `TSM-DRAFT-${cleanMobile}`,
-        currentStep,
+        currentStep: stepFields.currentStep,
+        onboardingStatus: stepFields.currentStepKey,
         updatedAt: now,
       },
       { merge: true }
@@ -164,7 +172,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      currentStep: cleanPayload.currentStep,
+      currentStep: stepFields.currentStep,
+      currentStepKey: stepFields.currentStepKey,
+      stepStatuses: stepFields,
       message: "Progress saved successfully",
       savedAt: now.toISOString(),
     });

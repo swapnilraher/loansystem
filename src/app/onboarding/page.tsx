@@ -90,6 +90,10 @@ export default function OnboardingPage() {
   const [canResend, setCanResend] = useState(false)
   const [resending, setResending] = useState(false)
   const [mobileError, setMobileError] = useState<string | null>(null)
+  const [resuming, setResuming] = useState(false)
+
+  // Guards automatic verification so one OTP is submitted exactly once.
+  const autoVerifiedRef = useRef("")
   const [eligibilityInfo, setEligibilityInfo] = useState<{
     message: string
     marathiMessage?: string
@@ -271,22 +275,86 @@ export default function OnboardingPage() {
       }
     }
 
+    // The server record is authoritative: it carries progress made on any
+    // device, so a partner resumes at the same step after a logout or a
+    // browser change, not just after a refresh.
+    setResuming(true)
     try {
       const res = await fetch(`/api/onboarding/resume?mobile=${mob}`)
       const data = await res.json()
       if (res.ok && data.found && data.draft) {
         const d = data.draft
-        if (d.status === "under_review" || d.status === "submitted" || d.isApplicationLocked) {
+        if (d.isSubmitted || d.isApplicationLocked) {
           setSubmittedAppId(d.applicationId || `TSM-DSA-${mob}`)
           setIsApplicationLocked(true)
           setSubmittedApplicationData(d)
           return
         }
+
+        // Step 1 — basic & business identity
+        if (d.partnerType) setPartnerType(d.partnerType as PartnerType)
+        if (d.firmType) setFirmType(d.firmType as FirmType)
+        if (d.fullName) setFullName(d.fullName)
+        if (d.businessName) setBusinessName(d.businessName)
+        if (d.contactPersonName) setContactPersonName(d.contactPersonName)
+        if (d.designation) setDesignation(d.designation)
+        if (d.email) setEmail(d.email)
+        if (d.panNumber) setPanNumber(d.panNumber)
+        if (d.dob) setDob(d.dob)
+        if (d.gender) setGender(d.gender)
+        if (d.referredByDsaCode) setReferredByDsaCode(d.referredByDsaCode)
+        if (d.addressLine1) setAddressLine1(d.addressLine1)
+        if (d.addressLine2) setAddressLine2(d.addressLine2)
+        if (d.area) setArea(d.area)
+        if (d.city) setCity(d.city)
+        if (d.district) setDistrict(d.district)
+        if (d.stateName) setStateName(d.stateName)
+        if (d.pinCode) setPinCode(d.pinCode)
+
+        // Step 2 — GST, documents & bank
+        if (d.isGstRegistered) setIsGstRegistered(d.isGstRegistered as "Yes" | "No")
+        if (d.gstin) setGstin(d.gstin)
+        if (d.gstValid) setGstValid(true)
+        if (d.gstDetails) setGstDetails(d.gstDetails)
+        if (d.docUploadMethod) setDocUploadMethod(d.docUploadMethod)
+        if (d.documents?.aadhaarFrontDoc) setAadhaarFrontDoc(d.documents.aadhaarFrontDoc)
+        if (d.documents?.aadhaarBackDoc) setAadhaarBackDoc(d.documents.aadhaarBackDoc)
+        if (d.aadhaarCombined || d.documents?.aadhaarCombined) setAadhaarCombined(true)
+        if (d.documents?.panDoc) setPanDoc(d.documents.panDoc)
+        if (d.bankDetails?.accountHolderName) setAccountHolderName(d.bankDetails.accountHolderName)
+        if (d.bankDetails?.accountNumber) {
+          setAccountNumber(d.bankDetails.accountNumber)
+          setConfirmAccountNumber(d.bankDetails.accountNumber)
+        }
+        if (d.bankDetails?.ifsc) {
+          setIfscCode(d.bankDetails.ifsc)
+          setIfscValid(true)
+        }
+        if (d.bankDetails?.bankName) setBankName(d.bankDetails.bankName)
+        if (d.bankDetails?.branchName) setBranchName(d.bankDetails.branchName)
+        if (d.bankDetails?.accountType) setAccountType(d.bankDetails.accountType as "Savings" | "Current")
+        if (d.bankDetails?.verified) setBankVerified(true)
+
+        // Step 3 — agreement
         if (d.agreementSigned) setIsAgreementSigned(true)
         if (d.agreementPdfUrl) setAgreementPdfUrl(d.agreementPdfUrl)
+
+        // Open the pane the server says is pending.
+        if (data.currentStep && [1, 2, 3].includes(data.currentStep)) {
+          setCurrentStep(data.currentStep)
+        }
+
+        OnboardingStorage.saveDraft({
+          mobileNumber: mob,
+          isMobileVerified: true,
+          currentStep: data.currentStep,
+          currentStepKey: data.currentStepKey,
+        })
       }
     } catch (e) {
       console.warn("Could not resume remote draft:", e)
+    } finally {
+      setResuming(false)
     }
   }
 
@@ -343,6 +411,7 @@ export default function OnboardingPage() {
       setOtpTimer(50)
       setCanResend(false)
       setOtpValues(["", "", "", "", "", ""])
+      autoVerifiedRef.current = ""
     } catch (err: any) {
       setMobileError(messageFor(err, "Unable to send verification OTP."))
     } finally {
@@ -364,6 +433,8 @@ export default function OnboardingPage() {
       if (!res.ok) throw new Error(data.error || "Failed to resend OTP")
       setOtpTimer(50)
       setCanResend(false)
+      setOtpValues(["", "", "", "", "", ""])
+      autoVerifiedRef.current = ""
     } catch (err) {
       setMobileError(messageFor(err, "Failed to resend OTP."))
     } finally {
@@ -389,7 +460,18 @@ export default function OnboardingPage() {
     }
   }
 
-  const handleVerifyInlineOtp = async (e?: React.FormEvent) => {
+  // Pasting or autofilling the whole code fills every box at once.
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6)
+    if (!pasted) return
+    e.preventDefault()
+    const next = ["", "", "", "", "", ""]
+    pasted.split("").forEach((d, i) => { next[i] = d })
+    setOtpValues(next)
+    document.getElementById(`onboard-otp-${Math.min(pasted.length, 5)}`)?.focus()
+  }
+
+  const handleVerifyInlineOtp = useCallback(async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     const fullOtp = otpValues.join("")
     if (fullOtp.length < 6) {
@@ -407,25 +489,46 @@ export default function OnboardingPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Invalid OTP code")
 
+      // OTP section collapses into the green verified strip and the pending
+      // step opens inline underneath it.
       setIsMobileVerified(true)
       setOtpSent(false)
+      if (data.currentStep && [1, 2, 3].includes(data.currentStep)) {
+        setCurrentStep(data.currentStep)
+      }
       OnboardingStorage.saveDraft({
         mobileNumber,
         isMobileVerified: true,
+        currentStep: data.currentStep,
+        currentStepKey: data.currentStepKey,
       })
       await loadDraftForMobile(mobileNumber)
     } catch (err: any) {
+      autoVerifiedRef.current = ""
       setMobileError(err.message || "Failed to verify OTP.")
     } finally {
       setVerifyLoading(false)
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otpValues, mobileNumber])
+
+  // Auto-submit as soon as all six digits are present.
+  useEffect(() => {
+    const fullOtp = otpValues.join("")
+    if (!otpSent || isMobileVerified || verifyLoading) return
+    if (fullOtp.length !== 6) return
+    if (autoVerifiedRef.current === fullOtp) return
+    autoVerifiedRef.current = fullOtp
+    handleVerifyInlineOtp()
+  }, [otpValues, otpSent, isMobileVerified, verifyLoading, handleVerifyInlineOtp])
 
   const handleResetMobile = () => {
     OnboardingStorage.clearDraft()
+    autoVerifiedRef.current = ""
     setMobileNumber("")
     setIsMobileVerified(false)
     setOtpSent(false)
+    setOtpValues(["", "", "", "", "", ""])
     setCurrentStep(1)
   }
 
@@ -1249,7 +1352,7 @@ export default function OnboardingPage() {
                         </span>
                         <button
                           type="button"
-                          onClick={() => { setOtpSent(false); setOtpValues(["", "", "", "", "", ""]) }}
+                          onClick={() => { setOtpSent(false); setOtpValues(["", "", "", "", "", ""]); autoVerifiedRef.current = "" }}
                           className="text-blue-600 font-bold hover:underline"
                         >
                           Change Number
@@ -1269,6 +1372,9 @@ export default function OnboardingPage() {
                             value={d}
                             onChange={e => handleOtpBoxChange(i, e.target.value)}
                             onKeyDown={e => handleOtpBoxKeyDown(i, e)}
+                            onPaste={handleOtpPaste}
+                            autoComplete={i === 0 ? "one-time-code" : "off"}
+                            disabled={verifyLoading}
                             className="w-11 sm:w-13 h-12 sm:h-14 text-center text-xl font-black rounded-xl border border-slate-300 bg-slate-50 text-slate-900 focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all"
                           />
                         ))}
@@ -1309,8 +1415,11 @@ export default function OnboardingPage() {
                 <div className="flex items-center justify-between p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-600" />
-                    <span className="text-slate-700">Mobile Verified:</span>
+                    <span className="text-slate-700">Mobile Number Verified:</span>
                     <strong className="font-mono text-slate-900 font-bold">+91 {mobileNumber}</strong>
+                    {resuming && (
+                      <span className="text-slate-500 font-medium">· restoring your saved progress...</span>
+                    )}
                   </div>
                   <button
                     type="button"
@@ -2005,6 +2114,35 @@ export default function OnboardingPage() {
                         <div>A/C Number: <strong className="font-mono">••••••••{accountNumber.slice(-4)}</strong> (Masked)</div>
                         <div>IFSC: <strong className="font-mono">{ifscCode}</strong></div>
                         <div>GST: <strong>{isGstRegistered === "Yes" ? gstin : "Not Registered"}</strong></div>
+                      </div>
+
+                      {/* KYC Documents */}
+                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 sm:col-span-2">
+                        <div className="font-bold text-slate-900 text-sm flex items-center justify-between">
+                          <span>KYC Documents</span>
+                          <button type="button" onClick={() => setCurrentStep(2)} className="text-blue-600 font-bold text-xs hover:underline">Edit</button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          {[
+                            { label: "Aadhaar (Front)", doc: aadhaarFrontDoc },
+                            { label: aadhaarCombined ? "Aadhaar (Both sides)" : "Aadhaar (Back)", doc: aadhaarCombined ? aadhaarFrontDoc : aadhaarBackDoc },
+                            { label: "PAN Card", doc: panDoc },
+                          ].map(({ label, doc }) => (
+                            <div key={label} className="flex items-center gap-1.5">
+                              {doc ? (
+                                <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+                              ) : (
+                                <AlertCircle size={14} className="text-amber-500 shrink-0" />
+                              )}
+                              <span className="truncate">
+                                {label}: <strong>{doc ? "Uploaded" : "Pending"}</strong>
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="text-[11px] text-slate-500">
+                          Source: <strong>{docUploadMethod === "digilocker" ? "DigiLocker (verified)" : "Manual upload"}</strong>
+                        </div>
                       </div>
                     </div>
 

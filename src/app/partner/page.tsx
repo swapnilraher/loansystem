@@ -353,8 +353,8 @@ function PartnerDashboardView() {
         </div>
       )}
 
-      {/* ── MOU Agreement Modal (Approved & Unsigned Only) ── */}
-      {isApproved && profile?.mobileNumber && !profile.agreementSigned && (
+      {/* ── MOU Agreement (prompt when pending, signed document once executed) ── */}
+      {isApproved && profile?.mobileNumber && (
         <PartnerAgreementModal
           partnerData={{
             mobileNumber: profile.mobileNumber,

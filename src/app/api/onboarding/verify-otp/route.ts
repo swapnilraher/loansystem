@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { getAdminDb, getAdminAuth } from "@/lib/firebase-admin";
 import { memoryOtpStore } from "@/lib/otp-store";
+import { deriveOnboardingState, resumeUrlFor } from "@/lib/onboarding-steps";
 
 const OTP_SALT = process.env.OTP_HASH_SALT || "TSM_SECURE_FINTECH_SALT_2026";
 
@@ -22,11 +23,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Phone number and OTP are required" }, { status: 400 });
     }
 
+    const clientIp =
+      request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "127.0.0.1";
+    const db = getAdminDb();
+
     let data: any = null;
     let otpDocRef: any = null;
 
     try {
-      const db = getAdminDb();
       if (db) {
         otpDocRef = db.collection("partner_otp_codes").doc(cleanPhone);
         const otpDoc = await otpDocRef.get();
@@ -84,14 +88,16 @@ export async function POST(request: Request) {
     const now = new Date();
 
     // ─── ATOMIC TRANSACTION: CREATE / UPDATE DRAFT APPLICATION & USER ───
+    // An existing application is always reused — verifying an OTP never
+    // creates a second onboarding record for the same mobile number.
     const appDocRef = db.collection("partner_applications").doc(cleanPhone);
     const userDocRef = db.collection("users").doc(cleanPhone);
 
     const appDocSnap = await appDocRef.get();
     const existingAppData = appDocSnap.exists ? appDocSnap.data() : null;
 
-    const currentStep = existingAppData?.currentStep || 1;
     const currentStatus = existingAppData?.status || "draft";
+    const state = deriveOnboardingState(existingAppData, { mobileVerified: true });
 
     const batch = db.batch();
 
@@ -101,8 +107,11 @@ export async function POST(request: Request) {
         {
           mobileNumber: cleanPhone,
           currentStep: 1,
+          currentStepKey: "BASIC_DETAILS",
+          mobileVerificationStatus: "completed",
           status: "draft",
           mobileVerified: true,
+          mobileVerifiedAt: now,
           createdAt: now,
           updatedAt: now,
           applicationId: `TSM-DRAFT-${cleanPhone}`,
@@ -114,6 +123,9 @@ export async function POST(request: Request) {
         appDocRef,
         {
           mobileVerified: true,
+          mobileVerifiedAt: existingAppData?.mobileVerifiedAt || now,
+          mobileVerificationStatus: "completed",
+          currentStepKey: state.currentStep,
           updatedAt: now,
         },
         { merge: true }
@@ -127,7 +139,10 @@ export async function POST(request: Request) {
         mobileNumber: cleanPhone,
         role: "partner",
         dsaStatus: currentStatus,
+        accountStatus: currentStatus === "approved" ? "active" : currentStatus,
+        onboardingStatus: state.currentStep,
         mobileVerified: true,
+        mobileVerifiedAt: now,
         updatedAt: now,
       },
       { merge: true }
@@ -172,11 +187,17 @@ export async function POST(request: Request) {
     }
 
     const verificationToken = Buffer.from(`${cleanPhone}_${Date.now()}_verified`).toString("base64");
+    const applicationId = existingAppData?.applicationId || `TSM-DRAFT-${cleanPhone}`;
 
     return NextResponse.json({
       success: true,
       phoneNumber: cleanPhone,
-      currentStep,
+      mobileVerified: true,
+      currentStep: state.uiStep,
+      currentStepKey: state.currentStep,
+      onboardingState: state,
+      resumeUrl: resumeUrlFor(state, applicationId),
+      applicationId,
       status: currentStatus,
       verificationToken,
       customToken,

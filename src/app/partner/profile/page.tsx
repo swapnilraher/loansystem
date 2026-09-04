@@ -152,15 +152,17 @@ export default function PartnerProfile() {
           </p>
         </div>
 
-        {profile?.mobileNumber && (
+        {/* The stored executed document — served from what was saved at signing,
+            never regenerated. Hidden until an agreement actually exists. */}
+        {profile?.mobileNumber && profile?.agreementSigned && (
           <a
-            href={`/api/partner/agreement/pdf?mobile=${profile.mobileNumber}`}
+            href={profile.agreementPdfUrl || `/api/partner/agreement/pdf?mobile=${profile.mobileNumber}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-admin bg-admin-surface border border-admin-border text-admin-text text-admin-xs font-bold hover:bg-admin-surface-hover transition-colors shadow-2xs shrink-0"
           >
             <FileText size={14} className="text-admin-accent" />
-            <span>Download Signed MOU PDF</span>
+            <span>View Signed Agreement</span>
             <ExternalLink size={12} className="text-admin-muted" />
           </a>
         )}

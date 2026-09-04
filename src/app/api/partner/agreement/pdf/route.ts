@@ -20,11 +20,22 @@ export async function GET(request: Request) {
     const userDoc = await db.collection("users").doc(docId).get()
     const userData = userDoc.exists ? userDoc.data() : {}
 
+    const isSigned = Boolean(appData?.agreementSigned || userData?.agreementSigned)
+    const storedPdfUrl: string = appData?.agreementPdfUrl || userData?.agreementPdfUrl || ""
+    const wantsPreview = searchParams.get("preview") === "true"
+
+    // ─── REUSE THE EXECUTED PDF ───
+    // Once signed, the stored document is served as-is. A new PDF is never
+    // generated for a signed agreement.
+    if (!wantsPreview && isSigned && /^https?:\/\//i.test(storedPdfUrl)) {
+      return NextResponse.redirect(storedPdfUrl, 302)
+    }
+
     const partnerName = userData?.fullName || appData?.fullName || appData?.contactPersonName || "Partner"
     const dsaCode = userData?.dsaCode || appData?.dsaCode || "TSM-PARTNER"
     const partnerEmail = userData?.email || appData?.email || ""
 
-    const isPreview = searchParams.get("preview") === "true" || (!appData?.agreementSigned && !userData?.agreementSigned)
+    const isPreview = wantsPreview || !isSigned
     const panNumber = appData?.panNumber || userData?.pan || ""
     const bankAccountNumber = appData?.bankDetails?.accountNumber || userData?.bankAccountNumber || ""
     const bankName = appData?.bankDetails?.bankName || userData?.bankName || ""
@@ -55,7 +66,7 @@ export async function GET(request: Request) {
       isPreview: isPreview,
     })
 
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `inline; filename="Techstar_Money_Agreement_${dsaCode}.pdf"`,

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
+import { hasSignedAgreement } from "@/lib/onboarding-steps";
 
 const PHONE_ID = process.env.WHATSAPP_PHONE_ID;
 const TOKEN = process.env.WHATSAPP_TOKEN;
@@ -28,6 +29,29 @@ export async function POST(request: Request) {
     }
 
     const appData = docSnap.data();
+
+    // ─── DUPLICATE SUBMISSION GUARD (idempotent) ───
+    // Re-submitting an application that already left the partner's hands
+    // returns the existing record instead of minting a second application ID.
+    const existingStatus = String(appData?.status || "").toLowerCase();
+    if (
+      appData?.submittedAt ||
+      ["under_review", "submitted", "submitted_for_review", "approved", "active", "rejected"].includes(existingStatus)
+    ) {
+      const existingSubmittedAt = appData?.submittedAt?.toDate
+        ? appData.submittedAt.toDate().toISOString()
+        : appData?.submittedAt || null;
+
+      return NextResponse.json({
+        success: true,
+        alreadySubmitted: true,
+        applicationId: appData?.applicationId,
+        status: appData?.status || "under_review",
+        submittedAt: existingSubmittedAt,
+        agreementStatus: hasSignedAgreement(appData) ? "signed" : "pending",
+        message: "Application has already been submitted and is under review.",
+      });
+    }
 
     // Verify mandatory steps & document presence
     if (!appData?.panNumber) {
@@ -60,6 +84,13 @@ export async function POST(request: Request) {
       updatedAt: submittedAt,
       agreementConsent: true,
       submissionIp: clientIp,
+      // Canonical step state: preview is done, agreement signing is next.
+      basicDetailsStatus: "completed",
+      businessDetailsStatus: "completed",
+      documentsStatus: "completed",
+      previewStatus: "completed",
+      agreementStatus: hasSignedAgreement(appData) ? "signed" : "pending",
+      currentStepKey: hasSignedAgreement(appData) ? "COMPLETED" : "AGREEMENT",
       timeline: [
         ...(appData?.timeline || []),
         {
@@ -85,6 +116,8 @@ export async function POST(request: Request) {
         email: appData.email || "",
         role: "partner",
         dsaStatus: "under_review",
+        accountStatus: "under_review",
+        onboardingStatus: hasSignedAgreement(appData) ? "COMPLETED" : "AGREEMENT",
         applicationId,
         referredByDsaCode: appData.referredByDsaCode || null,
         referringPartnerId: appData.referringPartnerId || null,

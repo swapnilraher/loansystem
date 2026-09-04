@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 import cloudinary from "@/lib/cloudinary";
+import { stepFieldsFor } from "@/lib/onboarding-steps";
 
 export const runtime = "nodejs"; // Cloudinary SDK needs Node.js runtime
 
@@ -104,22 +105,43 @@ export async function POST(request: Request) {
       mimeType:    file.type,
       sizeBytes:   file.size,
       fileUrl,
-      base64Data:  base64Data,
+      source:      "manual",
       uploadMethod,
       uploadedAt,
       status:      "uploaded",
     };
     if (cloudinaryId) {
       documentRecord.cloudinaryId = cloudinaryId;
+    } else {
+      // Only inline the file when Cloudinary was unavailable, and only when it
+      // fits: a Firestore document is capped at 1 MB, and base64 inflates by ~33%.
+      const base64Bytes = Buffer.byteLength(base64Data, "utf8");
+      if (base64Bytes < 700 * 1024) {
+        documentRecord.base64Data = base64Data;
+      } else {
+        return NextResponse.json(
+          {
+            error:
+              "Document storage is temporarily unavailable for files this large. Please retry, or upload a smaller (under 700 KB) copy.",
+          },
+          { status: 503 }
+        );
+      }
     }
 
     const docRef = db.collection("partner_applications").doc(cleanNum);
+    const currentSnap = await docRef.get();
+    const currentData = currentSnap.exists ? currentSnap.data() : {};
+
+    const mergedDocuments = {
+      ...(currentData?.documents || {}),
+      [documentType]: documentRecord,
+    };
 
     await docRef.set(
       {
-        documents: {
-          [documentType]: documentRecord,
-        },
+        documents: mergedDocuments,
+        ...stepFieldsFor({ ...currentData, documents: mergedDocuments }, { mobileVerified: true }),
         updatedAt: new Date(),
       },
       { merge: true }

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback, useRef } from "react"
 import { useAuth } from "@/context/AuthContext"
 import { signInWithCustomToken } from "firebase/auth"
 import { auth } from "@/lib/firebase"
@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import {
   Mail, Lock, ArrowRight, Smartphone, Eye, EyeOff,
-  ShieldCheck, AlertCircle, Building2, Users, Zap, Activity,
+  ShieldCheck, AlertCircle, Building2, Users, Zap, Activity, CheckCircle2,
 } from "lucide-react"
 import { PartnerPortalHeader, PartnerPortalFooter } from "@/components/layout/PartnerPortalShell"
 import { cn } from "@/lib/utils"
@@ -76,6 +76,10 @@ export default function PartnerLogin() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [isMobileVerified, setIsMobileVerified] = useState(false)
+
+  // Guards the automatic verification so a single OTP is submitted once.
+  const autoVerifiedRef = useRef("")
 
   const [eligibilityError, setEligibilityError] = useState<{
     message: string
@@ -83,6 +87,13 @@ export default function PartnerLogin() {
     redirectUrl?: string
     actionText?: string
   } | null>(null)
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const fromQuery = new URLSearchParams(window.location.search).get("mobile")
+    const clean = (fromQuery || "").replace(/\D/g, "").slice(-10)
+    if (clean.length === 10) setMobileNumber(clean)
+  }, [])
 
   const isMobileValid = /^[6-9]\d{9}$/.test(mobileNumber)
   const mobileInvalid = mobileNumber.length > 0 && !isMobileValid
@@ -125,6 +136,15 @@ export default function PartnerLogin() {
           })
           return
         }
+        if (data.reason === "NOT_APPROVED") {
+          setEligibilityError({
+            message: data.message || "Your account is not approved for login yet.",
+            marathiMessage: data.marathiMessage || "तुमचे पार्टनर खाते अद्याप लॉगिनसाठी मंजूर झालेले नाही.",
+            redirectUrl: "/application-status",
+            actionText: "Track Application Status →",
+          })
+          return
+        }
         if (data.reason === "BLOCKED") {
           setEligibilityError({
             message: data.message || "This account has been suspended.",
@@ -140,6 +160,7 @@ export default function PartnerLogin() {
       setOtpTimer(50)
       setCanResend(false)
       setOtpValues(["", "", "", "", "", ""])
+      autoVerifiedRef.current = ""
     } catch (err) {
       setError(messageFor(err, "Unable to send OTP. Check your connection."))
     } finally { setOtpLoading(false) }
@@ -157,6 +178,8 @@ export default function PartnerLogin() {
       if (!res.ok) throw new Error(data.error || "Failed to resend OTP")
       setOtpTimer(50)
       setCanResend(false)
+      setOtpValues(["", "", "", "", "", ""])
+      autoVerifiedRef.current = ""
     } catch (err) {
       setError(messageFor(err, "Failed to resend OTP."))
     } finally { setResending(false) }
@@ -180,7 +203,73 @@ export default function PartnerLogin() {
     }
   }
 
-  const handleVerifyInlineOtp = async (e?: React.FormEvent) => {
+  // Pasting or autofilling the whole code fills every box at once.
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6)
+    if (!pasted) return
+    e.preventDefault()
+    const next = ["", "", "", "", "", ""]
+    pasted.split("").forEach((d, i) => { next[i] = d })
+    setOtpValues(next)
+    document.getElementById(`login-otp-${Math.min(pasted.length, 5)}`)?.focus()
+  }
+
+  /**
+   * Signs the partner in and sends them to the exact step they stopped at:
+   * dashboard when fully onboarded, application tracker while under review,
+   * otherwise the onboarding page resumed at their pending step.
+   */
+  const completeLogin = async (verifyData: any) => {
+    setLoading(true)
+    setError("")
+    const cleanMobile = mobileNumber.replace(/\D/g, "").slice(-10)
+
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("tsm_onboarding_mobile", cleanMobile)
+        localStorage.setItem("tsm_onboarding_verified", "true")
+      }
+
+      if (verifyData?.customToken) {
+        try {
+          await signInWithCustomToken(auth, verifyData.customToken)
+        } catch (signInErr) {
+          console.warn("Custom token sign in note:", signInErr)
+        }
+      }
+
+      // The verify endpoint already resolved the resume target from the
+      // persisted onboarding state — use it and skip a second round trip.
+      if (verifyData?.resumeUrl) {
+        window.location.href = verifyData.resumeUrl
+        return
+      }
+
+      const res = await fetch(`/api/onboarding/status?mobile=${cleanMobile}`)
+      const data = await res.json()
+
+      if (res.ok && data.application) {
+        const appSt = String(data.application.status || "").toLowerCase()
+        if (appSt === "approved" || appSt === "active") {
+          window.location.href = "/"
+          return
+        }
+        if (appSt === "under_review" || appSt === "submitted") {
+          const appId = data.application.applicationId || cleanMobile
+          window.location.href = `/application-status?id=${appId}`
+          return
+        }
+      }
+      window.location.href = "/onboarding"
+    } catch (err) {
+      console.error("WhatsApp OTP login error:", err)
+      window.location.href = "/onboarding"
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleVerifyInlineOtp = useCallback(async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     const fullOtp = otpValues.join("")
     if (fullOtp.length < 6) {
@@ -199,63 +288,28 @@ export default function PartnerLogin() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Invalid OTP code")
 
-      await handleOtpVerified(data.verificationToken, data.customToken)
+      // OTP section collapses into the green verified state, then we resume.
+      setIsMobileVerified(true)
+      setOtpSent(false)
+      await completeLogin(data)
     } catch (err: any) {
+      autoVerifiedRef.current = ""
       setError(err.message || "Failed to verify OTP.")
     } finally {
       setVerifyLoading(false)
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otpValues, mobileNumber])
 
-  const handleOtpVerified = async (token?: string, customToken?: string) => {
-    setShowOtpModal(false)
-    setLoading(true)
-    setError("")
-    const cleanMobile = mobileNumber.replace(/\D/g, "").slice(-10)
-
-    try {
-      if (typeof window !== "undefined") {
-        localStorage.setItem("tsm_onboarding_mobile", cleanMobile)
-        localStorage.setItem("tsm_onboarding_verified", "true")
-      }
-
-      if (customToken) {
-        try {
-          await signInWithCustomToken(auth, customToken)
-        } catch (signInErr) {
-          console.warn("Custom token sign in note:", signInErr)
-        }
-      }
-
-      const res = await fetch(`/api/onboarding/status?mobile=${cleanMobile}`)
-      const data = await res.json()
-
-      if (res.ok && data.application) {
-        const appSt = String(data.application.status || "").toLowerCase()
-        const isApproved = appSt === "approved" || appSt === "active"
-
-        if (isApproved) {
-          window.location.href = "/"
-          return
-        } else if (appSt === "under_review" || appSt === "submitted") {
-          const appId = data.application.applicationId || cleanMobile
-          window.location.href = `/application-status?id=${appId}`
-          return
-        } else {
-          window.location.href = "/onboarding"
-          return
-        }
-      } else {
-        window.location.href = "/onboarding"
-        return
-      }
-    } catch (err) {
-      console.error("WhatsApp OTP login error:", err)
-      window.location.href = "/onboarding"
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Auto-submit as soon as all six digits are present — no manual click needed.
+  useEffect(() => {
+    const fullOtp = otpValues.join("")
+    if (!otpSent || isMobileVerified || verifyLoading) return
+    if (fullOtp.length !== 6) return
+    if (autoVerifiedRef.current === fullOtp) return
+    autoVerifiedRef.current = fullOtp
+    handleVerifyInlineOtp()
+  }, [otpValues, otpSent, isMobileVerified, verifyLoading, handleVerifyInlineOtp])
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -463,6 +517,7 @@ export default function PartnerLogin() {
                         required
                         placeholder="10-digit mobile number"
                         value={mobileNumber}
+                        disabled={otpSent || isMobileVerified}
                         onChange={e => { setMobileNumber(e.target.value.replace(/\D/g, "")); setError("") }}
                         aria-invalid={mobileInvalid}
                         className="w-full px-3 bg-transparent text-admin-sm text-admin-text placeholder:text-admin-subtle focus:outline-none"
@@ -473,8 +528,16 @@ export default function PartnerLogin() {
                     </p>
                   </div>
 
-                  {/* If OTP not yet sent: show Get OTP button */}
-                  {!otpSent ? (
+                  {/* Verified: the OTP section is replaced by this strip */}
+                  {isMobileVerified ? (
+                    <div className="flex items-center gap-2 px-3.5 py-3 rounded-admin bg-tone-success-bg border border-tone-success-bd text-tone-success-fg text-admin-sm font-semibold animate-fadeIn">
+                      <CheckCircle2 size={16} className="shrink-0" />
+                      <span>Mobile Number Verified</span>
+                      <span className="ml-auto text-admin-xs font-normal opacity-80">
+                        {loading ? "Signing you in..." : "Redirecting..."}
+                      </span>
+                    </div>
+                  ) : !otpSent ? (
                     <button
                       type="submit"
                       disabled={busy || !isMobileValid}
@@ -514,6 +577,9 @@ export default function PartnerLogin() {
                             value={digit}
                             onChange={e => handleOtpBoxChange(idx, e.target.value)}
                             onKeyDown={e => handleOtpBoxKeyDown(idx, e)}
+                            onPaste={handleOtpPaste}
+                            autoComplete={idx === 0 ? "one-time-code" : "off"}
+                            disabled={verifyLoading}
                             className="w-10 sm:w-12 h-11 sm:h-12 text-center text-lg font-bold rounded-admin border border-admin-border bg-admin-bg text-admin-text focus:border-admin-accent focus:ring-2 focus:ring-admin-accent/20"
                           />
                         ))}

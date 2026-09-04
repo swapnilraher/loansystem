@@ -32,7 +32,9 @@ export default function PartnerAgreementModal({
   onSigned,
 }: PartnerAgreementModalProps) {
   const isAlreadySigned = !!partnerData.agreementSigned
-  const [showModal, setShowModal] = useState(!isAlreadySigned)
+  // Never auto-opens: the inline banner is the entry point, and the signing
+  // dialog appears only when the partner asks for it.
+  const [showModal, setShowModal] = useState(false)
   const [viewPdfModal, setViewPdfModal] = useState(false)
   const [step, setStep] = useState<"review" | "otp">("review")
   const [otp, setOtp] = useState("")
@@ -41,6 +43,10 @@ export default function PartnerAgreementModal({
   const [error, setError] = useState("")
   const [successMsg, setSuccessMsg] = useState("")
   const [isSignedLocally, setIsSignedLocally] = useState(isAlreadySigned)
+  const [storedPdfUrl, setStoredPdfUrl] = useState<string | null>(null)
+
+  // Guards the automatic submit so one OTP is sent to the signing API once.
+  const autoSubmittedRef = React.useRef("")
 
   React.useEffect(() => {
     if (partnerData.agreementSigned) {
@@ -49,7 +55,35 @@ export default function PartnerAgreementModal({
     }
   }, [partnerData.agreementSigned])
 
-  const pdfUrl = `/api/partner/agreement/pdf?mobile=${partnerData.mobileNumber}`
+  // Read-only status check. This never generates or signs an agreement, so
+  // opening this screen repeatedly costs one cheap lookup and nothing more.
+  React.useEffect(() => {
+    const mobile = partnerData.mobileNumber
+    if (!mobile) return
+    let cancelled = false
+
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/partner/agreement/sign?mobile=${mobile}`)
+        if (!res.ok) return
+        const data = await res.json()
+        if (cancelled || !data?.exists || !data.agreement?.agreementSigned) return
+        setIsSignedLocally(true)
+        setShowModal(false)
+        if (data.agreement.agreementDocumentUrl) {
+          setStoredPdfUrl(data.agreement.agreementDocumentUrl)
+        }
+      } catch {
+        // Status stays as passed in by the parent.
+      }
+    })()
+
+    return () => { cancelled = true }
+  }, [partnerData.mobileNumber])
+
+  // The executed document is served from storage; a signed MOU is never
+  // regenerated just to be viewed.
+  const pdfUrl = storedPdfUrl || `/api/partner/agreement/pdf?mobile=${partnerData.mobileNumber}`
   const previewPdfUrl = `/api/partner/agreement/pdf?mobile=${partnerData.mobileNumber}&preview=true`
 
   // Send OTP for agreement signing
@@ -64,6 +98,8 @@ export default function PartnerAgreementModal({
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to send OTP")
+      setOtp("")
+      autoSubmittedRef.current = ""
       setStep("otp")
     } catch (err: any) {
       setError(err.message || "Failed to send OTP. Please try again.")
@@ -95,16 +131,32 @@ export default function PartnerAgreementModal({
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to execute agreement signature")
 
+      if (data.agreementPdfUrl) setStoredPdfUrl(data.agreementPdfUrl)
       setIsSignedLocally(true)
       setShowModal(false)
-      setSuccessMsg("🎉 Memorandum of Understanding (MOU) executed successfully! Executed agreement PDF has been sent to your email.")
+      setSuccessMsg(
+        data.alreadySigned
+          ? "Agreement already signed. Opening your executed MOU."
+          : "🎉 Memorandum of Understanding (MOU) executed successfully! Executed agreement PDF has been sent to your email."
+      )
       if (onSigned) onSigned()
     } catch (err: any) {
+      autoSubmittedRef.current = ""
       setError(err.message || "OTP verification failed. Please try again.")
     } finally {
       setVerifying(false)
     }
   }
+
+  // Submit as soon as the 6th digit lands, so no extra click is needed.
+  React.useEffect(() => {
+    if (step !== "otp" || verifying || isSignedLocally) return
+    if (otp.length !== 6) return
+    if (autoSubmittedRef.current === otp) return
+    autoSubmittedRef.current = otp
+    handleSignAgreement({ preventDefault: () => {} } as React.FormEvent)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otp, step, verifying, isSignedLocally])
 
   // Once signed, permanent signed view — no sign option can ever re-appear
   if (isSignedLocally || isAlreadySigned) {
@@ -121,7 +173,7 @@ export default function PartnerAgreementModal({
           className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-colors shrink-0 text-decoration-none shadow-sm"
         >
           <Download size={14} />
-          <span>Download Executed MOU</span>
+          <span>View Signed Agreement</span>
         </a>
       </div>
     )
@@ -300,6 +352,7 @@ export default function PartnerAgreementModal({
                           maxLength={6}
                           inputMode="numeric"
                           value={otp}
+                          disabled={verifying}
                           onChange={(e) => {
                             setOtp(e.target.value.replace(/\D/g, ""))
                             setError("")
