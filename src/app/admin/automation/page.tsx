@@ -282,68 +282,48 @@ export default function WhatsAppCampaignsPage() {
       processed: 0,
       sent: 0,
       failed: 0,
-      status: "starting",
+      status: "sending",
       log: [],
     })
 
     try {
-      const response = await authedJson("/api/admin/wa-campaigns", "POST", {
-        name: cName,
+      const response = await authedJson("/api/admin/wa-campaigns/dispatch", "POST", {
+        campaignName: cName,
         mobileColumn,
         nameColumn,
         message1,
         message2,
         recipients: valid,
-        invalidCount: invalid.length,
       })
-      const result = await response.json()
-      if (!result.success) throw new Error(result.error || "Could not start the campaign.")
 
-      const cId = result.campaignId
-      setLiveId(cId)
-      setDispatch(prev => (prev ? { ...prev, campaignId: cId, status: "sending" } : null))
+      const data = await response.json()
+      if (!data.success) {
+        throw new Error(data.error || "Failed to dispatch WhatsApp messages.")
+      }
 
-      // Real-time batch dispatcher loop
-      let isDone = false
-      let lastProcessed = 0
-      let lastSent = 0
-      let lastFailed = 0
+      const results: DispatchItem[] = (data.results || []).map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        phone: r.phone,
+        status: r.status,
+        error: r.error,
+      }))
 
-      while (!isDone) {
-        const stepRes = await authedJson(`/api/admin/wa-campaigns/${cId}/step`, "POST", { limit: 5 })
-        const stepData = await stepRes.json()
+      setDispatch({
+        open: true,
+        campaignId: data.campaignId || "",
+        name: cName,
+        total: data.total || valid.length,
+        processed: data.total || valid.length,
+        sent: data.sent || 0,
+        failed: data.failed || 0,
+        status: "completed",
+        error: data.firestoreWarning || undefined,
+        log: results,
+      })
 
-        if (!stepData.success) {
-          throw new Error(stepData.error || "Failed to process campaign step.")
-        }
-
-        lastProcessed = stepData.processed ?? lastProcessed
-        lastSent = stepData.counts?.sent ?? lastSent
-        lastFailed = stepData.counts?.failed ?? lastFailed
-        isDone = stepData.done === true
-
-        const newItems: DispatchItem[] = (stepData.batch || []).map((b: any) => ({
-          id: b.id,
-          name: b.name,
-          phone: b.phone,
-          status: b.status,
-          error: b.error,
-        }))
-
-        setDispatch(prev => {
-          if (!prev) return null
-          return {
-            ...prev,
-            processed: lastProcessed,
-            sent: lastSent,
-            failed: lastFailed,
-            status: isDone ? "completed" : "sending",
-            log: [...newItems, ...prev.log],
-          }
-        })
-
-        if (isDone) break
-        await new Promise(r => setTimeout(r, 200))
+      if (data.campaignId) {
+        setLiveId(data.campaignId)
       }
 
       void loadHistory()

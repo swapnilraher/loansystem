@@ -144,7 +144,7 @@ export async function fetchTemplates(): Promise<WaTemplate[]> {
 
 // ─── Sending ──────────────────────────────────────────────────────────────────
 
-interface SendOutcome {
+export interface SendOutcome {
   ok: boolean
   messageId: string
   error: string
@@ -157,7 +157,7 @@ interface SendOutcome {
  * number Meta rejects. The failure is returned so it can be written against
  * that recipient and shown in the report.
  */
-async function sendOne(
+export async function sendOne(
   message: CampaignMessage,
   recipient: { phone: string; name: string }
 ): Promise<SendOutcome> {
