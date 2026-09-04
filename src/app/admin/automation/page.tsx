@@ -13,8 +13,12 @@ import {
   Sheet,
   Users,
   X,
+  XCircle,
+  ExternalLink,
+  Sparkles,
 } from "lucide-react"
 import { authedFetch, authedJson } from "@/lib/authedFetch"
+import { useAuth } from "@/context/AuthContext"
 import MessageComposer from "@/components/admin/campaigns/MessageComposer"
 import { CountRow, StatusPill } from "@/components/admin/campaigns/CampaignBits"
 import {
@@ -54,6 +58,27 @@ interface SheetState {
   rows: Record<string, unknown>[]
 }
 
+export interface DispatchItem {
+  id: string
+  name: string
+  phone: string
+  status: "sent" | "failed"
+  error?: string
+}
+
+export interface DispatchState {
+  open: boolean
+  campaignId: string
+  name: string
+  total: number
+  processed: number
+  sent: number
+  failed: number
+  status: "starting" | "sending" | "completed" | "error"
+  error?: string
+  log: DispatchItem[]
+}
+
 /** Best guess at which columns hold the number and the name. */
 function guessColumn(columns: string[], kind: "mobile" | "name"): string {
   const patterns =
@@ -68,6 +93,7 @@ function guessColumn(columns: string[], kind: "mobile" | "name"): string {
 }
 
 export default function WhatsAppCampaignsPage() {
+  const { user, loading: authLoading } = useAuth()
   const [sheet, setSheet] = React.useState<SheetState | null>(null)
   const [parsing, setParsing] = React.useState(false)
   const [parseError, setParseError] = React.useState("")
@@ -88,8 +114,11 @@ export default function WhatsAppCampaignsPage() {
   const [liveId, setLiveId] = React.useState("")
   const [live, setLive] = React.useState<CampaignSummary | null>(null)
 
+  const [dispatch, setDispatch] = React.useState<DispatchState | null>(null)
+
   const [history, setHistory] = React.useState<CampaignSummary[]>([])
   const [loadingHistory, setLoadingHistory] = React.useState(true)
+  const [historyError, setHistoryError] = React.useState("")
 
   const loadTemplates = React.useCallback(async () => {
     setLoadingTemplates(true)
@@ -122,12 +151,17 @@ export default function WhatsAppCampaignsPage() {
 
   const loadHistory = React.useCallback(async () => {
     setLoadingHistory(true)
+    setHistoryError("")
     try {
       const response = await authedFetch("/api/admin/wa-campaigns")
       const result = await response.json()
-      if (result.success) setHistory(result.campaigns || [])
-    } catch {
-      // The builder still works without the history list.
+      if (result.success) {
+        setHistory(result.campaigns || [])
+      } else {
+        setHistoryError(result.error || "Could not load campaign history.")
+      }
+    } catch (err) {
+      setHistoryError(err instanceof Error ? err.message : "Could not load campaign history.")
     } finally {
       setLoadingHistory(false)
     }
@@ -137,6 +171,13 @@ export default function WhatsAppCampaignsPage() {
     void loadTemplates()
     void loadHistory()
   }, [loadTemplates, loadHistory])
+
+  React.useEffect(() => {
+    if (!authLoading && user) {
+      void loadTemplates()
+      void loadHistory()
+    }
+  }, [user, authLoading, loadTemplates, loadHistory])
 
   // ─── Sheet parsing ──────────────────────────────────────────────────────────
 
@@ -229,9 +270,25 @@ export default function WhatsAppCampaignsPage() {
     if (blocker) return
     setSending(true)
     setSendError("")
+    setShowPreview(false)
+
+    const cName = campaignName.trim() || `Campaign ${new Date().toLocaleTimeString("en-IN")}`
+
+    setDispatch({
+      open: true,
+      campaignId: "",
+      name: cName,
+      total: valid.length,
+      processed: 0,
+      sent: 0,
+      failed: 0,
+      status: "starting",
+      log: [],
+    })
+
     try {
       const response = await authedJson("/api/admin/wa-campaigns", "POST", {
-        name: campaignName.trim(),
+        name: cName,
         mobileColumn,
         nameColumn,
         message1,
@@ -242,11 +299,58 @@ export default function WhatsAppCampaignsPage() {
       const result = await response.json()
       if (!result.success) throw new Error(result.error || "Could not start the campaign.")
 
-      setShowPreview(false)
-      setLiveId(result.campaignId)
+      const cId = result.campaignId
+      setLiveId(cId)
+      setDispatch(prev => (prev ? { ...prev, campaignId: cId, status: "sending" } : null))
+
+      // Real-time batch dispatcher loop
+      let isDone = false
+      let lastProcessed = 0
+      let lastSent = 0
+      let lastFailed = 0
+
+      while (!isDone) {
+        const stepRes = await authedJson(`/api/admin/wa-campaigns/${cId}/step`, "POST", { limit: 5 })
+        const stepData = await stepRes.json()
+
+        if (!stepData.success) {
+          throw new Error(stepData.error || "Failed to process campaign step.")
+        }
+
+        lastProcessed = stepData.processed ?? lastProcessed
+        lastSent = stepData.counts?.sent ?? lastSent
+        lastFailed = stepData.counts?.failed ?? lastFailed
+        isDone = stepData.done === true
+
+        const newItems: DispatchItem[] = (stepData.batch || []).map((b: any) => ({
+          id: b.id,
+          name: b.name,
+          phone: b.phone,
+          status: b.status,
+          error: b.error,
+        }))
+
+        setDispatch(prev => {
+          if (!prev) return null
+          return {
+            ...prev,
+            processed: lastProcessed,
+            sent: lastSent,
+            failed: lastFailed,
+            status: isDone ? "completed" : "sending",
+            log: [...newItems, ...prev.log],
+          }
+        })
+
+        if (isDone) break
+        await new Promise(r => setTimeout(r, 200))
+      }
+
       void loadHistory()
     } catch (error) {
-      setSendError(error instanceof Error ? error.message : "Could not start the campaign.")
+      const errMessage = error instanceof Error ? error.message : "Could not start the campaign."
+      setSendError(errMessage)
+      setDispatch(prev => (prev ? { ...prev, status: "error", error: errMessage } : null))
     } finally {
       setSending(false)
     }
@@ -597,10 +701,31 @@ export default function WhatsAppCampaignsPage() {
           </button>
         </div>
 
+        {historyError && (
+          <div className="mt-4 flex items-center justify-between rounded-2xl bg-rose-50 p-3.5 text-xs font-bold text-rose-700">
+            <span className="flex items-center gap-2">
+              <AlertTriangle size={14} /> {historyError}
+            </span>
+            <button
+              onClick={loadHistory}
+              className="rounded-xl bg-white px-3 py-1 text-[11px] font-black text-rose-700 shadow-sm hover:bg-rose-100"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         {history.length === 0 ? (
-          <p className="mt-6 text-center text-sm font-medium text-slate-400">
-            {loadingHistory ? "Loading…" : "No campaigns yet."}
-          </p>
+          <div className="mt-6 py-6 text-center text-sm font-medium text-slate-400">
+            {loadingHistory ? (
+              <div className="inline-flex items-center gap-2">
+                <Loader2 size={16} className="animate-spin text-primary" />
+                <span>Loading campaign history…</span>
+              </div>
+            ) : (
+              "No campaigns yet."
+            )}
+          </div>
         ) : (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[720px] text-left text-sm">
@@ -698,6 +823,193 @@ export default function WhatsAppCampaignsPage() {
                 {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                 {sending ? "Starting…" : `Send to ${valid.length}`}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Real-time Dispatch Modal -------------------------------------------- */}
+      {dispatch?.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-slate-100">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-primary">
+                  {dispatch.status === "completed" ? (
+                    <>
+                      <CheckCircle2 size={13} className="text-emerald-600" /> Finished
+                    </>
+                  ) : dispatch.status === "error" ? (
+                    <>
+                      <XCircle size={13} className="text-rose-600" /> Error
+                    </>
+                  ) : (
+                    <>
+                      <Loader2 size={13} className="animate-spin text-primary" /> Live Sending
+                    </>
+                  )}
+                </span>
+                <h3 className="mt-2 text-xl font-black text-secondary">{dispatch.name}</h3>
+                <p className="text-xs font-medium text-slate-500">
+                  Real-time WhatsApp Message Dispatch
+                </p>
+              </div>
+              {dispatch.status === "completed" && (
+                <button
+                  onClick={() => setDispatch(null)}
+                  className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+              )}
+            </div>
+
+            {/* Progress bar */}
+            <div className="mt-5">
+              <div className="mb-2 flex items-center justify-between text-xs font-black text-slate-600">
+                <span>
+                  {dispatch.processed} of {dispatch.total} processed
+                </span>
+                <span className="text-primary font-black">
+                  {dispatch.total > 0
+                    ? Math.round((dispatch.processed / dispatch.total) * 100)
+                    : 0}
+                  %
+                </span>
+              </div>
+              <div className="h-3 w-full overflow-hidden rounded-full bg-slate-100 p-0.5">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    dispatch.status === "completed"
+                      ? "bg-emerald-500"
+                      : dispatch.status === "error"
+                      ? "bg-rose-500"
+                      : "bg-gradient-to-r from-primary to-emerald-500"
+                  }`}
+                  style={{
+                    width: `${
+                      dispatch.total > 0
+                        ? Math.min(100, (dispatch.processed / dispatch.total) * 100)
+                        : 0
+                    }%`,
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Stat counts */}
+            <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-2xl bg-slate-50 p-3">
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total</p>
+                <p className="text-lg font-black text-secondary">{dispatch.total}</p>
+              </div>
+              <div className="rounded-2xl bg-emerald-50 p-3">
+                <p className="text-[10px] font-black uppercase tracking-wider text-emerald-600">Sent</p>
+                <p className="text-lg font-black text-emerald-700">{dispatch.sent}</p>
+              </div>
+              <div className="rounded-2xl bg-rose-50 p-3">
+                <p className="text-[10px] font-black uppercase tracking-wider text-rose-600">Failed</p>
+                <p className="text-lg font-black text-rose-700">{dispatch.failed}</p>
+              </div>
+            </div>
+
+            {/* Error banner if any */}
+            {dispatch.error && (
+              <div className="mt-4 flex items-center gap-2 rounded-2xl bg-rose-50 p-3 text-xs font-bold text-rose-700">
+                <AlertTriangle size={15} className="shrink-0" />
+                <span>{dispatch.error}</span>
+              </div>
+            )}
+
+            {/* Live activity log */}
+            <div className="mt-4">
+              <p className="mb-2 text-[11px] font-black uppercase tracking-wider text-slate-400">
+                Live Activity ({dispatch.log.length})
+              </p>
+              <div className="max-h-52 overflow-y-auto space-y-1.5 rounded-2xl border border-slate-100 bg-slate-50/50 p-2">
+                {dispatch.log.length === 0 ? (
+                  <p className="py-6 text-center text-xs text-slate-400">
+                    Preparing messages...
+                  </p>
+                ) : (
+                  dispatch.log.map((item, idx) => (
+                    <div
+                      key={item.id || idx}
+                      className="flex items-center justify-between gap-2 rounded-xl bg-white px-3 py-2 text-xs shadow-sm"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-black text-secondary">
+                          {item.name || "Recipient"}
+                        </p>
+                        <p className="text-[11px] text-slate-400">{displayPhone(item.phone)}</p>
+                      </div>
+                      <span
+                        className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wide ${
+                          item.status === "sent"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-rose-100 text-rose-700"
+                        }`}
+                      >
+                        {item.status === "sent" ? (
+                          <>
+                            <CheckCircle2 size={11} /> Sent
+                          </>
+                        ) : (
+                          <>
+                            <XCircle size={11} /> Failed
+                          </>
+                        )}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Footer buttons */}
+            <div className="mt-5 flex gap-3">
+              {dispatch.status === "completed" ? (
+                <>
+                  <button
+                    onClick={() => setDispatch(null)}
+                    className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-xs font-black text-slate-600 hover:bg-slate-50"
+                  >
+                    Close
+                  </button>
+                  {dispatch.campaignId && (
+                    <Link
+                      href={`/admin/automation/campaigns/${dispatch.campaignId}`}
+                      className="flex flex-[2] items-center justify-center gap-2 rounded-2xl bg-secondary px-4 py-3 text-xs font-black text-white hover:bg-black"
+                    >
+                      <span>View Full Report</span>
+                      <ExternalLink size={14} />
+                    </Link>
+                  )}
+                </>
+              ) : dispatch.status === "error" ? (
+                <>
+                  <button
+                    onClick={() => setDispatch(null)}
+                    className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-xs font-black text-slate-600 hover:bg-slate-50"
+                  >
+                    Close
+                  </button>
+                  {dispatch.campaignId && (
+                    <Link
+                      href={`/admin/automation/campaigns/${dispatch.campaignId}`}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-secondary px-4 py-3 text-xs font-black text-white"
+                    >
+                      View Report
+                    </Link>
+                  )}
+                </>
+              ) : (
+                <div className="flex w-full items-center justify-center gap-2 py-2 text-xs font-bold text-slate-500">
+                  <Loader2 size={14} className="animate-spin text-primary" />
+                  <span>Please keep this window open while sending...</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

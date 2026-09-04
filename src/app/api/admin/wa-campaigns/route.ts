@@ -26,11 +26,20 @@ export async function GET(request: Request) {
   if (!auth.ok) return auth.response
 
   try {
-    const snapshot = await getAdminDb()
-      .collection(CAMPAIGNS)
-      .orderBy("createdAt", "desc")
-      .limit(100)
-      .get()
+    let snapshot
+    try {
+      snapshot = await getAdminDb()
+        .collection(CAMPAIGNS)
+        .orderBy("createdAt", "desc")
+        .limit(100)
+        .get()
+    } catch (queryErr) {
+      console.warn("[wa-campaigns] OrderBy failed, falling back to unordered get:", queryErr)
+      snapshot = await getAdminDb()
+        .collection(CAMPAIGNS)
+        .limit(100)
+        .get()
+    }
 
     const campaigns = snapshot.docs.map(doc => {
       const data = doc.data() as CampaignDoc
@@ -46,6 +55,8 @@ export async function GET(request: Request) {
         counts: data.counts || { sent: 0, delivered: 0, read: 0, failed: 0, pending: 0 },
       }
     })
+
+    campaigns.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))
 
     return NextResponse.json({ success: true, campaigns })
   } catch (error: unknown) {

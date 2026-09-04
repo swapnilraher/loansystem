@@ -527,6 +527,106 @@ async function handOver(campaignId: string, origin: string) {
   }
 }
 
+// ─── Real-time batched step runner ───────────────────────────────────────────
+
+export interface StepBatchItem {
+  id: string
+  name: string
+  phone: string
+  status: "sent" | "failed"
+  error: string
+}
+
+export interface StepCampaignResult {
+  done: boolean
+  processed: number
+  total: number
+  counts: { sent: number; delivered: number; read: number; failed: number; pending: number }
+  status: string
+  batch: StepBatchItem[]
+}
+
+/**
+ * Sends the next batch of recipients directly and returns immediate progress.
+ * Drives the real-time progress bar in the admin UI without relying on background workers.
+ */
+export async function stepCampaign(campaignId: string, limit = 5): Promise<StepCampaignResult> {
+  const db = getAdminDb()
+  const campaignRef = db.collection(CAMPAIGNS).doc(campaignId)
+  const snapshot = await campaignRef.get()
+  if (!snapshot.exists) {
+    throw new Error("Campaign not found.")
+  }
+
+  const campaign = snapshot.data() as CampaignDoc
+  if (campaign.status === "cancelled") {
+    return {
+      done: true,
+      processed: campaign.processed || 0,
+      total: campaign.totalRecipients || 0,
+      counts: campaign.counts || { sent: 0, delivered: 0, read: 0, failed: 0, pending: 0 },
+      status: "cancelled",
+      batch: [],
+    }
+  }
+
+  if (campaign.status !== "running") {
+    await campaignRef.update({ status: "running", startedAt: new Date() })
+  }
+
+  const pending = await campaignRef
+    .collection(RECIPIENTS)
+    .where("done", "==", false)
+    .limit(limit)
+    .get()
+
+  if (pending.empty) {
+    await campaignRef.update({ status: "completed", finishedAt: new Date() })
+    const finalDoc = (await campaignRef.get()).data() as CampaignDoc
+    return {
+      done: true,
+      processed: finalDoc.processed || 0,
+      total: finalDoc.totalRecipients || 0,
+      counts: finalDoc.counts || { sent: 0, delivered: 0, read: 0, failed: 0, pending: 0 },
+      status: "completed",
+      batch: [],
+    }
+  }
+
+  const batchResults: StepBatchItem[] = []
+
+  for (const doc of pending.docs) {
+    const data = doc.data() as { phone: string; name: string }
+    await processRecipient(campaignId, campaign, doc)
+    const updatedSnap = await doc.ref.get()
+    const updatedData = updatedSnap.data() as Record<string, { status?: string; error?: string }>
+    const m1Status = updatedData?.m1?.status || "pending"
+    const m1Error = updatedData?.m1?.error || ""
+    batchResults.push({
+      id: doc.id,
+      name: data.name || "",
+      phone: data.phone || "",
+      status: m1Status === "sent" ? "sent" : "failed",
+      error: m1Error,
+    })
+  }
+
+  const currentDoc = (await campaignRef.get()).data() as CampaignDoc
+  const isDone = (currentDoc.processed || 0) >= (currentDoc.totalRecipients || 0)
+  if (isDone && currentDoc.status !== "completed") {
+    await campaignRef.update({ status: "completed", finishedAt: new Date() })
+  }
+
+  return {
+    done: isDone,
+    processed: currentDoc.processed || 0,
+    total: currentDoc.totalRecipients || 0,
+    counts: currentDoc.counts || { sent: 0, delivered: 0, read: 0, failed: 0, pending: 0 },
+    status: isDone ? "completed" : "running",
+    batch: batchResults,
+  }
+}
+
 // ─── Delivery receipts ────────────────────────────────────────────────────────
 
 /**
