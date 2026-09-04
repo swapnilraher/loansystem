@@ -35,22 +35,41 @@ export async function POST(request: Request) {
 
     if (templateName) {
       const nameVal = customerName || customername || name || senderName || "Partner";
+      const lang = templateLang || (templateName === "connector" || templateName === "car3" || templateName === "cars" || templateName === "car2" ? "en" : "en_US");
+      
+      const components: any[] = [];
+
+      // If template is connector, it requires a header image
+      if (templateName === "connector") {
+        components.push({
+          type: "header",
+          parameters: [
+            {
+              type: "image",
+              image: {
+                link: mediaUrl || "https://partner.techstarsolution.in/og-image.png"
+              }
+            }
+          ]
+        });
+      }
+
+      components.push({
+        type: "body",
+        parameters: [
+          {
+            type: "text",
+            parameter_name: "customer_name",
+            text: nameVal
+          }
+        ]
+      });
+
       body.type = "template";
       body.template = {
         name: templateName,
-        language: { code: templateLang || "en_US" },
-        components: [
-          {
-            type: "body",
-            parameters: [
-              {
-                type: "text",
-                parameter_name: "customer_name",
-                text: nameVal
-              }
-            ]
-          }
-        ]
+        language: { code: lang },
+        components
       };
     } else if (mediaId) {
       /**
