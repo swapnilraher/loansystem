@@ -10,14 +10,14 @@ const TOKEN = WHATSAPP_TOKEN;
 // Outbound WhatsApp message sender (for OTP, notifications, manual messages)
 export async function POST(request: Request) {
   try {
-    const { phone, message, leadId, senderName, senderUid, mediaType, mediaUrl, filename, mediaId } = await request.json();
+    const { phone, message, leadId, senderName, senderUid, mediaType, mediaUrl, filename, mediaId, templateName, templateLang, customerName } = await request.json();
     
     if (!phone) {
       return NextResponse.json({ success: false, error: "Phone number is required" }, { status: 400 });
     }
     
-    if (!message && !mediaUrl && !mediaId) {
-      return NextResponse.json({ success: false, error: "Message, mediaId or mediaUrl is required" }, { status: 400 });
+    if (!message && !mediaUrl && !mediaId && !templateName) {
+      return NextResponse.json({ success: false, error: "Message, templateName, mediaId or mediaUrl is required" }, { status: 400 });
     }
 
     // Clean phone number
@@ -33,7 +33,26 @@ export async function POST(request: Request) {
       to: finalPhone
     };
 
-    if (mediaId) {
+    if (templateName) {
+      const nameVal = customerName || senderName || "Partner";
+      body.type = "template";
+      body.template = {
+        name: templateName,
+        language: { code: templateLang || "en_US" },
+        components: [
+          {
+            type: "body",
+            parameters: [
+              {
+                type: "text",
+                parameter_name: "customer_name",
+                text: nameVal
+              }
+            ]
+          }
+        ]
+      };
+    } else if (mediaId) {
       /**
        * Preferred path: the file already lives on Meta's media store (uploaded
        * via /api/whatsapp/upload), so it is sent by id and needs no public URL

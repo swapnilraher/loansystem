@@ -58,6 +58,7 @@ export function BroadcastSheet({ open, onClose, recipients, senderName }: Broadc
           body: JSON.stringify({
             phone,
             name,
+            customerName: name,
             message: message.replace(/\{name\}/g, name),
             leadId: lead.id,
             senderName,
