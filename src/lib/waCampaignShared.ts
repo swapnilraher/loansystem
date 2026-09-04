@@ -216,19 +216,35 @@ export function previewMessage(
     }
   }
 
-  const body = template?.bodyText || ""
+  const isConnector = message.templateName === "connector"
+  const defaultBody = isConnector
+    ? "Hello {{customer_name}}\n\n💰 Loan Business करता? अधिक कमवायचंय?\nआता Join करा Techstar Money Solution सोबत आणि मिळवा:\n\n🔹 50+ Loan Partners\n🔹 Highest Payout Opportunities\n🔹 Flexible Payout\n🔹 Fast Digital Onboarding\n🔹 Banks + NBFCs + Fintechs\n\n🚀 More Leads | More Loans | More Earnings\n\nआजच Techstar चे Loan Connector / DSA Partner बना!"
+    : ""
+
+  const body = template?.bodyText || defaultBody || ""
   let text = body
   const vars = extractTemplateVariables(body)
-  vars.forEach((v, index) => {
-    const param = message.bodyParams[index] ?? "{{Name}}"
-    const value = fillName(param, recipient.name)
-    text = text
-      .replace(new RegExp(`\\{\\{\\s*${v}\\s*\\}\\}`, "g"), value)
-      .replace(new RegExp(`\\{\\{\\s*${index + 1}\\s*\\}\\}`, "g"), value)
-  })
+
+  if (vars.length > 0) {
+    vars.forEach((v, index) => {
+      const param = message.bodyParams[index] || "{{Name}}"
+      const value = fillName(param, recipient.name)
+      text = text
+        .replace(new RegExp(`\\{\\{\\s*${v}\\s*\\}\\}`, "g"), value)
+        .replace(new RegExp(`\\{\\{\\s*${index + 1}\\s*\\}\\}`, "g"), value)
+    })
+  }
+
+  if (text.includes("{{customer_name}}")) {
+    text = text.replace(/\{\{\s*customer_name\s*\}\}/g, recipient.name || "Partner")
+  }
+
+  const defaultImg = isConnector
+    ? "https://res.cloudinary.com/ugpy6fko/image/upload/v1788543861/wa-campaigns/u3xz2l1lpx7wylsxitog.png"
+    : ""
 
   return {
-    image: template?.hasImageHeader ? message.imageUrl : "",
+    image: message.imageUrl || defaultImg || (template?.hasImageHeader ? message.imageUrl : ""),
     text: text || `(template: ${message.templateName})`,
   }
 }

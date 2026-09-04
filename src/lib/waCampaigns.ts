@@ -206,7 +206,7 @@ async function sendOne(
       })
     }
 
-    const langCode = message.templateLanguage || (isConnector ? "en" : "en_US")
+    const langCode = isConnector ? "en" : (message.templateLanguage || "en_US")
 
     body.type = "template"
     body.template = {

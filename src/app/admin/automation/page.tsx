@@ -187,12 +187,12 @@ export default function WhatsAppCampaignsPage() {
 
   // ─── Validation ─────────────────────────────────────────────────────────────
 
-  const template1 = templates.find(
-    t => t.name === message1.templateName && t.language === message1.templateLanguage
-  )
-  const template2 = templates.find(
-    t => t.name === message2.templateName && t.language === message2.templateLanguage
-  )
+  const template1 =
+    templates.find(t => t.name === message1.templateName && t.language === message1.templateLanguage) ||
+    templates.find(t => t.name === message1.templateName)
+  const template2 =
+    templates.find(t => t.name === message2.templateName && t.language === message2.templateLanguage) ||
+    templates.find(t => t.name === message2.templateName)
 
   const blocker = React.useMemo(() => {
     if (!sheet) return "Upload an Excel or CSV file."
