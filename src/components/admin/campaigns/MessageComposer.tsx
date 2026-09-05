@@ -60,16 +60,19 @@ export default function MessageComposer({
       // filled in. Anything else starts blank and has to be typed.
       message.bodyParams[i] ?? (i === 0 ? "{{Name}}" : "")
     )
-    const isConnector = (name || "").toLowerCase() === "connector" || (name || "").toLowerCase().includes("connector")
-    const defaultImg = isConnector ? "https://res.cloudinary.com/ugpy6fko/image/upload/v1788543861/wa-campaigns/u3xz2l1lpx7wylsxitog.png" : ""
+    const hasImageHeader = Boolean(chosen?.hasImageHeader)
+    const defaultImg = (name === "connector" && hasImageHeader)
+      ? "https://res.cloudinary.com/ugpy6fko/image/upload/v1788543861/wa-campaigns/u3xz2l1lpx7wylsxitog.png"
+      : ""
+    const nextImageUrl = hasImageHeader ? (message.imageUrl || defaultImg) : ""
+    const nextImageSource: CampaignImageSource = hasImageHeader && nextImageUrl ? "url" : "none"
+
     set({
-      templateName: isConnector ? "connector" : (name || ""),
-      templateLanguage: isConnector ? "en" : (language || "en_US"),
-      bodyParams: params.length > 0 ? params : (isConnector ? ["{{Name}}"] : []),
-      imageUrl: message.imageUrl || defaultImg,
-      imageSource: (message.imageUrl || defaultImg) ? "url" : "none",
-      // A template without an image header cannot carry one.
-      ...(chosen && !chosen.hasImageHeader && !isConnector ? { imageUrl: "", imageSource: "none" as CampaignImageSource } : {}),
+      templateName: name || "",
+      templateLanguage: language || chosen?.language || "en",
+      bodyParams: params.length > 0 ? params : ["{{Name}}"],
+      imageUrl: nextImageUrl,
+      imageSource: nextImageSource,
     })
   }
 

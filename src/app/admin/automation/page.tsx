@@ -5,6 +5,7 @@ import Link from "next/link"
 import {
   AlertTriangle,
   CheckCircle2,
+  Clock,
   Eye,
   FileSpreadsheet,
   Loader2,
@@ -60,10 +61,12 @@ interface SheetState {
 
 export interface DispatchItem {
   id: string
+  index?: number
   name: string
   phone: string
   status: "sent" | "failed"
   error?: string
+  time?: string
 }
 
 export interface DispatchState {
@@ -115,6 +118,16 @@ export default function WhatsAppCampaignsPage() {
   const [live, setLive] = React.useState<CampaignSummary | null>(null)
 
   const [dispatch, setDispatch] = React.useState<DispatchState | null>(null)
+  const [elapsedSeconds, setElapsedSeconds] = React.useState(0)
+
+  // Real-time timer: counts seconds 1, 2, 3... while dispatch is sending
+  React.useEffect(() => {
+    if (!dispatch || dispatch.status !== "sending") return
+    const timer = setInterval(() => {
+      setElapsedSeconds(s => s + 1)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [dispatch?.status])
 
   const [history, setHistory] = React.useState<CampaignSummary[]>([])
   const [loadingHistory, setLoadingHistory] = React.useState(true)
@@ -271,6 +284,7 @@ export default function WhatsAppCampaignsPage() {
     setSending(true)
     setSendError("")
     setShowPreview(false)
+    setElapsedSeconds(0)
 
     const cName = campaignName.trim() || `Campaign ${new Date().toLocaleTimeString("en-IN")}`
 
@@ -337,6 +351,8 @@ export default function WhatsAppCampaignsPage() {
             message2,
           })
 
+          const nowTime = new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+
           if (!chunkResponse.ok) {
             const errText = await chunkResponse.text()
             console.warn("Chunk dispatch error:", errText)
@@ -344,36 +360,43 @@ export default function WhatsAppCampaignsPage() {
               totalFailed++
               allResults.push({
                 id: `r_${r.index}`,
+                index: (r.index ?? 0) + 1,
                 name: r.name,
                 phone: r.phone,
                 status: "failed",
                 error: "Network error on batch",
+                time: nowTime,
               })
             })
           } else {
             const chunkData = await chunkResponse.json()
             totalSent += chunkData.sent || 0
             totalFailed += chunkData.failed || 0
-            ;(chunkData.results || []).forEach((r: any) => {
+            ;(chunkData.results || []).forEach((r: any, offset: number) => {
               allResults.push({
                 id: r.id,
+                index: (chunk[offset]?.index ?? (allResults.length)) + 1,
                 name: r.name,
                 phone: r.phone,
                 status: r.status,
                 error: r.error,
+                time: nowTime,
               })
             })
           }
         } catch (chunkErr: any) {
           console.warn("Chunk network failure:", chunkErr)
+          const nowTime = new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
           chunk.forEach(r => {
             totalFailed++
             allResults.push({
               id: `r_${r.index}`,
+              index: (r.index ?? 0) + 1,
               name: r.name,
               phone: r.phone,
               status: "failed",
               error: chunkErr?.message || "Failed to dispatch",
+              time: nowTime,
             })
           })
         }
@@ -468,7 +491,7 @@ export default function WhatsAppCampaignsPage() {
   const perRecipient = (message1.enabled ? 1 : 0) + (message2.enabled ? 1 : 0)
 
   return (
-    <div className="w-full space-y-6 sm:space-y-8">
+    <div className="w-full space-y-6 sm:space-y-8 pb-16 sm:pb-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-secondary sm:text-3xl">
@@ -852,8 +875,8 @@ export default function WhatsAppCampaignsPage() {
 
       {/* Preview modal ------------------------------------------------------- */}
       {showPreview && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-0 backdrop-blur-sm sm:items-center sm:p-6">
-          <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white p-5 sm:rounded-3xl sm:p-6">
+        <div className="fixed inset-0 z-[200] flex items-end justify-center bg-slate-900/60 p-0 pb-[calc(1.5rem+env(safe-area-inset-bottom))] backdrop-blur-sm sm:items-center sm:p-6 sm:pb-6 animate-in fade-in duration-200">
+          <div className="max-h-[85vh] sm:max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white p-5 sm:rounded-3xl sm:p-6 shadow-2xl border border-slate-100">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-lg font-black text-secondary">Preview</h3>
@@ -883,7 +906,7 @@ export default function WhatsAppCampaignsPage() {
             <div className="mt-4 flex gap-3">
               <button
                 onClick={() => setShowPreview(false)}
-                className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600"
+                className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600 hover:bg-slate-50"
               >
                 Back
               </button>
@@ -902,25 +925,31 @@ export default function WhatsAppCampaignsPage() {
 
       {/* Real-time Dispatch Modal -------------------------------------------- */}
       {dispatch?.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-slate-100">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 p-4 pb-[calc(2rem+env(safe-area-inset-bottom))] backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="max-h-[90vh] overflow-y-auto w-full max-w-lg rounded-3xl bg-white p-5 sm:p-6 shadow-2xl border border-slate-100">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-primary">
-                  {dispatch.status === "completed" ? (
-                    <>
-                      <CheckCircle2 size={13} className="text-emerald-600" /> Finished
-                    </>
-                  ) : dispatch.status === "error" ? (
-                    <>
-                      <XCircle size={13} className="text-rose-600" /> Error
-                    </>
-                  ) : (
-                    <>
-                      <Loader2 size={13} className="animate-spin text-primary" /> Live Sending
-                    </>
-                  )}
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-primary">
+                    {dispatch.status === "completed" ? (
+                      <>
+                        <CheckCircle2 size={13} className="text-emerald-600" /> Finished
+                      </>
+                    ) : dispatch.status === "error" ? (
+                      <>
+                        <XCircle size={13} className="text-rose-600" /> Error
+                      </>
+                    ) : (
+                      <>
+                        <Loader2 size={13} className="animate-spin text-primary" /> Live Sending
+                      </>
+                    )}
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-600 font-mono">
+                    <Clock size={12} className={dispatch.status === "sending" ? "text-primary animate-pulse" : "text-slate-400"} />
+                    {dispatch.status === "completed" ? `Total: ${elapsedSeconds}s` : `Realtime: ${elapsedSeconds}s`}
+                  </span>
+                </div>
                 <h3 className="mt-2 text-xl font-black text-secondary">{dispatch.name}</h3>
                 <p className="text-xs font-medium text-slate-500">
                   Real-time WhatsApp Message Dispatch
@@ -970,8 +999,8 @@ export default function WhatsAppCampaignsPage() {
               </div>
             </div>
 
-            {/* Stat counts */}
-            <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+            {/* Stat counts with Realtime Timer */}
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
               <div className="rounded-2xl bg-slate-50 p-3">
                 <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total</p>
                 <p className="text-lg font-black text-secondary">{dispatch.total}</p>
@@ -983,6 +1012,14 @@ export default function WhatsAppCampaignsPage() {
               <div className="rounded-2xl bg-rose-50 p-3">
                 <p className="text-[10px] font-black uppercase tracking-wider text-rose-600">Failed</p>
                 <p className="text-lg font-black text-rose-700">{dispatch.failed}</p>
+              </div>
+              <div className="rounded-2xl bg-indigo-50/80 p-3 border border-indigo-100/80">
+                <p className="text-[10px] font-black uppercase tracking-wider text-indigo-600 flex items-center justify-center gap-1">
+                  <Clock size={11} className={dispatch.status === "sending" ? "animate-spin text-indigo-600" : "text-indigo-600"} /> Time
+                </p>
+                <p className="text-lg font-black text-indigo-700 font-mono">
+                  {elapsedSeconds}s
+                </p>
               </div>
             </div>
 
@@ -1010,29 +1047,41 @@ export default function WhatsAppCampaignsPage() {
                       key={item.id || idx}
                       className="flex items-center justify-between gap-2 rounded-xl bg-white px-3 py-2 text-xs shadow-sm"
                     >
-                      <div className="min-w-0">
-                        <p className="truncate font-black text-secondary">
-                          {item.name || "Recipient"}
-                        </p>
-                        <p className="text-[11px] text-slate-400">{displayPhone(item.phone)}</p>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="shrink-0 flex items-center justify-center w-6 h-6 rounded-lg bg-slate-100 text-[10px] font-mono font-black text-slate-600">
+                          #{item.index ?? (idx + 1)}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate font-black text-secondary">
+                            {item.name || "Recipient"}
+                          </p>
+                          <p className="text-[11px] text-slate-400">{displayPhone(item.phone)}</p>
+                        </div>
                       </div>
-                      <span
-                        className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wide ${
-                          item.status === "sent"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-rose-100 text-rose-700"
-                        }`}
-                      >
-                        {item.status === "sent" ? (
-                          <>
-                            <CheckCircle2 size={11} /> Sent
-                          </>
-                        ) : (
-                          <>
-                            <XCircle size={11} /> Failed
-                          </>
+                      <div className="shrink-0 flex items-center gap-2">
+                        {item.time && (
+                          <span className="text-[10px] font-mono font-medium text-slate-400">
+                            {item.time}
+                          </span>
                         )}
-                      </span>
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wide ${
+                            item.status === "sent"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-rose-100 text-rose-700"
+                          }`}
+                        >
+                          {item.status === "sent" ? (
+                            <>
+                              <CheckCircle2 size={11} /> Sent
+                            </>
+                          ) : (
+                            <>
+                              <XCircle size={11} /> Failed
+                            </>
+                          )}
+                        </span>
+                      </div>
                     </div>
                   ))
                 )}
@@ -1079,7 +1128,7 @@ export default function WhatsAppCampaignsPage() {
               ) : (
                 <div className="flex w-full items-center justify-center gap-2 py-2 text-xs font-bold text-slate-500">
                   <Loader2 size={14} className="animate-spin text-primary" />
-                  <span>Please keep this window open while sending...</span>
+                  <span>Please keep this window open while sending... ({elapsedSeconds}s)</span>
                 </div>
               )}
             </div>

@@ -170,8 +170,14 @@ export async function sendOne(
   if (message.mode === "template") {
     const components: Record<string, unknown>[] = []
     const tName = String(message.templateName || "").trim().toLowerCase()
-    const isConnector = tName === "connector" || tName.includes("connector")
-    const imgUrl = message.imageUrl || (isConnector ? "https://res.cloudinary.com/ugpy6fko/image/upload/v1788543861/wa-campaigns/u3xz2l1lpx7wylsxitog.png" : "")
+    const isConnectorWithImg = tName === "connector"
+    const isConnectorWithoutImg = tName === "connector_without_image" || tName === "connector_without_images"
+    const isAnyConnector = isConnectorWithImg || isConnectorWithoutImg
+
+    // Only include image header if template is NOT without_image and an imageUrl is provided
+    const imgUrl = (!isConnectorWithoutImg && message.imageSource !== "none")
+      ? (message.imageUrl || (isConnectorWithImg ? "https://res.cloudinary.com/ugpy6fko/image/upload/v1788543861/wa-campaigns/u3xz2l1lpx7wylsxitog.png" : ""))
+      : ""
 
     // A template whose header is an IMAGE must be given one, and it has to be a
     // public link — Meta fetches it itself, so a server path would 404 on their
@@ -183,7 +189,7 @@ export async function sendOne(
       })
     }
 
-    if (isConnector) {
+    if (isAnyConnector) {
       const recipientName = (recipient.name || "").trim() || "Partner"
       components.push({
         type: "body",
@@ -211,11 +217,11 @@ export async function sendOne(
       }
     }
 
-    const langCode = isConnector ? "en" : (message.templateLanguage || "en_US")
+    const langCode = isAnyConnector ? "en" : (message.templateLanguage || "en_US")
 
     body.type = "template"
     body.template = {
-      name: isConnector ? "connector" : message.templateName,
+      name: message.templateName,
       language: { code: langCode },
       ...(components.length > 0 ? { components } : {}),
     }
