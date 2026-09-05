@@ -1,7 +1,10 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React from "react"
 import Link from "next/link"
+
+import { PartnerPortalHeader } from "@/components/layout/PartnerPortalShell"
+import { cn } from "@/lib/utils"
 import {
   ShieldCheck,
   ArrowRight,
@@ -12,8 +15,6 @@ import {
   Briefcase,
   FileText,
   Star,
-  Menu,
-  X,
   CreditCard,
   Home,
   TrendingUp,
@@ -22,12 +23,10 @@ import {
   ChevronRight,
   Sparkles,
   MapPin,
-  Check,
   Headphones,
   LogIn,
   UserPlus,
   Zap,
-  Globe,
   Lock,
   MessageCircle,
   Clock,
@@ -118,7 +117,7 @@ const LOAN_PRODUCTS = [
     category: "Personal Loan DSA",
     desc: "Instant personal loan solutions for salaried & self-employed individuals with fast bank approvals.",
     icon: CreditCard,
-    color: "bg-primary-subtle text-primary border-primary",
+    tone: "bg-brand-soft text-brand-soft-fg border-brand-line",
   },
   {
     id: "business-loan",
@@ -126,7 +125,7 @@ const LOAN_PRODUCTS = [
     category: "Business Loan DSA",
     desc: "Collateral-free commercial credit tailored for MSME expansion, stock purchase, and growth.",
     icon: Briefcase,
-    color: "bg-info-subtle text-info-emphasis border-info",
+    tone: "bg-tone-info text-tone-info-fg border-tone-info-bd",
   },
   {
     id: "home-loan",
@@ -134,7 +133,7 @@ const LOAN_PRODUCTS = [
     category: "Home Loan DSA",
     desc: "Affordable housing finance from reputed PSU and private banks with minimal processing fees.",
     icon: Home,
-    color: "bg-success-subtle text-success border-success",
+    tone: "bg-tone-success text-tone-success-fg border-tone-success-bd",
   },
   {
     id: "lap",
@@ -142,7 +141,7 @@ const LOAN_PRODUCTS = [
     category: "LAP DSA",
     desc: "High-ticket mortgage loans against residential, commercial, or industrial properties.",
     icon: Building2,
-    color: "bg-warning-subtle text-warning-emphasis border-warning",
+    tone: "bg-tone-warn text-tone-warn-fg border-tone-warn-bd",
   },
   {
     id: "working-capital",
@@ -150,7 +149,7 @@ const LOAN_PRODUCTS = [
     category: "Working Capital DSA",
     desc: "Overdraft, cash credit lines, and machinery funding to keep daily business liquidity smooth.",
     icon: TrendingUp,
-    color: "bg-secondary-subtle text-secondary-emphasis border-secondary",
+    tone: "bg-tone-violet text-tone-violet-fg border-tone-violet-bd",
   },
   {
     id: "balance-transfer",
@@ -158,7 +157,7 @@ const LOAN_PRODUCTS = [
     category: "Balance Transfer DSA",
     desc: "Switch existing high-interest loans to lower ROI institutions to reduce monthly EMI drastically.",
     icon: Percent,
-    color: "bg-danger-subtle text-danger border-danger",
+    tone: "bg-tone-cyan text-tone-cyan-fg border-tone-cyan-bd",
   },
 ]
 
@@ -206,6 +205,100 @@ const WHY_CHOOSE = [
   { title: "High DSA Growth", desc: "Proven system enabling connectors, tax consultants, and agents to earn consistent income.", icon: TrendingUp },
 ]
 
+// ── Layout Rhythm ───────────────────────────────────────────────
+/** One container width for every section, so the left edge never jumps. */
+const SHELL = "mx-auto w-full max-w-7xl px-4 sm:px-6"
+/** One vertical rhythm for every section. */
+const SECTION = "py-12 md:py-16"
+
+// ── Hero Data ───────────────────────────────────────────────────
+const HERO_HIGHLIGHTS = [
+  { icon: Building2, title: "50+ Banks & NBFCs", sub: "HDFC, SBI, ICICI, Bajaj", tone: "bg-brand-soft text-brand-soft-fg" },
+  { icon: Wallet, title: "Highest Payout", sub: "Direct Bank Credit", tone: "bg-tone-success text-tone-success-fg" },
+  { icon: Zap, title: "Zero Fee / Free", sub: "100% Free DSA Code", tone: "bg-tone-warn text-tone-warn-fg" },
+  { icon: Sparkles, title: "Live CRM Portal", sub: "Track Customer Files", tone: "bg-tone-info text-tone-info-fg" },
+]
+
+const HERO_PRODUCT_CHIPS = [
+  "💰 Personal Loan",
+  "🏢 Business Loan",
+  "🏠 Home Loan",
+  "🏗️ LAP Mortgage",
+  "🔄 Balance Transfer",
+  "🚜 Working Capital",
+]
+
+const HERO_FORM_FIELDS = [
+  { name: "name", label: "Full Name", type: "text", placeholder: "Please enter your name", maxLength: undefined as number | undefined },
+  { name: "phone", label: "Contact Number", type: "tel", placeholder: "Please enter your contact number", maxLength: 10 },
+  { name: "email", label: "Email", type: "email", placeholder: "Please enter your email", maxLength: undefined as number | undefined },
+]
+
+// ── Section Nav ─────────────────────────────────────────────────
+const NAV_LINKS = [
+  { href: "#about", label: "About Us" },
+  { href: "#loan-products", label: "Loan Products" },
+  { href: "#dsa-partnership", label: "DSA Benefits" },
+  { href: "#how-it-works", label: "How It Works" },
+  { href: "#contact", label: "Contact" },
+]
+
+const FOOTER_NAV = [
+  { href: "#", label: "Home", internal: false },
+  { href: "#about", label: "About Company", internal: false },
+  { href: "#loan-products", label: "Loan Products", internal: false },
+  { href: "#dsa-partnership", label: "DSA Benefits", internal: false },
+  { href: "/onboarding", label: "Become a Partner", internal: true },
+  { href: "/partner/login", label: "Partner Login", internal: true },
+]
+
+// ── Quick Actions ───────────────────────────────────────────────
+const QUICK_ACTIONS = [
+  { icon: UserPlus, label: "Become a DSA", sub: "Free digital onboarding", href: "/onboarding", tone: "bg-brand-soft text-brand-soft-fg border-brand-line" },
+  { icon: LogIn, label: "Partner Login", sub: "Access your dashboard", href: "/partner/login", tone: "bg-tone-neutral text-tone-neutral-fg border-tone-neutral-bd" },
+  { icon: CreditCard, label: "Loan Products", sub: "View product slabs", href: "#loan-products", tone: "bg-tone-success text-tone-success-fg border-tone-success-bd" },
+  { icon: Phone, label: "Call Office", sub: BRAND.phone, href: `tel:${BRAND.phoneRaw}`, tone: "bg-tone-warn text-tone-warn-fg border-tone-warn-bd" },
+]
+
+// ── About Points ────────────────────────────────────────────────
+const ABOUT_POINTS = [
+  { icon: CheckCircle2, title: "Direct Bank Codes", desc: "Access direct banking agreements with nationalized and private lenders." },
+  { icon: FileText, title: "Document Verification", desc: "Expert operations desk helps sanitize client files for immediate approval." },
+  { icon: Layers, title: "Multi-Loan Solutions", desc: "Offer retail loans, working capital, property mortgages, and machinery funding." },
+  { icon: Users, title: "Customer-Centric", desc: "Match borrowers with lowest interest rates based on CIBIL and profile." },
+  { icon: Headphones, title: "Direct Desk Support", desc: "Direct phone and WhatsApp assistance from experienced loan underwriters." },
+]
+
+/**
+ * One heading pattern for every section: eyebrow pill, h2, optional lead.
+ * Keeps the h1 -> h2 -> h3 hierarchy the page is indexed on intact.
+ */
+function SectionHeading({
+  eyebrow,
+  title,
+  children,
+}: {
+  eyebrow: string
+  title: string
+  children?: React.ReactNode
+}) {
+  return (
+    <div className="mx-auto mb-8 max-w-3xl text-center md:mb-10">
+      <span className="mb-3 inline-flex items-center rounded-full border border-brand-line bg-brand-soft px-3 py-1.5 text-admin-xs font-bold uppercase tracking-widest text-brand-soft-fg">
+        {eyebrow}
+      </span>
+      <h2 className="text-2xl font-extrabold tracking-tight text-admin-text md:text-3xl">
+        {title}
+      </h2>
+      {children ? (
+        <p className="mt-3 text-base font-medium leading-relaxed text-admin-muted">
+          {children}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
 // ── Steps ───────────────────────────────────────────────────────────────────
 const STEPS = [
   { step: "01", title: "Online Registration", desc: "Enter your mobile number and basic business details in 2 minutes." },
@@ -216,349 +309,158 @@ const STEPS = [
 
 // ── MAIN COMPONENT ──────────────────────────────────────────────────────────
 export default function PartnerLandingPage() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12)
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => window.removeEventListener("scroll", onScroll)
-  }, [])
-
   return (
-    <div className="min-vh-100 font-sans" style={{ background: "#F8FAFC", color: "#0F172A" }}>
+    <div className="partner-root min-h-dvh scroll-smooth bg-admin-bg font-sans text-admin-text motion-reduce:scroll-auto">
       {/* JSON-LD Schema */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(SCHEMA_DATA) }} />
 
-      {/* ── TOP ANNOUNCEMENT STRIP (Bootstrap alert / bar) ────────────────── */}
-      <div className="bg-primary text-white py-1 px-3 text-center fs-7 fw-semibold border-bottom border-primary-subtle d-flex align-items-center justify-content-center gap-2">
-        <ShieldCheck size={14} className="shrink-0" />
+      {/* ── TOP ANNOUNCEMENT STRIP ────────────────────────────────────────── */}
+      <div className="flex items-center justify-center gap-2 border-b border-brand-strong bg-brand px-4 py-1.5 text-center text-admin-xs font-semibold text-brand-fg">
+        <ShieldCheck size={14} className="hidden shrink-0 sm:block" />
         <span>
           <strong>TECHSTAR MONEY SOLUTION PRIVATE LIMITED</strong> · CIN: {BRAND.cin} · Chhatrapati Sambhajinagar
         </span>
       </div>
 
-      {/* ── STICKY NAV (Bootstrap navbar) ─────────────────────────────────── */}
-      <header
-        className="sticky-top transition-all duration-200"
-        style={{
-          background: scrolled ? "rgba(255,255,255,0.98)" : "#FFFFFF",
-          borderBottom: "1px solid #E2E8F0",
-          boxShadow: scrolled ? "0 4px 20px rgba(15,23,42,0.06)" : "0 1px 3px rgba(0,0,0,0.02)",
-          backdropFilter: "blur(12px)",
-        }}
-      >
-        <div className="container-xl">
-          <div className="d-flex align-items-center justify-content-between py-2 py-md-3">
-            {/* Logo */}
-            <Link href="/" className="d-flex align-items-center gap-2 text-decoration-none text-dark">
-              <div
-                className="rounded-3 overflow-hidden bg-white border border-slate-200 d-flex align-items-center justify-content-center shadow-sm"
-                style={{ width: "42px", height: "42px" }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/img/logo.webp"
-                  alt="Techstar Money Solution DSA Logo"
-                  className="w-100 h-100 object-contain p-1"
-                  onError={(e) => {
-                    ;(e.target as HTMLElement).style.display = "none"
-                  }}
-                />
-              </div>
-              <div>
-                <div className="fw-bolder text-slate-900 lh-1" style={{ fontSize: "15px" }}>
-                  Techstar Money Solution
-                </div>
-                <div className="text-uppercase text-primary fw-bold letter-spacing-1" style={{ fontSize: "10px" }}>
-                  Loan DSA Partner Portal
-                </div>
-              </div>
-            </Link>
-
-            {/* Desktop Nav */}
-            <nav className="d-none d-lg-flex align-items-center gap-4">
-              {[
-                "#about|About Us",
-                "#loan-products|Loan Products",
-                "#dsa-partnership|DSA Benefits",
-                "#how-it-works|How It Works",
-                "#contact|Contact",
-              ].map((s) => {
-                const [href, label] = s.split("|")
-                return (
-                  <a
-                    key={href}
-                    href={href}
-                    className="text-decoration-none text-slate-600 fw-semibold fs-7 hover:text-primary transition-colors"
-                  >
-                    {label}
-                  </a>
-                )
-              })}
-            </nav>
-
-            {/* Desktop CTA Buttons */}
-            <div className="d-none d-sm-flex align-items-center gap-2">
-              <a
-                href={`https://wa.me/91${BRAND.phoneRaw}?text=${BRAND.whatsappText}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-outline-success btn-sm d-flex align-items-center gap-1 fw-bold px-3 py-2 text-decoration-none shadow-sm"
-              >
-                <MessageCircle size={15} />
-                <span>WhatsApp</span>
-              </a>
-              <Link
-                href="/partner/login"
-                className="btn btn-light btn-sm border border-slate-300 text-slate-700 fw-bold px-3 py-2 text-decoration-none shadow-sm"
-              >
-                <LogIn size={15} /> Partner Login
-              </Link>
-              <Link
-                href="/onboarding"
-                className="btn btn-primary btn-sm fw-bold px-3 py-2 text-decoration-none shadow-sm d-flex align-items-center gap-1.5"
-              >
-                <UserPlus size={15} />
-                <span>Become a Partner</span>
-              </Link>
-            </div>
-
-            {/* Mobile Actions in Header */}
-            <div className="d-flex d-sm-none align-items-center gap-2">
-              <Link
-                href="/onboarding"
-                className="btn btn-primary btn-sm fw-bold px-2.5 py-1.5 fs-7 text-decoration-none shadow-sm"
-              >
-                फ्री नोंदणी
-              </Link>
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="btn btn-light btn-sm border border-slate-200 p-1.5"
-                aria-label="Toggle Menu"
-              >
-                {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Dropdown Menu */}
-        {mobileMenuOpen && (
-          <div className="d-lg-none bg-white border-top border-slate-200 p-3 shadow-lg">
-            <div className="d-flex flex-column gap-2 mb-3">
-              {[
-                ["#about", "About Us"],
-                ["#loan-products", "Loan Products"],
-                ["#dsa-partnership", "DSA Partner Benefits"],
-                ["#how-it-works", "How It Works"],
-                ["#contact", "Contact Office"],
-              ].map(([href, label]) => (
-                <a
-                  key={href}
-                  href={href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="py-2 px-3 text-slate-700 fw-semibold text-decoration-none rounded-2 hover:bg-slate-100"
-                >
-                  {label}
-                </a>
-              ))}
-            </div>
-            <div className="row g-2 pt-2 border-top border-slate-100">
-              <div className="col-6">
-                <Link
-                  href="/partner/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="btn btn-light border border-slate-300 w-100 fw-bold fs-7 py-2"
-                >
-                  <LogIn size={14} /> Partner Login
-                </Link>
-              </div>
-              <div className="col-6">
-                <Link
-                  href="/onboarding"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="btn btn-primary w-100 fw-bold fs-7 py-2"
-                >
-                  <UserPlus size={14} /> Free Register
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
-      </header>
+      {/* ── STICKY NAV — the portal's one header ──────────────────────────── */}
+      <PartnerPortalHeader
+        subtitle="Loan DSA Partner Portal"
+        navLinks={NAV_LINKS}
+        cta={{ href: "/onboarding", label: "Become a Partner" }}
+      />
 
       {/* ── HIGH-IMPACT HERO SECTION (IMMEDIATE CLARITY FOR MOBILE & DESKTOP) ── */}
-      <section
-        style={{
-          background: "linear-gradient(180deg, #EFF6FF 0%, #FFFFFF 100%)",
-          borderBottom: "1px solid #E2E8F0",
-        }}
-        className="pt-3 pt-md-5 pb-4 pb-md-5 position-relative overflow-hidden"
-      >
-        <div className="container-xl position-relative z-1">
-          <div className="row g-4 align-items-center">
+      <section className="relative overflow-hidden border-b border-admin-border bg-[linear-gradient(180deg,var(--brand-ring)_0%,var(--admin-surface)_100%)] pt-6 pb-10 md:pt-12 md:pb-16">
+        {/* Decorative only: a soft brand glow so the hero is not a flat band. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-32 -right-24 h-[36rem] w-[36rem] rounded-full bg-[radial-gradient(circle,var(--brand-line)_0%,transparent_65%)] opacity-60"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-40 -left-32 h-[30rem] w-[30rem] rounded-full bg-[radial-gradient(circle,var(--brand-ring)_0%,transparent_70%)]"
+        />
+        <div className={cn(SHELL, "relative z-[1]")}>
+          <div className="grid gap-8 lg:grid-cols-12 lg:items-center lg:gap-10">
             {/* Left Column: Core Value Proposition */}
-            <div className="col-12 col-lg-7">
+            <div className="lg:col-span-7">
               {/* Top Highlights Strip on Mobile & Desktop */}
-              <div className="d-flex flex-wrap align-items-center gap-2 mb-2 mb-md-3">
-                <span className="badge bg-primary px-3 py-2 rounded-pill fs-7 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm">
-                  <Sparkles size={14} />
+              <div className="mb-3 flex flex-wrap items-center gap-2 md:mb-4">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 text-xs font-bold text-brand-fg shadow-admin-1">
+                  <Sparkles size={14} className="shrink-0" />
                   <span>Official Loan DSA Portal</span>
                 </span>
-                <span className="badge bg-warning text-dark px-3 py-2 rounded-pill fs-7 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm">
-                  <Star size={13} className="fill-current text-dark" />
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-tone-warn-bd bg-tone-warn px-3 py-1.5 text-xs font-bold text-tone-warn-fg shadow-admin-1">
+                  <Star size={13} className="shrink-0 fill-current" />
                   <span>5.0 ★ Google Rating</span>
                 </span>
-                <span className="badge bg-white text-slate-700 border border-slate-300 px-3 py-2 rounded-pill fs-7 fw-bold d-none d-sm-inline-flex align-items-center gap-1">
-                  <ShieldCheck size={14} className="text-success" />
+                <span className="hidden items-center gap-1.5 rounded-full border border-admin-border bg-admin-surface px-3 py-1.5 text-xs font-bold text-admin-muted shadow-admin-1 sm:inline-flex">
+                  <ShieldCheck size={14} className="shrink-0 text-tone-success-fg" />
                   <span>CIN: {BRAND.cin}</span>
                 </span>
               </div>
 
               {/* H1 Headline — Immediately tells users what this page is! */}
-              <h1 className="fw-black text-slate-900 tracking-tight mb-2 mb-md-3 lh-sm" style={{ fontSize: "clamp(1.75rem, 4vw + 0.5rem, 3.25rem)" }}>
-                Become an Authorized <br className="d-none d-md-block" />
-                <span className="text-primary">Loan DSA Partner</span>
+              <h1 className="mb-3 text-[clamp(1.75rem,4vw+0.5rem,3.25rem)] font-extrabold leading-[1.12] tracking-tight text-admin-text md:mb-4">
+                Become an Authorized <br className="hidden md:block" />
+                <span className="bg-[linear-gradient(90deg,var(--brand-strong),var(--brand-bright))] bg-clip-text text-transparent">
+                  Loan DSA Partner
+                </span>
               </h1>
 
               {/* Regional & High-Converting Subheadline (Marathi + English) */}
-              <div className="alert alert-primary bg-primary-subtle border-primary-subtle text-primary-emphasis p-2 p-md-3 rounded-3 mb-3 d-flex align-items-center gap-2">
-                <Award size={20} className="shrink-0 text-primary" />
-                <div className="fw-bold fs-7 lh-sm">
-                  कमवा दरमहा ₹50,000+ पर्यंत कमिशन पेआउट · Earn Highest Commission Across 50+ Leading Banks & NBFCs
-                </div>
+              <div className="mb-4 flex items-center gap-2.5 rounded-admin border border-brand-line bg-brand-soft p-3 text-brand-soft-fg">
+                <Award size={20} className="shrink-0" />
+                <p className="m-0 text-sm font-bold leading-snug">
+                  कमवा दरमहा ₹50,000+ पर्यंत कमिशन पेआउट · Earn Highest Commission Across 50+ Leading Banks &amp; NBFCs
+                </p>
               </div>
 
-              <p className="text-slate-600 fs-6 fw-medium mb-3 mb-md-4 lh-base d-none d-sm-block">
-                Join <strong>Techstar Money Solution Private Limited</strong> as an independent loan partner. Connect customers with Personal, Business, Home, LAP, and Working Capital loans in Chhatrapati Sambhajinagar and Maharashtra.
+              <p className="mb-5 hidden text-base font-medium leading-relaxed text-admin-muted sm:block md:mb-6">
+                Join <strong className="font-bold text-admin-text">Techstar Money Solution Private Limited</strong> as an independent loan partner. Connect customers with Personal, Business, Home, LAP, and Working Capital loans in Chhatrapati Sambhajinagar and Maharashtra.
               </p>
 
               {/* ── 4-POINT INSTANT VALUE CARDS (2x2 GRID ON MOBILE) ── */}
-              <div className="row g-2 mb-3 mb-md-4">
-                <div className="col-6">
-                  <div className="card h-100 border border-slate-200 bg-white shadow-sm rounded-3 p-2.5">
-                    <div className="d-flex align-items-center gap-2">
-                      <div className="rounded-2 bg-primary-subtle text-primary p-1.5 d-flex align-items-center justify-content-center">
-                        <Building2 size={18} />
-                      </div>
-                      <div>
-                        <div className="fw-black text-slate-900 fs-7 lh-1">50+ Banks & NBFCs</div>
-                        <div className="text-slate-500 fs-8">HDFC, SBI, ICICI, Bajaj</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="col-6">
-                  <div className="card h-100 border border-slate-200 bg-white shadow-sm rounded-3 p-2.5">
-                    <div className="d-flex align-items-center gap-2">
-                      <div className="rounded-2 bg-success-subtle text-success p-1.5 d-flex align-items-center justify-content-center">
-                        <Wallet size={18} />
-                      </div>
-                      <div>
-                        <div className="fw-black text-slate-900 fs-7 lh-1">Highest Payout</div>
-                        <div className="text-slate-500 fs-8">Direct Bank Credit</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="col-6">
-                  <div className="card h-100 border border-slate-200 bg-white shadow-sm rounded-3 p-2.5">
-                    <div className="d-flex align-items-center gap-2">
-                      <div className="rounded-2 bg-warning-subtle text-warning-emphasis p-1.5 d-flex align-items-center justify-content-center">
-                        <Zap size={18} />
-                      </div>
-                      <div>
-                        <div className="fw-black text-slate-900 fs-7 lh-1">Zero Fee / Free</div>
-                        <div className="text-slate-500 fs-8">100% Free DSA Code</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="col-6">
-                  <div className="card h-100 border border-slate-200 bg-white shadow-sm rounded-3 p-2.5">
-                    <div className="d-flex align-items-center gap-2">
-                      <div className="rounded-2 bg-info-subtle text-info-emphasis p-1.5 d-flex align-items-center justify-content-center">
-                        <Sparkles size={18} />
-                      </div>
-                      <div>
-                        <div className="fw-black text-slate-900 fs-7 lh-1">Live CRM Portal</div>
-                        <div className="text-slate-500 fs-8">Track Customer Files</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <ul className="mb-5 grid list-none grid-cols-2 gap-2.5 p-0 md:mb-6">
+                {HERO_HIGHLIGHTS.map(({ icon: Icon, title, sub, tone }) => (
+                  <li
+                    key={title}
+                    className="flex items-center gap-2.5 rounded-admin border border-admin-border bg-admin-surface p-2.5 shadow-admin-1 transition-all motion-reduce:transition-none hover:border-brand-ring hover:shadow-admin-2 motion-safe:hover:-translate-y-0.5"
+                  >
+                    <span className={cn("flex shrink-0 items-center justify-center rounded-admin-sm p-1.5", tone)}>
+                      <Icon size={18} />
+                    </span>
+                    <span className="block min-w-0">
+                      <span className="block text-sm font-extrabold leading-tight text-admin-text">{title}</span>
+                      <span className="block truncate text-xs text-admin-subtle">{sub}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
 
               {/* ── BIG CALL TO ACTION BUTTONS (MOBILE FIRST) ── */}
-              <div className="d-flex flex-column flex-sm-row gap-2 mb-3">
+              <div className="mb-5 flex flex-col gap-2.5 sm:flex-row">
+                {/* Primary — the one action this page is asking for */}
                 <Link
                   href="/onboarding"
-                  className="btn btn-primary btn-lg fw-black px-4 py-3 rounded-3 shadow d-flex align-items-center justify-content-center gap-2 text-decoration-none fs-6"
+                  className="admin-focus inline-flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-admin bg-brand px-5 py-3 text-base font-extrabold text-brand-fg no-underline shadow-admin-2 transition-all motion-reduce:transition-none hover:bg-brand-hover hover:shadow-admin-3 motion-safe:hover:-translate-y-0.5"
                 >
                   <span>🚀 Register as DSA Partner (फ्री नोंदणी)</span>
-                  <ArrowRight size={18} />
+                  <ArrowRight size={18} className="shrink-0" />
                 </Link>
 
-                <div className="d-flex gap-2">
+                {/* Secondary — deliberately unfilled so the primary stays the only filled CTA */}
+                <div className="flex gap-2.5">
                   <a
                     href={`https://wa.me/91${BRAND.phoneRaw}?text=${BRAND.whatsappText}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn btn-success btn-lg fw-bold px-3 py-3 rounded-3 shadow-sm d-flex align-items-center justify-content-center gap-1.5 text-decoration-none flex-grow-1 fs-7"
+                    className="admin-focus inline-flex min-h-[52px] flex-1 items-center justify-center gap-1.5 rounded-admin border border-tone-success-bd bg-tone-success px-4 py-3 whitespace-nowrap text-sm font-bold text-tone-success-fg no-underline transition-colors motion-reduce:transition-none hover:border-tone-success-fg"
                   >
-                    <MessageCircle size={18} />
+                    <MessageCircle size={18} className="shrink-0" />
                     <span>WhatsApp</span>
                   </a>
 
                   <a
                     href={`tel:${BRAND.phoneRaw}`}
-                    className="btn btn-outline-secondary btn-lg fw-bold px-3 py-3 rounded-3 shadow-sm d-flex align-items-center justify-content-center gap-1.5 text-decoration-none flex-grow-1 fs-7"
+                    className="admin-focus inline-flex min-h-[52px] flex-1 items-center justify-center gap-1.5 rounded-admin border border-admin-border bg-admin-surface px-4 py-3 whitespace-nowrap text-sm font-bold text-admin-muted no-underline transition-colors motion-reduce:transition-none hover:border-brand-ring hover:text-brand"
                   >
-                    <Phone size={17} />
+                    <Phone size={17} className="shrink-0" />
                     <span>Call Support</span>
                   </a>
                 </div>
               </div>
 
               {/* Quick Loan Types Strip */}
-              <div className="pt-2 border-top border-slate-200">
-                <div className="fs-8 fw-bold text-slate-500 text-uppercase letter-spacing-1 mb-1.5">
+              <div className="border-t border-admin-border pt-4">
+                <p className="mb-2 text-admin-xs font-bold uppercase tracking-widest text-admin-subtle">
                   Products Available for DSA Sourcing:
-                </div>
-                <div className="d-flex flex-wrap gap-1.5">
-                  {[
-                    "💰 Personal Loan",
-                    "🏢 Business Loan",
-                    "🏠 Home Loan",
-                    "🏗️ LAP Mortgage",
-                    "🔄 Balance Transfer",
-                    "🚜 Working Capital",
-                  ].map((p) => (
-                    <span key={p} className="badge bg-light text-dark border border-secondary-subtle fw-bold fs-7 py-2 px-2.5 shadow-sm">
-                      {p}
-                    </span>
+                </p>
+                <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0">
+                  {HERO_PRODUCT_CHIPS.map((p) => (
+                    <li key={p}>
+                      <span className="inline-flex items-center rounded-full border border-admin-border bg-admin-surface px-3 py-1.5 text-xs font-bold text-admin-muted shadow-admin-1">
+                        {p}
+                      </span>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
             </div>
 
-            {/* Right Column: High-Converting Callback Card (matching user's screenshot) */}
-            <div className="col-12 col-lg-5">
-              <div className="card border border-slate-200 bg-white shadow-lg rounded-4 overflow-hidden p-4 p-md-4">
-                <div className="mb-3">
-                  <h2 className="fw-black text-slate-900 fs-5 mb-1">
+            {/* Right Column: High-Converting Callback Card */}
+            <div className="lg:col-span-5">
+              <div className="overflow-hidden rounded-admin-lg border border-admin-border bg-admin-surface p-5 shadow-admin-3 md:p-6">
+                <div className="mb-4">
+                  <h2 className="mb-1 text-xl font-extrabold tracking-tight text-admin-text">
                     Grow Your Business with Techstar Money!
                   </h2>
-                  <p className="text-slate-500 fs-7 mb-0">
+                  <p className="m-0 text-sm text-admin-subtle">
                     Highest Commission Payouts. 50+ Banks. Real Results.
                   </p>
                 </div>
 
-                <div className="border-top border-slate-100 pt-3">
+                <div className="border-t border-admin-border pt-4">
                   <form
                     onSubmit={(e) => {
                       e.preventDefault()
@@ -568,58 +470,37 @@ export default function PartnerLandingPage() {
                       window.location.href = clean ? `/onboarding?mobile=${clean}` : "/onboarding"
                     }}
                   >
-                    <div className="mb-3">
-                      <label className="form-label text-slate-700 fw-bold fs-8 mb-1">
-                        Full Name <span className="text-danger">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="name"
-                        required
-                        placeholder="Please enter your name"
-                        className="form-control rounded-3 border-slate-300 fs-7 py-2 shadow-none"
-                      />
-                    </div>
-
-                    <div className="mb-3">
-                      <label className="form-label text-slate-700 fw-bold fs-8 mb-1">
-                        Contact Number <span className="text-danger">*</span>
-                      </label>
-                      <input
-                        type="tel"
-                        name="phone"
-                        required
-                        maxLength={10}
-                        placeholder="Please enter your contact number"
-                        className="form-control rounded-3 border-slate-300 fs-7 py-2 shadow-none"
-                      />
-                    </div>
-
-                    <div className="mb-3">
-                      <label className="form-label text-slate-700 fw-bold fs-8 mb-1">
-                        Email <span className="text-danger">*</span>
-                      </label>
-                      <input
-                        type="email"
-                        name="email"
-                        required
-                        placeholder="Please enter your email"
-                        className="form-control rounded-3 border-slate-300 fs-7 py-2 shadow-none"
-                      />
-                    </div>
+                    {HERO_FORM_FIELDS.map(({ name, label, type, placeholder, maxLength }) => (
+                      <div key={name} className="mb-3">
+                        <label
+                          htmlFor={`hero-${name}`}
+                          className="mb-1 block text-xs font-bold text-admin-muted"
+                        >
+                          {label} <span className="text-tone-danger-fg">*</span>
+                        </label>
+                        <input
+                          id={`hero-${name}`}
+                          type={type}
+                          name={name}
+                          required
+                          maxLength={maxLength}
+                          placeholder={placeholder}
+                          className="admin-focus block min-h-[44px] w-full rounded-admin-sm border border-admin-border bg-admin-surface px-3 py-2.5 text-sm text-admin-text transition-colors motion-reduce:transition-none placeholder:text-admin-subtle hover:border-brand-ring"
+                        />
+                      </div>
+                    ))}
 
                     <button
                       type="submit"
-                      className="btn w-100 fw-bold py-2.5 rounded-3 text-white shadow-sm d-flex align-items-center justify-center gap-2 fs-7"
-                      style={{ backgroundColor: "#0F4C81", borderColor: "#0F4C81" }}
+                      className="admin-focus flex min-h-[48px] w-full items-center justify-center gap-2 rounded-admin bg-brand px-4 py-3 text-sm font-bold text-brand-fg shadow-admin-1 transition-colors motion-reduce:transition-none hover:bg-brand-hover"
                     >
                       <span>Request a Callback &amp; Register</span>
-                      <ArrowRight size={15} />
+                      <ArrowRight size={15} className="shrink-0" />
                     </button>
 
-                    <div className="text-center text-slate-400 fs-8 pt-2">
+                    <p className="m-0 pt-3 text-center text-xs text-admin-subtle">
                       🔒 100% Free DSA Registration • Verified Bank Payouts
-                    </div>
+                    </p>
                   </form>
                 </div>
               </div>
@@ -628,375 +509,338 @@ export default function PartnerLandingPage() {
         </div>
       </section>
 
-      {/* ── QUICK ACTION CARDS (BOOTSTRAP ROW) ────────────────────────────── */}
-      <section className="py-4 bg-white border-bottom border-slate-200">
-        <div className="container-xl">
-          <div className="row g-2 g-md-3">
-            {[
-              { icon: UserPlus, label: "Become a DSA", sub: "Free digital onboarding", href: "/onboarding", color: "bg-primary-subtle text-primary border-primary" },
-              { icon: LogIn, label: "Partner Login", sub: "Access your dashboard", href: "/partner/login", color: "bg-secondary-subtle text-secondary-emphasis border-secondary" },
-              { icon: CreditCard, label: "Loan Products", sub: "View product slabs", href: "#loan-products", color: "bg-success-subtle text-success border-success" },
-              { icon: Phone, label: "Call Office", sub: BRAND.phone, href: `tel:${BRAND.phoneRaw}`, color: "bg-warning-subtle text-warning-emphasis border-warning" },
-            ].map(({ icon: Icon, label, sub, href, color }) => {
+      {/* ── QUICK ACTION CARDS ────────────────────────────────────────────── */}
+      <section className="border-b border-admin-border bg-admin-surface py-6">
+        <div className={SHELL}>
+          <ul className="grid list-none grid-cols-2 gap-2.5 p-0 lg:grid-cols-4 lg:gap-3">
+            {QUICK_ACTIONS.map(({ icon: Icon, label, sub, href, tone }) => {
               const Comp = href.startsWith("#") || href.startsWith("tel:") ? "a" : Link
               return (
-                <div key={label} className="col-6 col-lg-3">
-                  {/* @ts-expect-error polymorphic */}
+                <li key={label}>
+                  {/* @ts-expect-error polymorphic href */}
                   <Comp
                     href={href}
-                    className="card h-100 border border-slate-200 text-decoration-none shadow-sm hover:shadow-md transition-all p-3 rounded-3"
+                    className="admin-focus flex h-full items-center gap-2.5 rounded-admin border border-admin-border bg-admin-surface p-3 no-underline shadow-admin-1 transition-all motion-reduce:transition-none hover:border-brand-ring hover:shadow-admin-2 motion-safe:hover:-translate-y-0.5"
                   >
-                    <div className="d-flex align-items-center gap-2.5">
-                      <div className={`p-2 rounded-3 border d-flex align-items-center justify-content-center shrink-0 ${color}`}>
-                        <Icon size={18} />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="fw-bold text-slate-900 fs-7 text-truncate">{label}</div>
-                        <div className="text-slate-500 fs-8 text-truncate">{sub}</div>
-                      </div>
-                    </div>
+                    <span className={cn("flex shrink-0 items-center justify-center rounded-admin-sm border p-2", tone)}>
+                      <Icon size={18} />
+                    </span>
+                    <span className="block min-w-0">
+                      <span className="block truncate text-sm font-bold text-admin-text">{label}</span>
+                      <span className="block truncate text-xs text-admin-subtle">{sub}</span>
+                    </span>
                   </Comp>
-                </div>
+                </li>
               )
             })}
-          </div>
+          </ul>
         </div>
       </section>
 
       {/* ── ABOUT TECHSTAR MONEY SOLUTION ─────────────────────────────────── */}
-      <section id="about" className="py-5 bg-light border-bottom border-slate-200">
-        <div className="container-xl">
-          <div className="text-center max-w-3xl mx-auto mb-4 mb-md-5">
-            <span className="badge bg-primary-subtle text-primary border border-primary px-3 py-1.5 rounded-pill fw-bold text-uppercase fs-8 mb-2">
-              About Techstar Money Solution
-            </span>
-            <h2 className="fw-black text-slate-900 fs-2 tracking-tight">
-              India&apos;s Fastest Growing Loan DSA Network
-            </h2>
-            <p className="text-slate-600 fs-6 fw-medium mt-2">
-              <strong>TECHSTAR MONEY SOLUTION PRIVATE LIMITED</strong> (CIN: {BRAND.cin}) is a government-registered financial services entity headquartered at Morya Pride, Mayur Park, Harsul, Chhatrapati Sambhajinagar.
-            </p>
-          </div>
+      <section id="about" className={cn(SECTION, "scroll-mt-20", "border-b border-admin-border bg-admin-surface-2")}>
+        <div className={SHELL}>
+          <SectionHeading eyebrow="About Techstar Money Solution" title="India's Fastest Growing Loan DSA Network">
+            <strong className="font-bold text-admin-text">TECHSTAR MONEY SOLUTION PRIVATE LIMITED</strong> (CIN: {BRAND.cin}) is a government-registered financial services entity headquartered at Morya Pride, Mayur Park, Harsul, Chhatrapati Sambhajinagar.
+          </SectionHeading>
 
-          <div className="row g-3">
-            {[
-              { icon: CheckCircle2, title: "Direct Bank Codes", desc: "Access direct banking agreements with nationalized and private lenders." },
-              { icon: FileText, title: "Document Verification", desc: "Expert operations desk helps sanitize client files for immediate approval." },
-              { icon: Layers, title: "Multi-Loan Solutions", desc: "Offer retail loans, working capital, property mortgages, and machinery funding." },
-              { icon: Users, title: "Customer-Centric", desc: "Match borrowers with lowest interest rates based on CIBIL and profile." },
-              { icon: Headphones, title: "Direct Desk Support", desc: "Direct phone and WhatsApp assistance from experienced loan underwriters." },
-            ].map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="col-12 col-md-6 col-lg">
-                <div className="card h-100 border border-slate-200 bg-white shadow-sm rounded-3 p-3 text-start">
-                  <div className="rounded-3 bg-primary-subtle text-primary p-2 d-inline-flex align-items-center justify-content-center mb-2" style={{ width: "38px", height: "38px" }}>
-                    <Icon size={20} />
-                  </div>
-                  <h3 className="fw-bold fs-6 text-slate-900 mb-1">{title}</h3>
-                  <p className="text-slate-500 fs-7 mb-0 lh-base">{desc}</p>
-                </div>
-              </div>
+          <ul className="grid list-none grid-cols-1 gap-3 p-0 md:grid-cols-2 lg:grid-cols-5">
+            {ABOUT_POINTS.map(({ icon: Icon, title, desc }) => (
+              <li
+                key={title}
+                className="rounded-admin border border-admin-border bg-admin-surface p-4 shadow-admin-1 transition-all motion-reduce:transition-none hover:border-brand-ring hover:shadow-admin-2 motion-safe:hover:-translate-y-0.5"
+              >
+                <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-admin-sm bg-brand-soft text-brand-soft-fg">
+                  <Icon size={20} />
+                </span>
+                <h3 className="mb-1 text-base font-bold text-admin-text">{title}</h3>
+                <p className="m-0 text-sm leading-relaxed text-admin-subtle">{desc}</p>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       </section>
 
       {/* ── LOAN PRODUCTS CATALOG ────────────────────────────────────────── */}
-      <section id="loan-products" className="py-5 bg-white border-bottom border-slate-200">
-        <div className="container-xl">
-          <div className="text-center max-w-3xl mx-auto mb-4 mb-md-5">
-            <span className="badge bg-primary-subtle text-primary border border-primary px-3 py-1.5 rounded-pill fw-bold text-uppercase fs-8 mb-2">
-              Multi-Bank Loan Portfolio
-            </span>
-            <h2 className="fw-black text-slate-900 fs-2 tracking-tight">
-              Products You Can Disburse as a DSA
-            </h2>
-            <p className="text-slate-600 fs-6 fw-medium mt-2">
-              High commission slabs across all retail and commercial banking products.
-            </p>
-          </div>
+      <section id="loan-products" className={cn(SECTION, "scroll-mt-20", "border-b border-admin-border bg-admin-surface")}>
+        <div className={SHELL}>
+          <SectionHeading eyebrow="Multi-Bank Loan Portfolio" title="Products You Can Disburse as a DSA">
+            High commission slabs across all retail and commercial banking products.
+          </SectionHeading>
 
-          <div className="row g-3 g-md-4">
+          <ul className="grid list-none grid-cols-1 gap-3 p-0 md:grid-cols-2 lg:grid-cols-3 md:gap-4">
             {LOAN_PRODUCTS.map((p) => {
               const Icon = p.icon
               return (
-                <div key={p.id} className="col-12 col-md-6 col-lg-4">
-                  <div className="card h-100 border border-slate-200 bg-white shadow-sm hover:shadow-md transition-all rounded-4 p-4 d-flex flex-column justify-content-between">
-                    <div>
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div className={`p-2.5 rounded-3 border d-flex align-items-center justify-content-center ${p.color}`}>
-                          <Icon size={22} />
-                        </div>
-                        <span className="badge bg-light text-slate-600 border border-slate-200 fs-8 fw-bold">
-                          Highest Payout
-                        </span>
-                      </div>
-                      <div className="fs-8 fw-bold text-primary text-uppercase letter-spacing-1 mb-1">
-                        {p.category}
-                      </div>
-                      <h3 className="fw-bold fs-5 text-slate-900 mb-2">{p.name}</h3>
-                      <p className="text-slate-500 fs-7 lh-base mb-3">{p.desc}</p>
+                <li
+                  key={p.id}
+                  className="flex flex-col justify-between rounded-admin-lg border border-admin-border bg-admin-surface p-5 shadow-admin-1 transition-all motion-reduce:transition-none hover:border-brand-ring hover:shadow-admin-2 motion-safe:hover:-translate-y-1"
+                >
+                  <div>
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <span className={cn("flex items-center justify-center rounded-admin-sm border p-2.5", p.tone)}>
+                        <Icon size={22} />
+                      </span>
+                      <span className="rounded-full border border-admin-border bg-admin-surface-2 px-2.5 py-1 text-admin-2xs font-bold uppercase tracking-wider text-admin-subtle">
+                        Highest Payout
+                      </span>
                     </div>
-                    <div className="pt-3 border-top border-slate-100">
-                      <Link
-                        href="/onboarding"
-                        className="btn btn-outline-primary btn-sm w-100 fw-bold text-decoration-none d-flex align-items-center justify-content-center gap-1.5"
-                      >
-                        <span>Start Sourcing This Loan</span>
-                        <ChevronRight size={14} />
-                      </Link>
-                    </div>
+                    <p className="mb-1 text-admin-xs font-bold uppercase tracking-widest text-brand">
+                      {p.category}
+                    </p>
+                    <h3 className="mb-2 text-lg font-extrabold tracking-tight text-admin-text">{p.name}</h3>
+                    <p className="mb-4 text-sm leading-relaxed text-admin-subtle">{p.desc}</p>
                   </div>
-                </div>
+                  <div className="border-t border-admin-border pt-4">
+                    <Link
+                      href="/onboarding"
+                      className="admin-focus flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-admin-sm border border-brand-line px-4 py-2 text-sm font-bold text-brand no-underline transition-colors motion-reduce:transition-none hover:bg-brand-soft"
+                    >
+                      <span>Start Sourcing This Loan</span>
+                      <ChevronRight size={14} className="shrink-0" />
+                    </Link>
+                  </div>
+                </li>
               )
             })}
-          </div>
+          </ul>
 
-          <div className="mt-4 text-center">
+          <div className="mt-8 text-center">
             <Link
               href="/onboarding"
-              className="btn btn-primary btn-lg fw-bold px-4 py-2.5 rounded-3 shadow text-decoration-none d-inline-flex align-items-center gap-2"
+              className="admin-focus inline-flex min-h-[52px] items-center justify-center gap-2 rounded-admin bg-brand px-6 py-3 text-base font-extrabold text-brand-fg no-underline shadow-admin-2 transition-colors motion-reduce:transition-none hover:bg-brand-hover"
             >
               <span>Get Access to All 50+ Loan Products Online</span>
-              <ArrowRight size={18} />
+              <ArrowRight size={18} className="shrink-0" />
             </Link>
           </div>
         </div>
       </section>
 
       {/* ── DSA PARTNER BENEFITS ─────────────────────────────────────────── */}
-      <section id="dsa-partnership" className="py-5 bg-light border-bottom border-slate-200">
-        <div className="container-xl">
-          <div className="text-center max-w-3xl mx-auto mb-4 mb-md-5">
-            <span className="badge bg-primary-subtle text-primary border border-primary px-3 py-1.5 rounded-pill fw-bold text-uppercase fs-8 mb-2">
-              Why Partner With Us?
-            </span>
-            <h2 className="fw-black text-slate-900 fs-2 tracking-tight">
-              Direct Benefits for Loan Agents & Connectors
-            </h2>
-            <p className="text-slate-600 fs-6 fw-medium mt-2">
-              Whether you are an individual financial advisor, chartered accountant, tax practitioner, or loan broker — Techstar Money Solution accelerates your monthly earnings.
-            </p>
-          </div>
+      <section id="dsa-partnership" className={cn(SECTION, "scroll-mt-20", "border-b border-admin-border bg-admin-surface-2")}>
+        <div className={SHELL}>
+          <SectionHeading eyebrow="Why Partner With Us?" title="Direct Benefits for Loan Agents & Connectors">
+            Whether you are an individual financial advisor, chartered accountant, tax practitioner, or loan broker — Techstar Money Solution accelerates your monthly earnings.
+          </SectionHeading>
 
-          <div className="row g-3 g-md-4">
+          <ul className="grid list-none grid-cols-1 gap-3 p-0 md:grid-cols-2 lg:grid-cols-3 md:gap-4">
             {PARTNER_BENEFITS.map((b) => {
               const BIcon = b.icon
               return (
-                <div key={b.title} className="col-12 col-md-6 col-lg-4">
-                  <div className="card h-100 border border-slate-200 bg-white shadow-sm rounded-4 p-4">
-                    <div className="rounded-3 bg-primary-subtle text-primary p-2.5 d-inline-flex align-items-center justify-content-center mb-3" style={{ width: "45px", height: "45px" }}>
-                      <BIcon size={22} />
-                    </div>
-                    <h3 className="fw-bold fs-6 text-slate-900 mb-1.5">{b.title}</h3>
-                    <p className="text-slate-500 fs-7 lh-base mb-0">{b.desc}</p>
-                  </div>
-                </div>
+                <li
+                  key={b.title}
+                  className="rounded-admin-lg border border-admin-border bg-admin-surface p-5 shadow-admin-1 transition-all motion-reduce:transition-none hover:border-brand-ring hover:shadow-admin-2 motion-safe:hover:-translate-y-0.5"
+                >
+                  <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-admin-sm bg-brand-soft text-brand-soft-fg">
+                    <BIcon size={22} />
+                  </span>
+                  <h3 className="mb-1.5 text-base font-bold text-admin-text">{b.title}</h3>
+                  <p className="m-0 text-sm leading-relaxed text-admin-subtle">{b.desc}</p>
+                </li>
               )
             })}
-          </div>
+          </ul>
 
           {/* Banner Box */}
-          <div className="card border border-primary-subtle bg-primary-subtle rounded-4 p-4 mt-4 shadow-sm">
-            <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-              <div>
-                <h3 className="fw-black text-primary-emphasis fs-5 mb-1">
-                  Ready to Start Earning with Techstar Money Solution?
-                </h3>
-                <p className="text-slate-700 fs-7 mb-0">
-                  Instant digital registration with zero fees. Authorized partner code generated upon approval.
-                </p>
-              </div>
-              <div className="d-flex gap-2 shrink-0">
-                <Link
-                  href="/onboarding"
-                  className="btn btn-primary fw-bold px-4 py-2.5 rounded-3 text-decoration-none shadow"
-                >
-                  फ्री ऑनबोर्डिंग सुरू करा
-                </Link>
-                <Link
-                  href="/partner/login"
-                  className="btn btn-light border border-slate-300 fw-bold px-3 py-2.5 rounded-3 text-decoration-none"
-                >
-                  Partner Login
-                </Link>
-              </div>
+          <div className="mt-8 flex flex-col gap-4 rounded-admin-lg border border-brand-line bg-brand-soft p-5 shadow-admin-1 md:flex-row md:items-center md:justify-between md:p-6">
+            <div>
+              <h3 className="mb-1 text-lg font-extrabold tracking-tight text-brand-soft-fg">
+                Ready to Start Earning with Techstar Money Solution?
+              </h3>
+              <p className="m-0 text-sm text-admin-muted">
+                Instant digital registration with zero fees. Authorized partner code generated upon approval.
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-col gap-2.5 sm:flex-row">
+              <Link
+                href="/onboarding"
+                className="admin-focus inline-flex min-h-[48px] items-center justify-center rounded-admin bg-brand px-5 py-3 text-sm font-extrabold text-brand-fg no-underline shadow-admin-2 transition-colors motion-reduce:transition-none hover:bg-brand-hover"
+              >
+                फ्री ऑनबोर्डिंग सुरू करा
+              </Link>
+              <Link
+                href="/partner/login"
+                className="admin-focus inline-flex min-h-[48px] items-center justify-center rounded-admin border border-admin-border bg-admin-surface px-5 py-3 text-sm font-bold text-admin-muted no-underline transition-colors motion-reduce:transition-none hover:border-brand-ring hover:text-brand"
+              >
+                Partner Login
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
       {/* ── HOW IT WORKS (4 SIMPLE STEPS) ────────────────────────────────── */}
-      <section id="how-it-works" className="py-5 bg-white border-bottom border-slate-200">
-        <div className="container-xl">
-          <div className="text-center max-w-3xl mx-auto mb-4 mb-md-5">
-            <span className="badge bg-primary-subtle text-primary border border-primary px-3 py-1.5 rounded-pill fw-bold text-uppercase fs-8 mb-2">
-              Simple 4-Step Process
-            </span>
-            <h2 className="fw-black text-slate-900 fs-2 tracking-tight">
-              How to Become a Loan DSA Partner
-            </h2>
-            <p className="text-slate-600 fs-6 fw-medium mt-2">
-              From online registration to your first commission payout — fully digital and assisted.
-            </p>
-          </div>
+      <section id="how-it-works" className={cn(SECTION, "scroll-mt-20", "border-b border-admin-border bg-admin-surface")}>
+        <div className={SHELL}>
+          <SectionHeading eyebrow="Simple 4-Step Process" title="How to Become a Loan DSA Partner">
+            From online registration to your first commission payout — fully digital and assisted.
+          </SectionHeading>
 
-          <div className="row g-3">
-            {STEPS.map((s, idx) => (
-              <div key={s.step} className="col-12 col-sm-6 col-lg-3">
-                <div className="card h-100 border border-slate-200 bg-white shadow-sm rounded-4 p-4 text-center position-relative">
-                  <div
-                    className="rounded-circle bg-primary text-white fw-black fs-5 d-flex align-items-center justify-content-center mx-auto mb-3 shadow"
-                    style={{ width: "50px", height: "50px" }}
-                  >
+          <div className="relative">
+            {/* The rail that turns four cards into one sequence. */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-[12.5%] top-[2.75rem] hidden h-px bg-[linear-gradient(90deg,transparent,var(--brand-line)_15%,var(--brand-line)_85%,transparent)] lg:block"
+            />
+            <ol className="relative grid list-none grid-cols-1 gap-3 p-0 sm:grid-cols-2 lg:grid-cols-4">
+              {STEPS.map((s, idx) => (
+                <li
+                  key={s.step}
+                  className="relative flex flex-col rounded-admin-lg border border-admin-border bg-admin-surface p-5 text-center shadow-admin-1 transition-all motion-reduce:transition-none hover:border-brand-ring hover:shadow-admin-2 motion-safe:hover:-translate-y-1"
+                >
+                  <span className="admin-num mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-brand text-lg font-extrabold text-brand-fg shadow-admin-2 ring-4 ring-admin-surface">
                     {s.step}
-                  </div>
-                  <h3 className="fw-bold fs-6 text-slate-900 mb-2">{s.title}</h3>
-                  <p className="text-slate-500 fs-7 lh-base mb-3">{s.desc}</p>
-                  <div className="mt-auto">
-                    <span className="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fs-8 fw-bold">
-                      Step {idx + 1}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
+                  </span>
+                  <h3 className="mb-2 text-base font-bold text-admin-text">{s.title}</h3>
+                  <p className="mb-4 text-sm leading-relaxed text-admin-subtle">{s.desc}</p>
+                  <span className="mt-auto inline-flex items-center justify-center self-center rounded-full border border-tone-success-bd bg-tone-success px-2.5 py-1 text-admin-2xs font-bold uppercase tracking-wider text-tone-success-fg">
+                    Step {idx + 1}
+                  </span>
+                </li>
+              ))}
+            </ol>
           </div>
         </div>
       </section>
 
       {/* ── CONTACT & OFFICE CREDENTIALS ──────────────────────────────────── */}
-      <section id="contact" className="py-5 bg-light border-bottom border-slate-200">
-        <div className="container-xl">
-          <div className="text-center max-w-3xl mx-auto mb-4 mb-md-5">
-            <span className="badge bg-primary-subtle text-primary border border-primary px-3 py-1.5 rounded-pill fw-bold text-uppercase fs-8 mb-2">
-              Office & Support
-            </span>
-            <h2 className="fw-black text-slate-900 fs-2 tracking-tight">
-              Contact Our Operations Team
-            </h2>
-            <p className="text-slate-600 fs-6 fw-medium mt-2">
-              Reach out directly to our partner desk in Chhatrapati Sambhajinagar.
-            </p>
-          </div>
+      <section id="contact" className={cn(SECTION, "scroll-mt-20", "border-b border-admin-border bg-admin-surface-2")}>
+        <div className={SHELL}>
+          <SectionHeading eyebrow="Office & Support" title="Contact Our Operations Team">
+            Reach out directly to our partner desk in Chhatrapati Sambhajinagar.
+          </SectionHeading>
 
-          <div className="row g-3 max-w-4xl mx-auto">
-            <div className="col-12 col-md-6">
-              <div className="card h-100 border border-slate-200 bg-white shadow-sm rounded-4 p-4 d-flex flex-column justify-content-between">
-                <div>
-                  <div className="rounded-3 bg-primary-subtle text-primary p-2.5 d-inline-flex align-items-center justify-content-center mb-3" style={{ width: "45px", height: "45px" }}>
-                    <Phone size={22} />
-                  </div>
-                  <h3 className="fw-bold fs-5 text-slate-900 mb-1">Direct Phone & WhatsApp</h3>
-                  <p className="text-slate-500 fs-7 mb-3">Speak directly with our partner onboarding executive</p>
-                  <div className="fw-black text-slate-900 fs-4 mb-3 font-monospace">{BRAND.phone}</div>
-                </div>
-                <div className="d-flex gap-2">
-                  <a
-                    href={`tel:${BRAND.phoneRaw}`}
-                    className="btn btn-primary flex-grow-1 fw-bold fs-7 py-2.5 text-decoration-none d-flex align-items-center justify-content-center gap-1.5"
-                  >
-                    <Phone size={15} />
-                    <span>Call Now</span>
-                  </a>
-                  <a
-                    href={`https://wa.me/91${BRAND.phoneRaw}?text=${BRAND.whatsappText}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn-success flex-grow-1 fw-bold fs-7 py-2.5 text-decoration-none d-flex align-items-center justify-content-center gap-1.5"
-                  >
-                    <MessageCircle size={15} />
-                    <span>WhatsApp</span>
-                  </a>
-                </div>
+          <div className="mx-auto grid max-w-4xl grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="flex flex-col justify-between rounded-admin-lg border border-admin-border bg-admin-surface p-5 shadow-admin-1">
+              <div>
+                <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-admin-sm bg-brand-soft text-brand-soft-fg">
+                  <Phone size={22} />
+                </span>
+                <h3 className="mb-1 text-lg font-extrabold tracking-tight text-admin-text">Direct Phone & WhatsApp</h3>
+                <p className="mb-3 text-sm text-admin-subtle">Speak directly with our partner onboarding executive</p>
+                <p className="admin-num mb-4 text-2xl font-extrabold text-admin-text">{BRAND.phone}</p>
+              </div>
+              <div className="flex gap-2.5">
+                <a
+                  href={`tel:${BRAND.phoneRaw}`}
+                  className="admin-focus inline-flex min-h-[48px] flex-1 items-center justify-center gap-1.5 rounded-admin bg-brand px-4 py-3 text-sm font-bold text-brand-fg no-underline shadow-admin-1 transition-colors motion-reduce:transition-none hover:bg-brand-hover"
+                >
+                  <Phone size={15} className="shrink-0" />
+                  <span>Call Now</span>
+                </a>
+                <a
+                  href={`https://wa.me/91${BRAND.phoneRaw}?text=${BRAND.whatsappText}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="admin-focus inline-flex min-h-[48px] flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-admin border border-tone-success-bd bg-tone-success px-4 py-3 text-sm font-bold text-tone-success-fg no-underline transition-colors motion-reduce:transition-none hover:border-tone-success-fg"
+                >
+                  <MessageCircle size={15} className="shrink-0" />
+                  <span>WhatsApp</span>
+                </a>
               </div>
             </div>
 
-            <div className="col-12 col-md-6">
-              <div className="card h-100 border border-slate-200 bg-white shadow-sm rounded-4 p-4 d-flex flex-column justify-content-between">
-                <div>
-                  <div className="rounded-3 bg-secondary-subtle text-secondary-emphasis p-2.5 d-inline-flex align-items-center justify-content-center mb-3" style={{ width: "45px", height: "45px" }}>
-                    <MapPin size={22} />
-                  </div>
-                  <h3 className="fw-bold fs-5 text-slate-900 mb-1">Registered Headquarters</h3>
-                  <p className="text-slate-500 fs-7 mb-2">{BRAND.legalName}</p>
-                  <p className="text-slate-700 fs-7 fw-semibold lh-base mb-3">{BRAND.address}</p>
-                </div>
-                <div className="pt-2 border-top border-slate-100 fs-8 text-slate-500 font-monospace">
-                  CIN: <strong>{BRAND.cin}</strong>
-                </div>
+            <div className="flex flex-col justify-between rounded-admin-lg border border-admin-border bg-admin-surface p-5 shadow-admin-1">
+              <div>
+                <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-admin-sm bg-tone-info text-tone-info-fg">
+                  <MapPin size={22} />
+                </span>
+                <h3 className="mb-1 text-lg font-extrabold tracking-tight text-admin-text">Registered Headquarters</h3>
+                <p className="mb-2 text-sm text-admin-subtle">{BRAND.legalName}</p>
+                <p className="mb-4 text-sm font-semibold leading-relaxed text-admin-muted">{BRAND.address}</p>
               </div>
+              <p className="admin-num m-0 border-t border-admin-border pt-3 text-xs text-admin-subtle">
+                CIN: <strong className="font-bold text-admin-muted">{BRAND.cin}</strong>
+              </p>
             </div>
           </div>
         </div>
       </section>
 
       {/* ── BOTTOM FIXED ACTION BAR (FOR MOBILE VISITORS) ─────────────────── */}
-      <div className="d-block d-md-none fixed-bottom bg-white border-top border-slate-200 p-2 shadow-lg z-40">
-        <div className="d-flex gap-2">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-admin-border bg-admin-surface/95 p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-admin-3 backdrop-blur-md md:hidden">
+        <div className="flex gap-2">
           <Link
             href="/partner/login"
-            className="btn btn-light border border-slate-300 fw-bold fs-7 py-2.5 text-slate-700 text-decoration-none d-flex align-items-center justify-content-center gap-1"
-            style={{ width: "35%" }}
+            className="admin-focus inline-flex min-h-[48px] w-[35%] items-center justify-center gap-1 rounded-admin border border-admin-border px-3 py-2 text-sm font-bold text-admin-muted no-underline transition-colors motion-reduce:transition-none hover:border-brand-ring hover:text-brand"
           >
-            <LogIn size={15} />
+            <LogIn size={15} className="shrink-0" />
             <span>Login</span>
           </Link>
           <Link
             href="/onboarding"
-            className="btn btn-primary fw-bold fs-7 py-2.5 text-white text-decoration-none d-flex align-items-center justify-content-center gap-1.5 flex-grow-1 shadow"
+            className="admin-focus inline-flex min-h-[48px] flex-1 items-center justify-center gap-1.5 rounded-admin bg-brand px-3 py-2 text-sm font-extrabold text-brand-fg no-underline shadow-admin-2 transition-colors motion-reduce:transition-none hover:bg-brand-hover"
           >
-            <UserPlus size={16} />
+            <UserPlus size={16} className="shrink-0" />
             <span>फ्री DSA पार्टनर बना</span>
           </Link>
         </div>
       </div>
 
       {/* ── FOOTER ───────────────────────────────────────────────────────── */}
-      <footer className="bg-dark text-slate-400 py-5 pb-5 mb-5 mb-md-0">
-        <div className="container-xl">
-          <div className="row g-4 pb-4 border-bottom border-slate-800">
-            <div className="col-12 col-md-5">
-              <div className="d-flex align-items-center gap-2 text-white fw-bold fs-6 mb-2">
-                <div className="rounded-2 bg-primary text-white fw-black px-2 py-1 fs-7">TSM</div>
+      <footer className="bg-brand-strong pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-10 text-brand-fg md:pb-10">
+        <div className={SHELL}>
+          <div className="grid grid-cols-2 gap-6 border-b border-brand-fg/20 pb-6 md:grid-cols-12">
+            <div className="col-span-2 md:col-span-5">
+              <div className="mb-2 flex items-center gap-2 text-base font-bold">
+                <span className="rounded-admin-sm bg-brand-fg/15 px-2 py-1 text-sm font-extrabold">TSM</span>
                 <span>{BRAND.name}</span>
               </div>
-              <p className="text-slate-300 fs-7 fw-bold mb-1">{BRAND.legalName}</p>
-              <p className="text-slate-500 fs-8 font-monospace mb-2">CIN: {BRAND.cin}</p>
-              <p className="text-slate-400 fs-7 lh-base mb-0 max-w-sm">
+              <p className="mb-1 text-sm font-bold text-brand-fg/90">{BRAND.legalName}</p>
+              <p className="admin-num mb-3 text-xs text-brand-fg/60">CIN: {BRAND.cin}</p>
+              <p className="m-0 max-w-sm text-sm leading-relaxed text-brand-fg/70">
                 A leading financial services company providing multi-product loan DSA partnerships across Maharashtra.
               </p>
             </div>
 
-            <div className="col-6 col-md-3">
-              <div className="fw-bold text-white fs-7 text-uppercase letter-spacing-1 mb-2">Navigation</div>
-              <ul className="list-unstyled fs-7 mb-0 d-flex flex-column gap-1.5">
-                <li><a href="#" className="text-slate-400 text-decoration-none hover:text-white">Home</a></li>
-                <li><a href="#about" className="text-slate-400 text-decoration-none hover:text-white">About Company</a></li>
-                <li><a href="#loan-products" className="text-slate-400 text-decoration-none hover:text-white">Loan Products</a></li>
-                <li><a href="#dsa-partnership" className="text-slate-400 text-decoration-none hover:text-white">DSA Benefits</a></li>
-                <li><Link href="/onboarding" className="text-slate-400 text-decoration-none hover:text-white">Become a Partner</Link></li>
-                <li><Link href="/partner/login" className="text-slate-400 text-decoration-none hover:text-white">Partner Login</Link></li>
+            <div className="md:col-span-3">
+              <h2 className="mb-3 text-admin-xs font-bold uppercase tracking-widest text-brand-fg/60">
+                Navigation
+              </h2>
+              <ul className="m-0 flex list-none flex-col gap-1 p-0">
+                {FOOTER_NAV.map(({ href, label, internal }) => {
+                  const Comp = internal ? Link : "a"
+                  return (
+                    <li key={label}>
+                      {/* @ts-expect-error polymorphic href */}
+                      <Comp
+                        href={href}
+                        className="admin-focus flex min-h-[44px] items-center text-sm text-brand-fg/70 no-underline transition-colors motion-reduce:transition-none hover:text-brand-fg"
+                      >
+                        {label}
+                      </Comp>
+                    </li>
+                  )
+                })}
               </ul>
             </div>
 
-            <div className="col-6 col-md-4">
-              <div className="fw-bold text-white fs-7 text-uppercase letter-spacing-1 mb-2">Contact Desk</div>
-              <div className="fs-7 text-slate-400 d-flex flex-column gap-2">
-                <div>
-                  <Phone size={14} className="text-primary me-1" />
-                  <a href={`tel:${BRAND.phoneRaw}`} className="text-slate-300 fw-bold text-decoration-none">{BRAND.phone}</a>
-                </div>
-                <div>
-                  <MapPin size={14} className="text-primary me-1" />
+            <div className="md:col-span-4">
+              <h2 className="mb-3 text-admin-xs font-bold uppercase tracking-widest text-brand-fg/60">
+                Contact Desk
+              </h2>
+              <div className="flex flex-col gap-3 text-sm text-brand-fg/70">
+                <p className="m-0 flex items-start gap-2">
+                  <Phone size={14} className="mt-1 shrink-0" />
+                  <a
+                    href={`tel:${BRAND.phoneRaw}`}
+                    className="admin-touch admin-focus admin-num font-bold text-brand-fg no-underline"
+                  >
+                    {BRAND.phone}
+                  </a>
+                </p>
+                <p className="m-0 flex items-start gap-2">
+                  <MapPin size={14} className="mt-1 shrink-0" />
                   <span>{BRAND.address}</span>
-                </div>
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="pt-3 d-flex flex-column flex-sm-row align-items-center justify-content-between fs-8 text-slate-500 gap-2">
-            <div>© {new Date().getFullYear()} Techstar Money Solution Private Limited. All Rights Reserved.</div>
-            <div className="font-monospace">CIN: {BRAND.cin}</div>
+          <div className="flex flex-col items-center justify-between gap-2 pt-4 text-xs text-brand-fg/60 sm:flex-row">
+            <p className="m-0">© {new Date().getFullYear()} Techstar Money Solution Private Limited. All Rights Reserved.</p>
+            <p className="admin-num m-0">CIN: {BRAND.cin}</p>
           </div>
         </div>
       </footer>

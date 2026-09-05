@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import { Home, Briefcase, Phone, LayoutDashboard, Calculator } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
@@ -8,14 +8,30 @@ import { useAuth } from "@/context/AuthContext"
 export function MobileBottomNav() {
   const pathname = usePathname()
   const { profile, adminRole } = useAuth()
-  
-  // Hide on admin, partner, onboarding, and application status routes or subdomains
-  const isSubdomain =
-    typeof window !== "undefined" &&
-    (window.location.hostname.startsWith("admin.") || window.location.hostname.startsWith("partner."))
+
+  /*
+   * The host is the only signal that separates the marketing site from the
+   * admin/partner subdomains: proxy.ts rewrites `partner.*` to `/partner/*`
+   * internally, so `usePathname()` still reports `/` there and the path checks
+   * below never fire.
+   *
+   * Reading `window` during render does not work either -- it is undefined on
+   * the server, so the bar ships in the SSR HTML and then survives on the
+   * subdomains. Resolving it in an effect forces the re-render that actually
+   * removes it. Rendering nothing until mounted keeps server and client output
+   * identical; this is a floating convenience, not indexed content.
+   */
+  const [isPortalHost, setIsPortalHost] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    const { hostname } = window.location
+    setIsPortalHost(
+      hostname.startsWith("admin.") || hostname.startsWith("partner.")
+    )
+  }, [])
 
   if (
-    isSubdomain ||
+    isPortalHost !== false ||
     pathname?.startsWith("/admin") ||
     pathname?.startsWith("/partner") ||
     pathname?.startsWith("/onboarding") ||

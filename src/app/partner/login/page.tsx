@@ -11,6 +11,7 @@ import {
   ShieldCheck, AlertCircle, Building2, Users, Zap, Activity, CheckCircle2,
 } from "lucide-react"
 import { PartnerPortalHeader, PartnerPortalFooter } from "@/components/layout/PartnerPortalShell"
+import { AdminButton } from "@/components/admin/ui/Button"
 import { cn } from "@/lib/utils"
 
 function messageFor(err: unknown, fallback: string): string {
@@ -391,15 +392,15 @@ export default function PartnerLogin() {
           <section className="hidden lg:flex flex-col gap-6">
             {/* Eyebrow */}
             <div className="flex items-center gap-2">
-              <span className="text-admin-2xs font-bold uppercase tracking-widest text-admin-accent">Partner Network</span>
-              <span className="flex-1 max-w-[32px] h-px bg-admin-accent/40" />
+              <span className="text-admin-2xs font-bold uppercase tracking-widest text-brand">Partner Network</span>
+              <span className="flex-1 max-w-[32px] h-px bg-brand/40" />
             </div>
 
             {/* Headline */}
             <div className="space-y-2">
               <h1 className="text-3xl xl:text-4xl font-extrabold text-admin-text leading-[1.2] tracking-tight">
                 Powering India&apos;s<br />
-                <span className="text-admin-accent">Financial Network.</span>
+                <span className="text-brand">Financial Network.</span>
               </h1>
               <p className="text-admin-sm text-admin-muted leading-relaxed">
                 A secure platform for registered financial partners — submit applications,
@@ -419,8 +420,8 @@ export default function PartnerLogin() {
                 { Icon: Activity, v: "Live", l: "File Tracking" },
               ].map(({ Icon, v, l }) => (
                 <div key={l} className="flex items-center gap-3 bg-admin-surface border border-admin-border rounded-admin px-3 py-2.5 shadow-admin-1">
-                  <div className="w-7 h-7 rounded-admin-sm bg-admin-accent-soft flex items-center justify-center shrink-0">
-                    <Icon size={13} className="text-admin-accent" />
+                  <div className="w-7 h-7 rounded-admin-sm bg-brand-soft flex items-center justify-center shrink-0">
+                    <Icon size={13} className="text-brand" />
                   </div>
                   <div>
                     <p className="text-admin-sm font-bold text-admin-text leading-tight">{v}</p>
@@ -488,7 +489,7 @@ export default function PartnerLogin() {
                     className={cn(
                       "admin-focus flex items-center justify-center gap-1.5 h-9 rounded-admin-sm text-admin-xs font-semibold transition-all",
                       authMethod === m
-                        ? "bg-admin-surface text-admin-accent shadow-admin-1 border border-admin-border"
+                        ? "bg-admin-surface text-brand shadow-admin-1 border border-admin-border"
                         : "text-admin-muted hover:text-admin-text"
                     )}
                   >
@@ -506,7 +507,7 @@ export default function PartnerLogin() {
                     </label>
                     <div className={cn(
                       "flex h-10 sm:h-11 rounded-admin border bg-admin-bg overflow-hidden transition-all",
-                      "focus-within:border-admin-accent focus-within:ring-2 focus-within:ring-admin-accent/15",
+                      "focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15",
                       mobileInvalid ? "border-tone-danger-bd" : "border-admin-border"
                     )}>
                       <span className="flex items-center px-3 bg-admin-surface border-r border-admin-border text-admin-xs font-semibold text-admin-text select-none shrink-0">
@@ -543,16 +544,18 @@ export default function PartnerLogin() {
                       </span>
                     </div>
                   ) : !otpSent ? (
-                    <button
+                    <AdminButton
                       type="submit"
+                      variant="brand"
+                      loading={otpLoading}
                       disabled={busy || !isMobileValid}
-                      className="admin-focus group w-full h-10 sm:h-11 rounded-admin bg-admin-accent hover:bg-admin-accent/90 disabled:opacity-50 disabled:cursor-not-allowed text-white text-admin-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-admin-1"
+                      className="group w-full shadow-admin-1"
                     >
                       {otpLoading
-                        ? <><span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" />Sending OTP...</>
+                        ? <>Sending OTP…</>
                         : <>Get Verification OTP <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5 shrink-0" /></>
                       }
-                    </button>
+                    </AdminButton>
                   ) : (
                     /* Inline OTP Verification directly underneath mobile number */
                     <div className="space-y-4 pt-3 border-t border-admin-border animate-fadeIn">
@@ -563,7 +566,7 @@ export default function PartnerLogin() {
                         <button
                           type="button"
                           onClick={() => { setOtpSent(false); setOtpValues(["", "", "", "", "", ""]); setError("") }}
-                          className="text-admin-accent font-bold hover:underline"
+                          className="admin-focus admin-touch text-brand font-bold hover:underline"
                         >
                           Change
                         </button>
@@ -585,7 +588,7 @@ export default function PartnerLogin() {
                             onPaste={handleOtpPaste}
                             autoComplete={idx === 0 ? "one-time-code" : "off"}
                             disabled={verifyLoading}
-                            className="w-10 sm:w-12 h-11 sm:h-12 text-center text-lg font-bold rounded-admin border border-admin-border bg-admin-bg text-admin-text focus:border-admin-accent focus:ring-2 focus:ring-admin-accent/20"
+                            className="w-10 sm:w-12 h-11 sm:h-12 text-center text-lg font-bold rounded-admin border border-admin-border bg-admin-bg text-admin-text focus:border-brand focus:ring-2 focus:ring-brand/20"
                           />
                         ))}
                       </div>
@@ -599,24 +602,26 @@ export default function PartnerLogin() {
                           type="button"
                           disabled={!canResend || resending}
                           onClick={handleResendMobileOtp}
-                          className="text-admin-accent font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:underline"
+                          className="admin-focus admin-touch text-brand font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:underline"
                         >
                           {resending ? "Sending..." : "Resend OTP on WhatsApp"}
                         </button>
                       </div>
 
                       {/* Verify Button */}
-                      <button
+                      <AdminButton
                         type="button"
+                        variant="brand"
+                        loading={verifyLoading}
                         onClick={handleVerifyInlineOtp}
                         disabled={verifyLoading || otpValues.join("").length < 6}
-                        className="admin-focus group w-full h-10 sm:h-11 rounded-admin bg-admin-accent hover:bg-admin-accent/90 disabled:opacity-50 disabled:cursor-not-allowed text-white text-admin-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-admin-1"
+                        className="group w-full shadow-admin-1"
                       >
                         {verifyLoading
                           ? <><span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" />Verifying OTP...</>
                           : <>Verify OTP &amp; Log In <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5 shrink-0" /></>
                         }
-                      </button>
+                      </AdminButton>
                     </div>
                   )}
                 </form>
@@ -624,7 +629,7 @@ export default function PartnerLogin() {
                 <form onSubmit={handleEmailLogin} noValidate className="space-y-4">
                   <div className="space-y-1.5">
                     <label htmlFor="email-input" className="block text-admin-xs font-semibold text-admin-text">Email Address</label>
-                    <div className="relative flex items-center h-10 sm:h-11 rounded-admin border border-admin-border bg-admin-bg focus-within:border-admin-accent focus-within:ring-2 focus-within:ring-admin-accent/15 transition-all">
+                    <div className="relative flex items-center h-10 sm:h-11 rounded-admin border border-admin-border bg-admin-bg focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15 transition-all">
                       <Mail size={13} className="absolute left-3 text-admin-subtle pointer-events-none shrink-0" />
                       <input
                         id="email-input"
@@ -643,11 +648,11 @@ export default function PartnerLogin() {
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <label htmlFor="password-input" className="text-admin-xs font-semibold text-admin-text">Password</label>
-                      <button type="button" className="text-admin-2xs font-semibold text-admin-accent hover:underline">
+                      <button type="button" className="admin-focus admin-touch text-admin-2xs font-semibold text-brand hover:underline">
                         Forgot password?
                       </button>
                     </div>
-                    <div className="relative flex items-center h-10 sm:h-11 rounded-admin border border-admin-border bg-admin-bg focus-within:border-admin-accent focus-within:ring-2 focus-within:ring-admin-accent/15 transition-all">
+                    <div className="relative flex items-center h-10 sm:h-11 rounded-admin border border-admin-border bg-admin-bg focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15 transition-all">
                       <Lock size={13} className="absolute left-3 text-admin-subtle pointer-events-none shrink-0" />
                       <input
                         id="password-input"
@@ -663,23 +668,25 @@ export default function PartnerLogin() {
                         type="button"
                         onClick={() => setShowPassword(v => !v)}
                         aria-label={showPassword ? "Hide password" : "Show password"}
-                        className="absolute right-3 text-admin-subtle hover:text-admin-text transition-colors"
+                        className="admin-focus admin-touch absolute right-3 text-admin-subtle hover:text-admin-text transition-colors"
                       >
                         {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                       </button>
                     </div>
                   </div>
 
-                  <button
+                  <AdminButton
                     type="submit"
+                    variant="brand"
+                    loading={loading}
                     disabled={busy}
-                    className="admin-focus group w-full h-10 sm:h-11 rounded-admin bg-admin-accent hover:bg-admin-accent/90 disabled:opacity-50 disabled:cursor-not-allowed text-white text-admin-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-admin-1"
+                    className="group w-full shadow-admin-1"
                   >
                     {loading
-                      ? <><span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" />Signing In...</>
+                      ? <>Signing in…</>
                       : <>Sign In <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5 shrink-0" /></>
                     }
-                  </button>
+                  </AdminButton>
                 </form>
               )}
 
@@ -691,11 +698,12 @@ export default function PartnerLogin() {
               </div>
 
               {/* Google */}
-              <button
+              <AdminButton
                 type="button"
+                variant="secondary"
                 disabled={busy}
                 onClick={handleGoogleLogin}
-                className="admin-focus w-full h-10 sm:h-11 rounded-admin border border-admin-border bg-admin-surface hover:bg-admin-bg disabled:opacity-50 text-admin-sm font-medium text-admin-text transition-colors flex items-center justify-center gap-2.5 shadow-admin-1"
+                className="w-full gap-2.5 shadow-admin-1"
               >
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -704,21 +712,21 @@ export default function PartnerLogin() {
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                 </svg>
                 Continue with Google
-              </button>
+              </AdminButton>
 
               {/* Footer links */}
               <div className="flex items-center justify-between pt-1 border-t border-admin-border">
-                <Link href="/onboarding" className="admin-focus text-admin-xs font-semibold text-admin-accent hover:underline inline-flex items-center gap-1">
+                <Link href="/onboarding" className="admin-focus admin-touch text-admin-xs font-semibold text-brand hover:underline inline-flex items-center gap-1">
                   Become a Partner <ArrowRight size={11} />
                 </Link>
-                <Link href="/application-status" className="admin-focus text-admin-2xs text-admin-muted hover:text-admin-text transition-colors">
+                <Link href="/application-status" className="admin-focus admin-touch text-admin-2xs text-admin-muted hover:text-admin-text transition-colors">
                   Track Application →
                 </Link>
               </div>
 
               {/* SSL */}
               <div className="flex items-center justify-center gap-1.5 text-admin-2xs text-admin-subtle">
-                <ShieldCheck size={11} className="text-admin-accent shrink-0" />
+                <ShieldCheck size={11} className="text-brand shrink-0" />
                 Secure partner access • Your information is encrypted
               </div>
             </div>

@@ -116,19 +116,15 @@ export default function PartnerClientLayout({ children }: { children: React.Reac
   const isApproved = dsaStatusRaw === "active" || dsaStatusRaw === "approved"
 
   return (
-    <div className="partner-root min-h-dvh flex flex-col md:flex-row" style={{ background: "#F8FAFC" }}>
+    <div className="partner-root min-h-dvh flex flex-col md:flex-row bg-admin-bg">
       {/* ── Desktop Sidebar ───────────────────────────────────────────── */}
       <aside
-        className="hidden md:flex w-64 shrink-0 flex-col sticky top-0 h-dvh"
-        style={{
-          background: "#FFFFFF",
-          borderRight: "1px solid #E2E8F0",
-        }}
+        className="hidden md:flex w-64 shrink-0 flex-col sticky top-0 h-dvh bg-admin-surface border-r border-admin-border"
       >
         {/* Brand */}
-        <div className="px-5 py-5 border-b border-slate-100">
+        <div className="px-5 py-5 border-b border-admin-border">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-xs shadow-sm overflow-hidden shrink-0">
+            <div className="w-9 h-9 rounded-admin bg-brand flex items-center justify-center text-brand-fg font-bold text-xs shadow-admin-1 overflow-hidden shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/img/logo.webp"
@@ -140,10 +136,10 @@ export default function PartnerClientLayout({ children }: { children: React.Reac
               />
             </div>
             <div>
-              <div className="text-sm font-extrabold text-slate-900 tracking-tight leading-tight">
+              <div className="text-sm font-extrabold text-admin-text tracking-tight leading-tight">
                 Techstar Money
               </div>
-              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
+              <div className="text-[10px] font-semibold text-admin-subtle uppercase tracking-widest">
                 DSA Partner Portal
               </div>
             </div>
@@ -155,14 +151,14 @@ export default function PartnerClientLayout({ children }: { children: React.Reac
               className={cn(
                 "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border",
                 isApproved
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                  : "bg-amber-50 text-amber-700 border-amber-200"
+                  ? "bg-tone-success text-tone-success-fg border-tone-success-bd"
+                  : "bg-tone-warn text-tone-warn-fg border-tone-warn-bd"
               )}
             >
               <span
                 className={cn(
                   "w-1.5 h-1.5 rounded-full",
-                  isApproved ? "bg-emerald-500" : "bg-amber-500"
+                  isApproved ? "bg-tone-success-fg" : "bg-tone-warn-fg"
                 )}
               />
               {isApproved ? "Active DSA" : "Pending Verification"}
@@ -183,10 +179,10 @@ export default function PartnerClientLayout({ children }: { children: React.Reac
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex items-center justify-between gap-2.5 min-h-10 px-3 rounded-lg text-sm font-semibold transition-all no-underline",
+                  "admin-focus flex items-center justify-between gap-2.5 min-h-10 px-3 rounded-admin-sm text-sm font-semibold transition-all no-underline",
                   isActive
-                    ? "bg-blue-50 text-blue-700 border border-blue-100 shadow-sm"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent"
+                    ? "bg-brand-soft text-brand-soft-fg border border-brand-line shadow-admin-1"
+                    : "text-admin-muted hover:bg-admin-surface-2 hover:text-admin-text border border-transparent"
                 )}
               >
                 <div className="flex items-center gap-2.5">
@@ -194,13 +190,13 @@ export default function PartnerClientLayout({ children }: { children: React.Reac
                     size={16}
                     className={cn(
                       "shrink-0",
-                      isActive ? "text-blue-600" : "text-slate-400"
+                      isActive ? "text-brand" : "text-admin-subtle"
                     )}
                   />
                   {item.label}
                 </div>
                 {isActive && (
-                  <ChevronRight size={13} className="text-blue-400 shrink-0" />
+                  <ChevronRight size={13} className="text-brand shrink-0" />
                 )}
               </Link>
             )
@@ -208,10 +204,10 @@ export default function PartnerClientLayout({ children }: { children: React.Reac
         </nav>
 
         {/* User Footer */}
-        <div className="p-3 border-t border-slate-100 space-y-2">
+        <div className="p-3 border-t border-admin-border space-y-2">
           {/* User info */}
-          <div className="flex items-center gap-3 px-2 py-2 rounded-lg bg-slate-50 border border-slate-100">
-            <span className="w-9 h-9 shrink-0 rounded-xl bg-white border border-slate-200 overflow-hidden flex items-center justify-center text-sm font-bold text-slate-600 shadow-sm">
+          <div className="flex items-center gap-3 px-2 py-2 rounded-admin-sm bg-admin-surface-2 border border-admin-border">
+            <span className="w-9 h-9 shrink-0 rounded-admin bg-admin-surface border border-admin-border overflow-hidden flex items-center justify-center text-sm font-bold text-admin-muted shadow-admin-1">
               {partnerPhoto ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -224,10 +220,10 @@ export default function PartnerClientLayout({ children }: { children: React.Reac
               )}
             </span>
             <div className="min-w-0 flex-1">
-              <div className="text-sm font-bold text-slate-900 truncate">
+              <div className="text-sm font-bold text-admin-text truncate">
                 {partnerDisplayName}
               </div>
-              <div className="text-[10px] font-semibold text-slate-400 font-mono uppercase tracking-wider">
+              <div className="text-[10px] font-semibold text-admin-subtle font-mono uppercase tracking-wider">
                 {dsaCode}
               </div>
             </div>
@@ -236,7 +232,7 @@ export default function PartnerClientLayout({ children }: { children: React.Reac
           {/* Logout */}
           <button
             onClick={logout}
-            className="w-full flex items-center justify-center gap-2 h-9 rounded-lg text-xs font-bold text-slate-600 bg-white hover:bg-red-50 hover:text-red-600 border border-slate-200 hover:border-red-200 transition-all"
+            className="admin-focus w-full flex items-center justify-center gap-2 h-9 rounded-admin-sm text-xs font-bold text-admin-muted bg-admin-surface hover:bg-tone-danger hover:text-tone-danger-fg border border-admin-border hover:border-tone-danger-bd transition-all"
           >
             <LogOut size={14} />
             Log out
@@ -246,16 +242,11 @@ export default function PartnerClientLayout({ children }: { children: React.Reac
 
       {/* ── Mobile Header ─────────────────────────────────────────────── */}
       <header
-        className="md:hidden sticky top-0 z-40"
-        style={{
-          background: "rgba(255,255,255,0.97)",
-          borderBottom: "1px solid #E2E8F0",
-          backdropFilter: "blur(12px)",
-        }}
+        className="md:hidden sticky top-0 z-40 bg-admin-surface/95 border-b border-admin-border backdrop-blur-md"
       >
         <div className="flex items-center justify-between gap-3 px-4 h-14">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-xs shadow-sm overflow-hidden shrink-0">
+            <div className="w-8 h-8 rounded-admin bg-brand flex items-center justify-center text-brand-fg font-bold text-xs shadow-admin-1 overflow-hidden shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/img/logo.webp"
@@ -267,16 +258,16 @@ export default function PartnerClientLayout({ children }: { children: React.Reac
               />
             </div>
             <div>
-              <div className="text-sm font-extrabold text-slate-900 tracking-tight leading-tight">
+              <div className="text-sm font-extrabold text-admin-text tracking-tight leading-tight">
                 Techstar Money
               </div>
-              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest leading-tight">
+              <div className="text-[10px] font-semibold text-admin-subtle uppercase tracking-widest leading-tight">
                 DSA Partner
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-8 h-8 shrink-0 rounded-xl bg-white border border-slate-200 overflow-hidden flex items-center justify-center text-xs font-bold text-slate-600 shadow-sm">
+            <span className="w-8 h-8 shrink-0 rounded-admin bg-admin-surface border border-admin-border overflow-hidden flex items-center justify-center text-xs font-bold text-admin-muted shadow-admin-1">
               {partnerPhoto ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -290,7 +281,7 @@ export default function PartnerClientLayout({ children }: { children: React.Reac
             </span>
             <button
               onClick={logout}
-              className="h-8 px-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-xs font-bold flex items-center gap-1.5 hover:bg-red-100 transition-colors"
+              className="admin-focus h-8 px-3 rounded-admin-sm bg-tone-danger border border-tone-danger-bd text-tone-danger-fg text-xs font-bold flex items-center gap-1.5 hover:bg-tone-danger transition-colors"
             >
               <LogOut size={13} />
               <span>Logout</span>
@@ -310,12 +301,7 @@ export default function PartnerClientLayout({ children }: { children: React.Reac
 
       {/* ── Mobile Bottom Navigation ──────────────────────────────────── */}
       <nav
-        className="md:hidden fixed bottom-0 inset-x-0 z-50 pb-[env(safe-area-inset-bottom)]"
-        style={{
-          background: "rgba(255,255,255,0.97)",
-          borderTop: "1px solid #E2E8F0",
-          backdropFilter: "blur(12px)",
-        }}
+        className="md:hidden fixed bottom-0 inset-x-0 z-50 pb-[env(safe-area-inset-bottom)] bg-admin-surface/95 border-t border-admin-border backdrop-blur-md"
       >
         <div className="flex items-stretch justify-around px-1">
           {NAV_ITEMS.map((item) => {
@@ -329,24 +315,24 @@ export default function PartnerClientLayout({ children }: { children: React.Reac
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex-1 flex flex-col items-center justify-center gap-1 py-2 min-h-14 rounded-lg transition-colors text-center no-underline",
+                  "admin-focus flex-1 flex flex-col items-center justify-center gap-1 py-2 min-h-14 rounded-admin-sm transition-colors text-center no-underline",
                   isActive
-                    ? "text-blue-600 font-bold"
-                    : "text-slate-400 hover:text-slate-700"
+                    ? "text-brand font-bold"
+                    : "text-admin-subtle hover:text-admin-text"
                 )}
               >
                 <item.icon
                   size={19}
                   className={cn(
                     "shrink-0",
-                    isActive ? "text-blue-600" : "text-slate-400"
+                    isActive ? "text-brand" : "text-admin-subtle"
                   )}
                 />
                 <span className="text-[9px] leading-tight font-semibold truncate max-w-[52px] block">
                   {item.label}
                 </span>
                 {isActive && (
-                  <span className="w-1 h-1 rounded-full bg-blue-600 block" />
+                  <span className="w-1 h-1 rounded-full bg-brand block" />
                 )}
               </Link>
             )
@@ -361,21 +347,20 @@ export default function PartnerClientLayout({ children }: { children: React.Reac
 function PartnerSplash() {
   return (
     <div
-      className="partner-root min-h-dvh flex flex-col items-center justify-center px-6 text-center"
-      style={{ background: "#F8FAFC" }}
+      className="partner-root min-h-dvh flex flex-col items-center justify-center px-6 text-center bg-admin-bg"
     >
       <div className="relative flex flex-col items-center space-y-6">
         {/* Logo ring */}
         <div className="relative flex items-center justify-center">
           <span
-            className="absolute w-20 h-20 rounded-full border-2 border-blue-200 animate-spin"
+            className="absolute w-20 h-20 rounded-full border-2 border-brand-line animate-spin motion-reduce:animate-none"
             style={{ animationDuration: "3s" }}
           />
           <span
-            className="absolute w-16 h-16 rounded-full border border-blue-100 animate-spin"
+            className="absolute w-16 h-16 rounded-full border border-brand-line animate-spin motion-reduce:animate-none"
             style={{ animationDuration: "5s", animationDirection: "reverse" }}
           />
-          <div className="w-12 h-12 rounded-2xl overflow-hidden bg-blue-600 border-2 border-white shadow-xl shadow-blue-200/50 flex items-center justify-center text-white font-bold">
+          <div className="w-12 h-12 rounded-admin-lg overflow-hidden bg-brand border-2 border-admin-surface shadow-admin-3 flex items-center justify-center text-brand-fg font-bold">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/img/logo.webp"
@@ -389,24 +374,24 @@ function PartnerSplash() {
         </div>
 
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-xl font-extrabold text-admin-text tracking-tight">
             Techstar Money Solution
           </h1>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mt-1">
+          <p className="text-xs font-semibold text-admin-subtle uppercase tracking-widest mt-1">
             DSA Partner Portal
           </p>
         </div>
 
         {/* Progress bar */}
-        <div className="w-40 h-1 bg-slate-200 rounded-full overflow-hidden">
+        <div className="w-40 h-1 bg-admin-border rounded-full overflow-hidden">
           <div
-            className="h-full bg-blue-600 rounded-full animate-pulse"
+            className="h-full bg-brand rounded-full animate-pulse motion-reduce:animate-none"
             style={{ width: "60%" }}
           />
         </div>
 
-        <p className="flex items-center gap-2 text-sm font-medium text-slate-500">
-          <ShieldCheck size={15} className="text-blue-500 shrink-0" />
+        <p className="flex items-center gap-2 text-sm font-medium text-admin-subtle">
+          <ShieldCheck size={15} className="text-brand shrink-0" />
           Loading partner workspace…
         </p>
       </div>

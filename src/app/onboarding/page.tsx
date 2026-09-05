@@ -34,6 +34,7 @@ import {
 } from "lucide-react"
 
 import { AdminButton } from "@/components/admin/ui/Button"
+import { Select, TextInput } from "@/components/admin/leads/fields"
 import { FormErrorRegion, type ErrorKind } from "@/components/onboarding/FormErrorRegion"
 import { OnboardingStepHeader } from "@/components/onboarding/OnboardingStepHeader"
 import PartnerAgreementModal from "@/components/partner/PartnerAgreementModal"
@@ -207,6 +208,91 @@ function DocTile({
   )
 }
 
+/**
+ * A terminal outcome, given a whole screen.
+ *
+ * These three used to share one amber banner sitting above a mobile field the
+ * partner could still type into, which reads as a warning about the form
+ * rather than an answer about their account. Each is a different situation
+ * with a different next action, so each gets its own icon, tone and primary
+ * button -- and the escape hatch is explicit, because someone who mistyped a
+ * digit needs a way back that is not the browser's Back button.
+ */
+function OutcomeScreen({
+  reason,
+  title,
+  body,
+  actionHref,
+  actionLabel,
+  onUseAnotherNumber,
+}: {
+  reason: "ALREADY_APPROVED" | "ALREADY_SUBMITTED" | "BLOCKED"
+  title: string
+  body: string
+  actionHref?: string
+  actionLabel?: string
+  onUseAnotherNumber: () => void
+}) {
+  const LOOK = {
+    ALREADY_APPROVED: {
+      Icon: CheckCircle2,
+      tone: "bg-tone-success text-tone-success-fg border-tone-success-bd",
+      heading: "You are already a Techstar Money partner",
+    },
+    ALREADY_SUBMITTED: {
+      Icon: Clock,
+      tone: "bg-tone-info text-tone-info-fg border-tone-info-bd",
+      heading: "Your application is already with us",
+    },
+    BLOCKED: {
+      Icon: AlertTriangle,
+      tone: "bg-tone-danger text-tone-danger-fg border-tone-danger-bd",
+      heading: "This number cannot be onboarded",
+    },
+  }[reason]
+
+  const { Icon } = LOOK
+
+  return (
+    <div className="rounded-admin-lg border border-admin-border bg-admin-surface p-6 sm:p-8 text-center shadow-admin-1 space-y-4 animate-fadeIn">
+      <div className={cn("mx-auto flex h-14 w-14 items-center justify-center rounded-full border", LOOK.tone)}>
+        <Icon size={26} />
+      </div>
+
+      <div className="space-y-1.5">
+        <h2 className="text-admin-xl font-bold tracking-tight text-admin-text">{LOOK.heading}</h2>
+        <p className="mx-auto max-w-md text-admin-sm font-semibold text-admin-text">{title}</p>
+        {body !== title && (
+          <p className="mx-auto max-w-md text-admin-sm text-admin-muted leading-relaxed">{body}</p>
+        )}
+      </div>
+
+      <div className="flex flex-col items-center gap-2 pt-1 sm:flex-row sm:justify-center">
+        {actionHref && (
+          actionHref.startsWith("tel:") ? (
+            <a
+              href={actionHref}
+              className="admin-focus inline-flex h-11 items-center justify-center gap-1.5 rounded-admin-sm bg-brand px-4 text-admin-sm font-semibold text-brand-fg transition-colors hover:bg-brand-hover"
+            >
+              {actionLabel || "Call partner support"}
+            </a>
+          ) : (
+            <Link
+              href={actionHref}
+              className="admin-focus inline-flex h-11 items-center justify-center gap-1.5 rounded-admin-sm bg-brand px-4 text-admin-sm font-semibold text-brand-fg transition-colors hover:bg-brand-hover"
+            >
+              {actionLabel || "Continue"}
+            </Link>
+          )
+        )}
+        <AdminButton type="button" variant="ghost" onClick={onUseAnotherNumber}>
+          Use a different number
+        </AdminButton>
+      </div>
+    </div>
+  )
+}
+
 export default function OnboardingPage() {
   // ─── Inline Mobile & OTP Verification States ───
   const [mobileNumber, setMobileNumber] = useState("")
@@ -230,6 +316,13 @@ export default function OnboardingPage() {
   // Guards automatic verification so one OTP is submitted exactly once.
   const autoVerifiedRef = useRef("")
   const [eligibilityInfo, setEligibilityInfo] = useState<{
+    /*
+     * Which outcome this is. Approved, already-submitted and blocked are three
+     * different situations with three different next actions -- sign in, track
+     * the application, call support -- so each gets its own screen rather than
+     * one amber banner whose only difference is its sentence.
+     */
+    reason: "ALREADY_APPROVED" | "ALREADY_SUBMITTED" | "BLOCKED"
     message: string
     marathiMessage?: string
     redirectUrl?: string
@@ -269,6 +362,9 @@ export default function OnboardingPage() {
 
   // The step pane, so forward/back can restore scroll instead of jumping.
   const stepPaneRef = useRef<HTMLDivElement | null>(null)
+  // popstate fires from an effect declared above lockReasonFor; the ref keeps
+  // the handler reading the current gate rather than a stale closure.
+  const lockReasonForRef = useRef<((id: number) => string | null) | null>(null)
   const scrollByStep = useRef<Record<number, number>>({})
   const pendingFocusStep = useRef<number | null>(null)
 
@@ -431,8 +527,48 @@ export default function OnboardingPage() {
     scrollByStep.current[currentStep] = window.scrollY
     pendingFocusStep.current = next
     setStepError(null)
+    setInvalidField(null)
     setCurrentStep(next)
+    /*
+     * Push the step so Back returns to the previous one. Without this the
+     * whole three-step flow is a single history entry and Android's system
+     * back gesture -- which is not an affordance we can restyle or intercept
+     * at the UI level -- drops the partner out of the form entirely.
+     *
+     * replaceState for the first entry, push thereafter, so arriving at
+     * /onboarding does not require two Backs to leave.
+     */
+    if (typeof window !== "undefined") {
+      window.history.pushState({ onboardingStep: next }, "", `#step-${next}`)
+    }
   }, [currentStep])
+
+  /*
+   * Back/forward between steps. Only steps the partner may actually open are
+   * honoured -- a Back into a step whose prerequisites are no longer met would
+   * land on the locked screen, which is worse than staying put.
+   */
+  useEffect(() => {
+    const onPop = (e: PopStateEvent) => {
+      const target = (e.state as { onboardingStep?: number } | null)?.onboardingStep
+      if (!target || ![1, 2, 3].includes(target)) return
+      if (lockReasonForRef.current?.(target)) return
+      pendingFocusStep.current = target
+      setStepError(null)
+      setCurrentStep(target)
+    }
+    window.addEventListener("popstate", onPop)
+    return () => window.removeEventListener("popstate", onPop)
+  }, [])
+
+  // Seed the first history entry once the flow is actually open, so the very
+  // first Back leaves /onboarding rather than replaying step 1.
+  useEffect(() => {
+    if (!isMobileVerified) return
+    if (window.history.state?.onboardingStep) return
+    window.history.replaceState({ onboardingStep: currentStep }, "", `#step-${currentStep}`)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMobileVerified])
 
   // Auto-fill designation based on entity type
   useEffect(() => {
@@ -656,6 +792,7 @@ export default function OnboardingPage() {
       if (!res.ok || data.eligible === false) {
         if (data.reason === "ALREADY_APPROVED") {
           setEligibilityInfo({
+            reason: "ALREADY_APPROVED",
             message: data.message || "You are already an approved DSA Partner.",
             marathiMessage: data.marathiMessage || "हा नंबर आधीच अधिकृत DSA Partner म्हणून मंजूर आहे! कृपया थेट लॉगिन करा.",
             redirectUrl: data.redirectUrl || `/partner/login?mobile=${mobileNumber}`,
@@ -665,6 +802,7 @@ export default function OnboardingPage() {
         }
         if (data.reason === "ALREADY_SUBMITTED") {
           setEligibilityInfo({
+            reason: "ALREADY_SUBMITTED",
             message: data.message || "Your application has already been submitted.",
             marathiMessage: data.marathiMessage || "तुमचा DSA Partner अर्ज आधीच सबमिट झालेला असून तो पडताळणी अंतर्गत आहे.",
             redirectUrl: data.redirectUrl || `/application-status?id=${data.applicationId || `TSM-DSA-${mobileNumber}`}`,
@@ -674,6 +812,7 @@ export default function OnboardingPage() {
         }
         if (data.reason === "BLOCKED") {
           setEligibilityInfo({
+            reason: "BLOCKED",
             message: data.message || "This mobile number is not eligible for onboarding.",
             marathiMessage: data.marathiMessage || "हा मोबाईल नंबर नवीन पार्टनर नोंदणीसाठी पात्र नाही. कृपया सपोर्टशी संपर्क साधा.",
             redirectUrl: "tel:09579005645",
@@ -1473,6 +1612,52 @@ export default function OnboardingPage() {
     setTimeout(() => setCopiedAppId(false), 2000)
   }
 
+  /*
+   * What the server says has happened to this application. `under_review` is
+   * the fallback because that is what a fresh submit produces; anything the
+   * API sends that is not recognised is treated the same way rather than
+   * inventing an outcome.
+   */
+  const applicationStatus = (() => {
+    const raw = String(submittedApplicationData?.status || "").toLowerCase()
+    if (raw.includes("approve")) return "approved" as const
+    if (raw.includes("reject") || raw.includes("declin")) return "rejected" as const
+    return "under_review" as const
+  })()
+
+  const STATUS_SCREEN = {
+    under_review: {
+      Icon: ShieldCheck,
+      tone: "bg-tone-info text-tone-info-fg border-tone-info-bd",
+      badge: "Submitted & locked",
+      badgeIcon: Lock,
+      heading: "Partner application under review",
+      body: "तुमचा DSA Partner अर्ज यशस्वीरित्या सबमिट झालेला असून तो सुरक्षिततेसाठी लॉक (Lock) करण्यात आला आहे.",
+      note: "Our partner operations desk is checking your KYC and bank details. Updates arrive on WhatsApp.",
+      cta: "Track status",
+    },
+    approved: {
+      Icon: CheckCircle2,
+      tone: "bg-tone-success text-tone-success-fg border-tone-success-bd",
+      badge: "Approved",
+      badgeIcon: CheckCircle2,
+      heading: "You are a Techstar Money partner",
+      body: "तुमचा DSA Partner अर्ज मंजूर झाला आहे. आता तुम्ही partner portal मध्ये लॉगिन करू शकता.",
+      note: "Sign in to the partner portal to start submitting files and tracking your commission.",
+      cta: "Go to partner login",
+    },
+    rejected: {
+      Icon: AlertTriangle,
+      tone: "bg-tone-danger text-tone-danger-fg border-tone-danger-bd",
+      badge: "Not approved",
+      badgeIcon: AlertCircle,
+      heading: "This application was not approved",
+      body: "तुमचा अर्ज सध्या मंजूर होऊ शकला नाही. कृपया आमच्या partner desk शी संपर्क साधा.",
+      note: "Our desk can tell you exactly what fell short and whether you can reapply.",
+      cta: "Call partner support",
+    },
+  }[applicationStatus]
+
   // ─── Render Screen: Locked Application (After Submission) ───
   if (submittedAppId || isApplicationLocked) {
     return (
@@ -1481,20 +1666,22 @@ export default function OnboardingPage() {
 
         <main className="flex-1 flex w-full max-w-3xl mx-auto px-4 py-10">
           <div className="w-full bg-admin-surface border border-admin-border rounded-admin-lg shadow-admin-3 p-6 sm:p-10 space-y-6 text-center">
-            <div className="w-16 h-16 rounded-full bg-tone-success text-tone-success-fg border border-tone-success-bd flex items-center justify-center mx-auto shadow-admin-1">
-              <ShieldCheck size={36} />
+            <div className={cn("w-16 h-16 rounded-full border flex items-center justify-center mx-auto shadow-admin-1", STATUS_SCREEN.tone)}>
+              <STATUS_SCREEN.Icon size={36} />
             </div>
 
             <div className="space-y-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-tone-success text-tone-success-fg text-admin-xs font-bold uppercase tracking-wider">
-                <Lock size={13} /> Application Submitted &amp; Locked
+              <span className={cn("inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-admin-xs font-bold uppercase tracking-wider border", STATUS_SCREEN.tone)}>
+                <STATUS_SCREEN.badgeIcon size={13} /> {STATUS_SCREEN.badge}
               </span>
-              <h1 className="text-admin-2xl sm:text-admin-2xl font-black text-admin-text tracking-tight">
-                Partner Application Under Review
+              <h1 className="text-admin-2xl font-black text-admin-text tracking-tight">
+                {STATUS_SCREEN.heading}
               </h1>
-              {/* Requirement #1: Removed 'सुरक्षितता व बँकिंग नियमांनुसार एकदा सबमिट झाल्यावर अर्जामध्ये कोणतेही फेरबदल करता येत नाहीत' */}
               <p className="max-w-xl mx-auto text-admin-sm text-admin-muted leading-relaxed">
-                तुमचा DSA Partner अर्ज यशस्वीरित्या सबमिट झालेला असून तो सुरक्षिततेसाठी लॉक (Lock) करण्यात आला आहे.
+                {STATUS_SCREEN.body}
+              </p>
+              <p className="max-w-xl mx-auto text-admin-xs text-admin-subtle leading-relaxed">
+                {STATUS_SCREEN.note}
               </p>
             </div>
 
@@ -1514,13 +1701,23 @@ export default function OnboardingPage() {
                   <Copy size={14} />
                   <span>{copiedAppId ? "Copied!" : "Copy ID"}</span>
                 </button>
-                <Link
-                  href={`/application-status?id=${submittedAppId}`}
-                  className="px-4 py-2 bg-brand text-brand-fg rounded-admin text-admin-xs font-bold hover:bg-brand-hover flex items-center gap-1.5 shadow-admin-1"
-                >
-                  <span>Track Status</span>
-                  <ArrowRight size={14} />
-                </Link>
+                {applicationStatus === "rejected" ? (
+                  <a
+                    href="tel:09579005645"
+                    className="admin-focus px-4 py-2 bg-brand text-brand-fg rounded-admin text-admin-xs font-bold hover:bg-brand-hover flex items-center gap-1.5 shadow-admin-1"
+                  >
+                    <span>{STATUS_SCREEN.cta}</span>
+                    <Phone size={14} />
+                  </a>
+                ) : (
+                  <Link
+                    href={applicationStatus === "approved" ? "/partner/login" : `/application-status?id=${submittedAppId}`}
+                    className="admin-focus px-4 py-2 bg-brand text-brand-fg rounded-admin text-admin-xs font-bold hover:bg-brand-hover flex items-center gap-1.5 shadow-admin-1"
+                  >
+                    <span>{STATUS_SCREEN.cta}</span>
+                    <ArrowRight size={14} />
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -1586,6 +1783,7 @@ export default function OnboardingPage() {
     if (id === 3 && !isStep2Done) return "Finish step 2 first: KYC documents and a payout bank account are required before the MOU."
     return null
   }
+  lockReasonForRef.current = lockReasonFor
 
   return (
     <div className="partner-root min-h-dvh flex flex-col bg-admin-bg font-sans text-admin-text">
@@ -1753,32 +1951,20 @@ export default function OnboardingPage() {
                 <FormErrorRegion message={mobileError} kind={mobileErrorKind} id="onboard-mobile-error" />
 
                 {/* Eligibility Warning Banner */}
-                {eligibilityInfo && (
-                  <div className="p-4 rounded-admin-lg bg-tone-warn border-2 border-tone-warn-bd text-tone-warn-fg text-admin-xs space-y-3 animate-fadeIn shadow-admin-1">
-                    <div className="flex items-start gap-2.5">
-                      <AlertTriangle size={20} className="text-tone-warn-fg shrink-0 mt-0.5" />
-                      <div>
-                        <div className="font-bold text-admin-sm text-tone-warn-fg leading-snug">
-                          {eligibilityInfo.marathiMessage}
-                        </div>
-                        <div className="text-admin-xs text-tone-warn-fg mt-1 leading-relaxed">
-                          {eligibilityInfo.message}
-                        </div>
-                      </div>
-                    </div>
-                    {eligibilityInfo.redirectUrl && (
-                      <div className="pt-1">
-                        <Link
-                          href={eligibilityInfo.redirectUrl}
-                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-admin bg-tone-warn-fg hover:brightness-95 text-brand-fg font-bold text-admin-xs shadow-admin-1 transition-colors"
-                        >
-                          <span>{eligibilityInfo.actionText || "Proceed →"}</span>
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                )}
-
+                {eligibilityInfo ? (
+                  <OutcomeScreen
+                    reason={eligibilityInfo.reason}
+                    title={eligibilityInfo.marathiMessage || eligibilityInfo.message}
+                    body={eligibilityInfo.message}
+                    actionHref={eligibilityInfo.redirectUrl}
+                    actionLabel={eligibilityInfo.actionText}
+                    onUseAnotherNumber={() => {
+                      setEligibilityInfo(null)
+                      setMobileNumber("")
+                      setMobileError(null)
+                    }}
+                  />
+                ) : (
                 <div className="bg-admin-surface border border-admin-border rounded-admin-lg p-6 shadow-admin-1 space-y-5">
                   <div className="space-y-2">
                     <label htmlFor="onboard-mobile" className="block text-admin-xs font-bold text-admin-text uppercase tracking-wider">
@@ -1907,6 +2093,7 @@ export default function OnboardingPage() {
                     </div>
                   )}
                 </div>
+                )}
               </div>
             ) : (
               /* ─── ONBOARDING FLOW STARTS ON SAME SCREEN ─── */
@@ -2076,7 +2263,7 @@ export default function OnboardingPage() {
                         <label className="block text-admin-xs font-bold text-admin-text uppercase">
                           Full Name (as per PAN Card) <span className="text-tone-danger-fg">*</span>
                         </label>
-                        <input
+                        <TextInput
                           type="text"
                           required
                           value={fullName}
@@ -2085,7 +2272,7 @@ export default function OnboardingPage() {
                             aria-invalid={invalidField === "ob-fullName" || undefined}
                             aria-describedby={invalidField === "ob-fullName" ? "onboarding-step-error" : undefined}
                           placeholder="e.g. Ramesh Shankar Patil"
-                          className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand focus:ring-2 focus:ring-brand-soft"
+                          className="h-11 px-3.5 rounded-admin border-admin-border-strong font-semibold"
                         />
                       </div>
                     ) : (
@@ -2094,7 +2281,7 @@ export default function OnboardingPage() {
                           <label className="block text-admin-xs font-bold text-admin-text uppercase">
                             Business / Company Name <span className="text-tone-danger-fg">*</span>
                           </label>
-                          <input
+                          <TextInput
                             type="text"
                             required
                             value={businessName}
@@ -2103,14 +2290,14 @@ export default function OnboardingPage() {
                             aria-invalid={invalidField === "ob-businessName" || undefined}
                             aria-describedby={invalidField === "ob-businessName" ? "onboarding-step-error" : undefined}
                             placeholder="e.g. Patil Financial Services"
-                            className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand focus:ring-2 focus:ring-brand-soft"
+                            className="h-11 px-3.5 rounded-admin border-admin-border-strong font-semibold"
                           />
                         </div>
                         <div className="space-y-1.5">
                           <label className="block text-admin-xs font-bold text-admin-text uppercase">
                             Contact Person Name <span className="text-tone-danger-fg">*</span>
                           </label>
-                          <input
+                          <TextInput
                             type="text"
                             required
                             value={contactPersonName}
@@ -2119,7 +2306,7 @@ export default function OnboardingPage() {
                             aria-invalid={invalidField === "ob-contactPersonName" || undefined}
                             aria-describedby={invalidField === "ob-contactPersonName" ? "onboarding-step-error" : undefined}
                             placeholder="e.g. Ramesh Patil"
-                            className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand focus:ring-2 focus:ring-brand-soft"
+                            className="h-11 px-3.5 rounded-admin border-admin-border-strong font-semibold"
                           />
                         </div>
                       </div>
@@ -2131,7 +2318,7 @@ export default function OnboardingPage() {
                         <label className="block text-admin-xs font-bold text-admin-text uppercase">
                           Email Address <span className="text-tone-danger-fg">*</span>
                         </label>
-                        <input
+                        <TextInput
                           type="email"
                           required
                           value={email}
@@ -2140,7 +2327,7 @@ export default function OnboardingPage() {
                             aria-invalid={invalidField === "ob-email" || undefined}
                             aria-describedby={invalidField === "ob-email" ? "onboarding-step-error" : undefined}
                           placeholder="e.g. ramesh@example.com"
-                          className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand focus:ring-2 focus:ring-brand-soft"
+                          className="h-11 px-3.5 rounded-admin border-admin-border-strong font-semibold"
                         />
                       </div>
 
@@ -2148,7 +2335,7 @@ export default function OnboardingPage() {
                         <label className="block text-admin-xs font-bold text-admin-text uppercase">
                           Permanent Account Number (PAN) <span className="text-tone-danger-fg">*</span>
                         </label>
-                        <input
+                        <TextInput
                           type="text"
                           required
                           maxLength={10}
@@ -2158,7 +2345,7 @@ export default function OnboardingPage() {
                             aria-invalid={invalidField === "ob-pan" || undefined}
                             aria-describedby={invalidField === "ob-pan" ? "onboarding-step-error" : undefined}
                           placeholder="ABCDE1234F"
-                          className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-mono font-bold text-admin-text uppercase focus:border-brand focus:ring-2 focus:ring-brand-soft"
+                          className="h-11 px-3.5 rounded-admin border-admin-border-strong font-semibold font-mono font-bold uppercase"
                         />
                       </div>
                     </div>
@@ -2169,7 +2356,7 @@ export default function OnboardingPage() {
                         <label className="block text-admin-xs font-bold text-admin-text uppercase">
                           Date of Birth (वय १८ ते ८० वर्षे) <span className="text-tone-danger-fg">*</span>
                         </label>
-                        <input
+                        <TextInput
                           type="date"
                           required
                           min={minDobStr}
@@ -2179,7 +2366,7 @@ export default function OnboardingPage() {
                             id="ob-dob"
                             aria-invalid={invalidField === "ob-dob" || undefined}
                             aria-describedby={invalidField === "ob-dob" ? "onboarding-step-error" : undefined}
-                          className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand focus:ring-2 focus:ring-brand-soft"
+                          className="h-11 px-3.5 rounded-admin border-admin-border-strong font-semibold"
                         />
                         <span className="text-admin-2xs text-admin-subtle">Must be between 18 and 80 years old</span>
                       </div>
@@ -2188,15 +2375,15 @@ export default function OnboardingPage() {
                         <label className="block text-admin-xs font-bold text-admin-text uppercase">
                           Gender <span className="text-tone-danger-fg">*</span>
                         </label>
-                        <select
+                        <Select
                           value={gender}
                           onChange={e => setGender(e.target.value)}
-                          className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand focus:ring-2 focus:ring-brand-soft"
+                          className="h-11 px-3.5 rounded-admin border-admin-border-strong font-semibold"
                         >
                           <option value="Male">Male</option>
                           <option value="Female">Female</option>
                           <option value="Other">Other</option>
-                        </select>
+                        </Select>
                       </div>
                     </div>
 
@@ -2205,12 +2392,12 @@ export default function OnboardingPage() {
                       <label className="block text-admin-xs font-bold text-admin-text uppercase">
                         Referral / Senior DSA Partner Code (Optional)
                       </label>
-                      <input
+                      <TextInput
                         type="text"
                         value={referredByDsaCode}
                         onChange={e => setReferredByDsaCode(e.target.value.toUpperCase())}
                         placeholder="e.g. TSM-REF-1042"
-                        className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-mono font-semibold text-admin-text uppercase focus:border-brand focus:ring-2 focus:ring-brand-soft"
+                        className="h-11 px-3.5 rounded-admin border-admin-border-strong font-semibold font-mono uppercase"
                       />
                     </div>
 
@@ -2224,7 +2411,7 @@ export default function OnboardingPage() {
                             PIN Code <span className="text-tone-danger-fg">*</span>
                           </label>
                           <div className="relative">
-                            <input
+                            <TextInput
                               type="text"
                               maxLength={6}
                               required
@@ -2234,7 +2421,7 @@ export default function OnboardingPage() {
                             aria-invalid={invalidField === "ob-pincode" || undefined}
                             aria-describedby={invalidField === "ob-pincode" ? "onboarding-step-error" : undefined}
                               placeholder="6-digit Pincode"
-                              className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-mono font-bold text-admin-text focus:border-brand focus:ring-2 focus:ring-brand-soft"
+                              className="h-11 px-3.5 rounded-admin border-admin-border-strong font-semibold font-mono font-bold"
                             />
                             {pincodeLoading && (
                               <RefreshCw size={15} className="animate-spin text-brand absolute right-3 top-3.5" />
@@ -2251,7 +2438,7 @@ export default function OnboardingPage() {
                           <label className="block text-admin-xs font-bold text-admin-text uppercase">
                             Address Line 1 (House/Building/Flat No) <span className="text-tone-danger-fg">*</span>
                           </label>
-                          <input
+                          <TextInput
                             type="text"
                             required
                             value={addressLine1}
@@ -2260,7 +2447,7 @@ export default function OnboardingPage() {
                             aria-invalid={invalidField === "ob-addressLine1" || undefined}
                             aria-describedby={invalidField === "ob-addressLine1" ? "onboarding-step-error" : undefined}
                             placeholder="e.g. Office No 18, Morya Pride"
-                            className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand focus:ring-2 focus:ring-brand-soft"
+                            className="h-11 px-3.5 rounded-admin border-admin-border-strong font-semibold"
                           />
                         </div>
                       </div>
@@ -2268,12 +2455,12 @@ export default function OnboardingPage() {
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="space-y-1.5">
                           <label className="block text-admin-xs font-bold text-admin-text uppercase">Address Line 2 (Street/Area)</label>
-                          <input
+                          <TextInput
                             type="text"
                             value={addressLine2}
                             onChange={e => setAddressLine2(e.target.value)}
                             placeholder="e.g. Mayur Park, Harsul"
-                            className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand focus:ring-2 focus:ring-brand-soft"
+                            className="h-11 px-3.5 rounded-admin border-admin-border-strong font-semibold"
                           />
                         </div>
 
@@ -2281,7 +2468,7 @@ export default function OnboardingPage() {
                           <label className="block text-admin-xs font-bold text-admin-text uppercase">
                             City / District <span className="text-tone-danger-fg">*</span>
                           </label>
-                          <input
+                          <TextInput
                             type="text"
                             required
                             value={city}
@@ -2290,7 +2477,7 @@ export default function OnboardingPage() {
                             aria-invalid={invalidField === "ob-city" || undefined}
                             aria-describedby={invalidField === "ob-city" ? "onboarding-step-error" : undefined}
                             placeholder="e.g. Chhatrapati Sambhajinagar"
-                            className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand focus:ring-2 focus:ring-brand-soft"
+                            className="h-11 px-3.5 rounded-admin border-admin-border-strong font-semibold"
                           />
                         </div>
 
@@ -2298,7 +2485,7 @@ export default function OnboardingPage() {
                           <label className="block text-admin-xs font-bold text-admin-text uppercase">
                             State <span className="text-tone-danger-fg">*</span>
                           </label>
-                          <input
+                          <TextInput
                             type="text"
                             required
                             value={stateName}
@@ -2307,7 +2494,7 @@ export default function OnboardingPage() {
                             aria-invalid={invalidField === "ob-state" || undefined}
                             aria-describedby={invalidField === "ob-state" ? "onboarding-step-error" : undefined}
                             placeholder="e.g. Maharashtra"
-                            className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand focus:ring-2 focus:ring-brand-soft"
+                            className="h-11 px-3.5 rounded-admin border-admin-border-strong font-semibold"
                           />
                         </div>
                       </div>
@@ -2399,7 +2586,7 @@ export default function OnboardingPage() {
                             GSTIN (15 characters) <span className="text-tone-danger-fg">*</span>
                           </label>
                           <div className="flex gap-2">
-                            <input
+                            <TextInput
                               type="text"
                               maxLength={15}
                               value={gstin}
@@ -2408,7 +2595,7 @@ export default function OnboardingPage() {
                             aria-invalid={invalidField === "ob-gstin" || undefined}
                             aria-describedby={invalidField === "ob-gstin" ? "onboarding-step-error" : undefined}
                               placeholder="27ABCDE1234F1Z5"
-                              className="flex-1 h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-mono font-bold text-admin-text uppercase focus:border-brand"
+                              className="flex-1 h-11 px-3.5 rounded-admin border-admin-border-strong font-semibold font-mono font-bold uppercase"
                             />
                             <button
                               type="button"
@@ -2531,7 +2718,7 @@ export default function OnboardingPage() {
                           <label className="block text-admin-xs font-bold text-admin-text uppercase">
                             Account Holder Name <span className="text-tone-danger-fg">*</span>
                           </label>
-                          <input
+                          <TextInput
                             type="text"
                             required
                             value={accountHolderName}
@@ -2540,7 +2727,7 @@ export default function OnboardingPage() {
                             aria-invalid={invalidField === "ob-accountHolderName" || undefined}
                             aria-describedby={invalidField === "ob-accountHolderName" ? "onboarding-step-error" : undefined}
                             placeholder="Name as per Bank records"
-                            className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand"
+                            className="h-11 px-3.5 rounded-admin border-admin-border-strong font-semibold"
                           />
                         </div>
 
@@ -2548,14 +2735,14 @@ export default function OnboardingPage() {
                           <label className="block text-admin-xs font-bold text-admin-text uppercase">
                             Account Type <span className="text-tone-danger-fg">*</span>
                           </label>
-                          <select
+                          <Select
                             value={accountType}
                             onChange={e => setAccountType(e.target.value as "Savings" | "Current")}
-                            className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-semibold text-admin-text focus:border-brand"
+                            className="h-11 px-3.5 rounded-admin border-admin-border-strong font-semibold"
                           >
                             <option value="Savings">Savings Account</option>
                             <option value="Current">Current Account</option>
-                          </select>
+                          </Select>
                         </div>
                       </div>
 
@@ -2564,7 +2751,7 @@ export default function OnboardingPage() {
                           <label className="block text-admin-xs font-bold text-admin-text uppercase">
                             Bank Account Number <span className="text-tone-danger-fg">*</span>
                           </label>
-                          <input
+                          <TextInput
                             type="text"
                             required
                             value={accountNumber}
@@ -2573,7 +2760,7 @@ export default function OnboardingPage() {
                             aria-invalid={invalidField === "ob-accountNumber" || undefined}
                             aria-describedby={invalidField === "ob-accountNumber" ? "onboarding-step-error" : undefined}
                             placeholder="Enter bank account number"
-                            className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-mono font-bold text-admin-text focus:border-brand"
+                            className="h-11 px-3.5 rounded-admin border-admin-border-strong font-semibold font-mono font-bold"
                           />
                         </div>
 
@@ -2581,7 +2768,7 @@ export default function OnboardingPage() {
                           <label className="block text-admin-xs font-bold text-admin-text uppercase">
                             Confirm Account Number <span className="text-tone-danger-fg">*</span>
                           </label>
-                          <input
+                          <TextInput
                             type="text"
                             required
                             value={confirmAccountNumber}
@@ -2590,7 +2777,7 @@ export default function OnboardingPage() {
                             aria-invalid={invalidField === "ob-confirmAccountNumber" || undefined}
                             aria-describedby={invalidField === "ob-confirmAccountNumber" ? "onboarding-step-error" : undefined}
                             placeholder="Re-enter bank account number"
-                            className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-mono font-bold text-admin-text focus:border-brand"
+                            className="h-11 px-3.5 rounded-admin border-admin-border-strong font-semibold font-mono font-bold"
                           />
                         </div>
                       </div>
@@ -2600,7 +2787,7 @@ export default function OnboardingPage() {
                           <label className="block text-admin-xs font-bold text-admin-text uppercase">
                             IFSC Code <span className="text-tone-danger-fg">*</span>
                           </label>
-                          <input
+                          <TextInput
                             type="text"
                             maxLength={11}
                             required
@@ -2610,7 +2797,7 @@ export default function OnboardingPage() {
                             aria-invalid={invalidField === "ob-ifsc" || undefined}
                             aria-describedby={invalidField === "ob-ifsc" ? "onboarding-step-error" : undefined}
                             placeholder="e.g. SBIN0001234"
-                            className="w-full h-11 px-3.5 rounded-admin border border-admin-border-strong bg-admin-surface text-admin-sm font-mono font-bold text-admin-text uppercase focus:border-brand"
+                            className="h-11 px-3.5 rounded-admin border-admin-border-strong font-semibold font-mono font-bold uppercase"
                           />
                         </div>
 

@@ -1139,6 +1139,22 @@ a {
     :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
     font-size: 16px;
   }
+
+  /*
+   * 44px floor for the partner-facing flows.
+   *
+   * The controls there are drawn at h-11, which is 2.75rem -- and this site
+   * sets a fluid root font-size, so on a 390px phone 1rem is 15px and h-11
+   * lands at 41.25px, just under every published touch-target minimum. The
+   * shortfall is invisible in the class name, which is why it survived.
+   *
+   * Scoped to .partner-root deliberately. The CRM sizes its icon buttons at
+   * 28-36px on purpose for dense tables and grows only their hit area via
+   * .admin-touch; a blanket floor here would redraw those.
+   */
+  .partner-root :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea, button, a[role="button"]) {
+    min-height: 44px;
+  }
 }
 
 

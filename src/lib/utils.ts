@@ -19,10 +19,23 @@ import { extendTailwindMerge } from "tailwind-merge"
  * every other `text-admin-*` as a colour, and the two stop colliding.
  *
  * Keep this list in step with the `--text-admin-*` tokens in globals.css.
+ *
+ * The radius scale has the same problem for the same reason. `rounded-admin`,
+ * `rounded-admin-sm` and `rounded-admin-lg` are not names tailwind-merge knows,
+ * so it put none of them in the border-radius group and kept every one it was
+ * given:
+ *
+ *   cn("rounded-admin-sm rounded-admin") -> "rounded-admin-sm rounded-admin"
+ *
+ * Both then apply and stylesheet order decides the winner, which means a
+ * component overriding a shared control's radius silently got whichever the
+ * bundler happened to emit last. Naming the three puts them in one group so the
+ * later class wins, as everywhere else.
  */
 const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
+      rounded: [{ rounded: ["admin-sm", "admin", "admin-lg"] }],
       "font-size": [
         {
           text: [
