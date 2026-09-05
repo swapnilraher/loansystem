@@ -2,8 +2,9 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import { Clock, Download, Eye, FileText, ImageOff, Loader2, Paperclip, Send, Smile, X } from "lucide-react"
-import { collection, doc, onSnapshot, query, where } from "firebase/firestore"
+import { collection, doc, limit, onSnapshot, query, where } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { getBrowserCache, setBrowserCache } from "@/lib/cache/browserCache"
 import { DOCUMENT_ACCEPT, PHOTO_ACCEPT, validateMedia } from "@/lib/whatsappMediaShared"
 import { cn } from "@/lib/utils"
 import { Sheet, useToast } from "@/components/admin/ui"
@@ -74,8 +75,20 @@ export function WhatsAppChatSheet({
 
   useEffect(() => {
     if (!leadId || !localNumber) return
+
+    // 1. Instant Cache Check for 0ms initial render
+    const cacheKey = `wa_chat_${localNumber}`
+    const cached = getBrowserCache<ChatMessage[]>(cacheKey)
+    if (cached && cached.length > 0) {
+      setMessages(cached)
+    }
+
     const unsubscribe = onSnapshot(
-      query(collection(db, "whatsapp_messages"), where("phone", "==", localNumber)),
+      query(
+        collection(db, "whatsapp_messages"),
+        where("phone", "==", localNumber),
+        limit(50)
+      ),
       snapshot => {
         const rows: ChatMessage[] = snapshot.docs.map(d => {
           const data = d.data()
@@ -94,6 +107,7 @@ export function WhatsAppChatSheet({
         // Sorted in memory so Firestore does not need a composite index.
         rows.sort((a, b) => a.sortKey - b.sortKey)
         setMessages(rows)
+        setBrowserCache(cacheKey, rows, 2 * 60 * 1000)
       },
       error => console.error("Error listening to WhatsApp messages:", error)
     )

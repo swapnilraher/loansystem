@@ -287,44 +287,136 @@ export default function WhatsAppCampaignsPage() {
     })
 
     try {
-      const response = await authedJson("/api/admin/wa-campaigns/dispatch", "POST", {
+      // 1. Initialize campaign in MongoDB first so campaignId is established and saved
+      const initResponse = await authedJson("/api/admin/wa-campaigns/dispatch", "POST", {
+        action: "init",
         campaignName: cName,
+        totalCount: valid.length,
         mobileColumn,
         nameColumn,
         message1,
         message2,
-        recipients: valid,
       })
 
-      const data = await response.json()
-      if (!data.success) {
-        throw new Error(data.error || "Failed to dispatch WhatsApp messages.")
+      if (!initResponse.ok) {
+        const errText = await initResponse.text()
+        let errMsg = "Failed to initialize campaign."
+        try {
+          const parsed = JSON.parse(errText)
+          if (parsed.error) errMsg = parsed.error
+        } catch {
+          if (errText) errMsg = errText.slice(0, 120)
+        }
+        throw new Error(errMsg)
       }
 
-      const results: DispatchItem[] = (data.results || []).map((r: any) => ({
-        id: r.id,
-        name: r.name,
-        phone: r.phone,
-        status: r.status,
-        error: r.error,
-      }))
+      const initData = await initResponse.json()
+      const campaignId = initData.campaignId
 
-      setDispatch({
-        open: true,
-        campaignId: data.campaignId || "",
-        name: cName,
-        total: data.total || valid.length,
-        processed: data.total || valid.length,
-        sent: data.sent || 0,
-        failed: data.failed || 0,
-        status: "completed",
-        error: data.firestoreWarning || undefined,
-        log: results,
-      })
+      setDispatch(prev => (prev ? { ...prev, campaignId } : null))
+      setLiveId(campaignId)
 
-      if (data.campaignId) {
-        setLiveId(data.campaignId)
+      // 2. Dispatch in safe, real-time chunks (6 recipients per batch) to prevent serverless timeouts
+      const CHUNK_SIZE = 6
+      let totalSent = 0
+      let totalFailed = 0
+      const allResults: DispatchItem[] = []
+
+      for (let i = 0; i < valid.length; i += CHUNK_SIZE) {
+        const chunk = valid.slice(i, i + CHUNK_SIZE).map((r, offset) => ({
+          ...r,
+          index: i + offset,
+        }))
+
+        try {
+          const chunkResponse = await authedJson("/api/admin/wa-campaigns/dispatch", "POST", {
+            action: "chunk",
+            campaignId,
+            chunk,
+            message1,
+            message2,
+          })
+
+          if (!chunkResponse.ok) {
+            const errText = await chunkResponse.text()
+            console.warn("Chunk dispatch error:", errText)
+            chunk.forEach(r => {
+              totalFailed++
+              allResults.push({
+                id: `r_${r.index}`,
+                name: r.name,
+                phone: r.phone,
+                status: "failed",
+                error: "Network error on batch",
+              })
+            })
+          } else {
+            const chunkData = await chunkResponse.json()
+            totalSent += chunkData.sent || 0
+            totalFailed += chunkData.failed || 0
+            ;(chunkData.results || []).forEach((r: any) => {
+              allResults.push({
+                id: r.id,
+                name: r.name,
+                phone: r.phone,
+                status: r.status,
+                error: r.error,
+              })
+            })
+          }
+        } catch (chunkErr: any) {
+          console.warn("Chunk network failure:", chunkErr)
+          chunk.forEach(r => {
+            totalFailed++
+            allResults.push({
+              id: `r_${r.index}`,
+              name: r.name,
+              phone: r.phone,
+              status: "failed",
+              error: chunkErr?.message || "Failed to dispatch",
+            })
+          })
+        }
+
+        // Update real-time modal display progressively
+        const processedCount = Math.min(valid.length, i + chunk.length)
+        setDispatch(prev =>
+          prev
+            ? {
+                ...prev,
+                campaignId,
+                processed: processedCount,
+                sent: totalSent,
+                failed: totalFailed,
+                log: [...allResults],
+              }
+            : null
+        )
       }
+
+      // 3. Finalize campaign status in MongoDB
+      try {
+        await authedJson("/api/admin/wa-campaigns/dispatch", "POST", {
+          action: "finalize",
+          campaignId,
+        })
+      } catch (finErr) {
+        console.warn("Finalize warning:", finErr)
+      }
+
+      setDispatch(prev =>
+        prev
+          ? {
+              ...prev,
+              status: "completed",
+              campaignId,
+              processed: valid.length,
+              sent: totalSent,
+              failed: totalFailed,
+              log: allResults,
+            }
+          : null
+      )
 
       void loadHistory()
     } catch (error) {

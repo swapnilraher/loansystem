@@ -2,7 +2,7 @@
 
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useSearchParams } from "next/navigation"
-import { Download, Filter, Megaphone, Plus, Tags, Upload, UserPlus, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, Download, Filter, Megaphone, Plus, Tags, Upload, UserPlus, X } from "lucide-react"
 import * as XLSX from "xlsx"
 import Papa, { type ParseResult } from "papaparse"
 
@@ -138,6 +138,12 @@ function LeadsPageContent({
   const [bulkAction, setBulkAction] = useState<"status" | "assign" | null>(null)
   const [bulkValue, setBulkValue] = useState("")
   const [bulkBusy, setBulkBusy] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filters])
 
   /**
    * Filters survive a refresh, so a staff member who narrowed the pipeline down
@@ -264,6 +270,13 @@ function LeadsPageContent({
     () => sortLeads(preStatus.filter(lead => matchesStatus(lead, filters.status)), now),
     [preStatus, filters.status, now]
   )
+
+  const totalRows = rows.length
+  const totalPages = Math.max(1, Math.ceil(totalRows / pageSize))
+  const paginatedRows = useMemo(() => {
+    const start = (currentPage - 1) * pageSize
+    return rows.slice(start, start + pageSize)
+  }, [rows, currentPage, pageSize])
 
   const chips = useMemo(
     () => [
@@ -795,7 +808,7 @@ function LeadsPageContent({
             )}
           </p>
         }
-        leads={rows}
+        leads={paginatedRows}
         loading={loading}
         error={error}
         now={now}
@@ -811,6 +824,60 @@ function LeadsPageContent({
         hasFilters={hasFilters}
         onClearFilters={clearFilters}
       />
+
+      {/* Pagination Controls */}
+      {totalRows > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-admin-surface border border-admin-border rounded-admin-md">
+          <div className="text-admin-xs text-admin-subtle">
+            Showing <span className="font-semibold text-admin-text">{(currentPage - 1) * pageSize + 1}</span> to{" "}
+            <span className="font-semibold text-admin-text">{Math.min(currentPage * pageSize, totalRows)}</span> of{" "}
+            <span className="font-semibold text-admin-text">{totalRows}</span> leads
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 text-admin-xs text-admin-subtle">
+              <span>Show</span>
+              <select
+                value={pageSize}
+                onChange={e => {
+                  setPageSize(Number(e.target.value))
+                  setCurrentPage(1)
+                }}
+                className="admin-focus h-7 rounded-admin-sm border border-admin-border bg-admin-surface px-2 text-admin-xs text-admin-text font-medium cursor-pointer"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+              <span>per page</span>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="admin-focus inline-flex items-center justify-center w-7 h-7 rounded-admin-sm border border-admin-border text-admin-subtle hover:text-admin-text hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                title="Previous page"
+              >
+                <ChevronLeft size={14} />
+              </button>
+
+              <span className="text-admin-xs font-semibold text-admin-text px-2">
+                {currentPage} / {totalPages}
+              </span>
+
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+                className="admin-focus inline-flex items-center justify-center w-7 h-7 rounded-admin-sm border border-admin-border text-admin-subtle hover:text-admin-text hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                title="Next page"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <LeadFiltersSheet
         open={filtersOpen}

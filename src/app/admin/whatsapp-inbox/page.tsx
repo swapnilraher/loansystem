@@ -19,6 +19,7 @@ import {
 import { collection, limit, onSnapshot, orderBy, query, doc, updateDoc, serverTimestamp } from "firebase/firestore"
 
 import { db } from "@/lib/firebase"
+import { getBrowserCache, setBrowserCache } from "@/lib/cache/browserCache"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/context/AuthContext"
 import { useWaNotificationsContext } from "@/context/WaNotificationsContext"
@@ -48,11 +49,9 @@ import {
 } from "@/lib/whatsappMediaShared"
 
 /**
- * Newest N messages across every conversation. The thread list is built from
- * these client-side, so this is the one cap that decides how far back the
- * inbox can see -- there is no per-conversation paging.
+ * Reduced message cap to 80 to dramatically minimize database reads.
  */
-const MESSAGE_LIMIT = 600
+const MESSAGE_LIMIT = 80
 
 const EMOJI = ["😀", "😂", "🙂", "🙏", "👍", "👏", "🔥", "🎉", "❤️", "📞", "💬", "💰"]
 
@@ -100,9 +99,17 @@ export default function WhatsAppInboxPage() {
   const { users } = useUsers()
   const mutations = useLeadMutations()
 
-  const [messages, setMessages] = useState<WaMessage[]>([])
-  const [sessions, setSessions] = useState<Record<string, WaSession>>({})
-  const [loading, setLoading] = useState(true)
+  const [messages, setMessages] = useState<WaMessage[]>(() => {
+    return getBrowserCache<WaMessage[]>("wa_inbox_messages") || []
+  })
+  const [sessions, setSessions] = useState<Record<string, WaSession>>(() => {
+    return getBrowserCache<Record<string, WaSession>>("wa_inbox_sessions") || {}
+  })
+  const [loading, setLoading] = useState(() => {
+    const cached = getBrowserCache<WaMessage[]>("wa_inbox_messages")
+    return !cached || cached.length === 0
+  })
+  const [messageLimit, setMessageLimit] = useState(80)
   const [error, setError] = useState<string | null>(null)
   const [detailLead, setDetailLead] = useState<Lead | null>(null)
 
@@ -162,27 +169,27 @@ export default function WhatsAppInboxPage() {
       query(
         collection(db, "whatsapp_messages"),
         orderBy("timestamp", "desc"),
-        limit(MESSAGE_LIMIT)
+        limit(messageLimit)
       ),
       snapshot => {
-        setMessages(
-          snapshot.docs.map(d => {
-            const data = d.data()
-            return {
-              id: d.id,
-              phone: localNumber(String(data.phone ?? "")),
-              text: data.text,
-              sender: data.sender,
-              userName: data.userName,
-              timestamp: data.timestamp,
-              mediaType: data.mediaType || "",
-              mediaUrl: data.mediaUrl || "",
-              filename: data.filename || "",
-              leadId: data.leadId || "",
-              sortKey: toDate(data.timestamp)?.getTime() ?? 0,
-            }
-          })
-        )
+        const rows = snapshot.docs.map(d => {
+          const data = d.data()
+          return {
+            id: d.id,
+            phone: localNumber(String(data.phone ?? "")),
+            text: data.text,
+            sender: data.sender,
+            userName: data.userName,
+            timestamp: data.timestamp,
+            mediaType: data.mediaType || "",
+            mediaUrl: data.mediaUrl || "",
+            filename: data.filename || "",
+            leadId: data.leadId || "",
+            sortKey: toDate(data.timestamp)?.getTime() ?? 0,
+          }
+        })
+        setMessages(rows)
+        setBrowserCache("wa_inbox_messages", rows, 2 * 60 * 1000)
         setError(null)
         setLoading(false)
       },
@@ -193,12 +200,12 @@ export default function WhatsAppInboxPage() {
       }
     )
     return () => unsubscribe()
-  }, [])
+  }, [messageLimit])
 
-  /** Bot session state — supplies the customer's name and how far the flow got. */
+  /** Bot session state — capped to 100 to prevent full collection scan */
   useEffect(() => {
     const unsubscribe = onSnapshot(
-      collection(db, "waSession"),
+      query(collection(db, "waSession"), limit(100)),
       snapshot => {
         const next: Record<string, WaSession> = {}
         snapshot.docs.forEach(d => {
@@ -212,6 +219,7 @@ export default function WhatsAppInboxPage() {
           }
         })
         setSessions(next)
+        setBrowserCache("wa_inbox_sessions", next, 5 * 60 * 1000)
       },
       err => console.error("waSession listener failed:", err)
     )
@@ -647,6 +655,17 @@ export default function WhatsAppInboxPage() {
                 </button>
               )
             })
+          )}
+
+          {messages.length >= messageLimit && !loading && (
+            <div className="p-3 text-center border-t border-wa-divider">
+              <button
+                onClick={() => setMessageLimit(prev => prev + 80)}
+                className="text-admin-xs font-semibold text-wa-accent hover:underline py-1 px-3 rounded-admin-sm bg-wa-hover transition-colors"
+              >
+                Load older messages ({messageLimit} active)
+              </button>
+            </div>
           )}
         </div>
       </aside>

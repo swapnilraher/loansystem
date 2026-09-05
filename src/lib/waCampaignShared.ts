@@ -134,8 +134,13 @@ export function normalizePhone(raw: unknown): { phone: string | null; reason: st
     if (Number.isFinite(asNumber)) text = asNumber.toFixed(0)
   }
 
+  // Excel frequently exports numbers as floats with trailing '.0'
+  if (text.includes(".")) {
+    text = text.split(".")[0].trim()
+  }
+
   const digits = text.replace(/\D/g, "")
-  if (!digits) return { phone: null, reason: "No digits" }
+  if (!digits) return { phone: null, reason: "No digits or blank" }
 
   let ten = ""
 
