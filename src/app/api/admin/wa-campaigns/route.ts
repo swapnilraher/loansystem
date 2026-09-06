@@ -72,9 +72,22 @@ export async function GET(request: Request) {
 function cleanMessage(raw: unknown): CampaignMessage {
   const value = (raw || {}) as Partial<CampaignMessage>
   const rawTemplate = String(value.templateName || "").trim()
-  const isConnectorWithImg = rawTemplate.toLowerCase() === "connector"
-  const isConnectorWithoutImg = rawTemplate.toLowerCase() === "connector_without_image" || rawTemplate.toLowerCase() === "connector_without_images"
-  const isAnyConnector = isConnectorWithImg || isConnectorWithoutImg
+  const tLower = rawTemplate.toLowerCase()
+  const isConnectorWithoutImg = tLower === "connector_without_image" || tLower === "connector_without_images"
+  const isAnyConnector = tLower === "connector" || isConnectorWithoutImg
+  const isNonImageTemplate =
+    isConnectorWithoutImg ||
+    tLower === "otp" ||
+    tLower === "car3" ||
+    tLower === "payment_received" ||
+    tLower === "hello_world" ||
+    tLower === "auth_otp_venkateshwara" ||
+    tLower === "3p_direct_integration_test_template"
+
+  const finalImageUrl = isNonImageTemplate ? "" : String(value.imageUrl || "").trim()
+  const finalImageSource: CampaignImageSource = isNonImageTemplate || !finalImageUrl || value.imageSource === "none"
+    ? "none"
+    : (value.imageSource === "upload" || value.imageSource === "url" ? value.imageSource : "none")
 
   return {
     enabled: value.enabled === true,
@@ -84,12 +97,8 @@ function cleanMessage(raw: unknown): CampaignMessage {
     bodyParams: Array.isArray(value.bodyParams) && value.bodyParams.length > 0
       ? value.bodyParams.map(p => String(p ?? ""))
       : (isAnyConnector ? ["{{Name}}"] : []),
-    imageUrl: isConnectorWithoutImg
-      ? ""
-      : String(value.imageUrl || (isConnectorWithImg ? "https://res.cloudinary.com/ugpy6fko/image/upload/v1788543861/wa-campaigns/u3xz2l1lpx7wylsxitog.png" : "")).trim(),
-    imageSource: isConnectorWithoutImg
-      ? "none"
-      : (value.imageSource === "upload" || value.imageSource === "url" ? value.imageSource : (isConnectorWithImg ? "url" : "none")),
+    imageUrl: finalImageUrl,
+    imageSource: finalImageSource,
     text: String(value.text || ""),
   }
 }

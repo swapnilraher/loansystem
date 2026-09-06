@@ -186,14 +186,22 @@ export async function sendOne(
     const isConnectorWithoutImg = tName === "connector_without_image" || tName === "connector_without_images"
     const isAnyConnector = isConnectorWithImg || isConnectorWithoutImg
 
-    // Only include image header if template is NOT without_image and an imageUrl is provided
-    const imgUrl = (!isConnectorWithoutImg && message.imageSource !== "none")
-      ? (message.imageUrl || (isConnectorWithImg ? "https://res.cloudinary.com/ugpy6fko/image/upload/v1788543861/wa-campaigns/u3xz2l1lpx7wylsxitog.png" : ""))
+    // Templates that do NOT support image headers in Meta
+    const isNonImageTemplate =
+      isConnectorWithoutImg ||
+      tName === "otp" ||
+      tName === "car3" ||
+      tName === "payment_received" ||
+      tName === "hello_world" ||
+      tName === "auth_otp_venkateshwara" ||
+      tName === "3p_direct_integration_test_template"
+
+    // Only include image header if template supports it, user chosen an image source, and an imageUrl is provided.
+    // NEVER auto-attach Cloudinary image or attach an image header to non-image templates!
+    const imgUrl = (!isNonImageTemplate && message.imageSource !== "none" && message.imageUrl)
+      ? message.imageUrl.trim()
       : ""
 
-    // A template whose header is an IMAGE must be given one, and it has to be a
-    // public link — Meta fetches it itself, so a server path would 404 on their
-    // side rather than ours.
     if (imgUrl) {
       components.push({
         type: "header",

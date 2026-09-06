@@ -281,13 +281,17 @@ export function previewMessage(
     text = text.replace(/\{\{\s*customer_name\s*\}\}/g, recipient.name || "Partner")
   }
 
-  const hasImage = template ? template.hasImageHeader : (!isConnectorWithoutImg && (isConnector || Boolean(message.imageUrl)))
-  const defaultImg = (isConnector && hasImage)
-    ? "https://res.cloudinary.com/ugpy6fko/image/upload/v1788543861/wa-campaigns/u3xz2l1lpx7wylsxitog.png"
+  // Only templates with an explicit image header can have an image. Never attach an image to non-image templates!
+  const hasImage = template
+    ? Boolean(template.hasImageHeader)
+    : (isConnector && !isConnectorWithoutImg)
+
+  const finalImage = (hasImage && message.imageSource !== "none" && message.imageUrl)
+    ? message.imageUrl.trim()
     : ""
 
   return {
-    image: hasImage ? (message.imageUrl || defaultImg) : "",
+    image: finalImage,
     text: text || `(template: ${message.templateName})`,
     footerText: template?.footerText || defaultFooter,
     buttons: (template?.buttons && template.buttons.length > 0) ? template.buttons : defaultButtons,

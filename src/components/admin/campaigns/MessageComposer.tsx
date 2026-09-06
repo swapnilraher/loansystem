@@ -77,11 +77,11 @@ export default function MessageComposer({
       message.bodyParams[i] ?? (i === 0 ? "{{Name}}" : "")
     )
     const hasImageHeader = Boolean(chosen?.hasImageHeader)
-    const defaultImg = (name === "connector" && hasImageHeader)
-      ? "https://res.cloudinary.com/ugpy6fko/image/upload/v1788543861/wa-campaigns/u3xz2l1lpx7wylsxitog.png"
-      : ""
-    const nextImageUrl = hasImageHeader ? (message.imageUrl || defaultImg) : ""
-    const nextImageSource: CampaignImageSource = hasImageHeader && nextImageUrl ? "url" : "none"
+    
+    // CRITICAL: NEVER auto-attach Cloudinary image!
+    // If template has NO image header, forcefully reset imageUrl to "" and imageSource to "none"
+    const nextImageUrl = hasImageHeader ? (message.imageSource !== "none" ? message.imageUrl : "") : ""
+    const nextImageSource: CampaignImageSource = hasImageHeader && nextImageUrl ? message.imageSource : "none"
 
     set({
       templateName: name || "",
@@ -118,7 +118,17 @@ export default function MessageComposer({
     }
   }
 
-  const showImage = allowImage && (message.mode === "custom" || template?.hasImageHeader)
+  const isTemplateMode = message.mode === "template"
+  const hasTemplateSelected = Boolean(message.templateName && template)
+  const templateHasImage = Boolean(template?.hasImageHeader)
+
+  // In template mode: ONLY show image options if a template IS selected AND that template has an image header!
+  // If template is empty or has no image header (like otp, connector_without_image), NEVER show image options!
+  const showImage = allowImage && (
+    isTemplateMode
+      ? (hasTemplateSelected && templateHasImage)
+      : true
+  )
 
   return (
     <div
@@ -147,7 +157,13 @@ export default function MessageComposer({
               <button
                 key={mode}
                 type="button"
-                onClick={() => set({ mode })}
+                onClick={() => {
+                  if (mode === "template" && (!template || !template.hasImageHeader)) {
+                    set({ mode, imageUrl: "", imageSource: "none" })
+                  } else {
+                    set({ mode })
+                  }
+                }}
                 className={`rounded-xl px-3 py-2 text-xs font-black uppercase tracking-wide transition-colors ${
                   message.mode === mode ? "bg-white text-secondary shadow-sm" : "text-slate-500"
                 }`}

@@ -39,15 +39,15 @@ export async function POST(request: Request) {
       
       const components: any[] = [];
 
-      // If template is connector, it requires a header image
-      if (templateName === "connector") {
+      // If template is connector, it requires a header image if mediaUrl is provided
+      if (templateName === "connector" && mediaUrl) {
         components.push({
           type: "header",
           parameters: [
             {
               type: "image",
               image: {
-                link: mediaUrl || "https://res.cloudinary.com/ugpy6fko/image/upload/v1788543861/wa-campaigns/u3xz2l1lpx7wylsxitog.png"
+                link: mediaUrl
               }
             }
           ]
