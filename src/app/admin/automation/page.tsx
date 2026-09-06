@@ -17,6 +17,8 @@ import {
   XCircle,
   ExternalLink,
   Sparkles,
+  Phone,
+  MessageSquare,
 } from "lucide-react"
 import { authedFetch, authedJson } from "@/lib/authedFetch"
 import { useAuth } from "@/context/AuthContext"
@@ -33,6 +35,7 @@ import {
   type CampaignSummary,
   type InvalidRecipient,
   type WaTemplate,
+  type WaTemplateButton,
 } from "@/lib/waCampaignShared"
 
 /**
@@ -142,19 +145,6 @@ export default function WhatsAppCampaignsPage() {
       if (!result.success) throw new Error(result.error || "Could not load templates.")
       const list: WaTemplate[] = result.templates || []
       setTemplates(list)
-      setMessage1(prev => {
-        if (!prev.templateName && list.some(t => t.name === "connector")) {
-          return {
-            ...prev,
-            templateName: "connector",
-            templateLanguage: "en",
-            bodyParams: ["{{Name}}"],
-            imageUrl: "https://res.cloudinary.com/ugpy6fko/image/upload/v1788543861/wa-campaigns/u3xz2l1lpx7wylsxitog.png",
-            imageSource: "url",
-          }
-        }
-        return prev
-      })
     } catch (error) {
       setTemplateError(error instanceof Error ? error.message : "Could not load templates.")
     } finally {
@@ -491,7 +481,7 @@ export default function WhatsAppCampaignsPage() {
   const perRecipient = (message1.enabled ? 1 : 0) + (message2.enabled ? 1 : 0)
 
   return (
-    <div className="w-full space-y-6 sm:space-y-8 pb-16 sm:pb-6">
+    <div className="w-full space-y-6 sm:space-y-8 pb-32 sm:pb-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-secondary sm:text-3xl">
@@ -873,51 +863,92 @@ export default function WhatsAppCampaignsPage() {
         )}
       </section>
 
+      {/* Mobile Floating Action Bar */}
+      {sheet && !showPreview && !dispatch?.open && (
+        <div className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] left-0 right-0 z-40 lg:hidden p-3 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-xl flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-black uppercase tracking-wider text-slate-400 truncate">
+              {valid.length} Valid Recipients
+            </p>
+            <p className="text-xs font-black text-secondary truncate">
+              {blocker ? blocker : (campaignName.trim() || "Ready to send")}
+            </p>
+          </div>
+          <button
+            disabled={!!blocker}
+            onClick={() => setShowPreview(true)}
+            className="shrink-0 flex items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-xs font-black text-white shadow-md shadow-primary/25 disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none active:scale-95 transition-all"
+          >
+            <Eye size={14} />
+            <span>Preview &amp; Send</span>
+          </button>
+        </div>
+      )}
+
       {/* Preview modal ------------------------------------------------------- */}
       {showPreview && (
-        <div className="fixed inset-0 z-[200] flex items-end justify-center bg-slate-900/60 p-0 pb-[calc(1.5rem+env(safe-area-inset-bottom))] backdrop-blur-sm sm:items-center sm:p-6 sm:pb-6 animate-in fade-in duration-200">
-          <div className="max-h-[85vh] sm:max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white p-5 sm:rounded-3xl sm:p-6 shadow-2xl border border-slate-100">
-            <div className="flex items-start justify-between gap-4">
+        <div className="fixed inset-0 z-[200] flex flex-col justify-end sm:justify-center items-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 p-0 sm:p-4">
+          <div className="flex flex-col w-full max-w-lg h-[92dvh] sm:h-auto sm:max-h-[88vh] rounded-t-3xl sm:rounded-3xl bg-white shadow-2xl border border-slate-100 overflow-hidden">
+            {/* Pinned Header */}
+            <div className="shrink-0 flex items-start justify-between gap-4 p-4 sm:p-5 border-b border-slate-100 bg-white">
               <div>
-                <h3 className="text-lg font-black text-secondary">Preview</h3>
+                <h3 className="text-lg font-black text-secondary">Campaign Preview</h3>
                 <p className="text-xs font-medium text-slate-500">
                   As {sample.name || "this recipient"} ({displayPhone(sample.phone)}) will see it.
                 </p>
               </div>
               <button
                 onClick={() => setShowPreview(false)}
-                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100"
+                className="rounded-full p-2 text-slate-400 hover:bg-slate-100 active:scale-95 transition-all"
                 aria-label="Close preview"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
 
-            <div className="mt-5 space-y-4 rounded-3xl bg-[#e5ddd5] p-4">
-              {message1.enabled && <Bubble label="Message 1" {...preview1} />}
-              {message2.enabled && <Bubble label="Message 2" {...preview2} />}
+            {/* Scrollable middle content */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 overscroll-contain">
+              <div className="space-y-4 rounded-3xl bg-[#efeae2] p-3 sm:p-4 border border-slate-200/50">
+                {message1.enabled && <Bubble label="Message 1" {...preview1} />}
+                {message2.enabled && <Bubble label="Message 2" {...preview2} />}
+              </div>
+
+              <div className="rounded-2xl bg-slate-50 p-4 text-xs font-bold text-slate-600 border border-slate-100">
+                <div className="flex items-center justify-between">
+                  <span>Target list</span>
+                  <span className="text-secondary font-black">{valid.length} recipients</span>
+                </div>
+                <div className="mt-1 flex items-center justify-between text-slate-500">
+                  <span>Total messages</span>
+                  <span>{valid.length * perRecipient} ({perRecipient} per recipient)</span>
+                </div>
+                {invalid.length > 0 && (
+                  <div className="mt-1 flex items-center justify-between text-amber-600">
+                    <span>Skipped invalid rows</span>
+                    <span>{invalid.length} skipped</span>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="mt-5 rounded-2xl bg-slate-50 p-4 text-xs font-bold text-slate-600">
-              {valid.length} recipients · {valid.length * perRecipient} messages
-              {invalid.length > 0 && ` · ${invalid.length} skipped`}
-            </div>
-
-            <div className="mt-4 flex gap-3">
-              <button
-                onClick={() => setShowPreview(false)}
-                className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600 hover:bg-slate-50"
-              >
-                Back
-              </button>
-              <button
-                onClick={send}
-                disabled={sending}
-                className="flex flex-[2] items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white disabled:bg-slate-300"
-              >
-                {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                {sending ? "Starting…" : `Send to ${valid.length}`}
-              </button>
+            {/* Pinned Sticky Bottom Footer */}
+            <div className="shrink-0 p-4 sm:p-5 border-t border-slate-100 bg-white/95 backdrop-blur-md pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="flex-1 rounded-2xl border border-slate-200 px-4 py-3.5 text-sm font-black text-slate-600 hover:bg-slate-50 active:scale-95 transition-all"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={send}
+                  disabled={sending}
+                  className="flex flex-[2] items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 px-4 py-3.5 text-sm font-black text-white shadow-lg shadow-emerald-600/25 disabled:bg-slate-300 disabled:shadow-none active:scale-95 transition-all"
+                >
+                  {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                  {sending ? "Starting…" : `Send to ${valid.length}`}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -925,9 +956,10 @@ export default function WhatsAppCampaignsPage() {
 
       {/* Real-time Dispatch Modal -------------------------------------------- */}
       {dispatch?.open && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 p-4 pb-[calc(2rem+env(safe-area-inset-bottom))] backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="max-h-[90vh] overflow-y-auto w-full max-w-lg rounded-3xl bg-white p-5 sm:p-6 shadow-2xl border border-slate-100">
-            <div className="flex items-start justify-between gap-4">
+        <div className="fixed inset-0 z-[200] flex flex-col justify-end sm:justify-center items-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 p-0 sm:p-4">
+          <div className="flex flex-col w-full max-w-lg h-[92dvh] sm:h-auto sm:max-h-[88vh] rounded-t-3xl sm:rounded-3xl bg-white shadow-2xl border border-slate-100 overflow-hidden">
+            {/* Pinned Header */}
+            <div className="shrink-0 flex items-start justify-between gap-4 p-4 sm:p-5 border-b border-slate-100 bg-white">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-primary">
@@ -958,177 +990,180 @@ export default function WhatsAppCampaignsPage() {
               {dispatch.status === "completed" && (
                 <button
                   onClick={() => setDispatch(null)}
-                  className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100"
+                  className="rounded-full p-2 text-slate-400 hover:bg-slate-100 active:scale-95 transition-all"
                   aria-label="Close"
                 >
-                  <X size={18} />
+                  <X size={20} />
                 </button>
               )}
             </div>
 
-            {/* Progress bar */}
-            <div className="mt-5">
-              <div className="mb-2 flex items-center justify-between text-xs font-black text-slate-600">
-                <span>
-                  {dispatch.processed} of {dispatch.total} processed
-                </span>
-                <span className="text-primary font-black">
-                  {dispatch.total > 0
-                    ? Math.round((dispatch.processed / dispatch.total) * 100)
-                    : 0}
-                  %
-                </span>
+            {/* Scrollable Body */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 overscroll-contain">
+              {/* Progress bar */}
+              <div>
+                <div className="mb-2 flex items-center justify-between text-xs font-black text-slate-600">
+                  <span>
+                    {dispatch.processed} of {dispatch.total} processed
+                  </span>
+                  <span className="text-primary font-black">
+                    {dispatch.total > 0
+                      ? Math.round((dispatch.processed / dispatch.total) * 100)
+                      : 0}
+                    %
+                  </span>
+                </div>
+                <div className="h-3 w-full overflow-hidden rounded-full bg-slate-100 p-0.5">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      dispatch.status === "completed"
+                        ? "bg-emerald-500"
+                        : dispatch.status === "error"
+                        ? "bg-rose-500"
+                        : "bg-gradient-to-r from-primary to-emerald-500"
+                    }`}
+                    style={{
+                      width: `${
+                        dispatch.total > 0
+                          ? Math.min(100, (dispatch.processed / dispatch.total) * 100)
+                          : 0
+                      }%`,
+                    }}
+                  />
+                </div>
               </div>
-              <div className="h-3 w-full overflow-hidden rounded-full bg-slate-100 p-0.5">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    dispatch.status === "completed"
-                      ? "bg-emerald-500"
-                      : dispatch.status === "error"
-                      ? "bg-rose-500"
-                      : "bg-gradient-to-r from-primary to-emerald-500"
-                  }`}
-                  style={{
-                    width: `${
-                      dispatch.total > 0
-                        ? Math.min(100, (dispatch.processed / dispatch.total) * 100)
-                        : 0
-                    }%`,
-                  }}
-                />
-              </div>
-            </div>
 
-            {/* Stat counts with Realtime Timer */}
-            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-              <div className="rounded-2xl bg-slate-50 p-3">
-                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total</p>
-                <p className="text-lg font-black text-secondary">{dispatch.total}</p>
-              </div>
-              <div className="rounded-2xl bg-emerald-50 p-3">
-                <p className="text-[10px] font-black uppercase tracking-wider text-emerald-600">Sent</p>
-                <p className="text-lg font-black text-emerald-700">{dispatch.sent}</p>
-              </div>
-              <div className="rounded-2xl bg-rose-50 p-3">
-                <p className="text-[10px] font-black uppercase tracking-wider text-rose-600">Failed</p>
-                <p className="text-lg font-black text-rose-700">{dispatch.failed}</p>
-              </div>
-              <div className="rounded-2xl bg-indigo-50/80 p-3 border border-indigo-100/80">
-                <p className="text-[10px] font-black uppercase tracking-wider text-indigo-600 flex items-center justify-center gap-1">
-                  <Clock size={11} className={dispatch.status === "sending" ? "animate-spin text-indigo-600" : "text-indigo-600"} /> Time
-                </p>
-                <p className="text-lg font-black text-indigo-700 font-mono">
-                  {elapsedSeconds}s
-                </p>
-              </div>
-            </div>
-
-            {/* Error banner if any */}
-            {dispatch.error && (
-              <div className="mt-4 flex items-center gap-2 rounded-2xl bg-rose-50 p-3 text-xs font-bold text-rose-700">
-                <AlertTriangle size={15} className="shrink-0" />
-                <span>{dispatch.error}</span>
-              </div>
-            )}
-
-            {/* Live activity log */}
-            <div className="mt-4">
-              <p className="mb-2 text-[11px] font-black uppercase tracking-wider text-slate-400">
-                Live Activity ({dispatch.log.length})
-              </p>
-              <div className="max-h-52 overflow-y-auto space-y-1.5 rounded-2xl border border-slate-100 bg-slate-50/50 p-2">
-                {dispatch.log.length === 0 ? (
-                  <p className="py-6 text-center text-xs text-slate-400">
-                    Preparing messages...
+              {/* Stat counts with Realtime Timer */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                <div className="rounded-2xl bg-slate-50 p-3">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total</p>
+                  <p className="text-lg font-black text-secondary">{dispatch.total}</p>
+                </div>
+                <div className="rounded-2xl bg-emerald-50 p-3">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-emerald-600">Sent</p>
+                  <p className="text-lg font-black text-emerald-700">{dispatch.sent}</p>
+                </div>
+                <div className="rounded-2xl bg-rose-50 p-3">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-rose-600">Failed</p>
+                  <p className="text-lg font-black text-rose-700">{dispatch.failed}</p>
+                </div>
+                <div className="rounded-2xl bg-indigo-50/80 p-3 border border-indigo-100/80">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-indigo-600 flex items-center justify-center gap-1">
+                    <Clock size={11} className={dispatch.status === "sending" ? "animate-spin text-indigo-600" : "text-indigo-600"} /> Time
                   </p>
-                ) : (
-                  dispatch.log.map((item, idx) => (
-                    <div
-                      key={item.id || idx}
-                      className="flex items-center justify-between gap-2 rounded-xl bg-white px-3 py-2 text-xs shadow-sm"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="shrink-0 flex items-center justify-center w-6 h-6 rounded-lg bg-slate-100 text-[10px] font-mono font-black text-slate-600">
-                          #{item.index ?? (idx + 1)}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="truncate font-black text-secondary">
-                            {item.name || "Recipient"}
-                          </p>
-                          <p className="text-[11px] text-slate-400">{displayPhone(item.phone)}</p>
+                  <p className="text-lg font-black text-indigo-700 font-mono">
+                    {elapsedSeconds}s
+                  </p>
+                </div>
+              </div>
+
+              {/* Error banner if any */}
+              {dispatch.error && (
+                <div className="flex items-center gap-2 rounded-2xl bg-rose-50 p-3 text-xs font-bold text-rose-700">
+                  <AlertTriangle size={15} className="shrink-0" />
+                  <span>{dispatch.error}</span>
+                </div>
+              )}
+
+              {/* Live activity log */}
+              <div>
+                <p className="mb-2 text-[11px] font-black uppercase tracking-wider text-slate-400">
+                  Live Activity ({dispatch.log.length})
+                </p>
+                <div className="max-h-56 sm:max-h-64 overflow-y-auto space-y-1.5 rounded-2xl border border-slate-100 bg-slate-50/50 p-2">
+                  {dispatch.log.length === 0 ? (
+                    <p className="py-6 text-center text-xs text-slate-400">
+                      Preparing messages...
+                    </p>
+                  ) : (
+                    dispatch.log.map((item, idx) => (
+                      <div
+                        key={item.id || idx}
+                        className="flex items-center justify-between gap-2 rounded-xl bg-white px-3 py-2 text-xs shadow-sm"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="shrink-0 flex items-center justify-center w-6 h-6 rounded-lg bg-slate-100 text-[10px] font-mono font-black text-slate-600">
+                            #{item.index ?? (idx + 1)}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate font-black text-secondary">
+                              {item.name || "Recipient"}
+                            </p>
+                            <p className="text-[11px] text-slate-400">{displayPhone(item.phone)}</p>
+                          </div>
+                        </div>
+                        <div className="shrink-0 flex items-center gap-2">
+                          {item.time && (
+                            <span className="text-[10px] font-mono font-medium text-slate-400">
+                              {item.time}
+                            </span>
+                          )}
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wide ${
+                              item.status === "sent"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-rose-100 text-rose-700"
+                            }`}
+                          >
+                            {item.status === "sent" ? (
+                              <>
+                                <CheckCircle2 size={11} /> Sent
+                              </>
+                            ) : (
+                              <>
+                                <XCircle size={11} /> Failed
+                              </>
+                            )}
+                          </span>
                         </div>
                       </div>
-                      <div className="shrink-0 flex items-center gap-2">
-                        {item.time && (
-                          <span className="text-[10px] font-mono font-medium text-slate-400">
-                            {item.time}
-                          </span>
-                        )}
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wide ${
-                            item.status === "sent"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-rose-100 text-rose-700"
-                          }`}
-                        >
-                          {item.status === "sent" ? (
-                            <>
-                              <CheckCircle2 size={11} /> Sent
-                            </>
-                          ) : (
-                            <>
-                              <XCircle size={11} /> Failed
-                            </>
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                )}
+                    ))
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Footer buttons */}
-            <div className="mt-5 flex gap-3">
+            {/* Pinned Sticky Footer */}
+            <div className="shrink-0 p-4 sm:p-5 border-t border-slate-100 bg-white/95 backdrop-blur-md pb-[max(1rem,env(safe-area-inset-bottom))]">
               {dispatch.status === "completed" ? (
-                <>
+                <div className="flex gap-3">
                   <button
                     onClick={() => setDispatch(null)}
-                    className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-xs font-black text-slate-600 hover:bg-slate-50"
+                    className="flex-1 rounded-2xl border border-slate-200 px-4 py-3.5 text-xs sm:text-sm font-black text-slate-600 hover:bg-slate-50 active:scale-95 transition-all"
                   >
                     Close
                   </button>
                   {dispatch.campaignId && (
                     <Link
                       href={`/admin/automation/campaigns/${dispatch.campaignId}`}
-                      className="flex flex-[2] items-center justify-center gap-2 rounded-2xl bg-secondary px-4 py-3 text-xs font-black text-white hover:bg-black"
+                      className="flex flex-[2] items-center justify-center gap-2 rounded-2xl bg-secondary px-4 py-3.5 text-xs sm:text-sm font-black text-white hover:bg-black active:scale-95 transition-all"
                     >
                       <span>View Full Report</span>
                       <ExternalLink size={14} />
                     </Link>
                   )}
-                </>
+                </div>
               ) : dispatch.status === "error" ? (
-                <>
+                <div className="flex gap-3">
                   <button
                     onClick={() => setDispatch(null)}
-                    className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-xs font-black text-slate-600 hover:bg-slate-50"
+                    className="flex-1 rounded-2xl border border-slate-200 px-4 py-3.5 text-xs sm:text-sm font-black text-slate-600 hover:bg-slate-50 active:scale-95 transition-all"
                   >
                     Close
                   </button>
                   {dispatch.campaignId && (
                     <Link
                       href={`/admin/automation/campaigns/${dispatch.campaignId}`}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-secondary px-4 py-3 text-xs font-black text-white"
+                      className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-secondary px-4 py-3.5 text-xs sm:text-sm font-black text-white active:scale-95 transition-all"
                     >
                       View Report
                     </Link>
                   )}
-                </>
+                </div>
               ) : (
                 <div className="flex w-full items-center justify-center gap-2 py-2 text-xs font-bold text-slate-500">
                   <Loader2 size={14} className="animate-spin text-primary" />
-                  <span>Please keep this window open while sending... ({elapsedSeconds}s)</span>
+                  <span>Sending in progress... ({elapsedSeconds}s) Please wait</span>
                 </div>
               )}
             </div>
@@ -1176,18 +1211,60 @@ function Stat({ label, value, tone }: { label: string; value: number; tone: "sla
   )
 }
 
-function Bubble({ label, image, text }: { label: string; image: string; text: string }) {
+function Bubble({
+  label,
+  image,
+  text,
+  footerText,
+  buttons,
+}: {
+  label: string
+  image: string
+  text: string
+  footerText?: string
+  buttons?: WaTemplateButton[]
+}) {
   return (
     <div>
       <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-slate-500">
         {label}
       </p>
-      <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-white p-2.5 shadow-sm">
+      <div className="max-w-[92%] sm:max-w-[85%] rounded-2xl rounded-tl-xs bg-white p-3 shadow-md border border-slate-100/80">
         {image && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={image} alt="" className="mb-2 w-full rounded-xl object-cover" />
+          <img src={image} alt="" className="mb-2.5 w-full rounded-xl object-cover max-h-56" />
         )}
-        <p className="whitespace-pre-wrap text-sm text-slate-800">{text || "(no text)"}</p>
+        <p className="whitespace-pre-wrap text-[13px] sm:text-sm leading-relaxed text-slate-800">{text || "(no text)"}</p>
+        
+        {footerText && (
+          <p className="mt-2 text-[11px] text-slate-400 italic">
+            {footerText}
+          </p>
+        )}
+
+        <div className="mt-1 flex justify-end">
+          <span className="text-[10px] text-slate-400 font-mono">12:00 PM ✓✓</span>
+        </div>
+
+        {buttons && buttons.length > 0 && (
+          <div className="mt-2.5 -mx-3 -mb-3 divide-y divide-slate-100 border-t border-slate-100">
+            {buttons.map((btn, idx) => (
+              <div
+                key={idx}
+                className="flex items-center justify-center gap-1.5 py-2.5 px-3 text-xs font-bold text-sky-600 hover:bg-slate-50 transition-colors"
+              >
+                {btn.type === "URL" ? (
+                  <ExternalLink size={13} className="shrink-0" />
+                ) : btn.type === "PHONE_NUMBER" ? (
+                  <Phone size={13} className="shrink-0" />
+                ) : (
+                  <MessageSquare size={13} className="shrink-0" />
+                )}
+                <span className="truncate">{btn.text || (btn.type === "URL" ? "Visit Website" : btn.type === "PHONE_NUMBER" ? "Call Now" : "Quick Reply")}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

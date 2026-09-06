@@ -43,7 +43,7 @@ export function emptyMessage(enabled: boolean): CampaignMessage {
     enabled,
     mode: "template",
     templateName: "",
-    templateLanguage: "en_US",
+    templateLanguage: "en",
     bodyParams: [],
     imageUrl: "",
     imageSource: "none",
@@ -98,6 +98,13 @@ export interface CampaignSummary {
   counts: CampaignCounts
 }
 
+export interface WaTemplateButton {
+  type: string
+  text: string
+  url?: string
+  phone_number?: string
+}
+
 /** A template as the builder needs it, trimmed down from the Graph response. */
 export interface WaTemplate {
   name: string
@@ -109,6 +116,8 @@ export interface WaTemplate {
   /** Names of variables in order of appearance (e.g. ["1", "2"] or ["customer_name"]) */
   variableNames: string[]
   bodyText: string
+  footerText?: string
+  buttons?: WaTemplateButton[]
   /** `true` when the template's header expects an image. */
   hasImageHeader: boolean
   hasHeaderText: boolean
@@ -207,17 +216,25 @@ export function countTemplateVariables(bodyText: string): number {
  * Graph payload from the same `CampaignMessage`, so this stays a rendering of
  * the same inputs rather than a parallel description of them.
  */
+export interface PreviewResult {
+  image: string
+  text: string
+  footerText?: string
+  buttons?: WaTemplateButton[]
+}
+
 export function previewMessage(
   message: CampaignMessage,
   recipient: { name: string },
   template?: WaTemplate | null
-): { image: string; text: string } {
-  if (!message.enabled) return { image: "", text: "" }
+): PreviewResult {
+  if (!message.enabled) return { image: "", text: "", footerText: "", buttons: [] }
 
   if (message.mode === "custom") {
     return {
       image: message.imageUrl,
       text: fillName(message.text, recipient.name),
+      buttons: [],
     }
   }
 
@@ -255,6 +272,8 @@ export function previewMessage(
   return {
     image: hasImage ? (message.imageUrl || defaultImg) : "",
     text: text || `(template: ${message.templateName})`,
+    footerText: template?.footerText || "",
+    buttons: template?.buttons || [],
   }
 }
 

@@ -43,16 +43,32 @@ export default function MessageComposer({
   const [uploading, setUploading] = React.useState(false)
   const [uploadError, setUploadError] = React.useState("")
 
-  const template = templates.find(
-    t => t.name === message.templateName && t.language === message.templateLanguage
-  )
+  const template =
+    templates.find(t => t.name === message.templateName && t.language === message.templateLanguage) ||
+    templates.find(t => t.name === message.templateName)
+
+  const selectedValue = template
+    ? `${template.name}||${template.language}`
+    : (message.templateName ? `${message.templateName}||${message.templateLanguage}` : "")
 
   const set = (patch: Partial<CampaignMessage>) => onChange({ ...message, ...patch })
 
   /** Keeps `bodyParams` the same length as the chosen template's placeholders. */
   const pickTemplate = (value: string) => {
+    if (!value) {
+      set({
+        templateName: "",
+        templateLanguage: "en",
+        bodyParams: [],
+        imageUrl: "",
+        imageSource: "none",
+      })
+      return
+    }
     const [name, language] = value.split("||")
-    const chosen = templates.find(t => t.name === name && t.language === language)
+    const chosen =
+      templates.find(t => t.name === name && t.language === language) ||
+      templates.find(t => t.name === name)
     const vars = chosen ? (chosen.variableNames || extractTemplateVariables(chosen.bodyText)) : []
     const count = chosen ? chosen.variableCount : vars.length
     const params = Array.from({ length: count }, (_, i) =>
@@ -69,7 +85,7 @@ export default function MessageComposer({
 
     set({
       templateName: name || "",
-      templateLanguage: language || chosen?.language || "en",
+      templateLanguage: chosen?.language || language || "en",
       bodyParams: params.length > 0 ? params : ["{{Name}}"],
       imageUrl: nextImageUrl,
       imageSource: nextImageSource,
@@ -149,7 +165,7 @@ export default function MessageComposer({
                 </p>
                 <select
                   className={field}
-                  value={message.templateName ? `${message.templateName}||${message.templateLanguage}` : ""}
+                  value={selectedValue}
                   onChange={e => pickTemplate(e.target.value)}
                 >
                   <option value="">Select a template…</option>
@@ -162,11 +178,29 @@ export default function MessageComposer({
               </div>
 
               {template && (
-                <div className="rounded-2xl bg-slate-50 p-4">
+                <div className="rounded-2xl bg-slate-50 p-4 space-y-2 border border-slate-100">
                   <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">
-                    Template body
+                    Template preview
                   </p>
-                  <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{template.bodyText}</p>
+                  <p className="whitespace-pre-wrap text-sm text-slate-600">{template.bodyText}</p>
+                  {template.footerText && (
+                    <p className="text-xs text-slate-400 italic pt-1 border-t border-slate-200/60">
+                      {template.footerText}
+                    </p>
+                  )}
+                  {template.buttons && template.buttons.length > 0 && (
+                    <div className="pt-2 border-t border-slate-200/60 flex flex-wrap gap-1.5">
+                      {template.buttons.map((btn, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center gap-1 rounded-lg bg-white border border-slate-200 px-2.5 py-1 text-[11px] font-bold text-slate-700 shadow-xs"
+                        >
+                          <span className="text-[10px] text-emerald-600">💬</span>
+                          {btn.text || btn.type}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -226,7 +260,7 @@ export default function MessageComposer({
                 <ImageIcon size={13} /> Image
               </p>
 
-              <div className="mb-3 grid grid-cols-3 gap-2 rounded-2xl bg-slate-100 p-1">
+              <div className="mb-3 grid grid-cols-3 gap-1.5 rounded-2xl bg-slate-100 p-1">
                 {(
                   [
                     ["none", "None"],
@@ -240,7 +274,7 @@ export default function MessageComposer({
                     onClick={() =>
                       set({ imageSource: value, ...(value === "none" ? { imageUrl: "" } : {}) })
                     }
-                    className={`rounded-xl px-2 py-2 text-[11px] font-black uppercase transition-colors ${
+                    className={`rounded-xl px-1 sm:px-2 py-2 text-[10px] sm:text-[11px] font-black uppercase tracking-tight sm:tracking-normal transition-colors truncate ${
                       message.imageSource === value ? "bg-white text-secondary shadow-sm" : "text-slate-500"
                     }`}
                   >

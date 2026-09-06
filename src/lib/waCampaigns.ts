@@ -90,6 +90,7 @@ interface GraphTemplateComponent {
   type?: string
   format?: string
   text?: string
+  buttons?: { type?: string; text?: string; url?: string; phone_number?: string }[]
 }
 
 /**
@@ -123,8 +124,17 @@ export async function fetchTemplates(): Promise<WaTemplate[]> {
       const components = row.components || []
       const body = components.find(c => (c.type || "").toUpperCase() === "BODY")
       const header = components.find(c => (c.type || "").toUpperCase() === "HEADER")
+      const footer = components.find(c => (c.type || "").toUpperCase() === "FOOTER")
+      const buttonsComp = components.find(c => (c.type || "").toUpperCase() === "BUTTONS")
       const headerFormat = (header?.format || "").toUpperCase()
       const bodyText = body?.text || ""
+      const footerText = footer?.text || ""
+      const buttons = (buttonsComp?.buttons || []).map(b => ({
+        type: b.type || "QUICK_REPLY",
+        text: b.text || "",
+        url: b.url,
+        phone_number: b.phone_number,
+      }))
       const varNames = extractTemplateVariables(bodyText)
 
       return {
@@ -133,6 +143,8 @@ export async function fetchTemplates(): Promise<WaTemplate[]> {
         status: row.status,
         category: row.category || "",
         bodyText,
+        footerText,
+        buttons,
         variableCount: varNames.length,
         variableNames: varNames,
         hasImageHeader: headerFormat === "IMAGE",
@@ -190,7 +202,7 @@ export async function sendOne(
     }
 
     if (isAnyConnector) {
-      const recipientName = (recipient.name || "").trim() || "Partner"
+      const recipientName = fillName(message.bodyParams[0] || "{{Name}}", recipient.name) || recipient.name || "Partner"
       components.push({
         type: "body",
         parameters: [

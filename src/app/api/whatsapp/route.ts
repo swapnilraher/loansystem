@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
     if (templateName) {
       const nameVal = customerName || customername || name || senderName || "Partner";
-      const lang = templateLang || (templateName === "connector" || templateName === "car3" || templateName === "cars" || templateName === "car2" ? "en" : "en_US");
+      const lang = templateLang || (templateName.startsWith("connector") || templateName === "car3" || templateName === "cars" || templateName === "car2" ? "en" : "en_US");
       
       const components: any[] = [];
 
