@@ -10,7 +10,26 @@ const TOKEN = WHATSAPP_TOKEN;
 // Outbound WhatsApp message sender (for OTP, notifications, manual messages)
 export async function POST(request: Request) {
   try {
-    const { phone, message, leadId, senderName, senderUid, mediaType, mediaUrl, filename, mediaId, templateName, templateLang, customerName, customername, name } = await request.json();
+    const reqJson = await request.json();
+    const {
+      phone,
+      message,
+      leadId,
+      senderName,
+      senderUid,
+      mediaType,
+      mediaUrl,
+      filename,
+      mediaId,
+      templateName,
+      templateLang,
+      customerName,
+      customername,
+      name,
+      otp,
+      code,
+      bodyParams,
+    } = reqJson;
     
     if (!phone) {
       return NextResponse.json({ success: false, error: "Phone number is required" }, { status: 400 });
@@ -35,12 +54,13 @@ export async function POST(request: Request) {
 
     if (templateName) {
       const nameVal = customerName || customername || name || senderName || "Partner";
+      const otpVal = String(otp || code || message || nameVal || "123456").trim();
       const lang = templateLang || (templateName.startsWith("connector") || templateName === "car3" || templateName === "cars" || templateName === "car2" ? "en" : "en_US");
       
       const components: any[] = [];
 
-      // If template is connector, it requires a header image if mediaUrl is provided
-      if (templateName === "connector" && mediaUrl) {
+      // 1. Header (image) - only for templates with image header when mediaUrl is provided
+      if (mediaUrl && (templateName === "connector" || templateName === "car2" || templateName === "cars")) {
         components.push({
           type: "header",
           parameters: [
@@ -54,7 +74,30 @@ export async function POST(request: Request) {
         });
       }
 
-      if (templateName.startsWith("connector")) {
+      // 2. Body and Button parameters
+      if (templateName === "otp" || templateName === "auth_otp_venkateshwara") {
+        components.push({
+          type: "body",
+          parameters: [
+            {
+              type: "text",
+              text: otpVal
+            }
+          ]
+        });
+        // WhatsApp Meta Cloud API requires button parameter for COPY_CODE url button
+        components.push({
+          type: "button",
+          sub_type: "url",
+          index: "0",
+          parameters: [
+            {
+              type: "text",
+              text: otpVal
+            }
+          ]
+        });
+      } else if (templateName.startsWith("connector")) {
         components.push({
           type: "body",
           parameters: [
@@ -75,6 +118,14 @@ export async function POST(request: Request) {
               text: nameVal
             }
           ]
+        });
+      } else if (Array.isArray(bodyParams) && bodyParams.length > 0) {
+        components.push({
+          type: "body",
+          parameters: bodyParams.map((p: any) => ({
+            type: "text",
+            text: String(p ?? "")
+          }))
         });
       } else if (templateName !== "hello_world" && templateName !== "3p_direct_integration_test_template" && templateName !== "cars") {
         components.push({

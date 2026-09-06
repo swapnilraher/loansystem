@@ -221,6 +221,41 @@ export async function sendOne(
           },
         ],
       })
+    } else if (tName === "car3") {
+      const recipientName = fillName(message.bodyParams[0] || "{{Name}}", recipient.name) || recipient.name || "Customer"
+      components.push({
+        type: "body",
+        parameters: [
+          {
+            type: "text",
+            parameter_name: "name",
+            text: recipientName,
+          },
+        ],
+      })
+    } else if (tName === "otp" || tName === "auth_otp_venkateshwara") {
+      const codeVal = fillName(message.bodyParams[0] || "{{Name}}", recipient.name) || "123456"
+      components.push({
+        type: "body",
+        parameters: [
+          {
+            type: "text",
+            text: codeVal,
+          },
+        ],
+      })
+      // Meta Cloud API requires button parameter for COPY_CODE button on authentication templates
+      components.push({
+        type: "button",
+        sub_type: "url",
+        index: "0",
+        parameters: [
+          {
+            type: "text",
+            text: codeVal,
+          },
+        ],
+      })
     } else {
       const rawParams = message.bodyParams.length > 0 ? message.bodyParams : []
       if (rawParams.length > 0) {

@@ -4,8 +4,10 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { checkPartnerEligibility } from "@/lib/partnerEligibility";
 import { memoryOtpStore } from "@/lib/otp-store";
 
-const PHONE_ID = process.env.WHATSAPP_PHONE_ID;
-const TOKEN = process.env.WHATSAPP_TOKEN;
+import { WHATSAPP_PHONE_ID, WHATSAPP_TOKEN, GRAPH_VERSION } from "@/lib/whatsappConfig";
+
+const PHONE_ID = WHATSAPP_PHONE_ID;
+const TOKEN = WHATSAPP_TOKEN;
 const OTP_SALT = process.env.OTP_HASH_SALT || "TSM_SECURE_FINTECH_SALT_2026";
 
 export function hashOtp(otp: string, phone: string): string {
@@ -166,7 +168,7 @@ export async function POST(request: Request) {
           },
         };
 
-        let response = await fetch(`https://graph.facebook.com/v17.0/${PHONE_ID}/messages`, {
+        let response = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${PHONE_ID}/messages`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${TOKEN}`,
@@ -186,7 +188,7 @@ export async function POST(request: Request) {
             },
           };
 
-          await fetch(`https://graph.facebook.com/v17.0/${PHONE_ID}/messages`, {
+          await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${PHONE_ID}/messages`, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${TOKEN}`,
