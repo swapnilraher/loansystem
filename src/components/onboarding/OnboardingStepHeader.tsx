@@ -44,8 +44,8 @@ export function OnboardingStepHeader({
   const pct = Math.round((completed / total) * 100)
 
   return (
-    <header className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
+    <header className="space-y-2 sm:space-y-3">
+      <div className="hidden sm:flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           {onBack ? (
             <button
@@ -69,8 +69,8 @@ export function OnboardingStepHeader({
       </div>
 
       <div className="space-y-1">
-        <h2 className="text-admin-2xl font-bold tracking-tight text-admin-text">{title}</h2>
-        <p className="text-admin-sm text-admin-muted">{subtitle}</p>
+        <h2 className="text-xl sm:text-admin-2xl font-black tracking-tight text-slate-900">{title}</h2>
+        <p className="text-xs sm:text-admin-sm text-slate-500 font-medium">{subtitle}</p>
       </div>
 
       {/* Progress. aria-hidden because the "Step N of N" chip above already
@@ -78,14 +78,14 @@ export function OnboardingStepHeader({
       <div className="flex items-center gap-2" aria-hidden="true">
         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-admin-surface-3">
           <div
-            className="h-full rounded-full bg-brand transition-[width] duration-500 ease-out"
+            className="h-full rounded-full bg-[#0c6cf2] transition-[width] duration-500 ease-out"
             style={{ width: `${pct}%` }}
           />
         </div>
         <span className="admin-num text-admin-2xs font-bold text-admin-subtle">{pct}%</span>
       </div>
 
-      <ol className="flex items-center gap-1.5">
+      <ol className="hidden sm:flex items-center gap-1.5">
         {steps.map(s => (
           <li key={s.id} className="flex flex-1 items-center gap-1.5">
             <span

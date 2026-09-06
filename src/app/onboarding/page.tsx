@@ -11,6 +11,8 @@ import {
   Building,
   Check,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   Clock,
   Copy,
   Crop,
@@ -153,13 +155,13 @@ function DocTile({
 
   if (uploading) {
     return (
-      <div className="space-y-2" aria-live="polite">
-        <div className="flex items-center justify-between text-admin-xs font-bold text-admin-muted">
-          <span>Uploading…</span>
-          <span className="admin-num">{progress}%</span>
+      <div className="border-2 border-dashed border-blue-300 rounded-xl p-5 text-center bg-blue-50/40 space-y-2.5" aria-live="polite">
+        <div className="flex items-center justify-between text-admin-xs font-bold text-slate-700">
+          <span>Uploading document…</span>
+          <span className="admin-num font-mono">{progress}%</span>
         </div>
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-admin-surface-3">
-          <div className="h-full rounded-full bg-brand transition-[width]" style={{ width: `${progress}%` }} />
+        <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+          <div className="h-full rounded-full bg-[#0c6cf2] transition-[width]" style={{ width: `${progress}%` }} />
         </div>
       </div>
     )
@@ -167,43 +169,54 @@ function DocTile({
 
   if (failed) {
     return (
-      <div className="space-y-2">
-        <div className="flex items-center gap-1.5 text-admin-xs font-bold text-tone-danger-fg">
-          <AlertCircle size={14} /> Upload failed
+      <div className="border-2 border-dashed border-rose-300 rounded-xl p-4 text-center bg-rose-50/50 space-y-2">
+        <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-rose-600">
+          <AlertCircle size={15} /> Upload failed
         </div>
-        <AdminButton type="button" size="sm" variant="secondary" icon={RefreshCw} onClick={onRetry} className="w-full">
-          Retry upload
-        </AdminButton>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="w-full py-2 rounded-lg bg-white border border-rose-200 text-rose-700 text-xs font-bold hover:bg-rose-50 flex items-center justify-center gap-1.5 shadow-xs"
+        >
+          <RefreshCw size={13} /> Retry upload
+        </button>
       </div>
     )
   }
 
   if (doc) {
     return (
-      <div className="space-y-2">
-        <div className="flex items-center gap-1.5 text-admin-xs font-bold text-tone-success-fg">
-          <CheckCircle2 size={14} className="shrink-0" />
-          <span className="truncate" title={doc.fileName}>{doc.fileName || "Uploaded"}</span>
+      <div className="border border-emerald-300 bg-emerald-50/40 rounded-xl p-3.5 space-y-2">
+        <div className="flex items-center gap-2 text-xs font-bold text-emerald-700">
+          <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
+          <span className="truncate" title={doc.fileName}>{doc.fileName || "Document Uploaded ✓"}</span>
         </div>
-        <AdminButton type="button" size="sm" variant="secondary" icon={Crop} onClick={onPick} className="w-full">
-          Replace / crop
-        </AdminButton>
+        <button
+          type="button"
+          onClick={onPick}
+          className="w-full py-1.5 rounded-lg bg-white border border-emerald-200 text-slate-700 hover:text-emerald-700 text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs"
+        >
+          <Crop size={14} /> Replace / Crop
+        </button>
       </div>
     )
   }
 
   return (
-    <AdminButton
-      type="button"
-      size="sm"
-      variant="brand"
-      icon={Upload}
+    <div
       onClick={onPick}
-      className="w-full"
-      aria-label={`Upload ${docKey}`}
+      className="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-5 text-center bg-slate-50/60 hover:bg-blue-50/30 cursor-pointer transition-all space-y-1 group"
     >
-      Upload &amp; crop
-    </AdminButton>
+      <div className="text-xs sm:text-sm text-slate-600 font-medium">
+        Drag files here or{" "}
+        <span className="text-[#0c6cf2] font-bold underline underline-offset-2 group-hover:text-blue-700">
+          Upload
+        </span>
+      </div>
+      <p className="text-[11px] text-slate-400">
+        Only PDF, JPEG, PNG, JPG formats accepted. Max file size 5MB
+      </p>
+    </div>
   )
 }
 
@@ -241,6 +254,7 @@ export default function OnboardingPage() {
   // Step 2: Business KYC, GST & Banking (GST + Documents with Crop + Bank details)
   // Step 3: Review, Agreement & Final Submit
   const [currentStep, setCurrentStep] = useState(1)
+  const [showMobileStepsOverview, setShowMobileStepsOverview] = useState(false)
   const [savingStep, setSavingStep] = useState(false)
   const [stepError, setStepError] = useState<string | null>(null)
   const [stepErrorKind, setStepErrorKind] = useState<ErrorKind>("validation")
@@ -1570,9 +1584,9 @@ export default function OnboardingPage() {
 
   /** One definition, read by both the sidebar list and the step header. */
   const STEPS = [
-    { id: 1, title: "Basic details", desc: "Personal, business & address", done: isStep1Done },
-    { id: 2, title: "Business & KYC", desc: "GST, documents & bank account", done: isStep2Done },
-    { id: 3, title: "Review & submit", desc: "MOU agreement execution", done: isStep3Done },
+    { id: 1, title: "Basic Details", desc: "Personal, contact & address", done: isStep1Done },
+    { id: 2, title: "Business Details", desc: "GST, documents & bank account", done: isStep2Done },
+    { id: 3, title: "Complete Your KYC", desc: "MOU agreement execution", done: isStep3Done },
   ]
 
   /**
@@ -1589,17 +1603,150 @@ export default function OnboardingPage() {
 
   return (
     <div className="partner-root min-h-dvh flex flex-col bg-admin-bg font-sans text-admin-text">
-      {/* Top Banner */}
-      <div className="bg-admin-text text-admin-subtle py-1.5 px-4 text-center text-admin-xs font-medium border-b border-admin-border flex items-center justify-center gap-2">
+      {/* Top Banner - desktop only */}
+      <div className="hidden md:flex bg-admin-text text-admin-subtle py-1.5 px-4 text-center text-admin-xs font-medium border-b border-admin-border items-center justify-center gap-2">
         <Sparkles size={13} className="text-tone-warn-fg" />
         <span>Complete Onboarding to unlock <strong>Direct Bank Commission Payouts &amp; Zero Setup Fees</strong></span>
       </div>
 
+      {/* ─── MOBILE APP HEADER (Exact Razorpay Mobile Style) ─── */}
+      <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 py-3 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-xs">
+        {/* Left: Back Arrow */}
+        <button
+          type="button"
+          onClick={() => {
+            if (showMobileStepsOverview) {
+              setShowMobileStepsOverview(false)
+            } else if (currentStep > 1) {
+              goToStep(currentStep - 1)
+            } else {
+              setShowMobileStepsOverview(true)
+            }
+          }}
+          className="p-1.5 -ml-1.5 rounded-full text-slate-700 hover:bg-slate-100 active:scale-95 transition-all"
+          aria-label="Back"
+        >
+          <ArrowLeft size={20} />
+        </button>
+
+        {/* Center: Step Dropdown Trigger (e.g. "Business Details ⌄") */}
+        <button
+          type="button"
+          onClick={() => setShowMobileStepsOverview(prev => !prev)}
+          className="inline-flex items-center gap-2 py-1.5 px-3.5 rounded-full hover:bg-slate-100 active:scale-95 transition-all text-slate-800"
+        >
+          <div className="w-3 h-3 bg-[#0c6cf2] rounded-xs rotate-45 transform origin-center shrink-0 opacity-90" />
+          <span className="text-sm font-black tracking-tight text-slate-900">
+            {STEPS.find(s => s.id === currentStep)?.title || "Onboarding"}
+          </span>
+          <ChevronDown
+            size={16}
+            className={cn("text-slate-500 transition-transform duration-200", showMobileStepsOverview && "rotate-180")}
+          />
+        </button>
+
+        {/* Right: Support Headset */}
+        <a
+          href="tel:09579005645"
+          title="Call Support (095790 05645)"
+          className="p-1.5 -mr-1.5 rounded-full text-slate-700 hover:text-blue-600 hover:bg-slate-100 active:scale-95 transition-all"
+          aria-label="Support"
+        >
+          <Headphones size={20} />
+        </a>
+      </header>
+
+      {/* ─── MOBILE STEPS OVERVIEW MODAL (Screenshot 1: Razorpay Onboarding Steps) ─── */}
+      {showMobileStepsOverview && (
+        <div className="md:hidden fixed inset-0 z-50 bg-white flex flex-col justify-between pt-14 pb-20 px-6 animate-in fade-in duration-200 overflow-y-auto">
+          <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full py-4 space-y-7">
+            {/* Header: Onboarding: Techstar Partner */}
+            <div className="text-center space-y-1">
+              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                Onboarding:
+              </h1>
+              <p className="text-2xl font-black text-slate-800">
+                Techstar Partner
+              </p>
+            </div>
+
+            {/* Checklist of Steps matching Screenshot 1 */}
+            <div className="space-y-3">
+              {STEPS.map((st, idx) => {
+                const isActive = currentStep === st.id
+                const locked = lockReasonFor(st.id)
+                return (
+                  <button
+                    key={st.id}
+                    type="button"
+                    disabled={Boolean(locked)}
+                    onClick={() => {
+                      goToStep(st.id)
+                      setShowMobileStepsOverview(false)
+                    }}
+                    className={cn(
+                      "w-full flex items-center justify-between px-4 py-3.5 rounded-xl border transition-all text-left",
+                      isActive
+                        ? "bg-slate-100/90 border-slate-200/80 shadow-xs ring-1 ring-slate-200/60"
+                        : "bg-white border-transparent hover:bg-slate-50"
+                    )}
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      {st.done ? (
+                        <CheckCircle2 size={20} className="text-emerald-600 shrink-0" />
+                      ) : (
+                        <span
+                          className={cn(
+                            "w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-xs font-bold",
+                            isActive ? "text-emerald-600" : "text-slate-400"
+                          )}
+                        >
+                          {idx + 1}.
+                        </span>
+                      )}
+                      <span
+                        className={cn(
+                          "text-base truncate",
+                          isActive ? "text-slate-900 font-bold" : "text-slate-700 font-semibold"
+                        )}
+                      >
+                        {st.title}
+                      </span>
+                    </div>
+                    {!isActive && <ChevronRight size={18} className="text-slate-400 shrink-0 ml-2" />}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Sticky Bottom Bar in Steps Overview Modal */}
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-slate-200 flex items-center gap-3 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg z-50">
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href = "/"
+              }}
+              className="rounded-xl border border-slate-200 bg-white px-5 py-3.5 text-sm font-bold text-rose-600 hover:bg-rose-50 active:scale-95 transition-all shadow-xs shrink-0"
+            >
+              Save &amp; Exit
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowMobileStepsOverview(false)}
+              className="flex-1 rounded-xl bg-[#0c6cf2] hover:bg-blue-700 px-6 py-3.5 text-sm font-bold text-white shadow-md shadow-blue-500/25 active:scale-95 transition-all text-center"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main 2-Column Razorpay Layout */}
       <div className="flex-1 flex flex-col md:flex-row w-full max-w-7xl mx-auto">
 
-        {/* ─── LEFT SIDEBAR (Razorpay Style) ─── */}
-        <aside className="w-full md:w-80 lg:w-96 bg-admin-surface border-r border-admin-border p-5 md:p-8 flex flex-col justify-between shrink-0">
+        {/* ─── LEFT SIDEBAR (Desktop Only, Hidden on Mobile) ─── */}
+        <aside className="hidden md:flex md:w-80 lg:w-96 bg-admin-surface border-r border-admin-border p-5 md:p-8 flex-col justify-between shrink-0">
           <div className="space-y-6">
             {/* User Profile Header */}
             <div className="flex items-center gap-3 pb-5 border-b border-admin-border">
@@ -1709,10 +1856,10 @@ export default function OnboardingPage() {
         </aside>
 
         {/* ─── RIGHT MAIN PANE ─── */}
-        <main className="flex-1 bg-admin-surface p-5 md:p-10 flex flex-col">
+        <main className="flex-1 bg-admin-surface p-3.5 sm:p-6 md:p-10 flex flex-col pb-28 md:pb-10">
           <div>
-            {/* Top Navigation & Brand Header */}
-            <div className="flex items-center justify-between pb-6 border-b border-admin-border mb-6">
+            {/* Top Navigation & Brand Header (Desktop Only) */}
+            <div className="hidden md:flex items-center justify-between pb-6 border-b border-admin-border mb-6">
               {/* Back lives in OnboardingStepHeader now, one per step. */}
               <div />
               <div className="flex items-center gap-2 text-right">
@@ -1912,32 +2059,33 @@ export default function OnboardingPage() {
               /* ─── ONBOARDING FLOW STARTS ON SAME SCREEN ─── */
               <div className="space-y-6">
                 {/* Verified Mobile Number Strip at Top */}
-                <div className="flex flex-wrap items-center justify-between gap-2 p-3.5 rounded-admin-lg bg-tone-success border border-tone-success-bd text-admin-xs">
+                <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200/80 text-admin-xs">
                   <div className="flex items-center gap-2 min-w-0">
-                    <CheckCircle2 size={16} className="text-tone-success-fg shrink-0" />
-                    <span className="min-w-0">
-                      <span className="text-admin-text">Verified </span>
-                      <strong className="admin-num font-bold text-admin-text whitespace-nowrap">+91 {mobileNumber}</strong>
+                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                    <span className="min-w-0 text-slate-800 text-xs">
+                      <span>Verified </span>
+                      <strong className="admin-num font-bold text-slate-950 whitespace-nowrap">+91 {mobileNumber}</strong>
                       {resuming && (
-                        <span className="block text-admin-2xs text-admin-muted font-medium">Restoring your saved progress…</span>
+                        <span className="block text-[10px] text-slate-500 font-medium">Restoring saved progress…</span>
                       )}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
                       type="button"
                       onClick={handleDiscardLocalDraft}
                       title="Remove the copy of this application saved in this browser"
-                      className="admin-focus admin-touch rounded-admin-sm px-2 py-1 text-admin-xs font-bold text-admin-muted hover:text-admin-text"
+                      className="text-[11px] font-semibold text-slate-500 hover:text-slate-800"
                     >
-                      Discard draft
+                      Discard
                     </button>
+                    <span className="text-slate-300">·</span>
                     <button
                       type="button"
                       onClick={handleResetMobile}
-                      className="admin-focus admin-touch rounded-admin-sm px-2 py-1 text-admin-xs font-bold text-admin-muted hover:text-admin-text"
+                      className="text-[11px] font-bold text-blue-600 hover:text-blue-800"
                     >
-                      Change number
+                      Change
                     </button>
                   </div>
                 </div>
@@ -2319,27 +2467,29 @@ export default function OnboardingPage() {
                       * already fits. `bottom-0` plus safe-area padding keeps it
                       * clear of the iOS home indicator.
                       */}
-                    <div className="sticky bottom-0 -mx-5 mt-2 flex items-center justify-between gap-3 border-t border-admin-border bg-admin-surface/95 px-5 py-3 backdrop-blur pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:static sm:mx-0 sm:bg-transparent sm:px-0 sm:pt-6 sm:backdrop-blur-none">
-                      <AdminButton
+                    {/* Sticky Bottom Bar on mobile (Exact to Razorpay Screenshot 1 & 2) */}
+                    <div className="fixed sm:static bottom-0 left-0 right-0 z-30 flex items-center justify-between gap-3 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-md pb-[max(0.85rem,env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(0,0,0,0.06)] sm:shadow-none sm:border-0 sm:bg-transparent sm:p-0 sm:pt-6">
+                      <button
                         type="button"
-                        variant="secondary"
                         onClick={() => {
                           saveProgress(1, { fullName, businessName, email, panNumber, dob })
                           window.location.href = "/"
                         }}
+                        className="h-12 px-5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-rose-600 hover:bg-rose-50 active:scale-95 transition-all shadow-xs shrink-0"
                       >
-                        Save &amp; exit
-                      </AdminButton>
-                      <AdminButton
+                        Save &amp; Exit
+                      </button>
+                      <button
                         type="submit"
-                        variant="brand"
-                        loading={savingStep}
                         disabled={savingStep}
-                        className="flex-1 sm:flex-none sm:px-8"
+                        className="h-12 flex-1 sm:flex-none sm:px-10 rounded-xl bg-[#0c6cf2] hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-sm shadow-md shadow-blue-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
                       >
-                        {savingStep ? "Saving…" : "Continue"}
-                        {!savingStep && <ArrowRight size={15} />}
-                      </AdminButton>
+                        {savingStep ? (
+                          <><RefreshCw size={16} className="animate-spin" /> Saving…</>
+                        ) : (
+                          <>Continue <ArrowRight size={16} /></>
+                        )}
+                      </button>
                     </div>
                   </form>
                 )}
@@ -2646,30 +2796,35 @@ export default function OnboardingPage() {
                       </div>
                     </div>
 
-                    <div className="sticky bottom-0 -mx-5 mt-2 flex items-center justify-between gap-2 border-t border-admin-border bg-admin-surface/95 px-5 py-3 backdrop-blur pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:static sm:mx-0 sm:bg-transparent sm:px-0 sm:pt-6 sm:backdrop-blur-none">
+                    {/* Sticky Bottom Bar on mobile (Exact to Razorpay Screenshot 1 & 2) */}
+                    <div className="fixed sm:static bottom-0 left-0 right-0 z-30 flex items-center justify-between gap-3 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-md pb-[max(0.85rem,env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(0,0,0,0.06)] sm:shadow-none sm:border-0 sm:bg-transparent sm:p-0 sm:pt-6">
                       <div className="flex items-center gap-2">
-                        <AdminButton type="button" variant="secondary" icon={ArrowLeft} onClick={() => goToStep(1)}>
-                          Back
-                        </AdminButton>
-                        <AdminButton
+                        <button
                           type="button"
-                          variant="ghost"
-                          className="hidden sm:inline-flex"
-                          onClick={() => { window.location.href = "/" }}
+                          onClick={() => goToStep(1)}
+                          className="h-12 px-4 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:bg-slate-50 active:scale-95 transition-all shadow-xs flex items-center gap-1.5 shrink-0"
                         >
-                          Save &amp; exit
-                        </AdminButton>
+                          <ArrowLeft size={16} /> Back
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { window.location.href = "/" }}
+                          className="h-12 px-4 rounded-xl border border-slate-200 bg-white text-sm font-bold text-rose-600 hover:bg-rose-50 active:scale-95 transition-all shadow-xs hidden sm:inline-flex shrink-0"
+                        >
+                          Save &amp; Exit
+                        </button>
                       </div>
-                      <AdminButton
+                      <button
                         type="submit"
-                        variant="brand"
-                        loading={savingStep}
                         disabled={savingStep}
-                        className="flex-1 sm:flex-none sm:px-8"
+                        className="h-12 flex-1 sm:flex-none sm:px-10 rounded-xl bg-[#0c6cf2] hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-sm shadow-md shadow-blue-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
                       >
-                        {savingStep ? "Saving…" : "Continue"}
-                        {!savingStep && <ArrowRight size={15} />}
-                      </AdminButton>
+                        {savingStep ? (
+                          <><RefreshCw size={16} className="animate-spin" /> Saving…</>
+                        ) : (
+                          <>Continue <ArrowRight size={16} /></>
+                        )}
+                      </button>
                     </div>
                   </form>
                 )}
@@ -2809,19 +2964,26 @@ export default function OnboardingPage() {
                       </label>
                     </div>
 
-                    <div className="sticky bottom-0 -mx-5 mt-2 flex items-center justify-between gap-2 border-t border-admin-border bg-admin-surface/95 px-5 py-3 backdrop-blur pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:static sm:mx-0 sm:bg-transparent sm:px-0 sm:pt-6 sm:backdrop-blur-none">
-                      <AdminButton type="button" variant="secondary" icon={ArrowLeft} onClick={() => goToStep(2)}>
-                        Back
-                      </AdminButton>
-                      <AdminButton
-                        type="submit"
-                        variant="brand"
-                        loading={submitting}
-                        disabled={submitting || !declareTruth || !declareTerms || !isAgreementSigned}
-                        className="flex-1 sm:flex-none sm:px-8"
+                    {/* Sticky Bottom Bar on mobile (Exact to Razorpay Screenshot 1 & 2) */}
+                    <div className="fixed sm:static bottom-0 left-0 right-0 z-30 flex items-center justify-between gap-3 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-md pb-[max(0.85rem,env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(0,0,0,0.06)] sm:shadow-none sm:border-0 sm:bg-transparent sm:p-0 sm:pt-6">
+                      <button
+                        type="button"
+                        onClick={() => goToStep(2)}
+                        className="h-12 px-4 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:bg-slate-50 active:scale-95 transition-all shadow-xs flex items-center gap-1.5 shrink-0"
                       >
-                        {submitting ? "Submitting…" : "Submit application"}
-                      </AdminButton>
+                        <ArrowLeft size={16} /> Back
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={submitting || !declareTruth || !declareTerms || !isAgreementSigned}
+                        className="h-12 flex-1 sm:flex-none sm:px-10 rounded-xl bg-[#0c6cf2] hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-sm shadow-md shadow-blue-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+                      >
+                        {submitting ? (
+                          <><RefreshCw size={16} className="animate-spin" /> Submitting…</>
+                        ) : (
+                          <>Submit Application <ArrowRight size={16} /></>
+                        )}
+                      </button>
                     </div>
                   </form>
                 )}
@@ -2853,7 +3015,9 @@ export default function OnboardingPage() {
         }}
       />
 
-      <PartnerPortalFooter />
+      <div className="hidden md:block">
+        <PartnerPortalFooter />
+      </div>
     </div>
   )
 }
