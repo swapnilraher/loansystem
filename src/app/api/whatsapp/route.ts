@@ -4,6 +4,10 @@ import { WHATSAPP_PHONE_ID, WHATSAPP_TOKEN } from "@/lib/whatsappConfig";
 import { defaultMediaText, mediaProxyPath } from "@/lib/whatsappMediaShared";
 
 // Credentials now live in one place — see `@/lib/whatsappConfig`.
+// Helper to determine if a template requires an image header
+function templateRequiresImage(templateName: string): boolean {
+  return templateName === "connector" || templateName === "car2" || templateName === "cars";
+}
 const PHONE_ID = WHATSAPP_PHONE_ID;
 const TOKEN = WHATSAPP_TOKEN;
 
