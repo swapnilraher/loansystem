@@ -72,18 +72,24 @@ export async function GET(request: Request) {
 function cleanMessage(raw: unknown): CampaignMessage {
   const value = (raw || {}) as Partial<CampaignMessage>
   const rawTemplate = String(value.templateName || "").trim()
-  const isConnector = rawTemplate.toLowerCase() === "connector" || rawTemplate.toLowerCase().includes("connector")
-  const templateName = isConnector ? "connector" : rawTemplate
+  const isConnectorWithImg = rawTemplate.toLowerCase() === "connector"
+  const isConnectorWithoutImg = rawTemplate.toLowerCase() === "connector_without_image" || rawTemplate.toLowerCase() === "connector_without_images"
+  const isAnyConnector = isConnectorWithImg || isConnectorWithoutImg
+
   return {
     enabled: value.enabled === true,
     mode: value.mode === "custom" ? "custom" : "template",
-    templateName,
-    templateLanguage: isConnector ? "en" : String(value.templateLanguage || "en_US").trim(),
+    templateName: rawTemplate,
+    templateLanguage: isAnyConnector ? "en" : String(value.templateLanguage || "en_US").trim(),
     bodyParams: Array.isArray(value.bodyParams) && value.bodyParams.length > 0
       ? value.bodyParams.map(p => String(p ?? ""))
-      : (isConnector ? ["{{Name}}"] : []),
-    imageUrl: String(value.imageUrl || (isConnector ? "https://res.cloudinary.com/ugpy6fko/image/upload/v1788543861/wa-campaigns/u3xz2l1lpx7wylsxitog.png" : "")).trim(),
-    imageSource: value.imageSource === "upload" || value.imageSource === "url" ? value.imageSource : (isConnector ? "url" : "none"),
+      : (isAnyConnector ? ["{{Name}}"] : []),
+    imageUrl: isConnectorWithoutImg
+      ? ""
+      : String(value.imageUrl || (isConnectorWithImg ? "https://res.cloudinary.com/ugpy6fko/image/upload/v1788543861/wa-campaigns/u3xz2l1lpx7wylsxitog.png" : "")).trim(),
+    imageSource: isConnectorWithoutImg
+      ? "none"
+      : (value.imageSource === "upload" || value.imageSource === "url" ? value.imageSource : (isConnectorWithImg ? "url" : "none")),
     text: String(value.text || ""),
   }
 }

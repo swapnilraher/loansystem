@@ -54,22 +54,45 @@ export async function POST(request: Request) {
         });
       }
 
-      components.push({
-        type: "body",
-        parameters: [
-          {
-            type: "text",
-            parameter_name: "customer_name",
-            text: nameVal
-          }
-        ]
-      });
+      if (templateName.startsWith("connector")) {
+        components.push({
+          type: "body",
+          parameters: [
+            {
+              type: "text",
+              parameter_name: "customer_name",
+              text: nameVal
+            }
+          ]
+        });
+      } else if (templateName === "car3") {
+        components.push({
+          type: "body",
+          parameters: [
+            {
+              type: "text",
+              parameter_name: "name",
+              text: nameVal
+            }
+          ]
+        });
+      } else if (templateName !== "hello_world" && templateName !== "3p_direct_integration_test_template" && templateName !== "cars") {
+        components.push({
+          type: "body",
+          parameters: [
+            {
+              type: "text",
+              text: nameVal
+            }
+          ]
+        });
+      }
 
       body.type = "template";
       body.template = {
         name: templateName,
         language: { code: lang },
-        components
+        ...(components.length > 0 ? { components } : {})
       };
     } else if (mediaId) {
       /**

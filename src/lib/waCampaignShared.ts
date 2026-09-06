@@ -242,9 +242,26 @@ export function previewMessage(
   const isConnector = tName === "connector"
   const isConnectorWithoutImg = tName === "connector_without_image" || tName === "connector_without_images"
   const isAnyConnector = isConnector || isConnectorWithoutImg
-  const defaultBody = isAnyConnector
-    ? "Hello {{customer_name}}\n\n💰 Loan Business करता? अधिक कमवायचंय?\nआता Join करा Techstar Money Solution सोबत आणि मिळवा:\n\n🔹 50+ Loan Partners\n🔹 Highest Payout Opportunities\n🔹 Flexible Payout\n🔹 Fast Digital Onboarding\n🔹 Banks + NBFCs + Fintechs\n\n🚀 More Leads | More Loans | More Earnings\n\nआजच Techstar चे Loan Connector / DSA Partner बना!"
-    : ""
+  const defaultBody = isConnectorWithoutImg
+    ? "Hello {{customer_name}} Sir\n\n🚀 Become a Techstar Loan Connector!\n\nतुमच्या Loan Business ला द्या एक नवीन Growth Opportunity! 💰\n\n✅ 50+ Loan Partners – Banks, NBFCs & Fintechs\n✅ Market Highest Payout\n✅ Flexible Payout Options\n✅ Complete Digital Onboarding\n✅ Secure & Easy Partner Portal\n\nएकाच platform वर multiple loan opportunities मिळवा आणि प्रत्येक successful disbursal वर अधिक कमवा!\n\n👉 आजच Techstar सोबत DSA / Loan Connector म्हणून Join करा."
+    : (isConnector
+      ? "Hello {{customer_name}}\n\n💰 Loan Business करता? अधिक कमवायचंय?\nआता Join करा Techstar Money Solution सोबत आणि मिळवा:\n\n🔹 50+ Loan Partners\n🔹 Highest Payout Opportunities\n🔹 Flexible Payout\n🔹 Fast Digital Onboarding\n🔹 Banks + NBFCs + Fintechs\n\n🚀 More Leads | More Loans | More Earnings\n\nआजच Techstar चे Loan Connector / DSA Partner बना!"
+      : "")
+
+  const defaultButtons = isConnectorWithoutImg
+    ? [
+        { type: "QUICK_REPLY", text: "Request Call Back" },
+        { type: "URL", text: "Become a DSA Partner", url: "https://partner.techstarsolution.in/" },
+        { type: "PHONE_NUMBER", text: "Call us", phone_number: "+917020646007" },
+      ]
+    : (isConnector
+      ? [
+          { type: "URL", text: "Join as Loan Partner", url: "https://partner.techstarsolution.in/" },
+          { type: "PHONE_NUMBER", text: "Call Us", phone_number: "+917020646007" },
+        ]
+      : [])
+
+  const defaultFooter = isConnector ? "Techstar Money Solution Private Limited" : ""
 
   const body = template?.bodyText || defaultBody || ""
   let text = body
@@ -272,8 +289,8 @@ export function previewMessage(
   return {
     image: hasImage ? (message.imageUrl || defaultImg) : "",
     text: text || `(template: ${message.templateName})`,
-    footerText: template?.footerText || "",
-    buttons: template?.buttons || [],
+    footerText: template?.footerText || defaultFooter,
+    buttons: (template?.buttons && template.buttons.length > 0) ? template.buttons : defaultButtons,
   }
 }
 
