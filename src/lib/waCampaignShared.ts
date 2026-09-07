@@ -36,6 +36,26 @@ export interface CampaignMessage {
   imageSource: CampaignImageSource
   /** `mode: "custom"` — free text, `{{Name}}` supported. */
   text: string
+  /**
+   * The chosen template's placeholder names, in the same order as
+   * `bodyParams` — `["customer_name"]` for a named template, `["1", "2"]` for a
+   * positional one.
+   *
+   * The sender needs this because the Cloud API treats the two kinds
+   * differently: a named template's body parameters must each carry
+   * `parameter_name`, and a positional one's must not. Carrying the names on
+   * the message means the send path never has to guess from the template's
+   * name, and never has to re-fetch the template to find out.
+   */
+  bodyParamNames: string[]
+  /**
+   * `true` when the chosen template's header is an IMAGE.
+   *
+   * Sending an image header to a template that has no header is rejected by
+   * Meta (132000, "number of parameters does not match"), so this is what
+   * decides whether the header component is attached at all.
+   */
+  hasImageHeader: boolean
 }
 
 export function emptyMessage(enabled: boolean): CampaignMessage {
@@ -48,6 +68,8 @@ export function emptyMessage(enabled: boolean): CampaignMessage {
     imageUrl: "",
     imageSource: "none",
     text: "",
+    bodyParamNames: [],
+    hasImageHeader: false,
   }
 }
 
@@ -178,10 +200,17 @@ export function fillName(text: string, name: string): string {
   return (text || "").replace(NAME_TOKEN, name || "there")
 }
 
+/**
+ * A template placeholder: `{{1}}` or `{{customer_name}}`, with or without
+ * padding inside the braces. One definition, so the extractor and the preview
+ * renderer can never disagree about what counts as a variable.
+ */
+const PLACEHOLDER = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g
+
 /** Extracts all variable placeholders (numbered or named, like {{1}} or {{customer_name}}) in order. */
 export function extractTemplateVariables(bodyText: string): string[] {
   const found: string[] = []
-  for (const match of (bodyText || "").matchAll(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g)) {
+  for (const match of (bodyText || "").matchAll(PLACEHOLDER)) {
     const token = match[1].trim()
     if (!found.includes(token)) {
       found.push(token)
@@ -193,6 +222,65 @@ export function extractTemplateVariables(bodyText: string): string[] {
 /** Counts the distinct placeholders in a template body. */
 export function countTemplateVariables(bodyText: string): number {
   return extractTemplateVariables(bodyText).length
+}
+
+/**
+ * The message that results from choosing `template` in the composer.
+ *
+ * One function so the picker, the "pick a sensible default" path and anything
+ * else that selects a template all produce the same message — the previous
+ * version special-cased one template by name in three separate places, which is
+ * how `connector_without_image` ended up being rewritten to `connector` between
+ * the click and the send.
+ *
+ * Everything comes from the template's own metadata: its language, its
+ * placeholder names, and whether its header is an image. Nothing is hard-coded
+ * per template.
+ */
+export function applyTemplate(
+  message: CampaignMessage,
+  template: WaTemplate | null | undefined
+): CampaignMessage {
+  if (!template) {
+    return {
+      ...message,
+      templateName: "",
+      templateLanguage: "",
+      bodyParams: [],
+      bodyParamNames: [],
+      hasImageHeader: false,
+      imageUrl: "",
+      imageSource: "none",
+    }
+  }
+
+  const names = template.variableNames?.length
+    ? template.variableNames
+    : extractTemplateVariables(template.bodyText)
+
+  // The first variable is nearly always the recipient's name, so it starts
+  // filled in. Anything else starts blank and has to be typed. Values already
+  // typed for the previous template are kept, position by position.
+  const bodyParams = names.map(
+    (_, index) => message.bodyParams[index] ?? (index === 0 ? "{{Name}}" : "")
+  )
+
+  // A template without an image header cannot carry one, so switching to one
+  // drops whatever image was attached rather than sending a payload Meta will
+  // reject.
+  const keepsImage = template.hasImageHeader
+  const imageUrl = keepsImage ? message.imageUrl : ""
+
+  return {
+    ...message,
+    templateName: template.name,
+    templateLanguage: template.language,
+    bodyParams,
+    bodyParamNames: names,
+    hasImageHeader: template.hasImageHeader,
+    imageUrl,
+    imageSource: keepsImage ? (imageUrl ? message.imageSource : "none") : "none",
+  }
 }
 
 /**
@@ -216,37 +304,26 @@ export function previewMessage(
     }
   }
 
-  const tName = String(message.templateName || "").trim().toLowerCase()
-  const isConnector = tName === "connector" || tName.includes("connector")
-  const defaultBody = isConnector
-    ? "Hello {{customer_name}}\n\n💰 Loan Business करता? अधिक कमवायचंय?\nआता Join करा Techstar Money Solution सोबत आणि मिळवा:\n\n🔹 50+ Loan Partners\n🔹 Highest Payout Opportunities\n🔹 Flexible Payout\n🔹 Fast Digital Onboarding\n🔹 Banks + NBFCs + Fintechs\n\n🚀 More Leads | More Loans | More Earnings\n\nआजच Techstar चे Loan Connector / DSA Partner बना!"
-    : ""
+  const body = template?.bodyText || ""
+  const names = template
+    ? extractTemplateVariables(body)
+    : message.bodyParamNames || []
 
-  const body = template?.bodyText || defaultBody || ""
-  let text = body
-  const vars = extractTemplateVariables(body)
-
-  if (vars.length > 0) {
-    vars.forEach((v, index) => {
-      const param = message.bodyParams[index] || "{{Name}}"
-      const value = fillName(param, recipient.name)
-      text = text
-        .replace(new RegExp(`\\{\\{\\s*${v}\\s*\\}\\}`, "g"), value)
-        .replace(new RegExp(`\\{\\{\\s*${index + 1}\\s*\\}\\}`, "g"), value)
-    })
-  }
-
-  if (text.includes("{{customer_name}}")) {
-    text = text.replace(/\{\{\s*customer_name\s*\}\}/g, recipient.name || "Partner")
-  }
-
-  const defaultImg = isConnector
-    ? "https://res.cloudinary.com/ugpy6fko/image/upload/v1788543861/wa-campaigns/u3xz2l1lpx7wylsxitog.png"
-    : ""
+  // One pass over the body, so a placeholder that is not one of the
+  // template's variables is left visible rather than silently dropped.
+  const text = body.replace(PLACEHOLDER, (whole, token: string) => {
+    const index = names.indexOf(token)
+    if (index === -1) return whole
+    return (
+      fillName(message.bodyParams[index] || "", recipient.name) ||
+      recipient.name ||
+      "Customer"
+    )
+  })
 
   return {
-    image: message.imageUrl || defaultImg || (template?.hasImageHeader ? message.imageUrl : ""),
-    text: text || `(template: ${message.templateName})`,
+    image: message.hasImageHeader ? message.imageUrl : "",
+    text: text || `(template: ${message.templateName || "none selected"})`,
   }
 }
 
@@ -260,15 +337,25 @@ export function validateMessage(
 
   if (message.mode === "template") {
     if (!message.templateName) return `${label}: choose a template.`
-    const vars = template ? extractTemplateVariables(template.bodyText) : []
-    const needed = template ? template.variableCount : message.bodyParams.length
-    for (let i = 0; i < needed; i++) {
-      if (!String(message.bodyParams[i] || "").trim()) {
-        const vName = vars[i] || `${i + 1}`
-        return `${label}: variable {{${vName}}} is empty.`
+
+    // The template list can still be loading, or the chosen template can have
+    // been paused at Meta's end since it was picked. The names carried on the
+    // message are what the send path will actually use, so they are what gets
+    // checked when the template itself is not to hand.
+    const names = template
+      ? template.variableNames?.length
+        ? template.variableNames
+        : extractTemplateVariables(template.bodyText)
+      : message.bodyParamNames || []
+
+    for (let index = 0; index < names.length; index++) {
+      if (!String(message.bodyParams[index] || "").trim()) {
+        return `${label}: variable {{${names[index]}}} is empty.`
       }
     }
-    if (template?.hasImageHeader && !message.imageUrl) {
+
+    const wantsImage = template ? template.hasImageHeader : message.hasImageHeader
+    if (wantsImage && !message.imageUrl) {
       return `${label}: this template has an image header, so an image is required.`
     }
     return null

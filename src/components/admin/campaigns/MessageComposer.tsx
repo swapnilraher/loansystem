@@ -3,13 +3,7 @@
 import React from "react"
 import { Image as ImageIcon, Link2, Loader2, Upload, X } from "lucide-react"
 import { authedFetch } from "@/lib/authedFetch"
-import {
-  countTemplateVariables,
-  extractTemplateVariables,
-  type CampaignImageSource,
-  type CampaignMessage,
-  type WaTemplate,
-} from "@/lib/waCampaignShared"
+import { applyTemplate, type CampaignMessage, type WaTemplate } from "@/lib/waCampaignShared"
 
 /**
  * The editor for one of a campaign's two messages.
@@ -49,28 +43,19 @@ export default function MessageComposer({
 
   const set = (patch: Partial<CampaignMessage>) => onChange({ ...message, ...patch })
 
-  /** Keeps `bodyParams` the same length as the chosen template's placeholders. */
+  /**
+   * Applies the chosen template verbatim.
+   *
+   * Verbatim matters: this used to rewrite any template whose name contained
+   * "connector" to the plain `connector` template, which is why picking
+   * `connector_without_image` snapped the dropdown straight back and sent the
+   * wrong template. Language, placeholders and whether a header image is
+   * allowed all come from the template's own metadata now.
+   */
   const pickTemplate = (value: string) => {
     const [name, language] = value.split("||")
     const chosen = templates.find(t => t.name === name && t.language === language)
-    const vars = chosen ? (chosen.variableNames || extractTemplateVariables(chosen.bodyText)) : []
-    const count = chosen ? chosen.variableCount : vars.length
-    const params = Array.from({ length: count }, (_, i) =>
-      // The first variable is nearly always the recipient's name, so it starts
-      // filled in. Anything else starts blank and has to be typed.
-      message.bodyParams[i] ?? (i === 0 ? "{{Name}}" : "")
-    )
-    const isConnector = (name || "").toLowerCase() === "connector" || (name || "").toLowerCase().includes("connector")
-    const defaultImg = isConnector ? "https://res.cloudinary.com/ugpy6fko/image/upload/v1788543861/wa-campaigns/u3xz2l1lpx7wylsxitog.png" : ""
-    set({
-      templateName: isConnector ? "connector" : (name || ""),
-      templateLanguage: isConnector ? "en" : (language || "en_US"),
-      bodyParams: params.length > 0 ? params : (isConnector ? ["{{Name}}"] : []),
-      imageUrl: message.imageUrl || defaultImg,
-      imageSource: (message.imageUrl || defaultImg) ? "url" : "none",
-      // A template without an image header cannot carry one.
-      ...(chosen && !chosen.hasImageHeader && !isConnector ? { imageUrl: "", imageSource: "none" as CampaignImageSource } : {}),
-    })
+    onChange(applyTemplate(message, chosen))
   }
 
   const setParam = (index: number, value: string) => {
@@ -99,7 +84,8 @@ export default function MessageComposer({
     }
   }
 
-  const showImage = allowImage && (message.mode === "custom" || template?.hasImageHeader)
+  const showImage =
+    allowImage && (message.mode === "custom" || (template?.hasImageHeader ?? message.hasImageHeader))
 
   return (
     <div
@@ -168,7 +154,8 @@ export default function MessageComposer({
               )}
 
               {message.bodyParams.map((param, index) => {
-                const varName = template?.variableNames?.[index] || (index + 1)
+                const varName =
+                  template?.variableNames?.[index] || message.bodyParamNames[index] || index + 1
                 return (
                 <div key={index}>
                   <p className="mb-2 text-[11px] font-black uppercase tracking-widest text-slate-400">

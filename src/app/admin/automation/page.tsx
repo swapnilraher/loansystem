@@ -18,10 +18,12 @@ import {
   Sparkles,
 } from "lucide-react"
 import { authedFetch, authedJson } from "@/lib/authedFetch"
+import { readErrorMessage, readNdjson } from "@/lib/ndjsonStream"
 import { useAuth } from "@/context/AuthContext"
 import MessageComposer from "@/components/admin/campaigns/MessageComposer"
 import { CountRow, StatusPill } from "@/components/admin/campaigns/CampaignBits"
 import {
+  applyTemplate,
   displayPhone,
   emptyMessage,
   normalizePhone,
@@ -49,6 +51,11 @@ import {
  */
 
 const CARD = "rounded-3xl border border-slate-100 bg-white p-4 shadow-sm sm:p-6"
+/** Recipients handed to the dispatcher per request. It may return early with
+ *  fewer processed, and the rest are simply posted again. */
+const BATCH_SIZE = 150
+/** Rows kept in the live activity list. */
+const LOG_LIMIT = 500
 const FIELD =
   "w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-secondary outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
 
@@ -115,6 +122,7 @@ export default function WhatsAppCampaignsPage() {
   const [live, setLive] = React.useState<CampaignSummary | null>(null)
 
   const [dispatch, setDispatch] = React.useState<DispatchState | null>(null)
+  const abortRef = React.useRef<AbortController | null>(null)
 
   const [history, setHistory] = React.useState<CampaignSummary[]>([])
   const [loadingHistory, setLoadingHistory] = React.useState(true)
@@ -125,23 +133,16 @@ export default function WhatsAppCampaignsPage() {
     setTemplateError("")
     try {
       const response = await authedFetch("/api/admin/wa-campaigns/templates")
+      if (!response.ok) throw new Error(await readErrorMessage(response, "Could not load templates."))
       const result = await response.json()
       if (!result.success) throw new Error(result.error || "Could not load templates.")
       const list: WaTemplate[] = result.templates || []
       setTemplates(list)
-      setMessage1(prev => {
-        if (!prev.templateName && list.some(t => t.name === "connector")) {
-          return {
-            ...prev,
-            templateName: "connector",
-            templateLanguage: "en",
-            bodyParams: ["{{Name}}"],
-            imageUrl: "https://res.cloudinary.com/ugpy6fko/image/upload/v1788543861/wa-campaigns/u3xz2l1lpx7wylsxitog.png",
-            imageSource: "url",
-          }
-        }
-        return prev
-      })
+      // Start on the first approved template so the screen is usable straight
+      // away, but only when nothing has been chosen yet — and through the same
+      // code path a manual pick uses, so the default is a real template rather
+      // than a name and an image URL written into the source.
+      setMessage1(prev => (prev.templateName || list.length === 0 ? prev : applyTemplate(prev, list[0])))
     } catch (error) {
       setTemplateError(error instanceof Error ? error.message : "Could not load templates.")
     } finally {
@@ -154,6 +155,10 @@ export default function WhatsAppCampaignsPage() {
     setHistoryError("")
     try {
       const response = await authedFetch("/api/admin/wa-campaigns")
+      if (!response.ok) {
+        setHistoryError(await readErrorMessage(response, "Could not load campaign history."))
+        return
+      }
       const result = await response.json()
       if (result.success) {
         setHistory(result.campaigns || [])
@@ -266,6 +271,18 @@ export default function WhatsAppCampaignsPage() {
 
   // ─── Sending ────────────────────────────────────────────────────────────────
 
+  /**
+   * Runs the campaign, one streamed batch at a time.
+   *
+   * The dispatcher answers with a line of JSON per recipient and stops itself
+   * short of the platform's function limit, saying how many of the recipients
+   * it was handed are still untouched. This posts the untouched ones back until
+   * there are none left, so the length of the list stops mattering: a batch
+   * that gets close to the limit simply ends early and the next one carries on.
+   *
+   * Every line that arrives is rendered immediately, which is what makes the
+   * progress bar move while the send is happening rather than after it.
+   */
   const send = async () => {
     if (blocker) return
     setSending(true)
@@ -273,6 +290,8 @@ export default function WhatsAppCampaignsPage() {
     setShowPreview(false)
 
     const cName = campaignName.trim() || `Campaign ${new Date().toLocaleTimeString("en-IN")}`
+    const controller = new AbortController()
+    abortRef.current = controller
 
     setDispatch({
       open: true,
@@ -286,54 +305,142 @@ export default function WhatsAppCampaignsPage() {
       log: [],
     })
 
+    let campaignId = ""
+    let warning = ""
+    let offset = 0
+    let stalledBatches = 0
+
     try {
-      const response = await authedJson("/api/admin/wa-campaigns/dispatch", "POST", {
-        campaignName: cName,
-        mobileColumn,
-        nameColumn,
-        message1,
-        message2,
-        recipients: valid,
-      })
+      while (offset < valid.length && !controller.signal.aborted) {
+        const response = await authedFetch("/api/admin/wa-campaigns/dispatch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            campaignName: cName,
+            mobileColumn,
+            nameColumn,
+            message1,
+            message2,
+            recipients: valid.slice(offset, offset + BATCH_SIZE),
+            campaignId: campaignId || undefined,
+            offset,
+            totalRecipients: valid.length,
+          }),
+        })
 
-      const data = await response.json()
-      if (!data.success) {
-        throw new Error(data.error || "Failed to dispatch WhatsApp messages.")
+        if (!response.ok || !response.body) {
+          throw new Error(await readErrorMessage(response, "The send could not be started."))
+        }
+
+        let seen = 0
+        let reported = -1
+
+        for await (const event of readNdjson(response.body, controller.signal)) {
+          const type = String(event.type || "")
+
+          if (type === "start" || type === "done") {
+            if (typeof event.campaignId === "string" && event.campaignId) {
+              campaignId = event.campaignId
+            }
+            if (typeof event.firestoreWarning === "string" && event.firestoreWarning) {
+              warning = event.firestoreWarning
+            }
+          }
+
+          if (type === "progress") {
+            seen += 1
+            const item: DispatchItem = {
+              id: String(event.id || `r${offset + seen}`),
+              name: String(event.name || "Recipient"),
+              phone: String(event.phone || ""),
+              status: event.status === "sent" ? "sent" : "failed",
+              error: String(event.error || ""),
+            }
+            setDispatch(prev =>
+              prev
+                ? {
+                    ...prev,
+                    campaignId: campaignId || prev.campaignId,
+                    processed: prev.processed + 1,
+                    sent: prev.sent + (item.status === "sent" ? 1 : 0),
+                    failed: prev.failed + (item.status === "failed" ? 1 : 0),
+                    // Newest first, and capped: a 5,000-recipient campaign must
+                    // not put 5,000 rows in the DOM to show the last twenty.
+                    log: [item, ...prev.log].slice(0, LOG_LIMIT),
+                  }
+                : prev
+            )
+          }
+
+          if (type === "done") {
+            reported = Number(event.processed) || 0
+          }
+
+          if (type === "error") {
+            throw new Error(String(event.error || "The send stopped unexpectedly."))
+          }
+        }
+
+        if (controller.signal.aborted) break
+
+        // A stream that ends without its `done` line was cut off. What did
+        // arrive is still true, so carry on from there rather than resending
+        // messages that already went out.
+        const advanced = reported >= 0 ? reported : seen
+        if (advanced <= 0) {
+          stalledBatches += 1
+          if (stalledBatches >= 3) {
+            throw new Error(
+              "The server stopped accepting this batch. Check the WhatsApp template and try again."
+            )
+          }
+          // Retrying the same offset with no pause would be a tight loop
+          // against a server that has just said it cannot help.
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        } else {
+          stalledBatches = 0
+        }
+        offset += advanced
       }
 
-      const results: DispatchItem[] = (data.results || []).map((r: any) => ({
-        id: r.id,
-        name: r.name,
-        phone: r.phone,
-        status: r.status,
-        error: r.error,
-      }))
-
-      setDispatch({
-        open: true,
-        campaignId: data.campaignId || "",
-        name: cName,
-        total: data.total || valid.length,
-        processed: data.total || valid.length,
-        sent: data.sent || 0,
-        failed: data.failed || 0,
-        status: "completed",
-        error: data.firestoreWarning || undefined,
-        log: results,
-      })
-
-      if (data.campaignId) {
-        setLiveId(data.campaignId)
-      }
-
+      const stopped = controller.signal.aborted
+      setDispatch(prev =>
+        prev
+          ? {
+              ...prev,
+              campaignId,
+              status: stopped ? "error" : "completed",
+              error: stopped
+                ? `Stopped after ${prev.processed} of ${prev.total}.`
+                : warning || undefined,
+            }
+          : prev
+      )
+      if (campaignId) setLiveId(campaignId)
       void loadHistory()
     } catch (error) {
-      const errMessage = error instanceof Error ? error.message : "Could not start the campaign."
+      const stopped = controller.signal.aborted || (error as Error)?.name === "AbortError"
+      const errMessage = stopped
+        ? "Sending was stopped."
+        : error instanceof Error
+          ? error.message
+          : "Could not start the campaign."
       setSendError(errMessage)
-      setDispatch(prev => (prev ? { ...prev, status: "error", error: errMessage } : null))
+      setDispatch(prev =>
+        prev ? { ...prev, campaignId, status: "error", error: errMessage } : null
+      )
+      if (campaignId) setLiveId(campaignId)
+      void loadHistory()
     } finally {
+      abortRef.current = null
       setSending(false)
     }
+  }
+
+  /** Stops the run between messages; the server sees the dropped stream too. */
+  const stopSending = () => {
+    abortRef.current?.abort()
   }
 
   /**
@@ -834,7 +941,7 @@ export default function WhatsAppCampaignsPage() {
                   Real-time WhatsApp Message Dispatch
                 </p>
               </div>
-              {dispatch.status === "completed" && (
+              {(dispatch.status === "completed" || dispatch.status === "error") && (
                 <button
                   onClick={() => setDispatch(null)}
                   className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100"
@@ -985,10 +1092,18 @@ export default function WhatsAppCampaignsPage() {
                   )}
                 </>
               ) : (
-                <div className="flex w-full items-center justify-center gap-2 py-2 text-xs font-bold text-slate-500">
-                  <Loader2 size={14} className="animate-spin text-primary" />
-                  <span>Please keep this window open while sending...</span>
-                </div>
+                <>
+                  <div className="flex flex-[2] items-center justify-center gap-2 py-2 text-xs font-bold text-slate-500">
+                    <Loader2 size={14} className="animate-spin text-primary" />
+                    <span>Keep this window open while sending…</span>
+                  </div>
+                  <button
+                    onClick={stopSending}
+                    className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-xs font-black text-rose-600 hover:border-rose-300 hover:bg-rose-50"
+                  >
+                    Stop
+                  </button>
+                </>
               )}
             </div>
           </div>

@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/apiAuth"
 import { getAdminDb } from "@/lib/firebase-admin"
-import { CAMPAIGNS, createCampaign, scheduleCampaignRun, type CampaignDoc } from "@/lib/waCampaigns"
-import { normalizePhone, type CampaignMessage, type CampaignRecipient } from "@/lib/waCampaignShared"
+import {
+  CAMPAIGNS,
+  createCampaign,
+  messageProblem,
+  sanitizeMessage,
+  scheduleCampaignRun,
+  type CampaignDoc,
+} from "@/lib/waCampaigns"
+import { normalizePhone, type CampaignRecipient } from "@/lib/waCampaignShared"
 
 /**
  * Campaign history (GET) and campaign creation (POST).
@@ -68,40 +75,6 @@ export async function GET(request: Request) {
   }
 }
 
-/** Keeps only the fields the worker reads, so nothing unexpected is stored. */
-function cleanMessage(raw: unknown): CampaignMessage {
-  const value = (raw || {}) as Partial<CampaignMessage>
-  const rawTemplate = String(value.templateName || "").trim()
-  const isConnector = rawTemplate.toLowerCase() === "connector" || rawTemplate.toLowerCase().includes("connector")
-  const templateName = isConnector ? "connector" : rawTemplate
-  return {
-    enabled: value.enabled === true,
-    mode: value.mode === "custom" ? "custom" : "template",
-    templateName,
-    templateLanguage: isConnector ? "en" : String(value.templateLanguage || "en_US").trim(),
-    bodyParams: Array.isArray(value.bodyParams) && value.bodyParams.length > 0
-      ? value.bodyParams.map(p => String(p ?? ""))
-      : (isConnector ? ["{{Name}}"] : []),
-    imageUrl: String(value.imageUrl || (isConnector ? "https://res.cloudinary.com/ugpy6fko/image/upload/v1788543861/wa-campaigns/u3xz2l1lpx7wylsxitog.png" : "")).trim(),
-    imageSource: value.imageSource === "upload" || value.imageSource === "url" ? value.imageSource : (isConnector ? "url" : "none"),
-    text: String(value.text || ""),
-  }
-}
-
-function messageProblem(message: CampaignMessage, label: string): string | null {
-  if (!message.enabled) return null
-  if (message.mode === "template" && !message.templateName) {
-    return `${label} has no template selected.`
-  }
-  if (message.mode === "custom" && !message.text.trim() && !message.imageUrl) {
-    return `${label} has no text and no image.`
-  }
-  if (message.imageUrl && !/^https:\/\//i.test(message.imageUrl)) {
-    return `${label}: the image URL must be a public https:// address.`
-  }
-  return null
-}
-
 export async function POST(request: Request) {
   const auth = await requireAdmin(request)
   if (!auth.ok) return auth.response
@@ -112,8 +85,8 @@ export async function POST(request: Request) {
     const name = String(body?.name || "").trim() || `Campaign ${new Date().toLocaleString("en-IN")}`
     const mobileColumn = String(body?.mobileColumn || "").trim()
     const nameColumn = String(body?.nameColumn || "").trim()
-    const message1 = cleanMessage(body?.message1)
-    const message2 = cleanMessage(body?.message2)
+    const message1 = sanitizeMessage(body?.message1)
+    const message2 = sanitizeMessage(body?.message2)
 
     if (!message1.enabled && !message2.enabled) {
       return NextResponse.json(

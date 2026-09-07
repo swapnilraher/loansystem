@@ -39,7 +39,6 @@ import {
   type CampaignStatus,
   type MessageStatus,
   type WaTemplate,
-  countTemplateVariables,
   extractTemplateVariables,
 } from "./waCampaignShared"
 
@@ -142,6 +141,68 @@ export async function fetchTemplates(): Promise<WaTemplate[]> {
     .sort((a, b) => a.name.localeCompare(b.name))
 }
 
+// ─── Message hygiene ─────────────────────────────────────────────────────────
+
+/**
+ * The browser's `CampaignMessage`, reduced to the fields the sender reads.
+ *
+ * Both entry points — creating a stored campaign and the direct dispatcher —
+ * run everything through here, so a payload that reaches Meta is shaped by one
+ * piece of code rather than by whichever route happened to receive it. It
+ * renames nothing and substitutes nothing: a template picked in the composer is
+ * the template that gets sent.
+ */
+export function sanitizeMessage(raw: unknown): CampaignMessage {
+  const value = (raw || {}) as Partial<CampaignMessage>
+
+  const bodyParams = Array.isArray(value.bodyParams)
+    ? value.bodyParams.map(param => String(param ?? ""))
+    : []
+  const bodyParamNames = Array.isArray(value.bodyParamNames)
+    ? value.bodyParamNames.map(name => String(name ?? "")).slice(0, bodyParams.length)
+    : []
+
+  const hasImageHeader = value.hasImageHeader === true
+  // An image on a template with no image header is dropped rather than sent:
+  // Meta rejects the whole message for it, and the admin's intent — this
+  // template — is the part worth keeping.
+  const imageUrl =
+    value.mode === "custom" || hasImageHeader ? String(value.imageUrl || "").trim() : ""
+
+  return {
+    enabled: value.enabled === true,
+    mode: value.mode === "custom" ? "custom" : "template",
+    templateName: String(value.templateName || "").trim(),
+    templateLanguage: String(value.templateLanguage || "").trim() || "en",
+    bodyParams,
+    bodyParamNames,
+    hasImageHeader,
+    imageUrl,
+    imageSource:
+      imageUrl && (value.imageSource === "upload" || value.imageSource === "url")
+        ? value.imageSource
+        : imageUrl
+          ? "url"
+          : "none",
+    text: String(value.text || ""),
+  }
+}
+
+/** What is wrong with this message, in the words the admin will see. */
+export function messageProblem(message: CampaignMessage, label: string): string | null {
+  if (!message.enabled) return null
+  if (message.mode === "template" && !message.templateName) {
+    return `${label} has no template selected.`
+  }
+  if (message.mode === "custom" && !message.text.trim() && !message.imageUrl) {
+    return `${label} has no text and no image.`
+  }
+  if (message.imageUrl && !/^https:\/\//i.test(message.imageUrl)) {
+    return `${label}: the image URL must be a public https:// address.`
+  }
+  return null
+}
+
 // ─── Sending ──────────────────────────────────────────────────────────────────
 
 export interface SendOutcome {
@@ -169,54 +230,43 @@ export async function sendOne(
 
   if (message.mode === "template") {
     const components: Record<string, unknown>[] = []
-    const tName = String(message.templateName || "").trim().toLowerCase()
-    const isConnector = tName === "connector" || tName.includes("connector")
-    const imgUrl = message.imageUrl || (isConnector ? "https://res.cloudinary.com/ugpy6fko/image/upload/v1788543861/wa-campaigns/u3xz2l1lpx7wylsxitog.png" : "")
 
-    // A template whose header is an IMAGE must be given one, and it has to be a
-    // public link — Meta fetches it itself, so a server path would 404 on their
-    // side rather than ours.
-    if (imgUrl) {
+    // Only a template whose header is an IMAGE may be given one, and the link
+    // has to be public — Meta fetches it itself, so a server path would 404 on
+    // their side rather than ours. Attaching a header to a template that has no
+    // header is rejected outright (132000), which is why this is gated on the
+    // template's own metadata rather than on whether an image happens to be set.
+    if (message.hasImageHeader && message.imageUrl) {
       components.push({
         type: "header",
-        parameters: [{ type: "image", image: { link: imgUrl } }],
+        parameters: [{ type: "image", image: { link: message.imageUrl } }],
       })
     }
 
-    if (isConnector) {
-      const recipientName = (recipient.name || "").trim() || "Partner"
+    const names = Array.isArray(message.bodyParamNames) ? message.bodyParamNames : []
+    const params = Array.isArray(message.bodyParams) ? message.bodyParams : []
+
+    if (params.length > 0) {
       components.push({
         type: "body",
-        parameters: [
-          {
-            type: "text",
-            parameter_name: "customer_name",
-            text: recipientName,
-          },
-        ],
+        parameters: params.map((param, index) => {
+          const text = fillName(param, recipient.name) || recipient.name || "Customer"
+          const name = names[index]
+          // A template written with named placeholders (`{{customer_name}}`)
+          // requires `parameter_name` on every body parameter; one written with
+          // positional placeholders (`{{1}}`) rejects the field. The template's
+          // own variable names are what says which kind this is.
+          return name && !/^\d+$/.test(name)
+            ? { type: "text", parameter_name: name, text }
+            : { type: "text", text }
+        }),
       })
-    } else {
-      const rawParams = message.bodyParams.length > 0 ? message.bodyParams : []
-      if (rawParams.length > 0) {
-        components.push({
-          type: "body",
-          parameters: rawParams.map((param, idx) => {
-            const filled = fillName(param, recipient.name) || recipient.name || "Customer"
-            return {
-              type: "text",
-              text: filled,
-            }
-          }),
-        })
-      }
     }
-
-    const langCode = isConnector ? "en" : (message.templateLanguage || "en_US")
 
     body.type = "template"
     body.template = {
-      name: isConnector ? "connector" : message.templateName,
-      language: { code: langCode },
+      name: message.templateName,
+      language: { code: message.templateLanguage || "en" },
       ...(components.length > 0 ? { components } : {}),
     }
   } else if (message.imageUrl) {
@@ -231,7 +281,6 @@ export async function sendOne(
   }
 
   try {
-    console.log(`[waCampaigns] Dispatching to ${recipient.phone}:`, JSON.stringify(body))
     const response = await fetch(`${GRAPH_BASE}/${WHATSAPP_PHONE_ID}/messages`, {
       method: "POST",
       headers: {
@@ -245,11 +294,17 @@ export async function sendOne(
     if (!response.ok) {
       const error = result?.error
       const detail = error?.error_data?.details || error?.message || "WhatsApp rejected the message."
-      console.error(`[waCampaigns] Send failed for ${recipient.phone}:`, detail, JSON.stringify(result))
+      // The payload goes in the log only on failure: it is what makes a Meta
+      // rejection diagnosable, and logging it for every success turns a
+      // 2000-recipient campaign into 2000 lines of noise.
+      console.error(
+        `[waCampaigns] Send failed for ${recipient.phone}:`,
+        detail,
+        JSON.stringify(body)
+      )
       return { ok: false, messageId: "", error: String(detail).slice(0, 500) }
     }
 
-    console.log(`[waCampaigns] Send success for ${recipient.phone}:`, result?.messages?.[0]?.id)
     return {
       ok: true,
       messageId: result?.messages?.[0]?.id || "",
