@@ -103,6 +103,20 @@ export class MongoDocRef {
     this.parentId = parentId;
   }
 
+  /**
+   * The `_id` this document is actually stored under.
+   *
+   * Every parent's subcollection is flattened into one Mongo collection, but a
+   * subcollection's ids are only unique *within* their parent — campaign recipients
+   * are numbered r0000001, r0000002 in each campaign independently. Since `_id` must
+   * be unique per collection, storing the raw id would let one parent's document
+   * overwrite another's. Prefixing with the parent keeps them distinct; `id` stays
+   * the logical id everywhere it is read back.
+   */
+  get storageId(): string {
+    return this.parentId ? `${this.parentId}/${this.id}` : this.id;
+  }
+
   get path(): string {
     return this.parentId ? `${this.collectionName}/${this.id}` : `${this.collectionName}/${this.id}`;
   }
@@ -114,7 +128,7 @@ export class MongoDocRef {
 
   async get(): Promise<DocumentSnapshot> {
     const db = await getDb();
-    const filter: Filter<Document> = { _id: this.id as any };
+    const filter: Filter<Document> = { _id: this.storageId as any };
     if (this.parentId) {
       filter._parentId = this.parentId;
     }
@@ -128,17 +142,20 @@ export class MongoDocRef {
       };
     }
 
-    const { _id, _parentId, ...rest } = doc;
+    // `_docId` carries the logical id for a subcollection document, whose `_id` is
+    // prefixed with its parent. Callers only ever see the logical one.
+    const { _id, _parentId, _docId, ...rest } = doc;
+    const logicalId = String(_docId ?? _id);
     return {
-      id: String(_id),
+      id: logicalId,
       exists: true,
-      data: () => ({ ...rest, id: String(_id) }),
+      data: () => ({ ...rest, id: logicalId }),
     };
   }
 
   async set(data: any, options?: { merge?: boolean }): Promise<void> {
     const db = await getDb();
-    const filter: Filter<Document> = { _id: this.id as any };
+    const filter: Filter<Document> = { _id: this.storageId as any };
     if (this.parentId) {
       filter._parentId = this.parentId;
     }
@@ -147,6 +164,7 @@ export class MongoDocRef {
     const $set = operations.$set || {};
     if (this.parentId) {
       $set._parentId = this.parentId;
+      $set._docId = this.id;
     }
 
     if (options?.merge) {
@@ -161,9 +179,10 @@ export class MongoDocRef {
         { upsert: true }
       );
     } else {
-      const fullDoc = { ...$set, _id: this.id as any };
+      const fullDoc = { ...$set, _id: this.storageId as any };
       if (this.parentId) {
         (fullDoc as any)._parentId = this.parentId;
+        (fullDoc as any)._docId = this.id;
       }
       await db.collection(this.collectionName).replaceOne(filter, fullDoc, { upsert: true });
     }
@@ -171,7 +190,7 @@ export class MongoDocRef {
 
   async update(data: any): Promise<void> {
     const db = await getDb();
-    const filter: Filter<Document> = { _id: this.id as any };
+    const filter: Filter<Document> = { _id: this.storageId as any };
     if (this.parentId) {
       filter._parentId = this.parentId;
     }
@@ -189,7 +208,7 @@ export class MongoDocRef {
 
   async delete(): Promise<void> {
     const db = await getDb();
-    const filter: Filter<Document> = { _id: this.id as any };
+    const filter: Filter<Document> = { _id: this.storageId as any };
     if (this.parentId) {
       filter._parentId = this.parentId;
     }
@@ -216,7 +235,9 @@ export class MongoQuery {
   }
 
   where(field: string, opStr: string, value: any): MongoQuery {
-    const queryField = field === "id" ? "_id" : field;
+    // In a subcollection the caller's id lives in `_docId`; `_id` there is the
+    // parent-prefixed composite, which nothing outside this file knows about.
+    const queryField = field === "id" ? (this.parentId ? "_docId" : "_id") : field;
     const q = new MongoQuery(this.collectionName, this.parentId);
     q.filters = [...this.filters];
     q.sorts = { ...this.sorts };
@@ -268,7 +289,10 @@ export class MongoQuery {
   orderBy(field: string, directionStr: "asc" | "desc" = "asc"): MongoQuery {
     const q = new MongoQuery(this.collectionName, this.parentId);
     q.filters = [...this.filters];
-    q.sorts = { ...this.sorts, [field === "id" ? "_id" : field]: directionStr === "desc" ? -1 : 1 };
+    // Must agree with where()/startAfter(): in a subcollection the caller's id is
+    // `_docId`, and startAfter compares against a snapshot's logical id.
+    const sortField = field === "id" ? (this.parentId ? "_docId" : "_id") : field;
+    q.sorts = { ...this.sorts, [sortField]: directionStr === "desc" ? -1 : 1 };
     q.projection = { ...this.projection };
     q.limitCount = this.limitCount;
     q.skipCount = this.skipCount;
@@ -282,7 +306,7 @@ export class MongoQuery {
     q.sorts = { ...this.sorts };
     q.projection = { ...this.projection };
     for (const f of fields) {
-      q.projection[f === "id" ? "_id" : f] = 1;
+      q.projection[f === "id" ? (this.parentId ? "_docId" : "_id") : f] = 1;
     }
     q.limitCount = this.limitCount;
     q.skipCount = this.skipCount;
@@ -366,11 +390,14 @@ export class MongoQuery {
 
     const docs = await cursor.toArray();
     const snapshots: DocumentSnapshot[] = docs.map((doc) => {
-      const { _id, _parentId, ...rest } = doc;
+      // Same as MongoDocRef.get(): a subcollection document's `_id` is prefixed with
+      // its parent, and `_docId` is the id the caller knows it by.
+      const { _id, _parentId, _docId, ...rest } = doc;
+      const logicalId = String(_docId ?? _id);
       return {
-        id: String(_id),
+        id: logicalId,
         exists: true,
-        data: () => ({ ...rest, id: String(_id) }),
+        data: () => ({ ...rest, id: logicalId }),
       };
     });
 
