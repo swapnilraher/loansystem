@@ -1,16 +1,16 @@
 /**
  * Where the WhatsApp bot's flows and messages are stored, and how they are read.
  *
- * Server-only: it signs Firestore REST calls with the service account (see
- * `firestoreFetch`). The browser never reads this module — the CRM goes through
- * `/api/flows`, which is where the Admin-only check lives.
+ * Server-only: it reads and writes MongoDB through the admin adapter. The browser
+ * never reads this module — the CRM goes through `/api/flows`, which is where the
+ * Admin-only check lives.
  *
  * The bot must not stop talking because a database read failed, so every read
  * path here degrades to `DEFAULT_CONFIG` (the flows that used to be hardcoded)
  * rather than throwing.
  */
 
-import { firestoreFetch } from "@/lib/firestore-rest"
+import { getAdminDb } from "@/lib/firebase-admin"
 import {
   DEFAULT_CONFIG,
   mergeFlows,
@@ -22,24 +22,21 @@ import {
   type WaMessages,
 } from "@/lib/waFlows"
 
-const FIREBASE_API_KEY = "AIzaSyDy-zXamx8BB18MgTXWoyWACKRSKvvOBTo"
-const PROJECT_ID = "dsa-loan"
-const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`
-
-const FLOWS_PATH = `${BASE}/waFlows`
-const SETTINGS_PATH = `${BASE}/waSettings/whatsapp`
+const FLOWS_COLLECTION = "waFlows"
+const SETTINGS_COLLECTION = "waSettings"
+const SETTINGS_DOC_ID = "whatsapp"
 
 /**
  * Documents written by the first flow builder, which was never wired to the bot
  * and stored questions as plain English strings with no conditions. They stay in
- * Firestore untouched, but the bot ignores them: running them would replace the
+ * the database untouched, but the bot ignores them: running them would replace the
  * live three-language flows with an English skeleton nobody approved.
  */
 const SCHEMA_VERSION = 2
 
 /**
  * The webhook is called once per inbound message, so an uncached read would put
- * a Firestore round-trip in front of every reply. A minute is short enough that
+ * a database round-trip in front of every reply. A minute is short enough that
  * an Admin editing a flow sees it live within one, and long enough that a busy
  * hour is not spent re-reading six documents.
  */
@@ -52,9 +49,26 @@ export function invalidateFlowCache(): void {
   cache = null
 }
 
-interface FirestoreDoc {
-  name?: string
-  fields?: Record<string, { stringValue?: string; booleanValue?: boolean; integerValue?: string }>
+/** A flow as it sits in the database: the nested parts are stored as JSON text. */
+interface StoredFlow {
+  category?: string
+  label?: string
+  intro?: string
+  steps?: string
+  enabled?: boolean
+  order?: number
+  schemaVersion?: number
+}
+
+interface StoredSettings {
+  messages?: string
+  automationEnabled?: boolean
+}
+
+/** Just enough of a snapshot for the reads below; the adapter returns `any`. */
+interface Snapshot<T> {
+  id: string
+  data(): T | undefined
 }
 
 function parseJson<T>(raw: string | undefined, fallback: T): T {
@@ -66,56 +80,67 @@ function parseJson<T>(raw: string | undefined, fallback: T): T {
   }
 }
 
-function docToFlow(doc: FirestoreDoc): WaFlow | null {
-  const fields = doc.fields || {}
-  if (Number(fields.schemaVersion?.integerValue || "0") < SCHEMA_VERSION) return null
+function docToFlow(id: string, data: StoredFlow): WaFlow | null {
+  if (Number(data.schemaVersion ?? 0) < SCHEMA_VERSION) return null
 
   return sanitizeFlow(
     {
-      id: doc.name?.split("/").pop() || "",
-      category: fields.category?.stringValue || "",
-      label: parseJson(fields.label?.stringValue, undefined),
-      intro: parseJson(fields.intro?.stringValue, undefined),
-      steps: parseJson(fields.steps?.stringValue, []),
-      enabled: fields.enabled?.booleanValue !== false,
-      order: Number(fields.order?.integerValue || "99"),
+      id,
+      category: data.category || "",
+      label: parseJson(data.label, undefined),
+      intro: parseJson(data.intro, undefined),
+      steps: parseJson(data.steps, []),
+      enabled: data.enabled !== false,
+      order: Number(data.order ?? 99),
     },
-    doc.name?.split("/").pop() || ""
+    id
   )
 }
 
-function flowToFields(flow: WaFlow): Record<string, unknown> {
+function flowToDoc(flow: WaFlow): Record<string, unknown> {
   return {
     // `name` is what the CRM lists the flow under; the bot keys on `category`.
-    name: { stringValue: `${flow.category} Flow` },
-    category: { stringValue: flow.category },
-    label: { stringValue: JSON.stringify(flow.label || {}) },
-    intro: { stringValue: JSON.stringify(flow.intro || {}) },
-    steps: { stringValue: JSON.stringify(flow.steps || []) },
-    enabled: { booleanValue: flow.enabled !== false },
-    order: { integerValue: String(flow.order ?? 99) },
-    schemaVersion: { integerValue: String(SCHEMA_VERSION) },
-    updatedAt: { timestampValue: new Date().toISOString() },
+    name: `${flow.category} Flow`,
+    category: flow.category,
+    label: JSON.stringify(flow.label || {}),
+    intro: JSON.stringify(flow.intro || {}),
+    steps: JSON.stringify(flow.steps || []),
+    enabled: flow.enabled !== false,
+    order: flow.order ?? 99,
+    schemaVersion: SCHEMA_VERSION,
+    updatedAt: new Date(),
   }
 }
 
 async function readStoredFlows(): Promise<WaFlow[]> {
-  const res = await firestoreFetch(`${FLOWS_PATH}?key=${FIREBASE_API_KEY}&pageSize=100`)
-  if (!res.ok) return []
-  const data = (await res.json()) as { documents?: FirestoreDoc[] }
-  if (!data.documents) return []
-  return data.documents.map(docToFlow).filter((f): f is WaFlow => f !== null)
+  const db = getAdminDb()
+  try {
+    const snap = await db.collection(FLOWS_COLLECTION).limit(100).get()
+    const docs = snap.docs as Snapshot<StoredFlow>[]
+    return docs
+      .map(doc => docToFlow(doc.id, doc.data() || {}))
+      .filter((f): f is WaFlow => f !== null)
+  } catch {
+    // No stored flows means the shipped defaults, which is also the safest answer
+    // when the read itself fails.
+    return []
+  }
 }
 
 async function readSettings(): Promise<{ messages: Partial<WaMessages>; automationEnabled: boolean }> {
-  const res = await firestoreFetch(`${SETTINGS_PATH}?key=${FIREBASE_API_KEY}`)
-  // A 404 is the normal state until an Admin saves a message for the first time.
-  if (!res.ok) return { messages: {}, automationEnabled: true }
-  const doc = (await res.json()) as FirestoreDoc
-  const fields = doc.fields || {}
-  return {
-    messages: sanitizeMessages(parseJson(fields.messages?.stringValue, {})),
-    automationEnabled: fields.automationEnabled?.booleanValue !== false,
+  const db = getAdminDb()
+  try {
+    const snap = await db.collection(SETTINGS_COLLECTION).doc(SETTINGS_DOC_ID).get()
+    // A missing document is the normal state until an Admin saves a message for
+    // the first time.
+    if (!snap.exists) return { messages: {}, automationEnabled: true }
+    const data = (snap.data() || {}) as StoredSettings
+    return {
+      messages: sanitizeMessages(parseJson(data.messages, {})),
+      automationEnabled: data.automationEnabled !== false,
+    }
+  } catch {
+    return { messages: {}, automationEnabled: true }
   }
 }
 
@@ -154,13 +179,13 @@ export async function loadFlowConfigForAdmin(): Promise<WaFlowConfig> {
 }
 
 export async function saveFlow(flow: WaFlow): Promise<void> {
-  const url = `${FLOWS_PATH}/${encodeURIComponent(flow.id)}?key=${FIREBASE_API_KEY}`
-  const res = await firestoreFetch(url, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ fields: flowToFields(flow) }),
-  })
-  if (!res.ok) throw new Error(`Failed to save flow: ${await res.text()}`)
+  const db = getAdminDb()
+  try {
+    // A full replace, so a field an Admin cleared does not survive in the stored copy.
+    await db.collection(FLOWS_COLLECTION).doc(flow.id).set(flowToDoc(flow))
+  } catch (error) {
+    throw new Error(`Failed to save flow: ${error instanceof Error ? error.message : String(error)}`)
+  }
   invalidateFlowCache()
 }
 
@@ -172,9 +197,13 @@ export async function saveFlow(flow: WaFlow): Promise<void> {
  * from the menu is what the enable toggle is for.
  */
 export async function deleteFlow(id: string): Promise<void> {
-  const url = `${FLOWS_PATH}/${encodeURIComponent(id)}?key=${FIREBASE_API_KEY}`
-  const res = await firestoreFetch(url, { method: "DELETE" })
-  if (!res.ok && res.status !== 404) throw new Error(`Failed to delete flow: ${await res.text()}`)
+  const db = getAdminDb()
+  try {
+    // Deleting a flow that is not stored is not an error; it is already reset.
+    await db.collection(FLOWS_COLLECTION).doc(id).delete()
+  } catch (error) {
+    throw new Error(`Failed to delete flow: ${error instanceof Error ? error.message : String(error)}`)
+  }
   invalidateFlowCache()
 }
 
@@ -182,28 +211,24 @@ export async function saveSettings(input: {
   messages?: Partial<WaMessages>
   automationEnabled?: boolean
 }): Promise<void> {
-  const fields: Record<string, unknown> = {
-    updatedAt: { timestampValue: new Date().toISOString() },
-  }
-  const mask = ["updatedAt"]
+  const update: Record<string, unknown> = { updatedAt: new Date() }
 
   if (input.messages) {
-    fields.messages = { stringValue: JSON.stringify(input.messages) }
-    mask.push("messages")
+    update.messages = JSON.stringify(input.messages)
   }
   if (input.automationEnabled !== undefined) {
-    fields.automationEnabled = { booleanValue: input.automationEnabled }
-    mask.push("automationEnabled")
+    update.automationEnabled = input.automationEnabled
   }
 
-  // An explicit mask keeps a message save from wiping the automation switch, and
-  // the other way round.
-  const query = mask.map(f => `updateMask.fieldPaths=${f}`).join("&")
-  const res = await firestoreFetch(`${SETTINGS_PATH}?key=${FIREBASE_API_KEY}&${query}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ fields }),
-  })
-  if (!res.ok) throw new Error(`Failed to save WhatsApp settings: ${await res.text()}`)
+  const db = getAdminDb()
+  try {
+    // Merging keeps a message save from wiping the automation switch, and the
+    // other way round.
+    await db.collection(SETTINGS_COLLECTION).doc(SETTINGS_DOC_ID).set(update, { merge: true })
+  } catch (error) {
+    throw new Error(
+      `Failed to save WhatsApp settings: ${error instanceof Error ? error.message : String(error)}`
+    )
+  }
   invalidateFlowCache()
 }

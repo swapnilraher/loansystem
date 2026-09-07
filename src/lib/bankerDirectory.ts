@@ -3,7 +3,7 @@
  * whatever an Admin has since changed.
  *
  * The JSON file is read-only at runtime — it is baked into the deployment, and
- * the CRM cannot write to it. So edits live in Firestore and are layered over
+ * the CRM cannot write to it. So edits live in the database and are layered over
  * the file on read. That keeps the shipped list intact (nothing is ever lost to
  * a bad edit) while making every field of it changeable from the CRM.
  *
@@ -12,20 +12,18 @@
  * grouping them back together is what makes "change their mobile number" one
  * edit instead of twelve.
  *
- * Server-only — it reads the filesystem and mints service-account credentials.
+ * Server-only — it reads the filesystem and talks to the database.
  */
 
 import fs from "fs"
 import path from "path"
-import { firestoreFetch } from "@/lib/firestore-rest"
+import { getAdminDb } from "@/lib/firebase-admin"
 
-const FIREBASE_API_KEY = "AIzaSyDy-zXamx8BB18MgTXWoyWACKRSKvvOBTo"
-const PROJECT_ID = "dsa-loan"
-const COLLECTION = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/bankers`
+const COLLECTION = "bankers"
 
 /** One banker, as the CRM edits them. */
 export interface Banker {
-  /** Firestore document id for an edited or added banker; the group key otherwise. */
+  /** Document id for an edited or added banker; the group key otherwise. */
   id: string
   state: string
   district: string
@@ -142,34 +140,38 @@ export function invalidateBankerCache(): void {
   overlayCache = null
 }
 
-interface FirestoreDoc {
+/** One stored edit, as it comes back out of the collection. */
+interface BankerDoc {
+  state?: string
+  district?: string
+  bank?: string
+  branch?: string
   name?: string
-  fields?: Record<string, {
-    stringValue?: string
-    booleanValue?: boolean
-    arrayValue?: { values?: { stringValue?: string }[] }
-  }>
+  mobile?: string
+  products?: unknown[]
+  active?: boolean
+  updatedByName?: string
+  updatedAt?: Date | string
 }
 
-function docToBanker(doc: FirestoreDoc): Banker | null {
-  const fields = doc.fields || {}
-  const id = doc.name?.split("/").pop() || ""
+function docToBanker(id: string, data: BankerDoc): Banker | null {
   if (!id) return null
   return {
     id,
-    state: fields.state?.stringValue || "",
-    district: fields.district?.stringValue || "",
-    bank: fields.bank?.stringValue || "",
-    branch: fields.branch?.stringValue || "",
-    name: fields.name?.stringValue || "",
-    mobile: fields.mobile?.stringValue || "",
-    products: (fields.products?.arrayValue?.values || [])
-      .map(v => v.stringValue || "")
+    state: data.state || "",
+    district: data.district || "",
+    bank: data.bank || "",
+    branch: data.branch || "",
+    name: data.name || "",
+    mobile: data.mobile || "",
+    products: (Array.isArray(data.products) ? data.products : [])
+      .map(value => (value == null ? "" : String(value)))
       .filter(Boolean),
-    active: fields.active?.booleanValue !== false,
+    active: data.active !== false,
     edited: true,
-    updatedByName: fields.updatedByName?.stringValue || "",
-    updatedAt: fields.updatedAt?.stringValue || "",
+    updatedByName: data.updatedByName || "",
+    // Stored as a Date; the CRM sends it out as JSON, so it leaves here as text.
+    updatedAt: data.updatedAt instanceof Date ? data.updatedAt.toISOString() : data.updatedAt || "",
   }
 }
 
@@ -177,22 +179,12 @@ async function readOverlay(): Promise<Banker[]> {
   if (overlayCache && Date.now() < overlayCache.expiresAt) return overlayCache.rows
 
   const rows: Banker[] = []
-  let pageToken = ""
   try {
-    // Paged, because an Admin's edits accumulate and Firestore caps a list call.
-    do {
-      const url = `${COLLECTION}?key=${FIREBASE_API_KEY}&pageSize=300${
-        pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ""
-      }`
-      const res = await firestoreFetch(url)
-      if (!res.ok) break
-      const data = (await res.json()) as { documents?: FirestoreDoc[]; nextPageToken?: string }
-      for (const doc of data.documents || []) {
-        const banker = docToBanker(doc)
-        if (banker) rows.push(banker)
-      }
-      pageToken = data.nextPageToken || ""
-    } while (pageToken)
+    const snapshot = await getAdminDb().collection(COLLECTION).get()
+    snapshot.forEach(doc => {
+      const banker = docToBanker(doc.id, doc.data() as BankerDoc)
+      if (banker) rows.push(banker)
+    })
   } catch (error) {
     console.error("[bankers] Could not read the edits collection:", error)
   }
@@ -241,20 +233,18 @@ export function toRows(bankers: Banker[]): BankerRow[] {
 
 // ─── Writes ──────────────────────────────────────────────────────────────────
 
-function bankerToFields(banker: Banker, staffName: string): Record<string, unknown> {
+function bankerToDocument(banker: Banker, staffName: string): Record<string, unknown> {
   return {
-    state: { stringValue: banker.state },
-    district: { stringValue: banker.district },
-    bank: { stringValue: banker.bank },
-    branch: { stringValue: banker.branch || "" },
-    name: { stringValue: banker.name },
-    mobile: { stringValue: banker.mobile },
-    products: {
-      arrayValue: { values: banker.products.map(p => ({ stringValue: p })) },
-    },
-    active: { booleanValue: banker.active !== false },
-    updatedByName: { stringValue: staffName },
-    updatedAt: { timestampValue: new Date().toISOString() },
+    state: banker.state,
+    district: banker.district,
+    bank: banker.bank,
+    branch: banker.branch || "",
+    name: banker.name,
+    mobile: banker.mobile,
+    products: banker.products,
+    active: banker.active !== false,
+    updatedByName: staffName,
+    updatedAt: new Date(),
   }
 }
 
@@ -271,12 +261,10 @@ export async function saveBanker(banker: Banker, staffName: string): Promise<str
     banker.id ||
     groupKey(banker.state, banker.district, banker.bank, banker.name, banker.mobile)
 
-  const res = await firestoreFetch(`${COLLECTION}/${encodeURIComponent(id)}?key=${FIREBASE_API_KEY}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ fields: bankerToFields({ ...banker, id }, staffName) }),
-  })
-  if (!res.ok) throw new Error(`Failed to save banker: ${await res.text()}`)
+  await getAdminDb()
+    .collection(COLLECTION)
+    .doc(id)
+    .set(bankerToDocument({ ...banker, id }, staffName))
 
   invalidateBankerCache()
   return id

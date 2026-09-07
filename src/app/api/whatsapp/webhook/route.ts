@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAdminStorage } from "@/lib/firebase-admin";
-import { firestoreFetch } from '@/lib/firestore-rest';
+import { getAdminDb, getAdminStorage } from "@/lib/firebase-admin";
 import { sendLeadNotificationToAdmins } from "@/lib/notificationService";
 import { createWaIncomingNotification } from "@/lib/waNotifications";
 import { applyCampaignStatus } from "@/lib/waCampaigns";
@@ -26,9 +25,6 @@ import {
   type WaFlowConfig,
 } from "@/lib/waFlows";
 import { generateGeminiLoanConsultantReply } from "@/lib/gemini";
-
-const FIREBASE_API_KEY = "AIzaSyDy-zXamx8BB18MgTXWoyWACKRSKvvOBTo";
-const PROJECT_ID = "dsa-loan";
 
 // Credentials now live in one place — see `@/lib/whatsappConfig`.
 const WHATSAPP_TOKEN = WA_TOKEN;
@@ -379,20 +375,13 @@ async function completeQualification(
 
   // Log qualification activity in lead timeline
   try {
-    const actUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/lead_activities?key=${FIREBASE_API_KEY}`;
-    await firestoreFetch(actUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fields: {
-          leadId: { stringValue: session.leadId },
-          type: { stringValue: 'Status Change' },
-          note: { stringValue: `WhatsApp Bot qualified lead as System Qualified (${session.category}). Summary: ${qualSummary}` },
-          userName: { stringValue: 'WhatsApp Bot' },
-          manual: { booleanValue: false },
-          timestamp: { timestampValue: qualifiedAt }
-        }
-      })
+    await getAdminDb().collection('lead_activities').add({
+      leadId: session.leadId,
+      type: 'Status Change',
+      note: `WhatsApp Bot qualified lead as System Qualified (${session.category}). Summary: ${qualSummary}`,
+      userName: 'WhatsApp Bot',
+      manual: false,
+      timestamp: new Date(qualifiedAt)
     });
   } catch (actErr) {
     console.error("Error logging qualification activity:", actErr);
@@ -590,44 +579,26 @@ function localLoanAIResponder(userText: string, lang: string): string {
 
 /**
  * ─── Chat History Reader (Conversation Memory) ──────────────────────────────
- * Fetches the last N messages for a customer phone number from Firestore `whatsapp_messages`.
+ * Fetches the last N messages for a customer phone number from `whatsapp_messages`.
  */
 async function getRecentChatHistory(phone: string, limitCount: number = 8): Promise<{ sender: string; text: string }[]> {
   const localNumber = phone.replace(/\D/g, "").slice(-10);
   if (!localNumber) return [];
   try {
-    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery?key=${FIREBASE_API_KEY}`;
-    const queryPayload = {
-      structuredQuery: {
-        from: [{ collectionId: "whatsapp_messages" }],
-        where: {
-          fieldFilter: {
-            field: { fieldPath: "phone" },
-            op: "EQUAL",
-            value: { stringValue: localNumber }
-          }
-        },
-        orderBy: [{ field: { fieldPath: "timestamp" }, direction: "DESCENDING" }],
-        limit: limitCount
-      }
-    };
-    const res = await firestoreFetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(queryPayload)
-    });
-    if (!res.ok) return [];
-    const results = await res.json();
-    if (!Array.isArray(results)) return [];
+    const snap = await getAdminDb()
+      .collection("whatsapp_messages")
+      .where("phone", "==", localNumber)
+      .orderBy("timestamp", "desc")
+      .limit(limitCount)
+      .get();
     const messages: { sender: string; text: string }[] = [];
-    for (const item of results) {
-      if (item.document && item.document.fields) {
-        const fields = item.document.fields;
-        const sender = fields.sender?.stringValue || "customer";
-        const text = fields.text?.stringValue || "";
-        if (text) {
-          messages.unshift({ sender, text });
-        }
+    for (const doc of snap.docs) {
+      const data = doc.data() || {};
+      const sender = data.sender || "customer";
+      const text = data.text || "";
+      if (text) {
+        // Newest first out of the query; unshift puts them back in reading order.
+        messages.unshift({ sender, text });
       }
     }
     return messages;
@@ -918,7 +889,7 @@ function optionLabelFor(
   return text;
 }
 
-// ─── Firestore REST helpers ──────────────────────────────────────────────────
+// ─── Session and CRM helpers ─────────────────────────────────────────────────
 interface WaSessionState {
   step: number;
   category: string;
@@ -928,55 +899,47 @@ interface WaSessionState {
   leadId: string;
 }
 
+// The customer's phone number is the session document id.
 async function getSession(phone: string): Promise<WaSessionState | null> {
-  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/waSession/${phone}?key=${FIREBASE_API_KEY}`;
-  const res = await firestoreFetch(url);
-  if (!res.ok) return null;
-  const doc = await res.json();
-  if (!doc.fields) return null;
+  const snap = await getAdminDb().collection('waSession').doc(phone).get();
+  if (!snap.exists) return null;
+  const data = snap.data();
+  if (!data) return null;
   return {
-    step: parseInt(doc.fields.step?.integerValue || "0"),
-    category: doc.fields.category?.stringValue || "",
-    name: doc.fields.name?.stringValue || "",
-    responses: JSON.parse(doc.fields.responses?.stringValue || "{}"),
-    language: doc.fields.language?.stringValue || "mr",
-    leadId: doc.fields.leadId?.stringValue || "",
+    step: Number(data.step) || 0,
+    category: data.category || "",
+    name: data.name || "",
+    responses: JSON.parse(data.responses || "{}"),
+    language: data.language || "mr",
+    leadId: data.leadId || "",
   };
 }
 
 async function saveSession(phone: string, data: { step: number; category: string; name: string; responses: Record<string, string>; language: string; leadId: string }) {
-  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/waSession/${phone}?key=${FIREBASE_API_KEY}`;
-  await firestoreFetch(url, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      fields: {
-        step: { integerValue: data.step.toString() },
-        category: { stringValue: data.category },
-        name: { stringValue: data.name },
-        responses: { stringValue: JSON.stringify(data.responses) },
-        language: { stringValue: data.language || "mr" },
-        leadId: { stringValue: data.leadId || "" },
-        updatedAt: { timestampValue: new Date().toISOString() },
-      }
-    })
+  // A full replace, as the REST PATCH without an update mask was.
+  await getAdminDb().collection('waSession').doc(phone).set({
+    step: data.step,
+    category: data.category,
+    name: data.name,
+    responses: JSON.stringify(data.responses),
+    language: data.language || "mr",
+    leadId: data.leadId || "",
+    updatedAt: new Date(),
   });
 }
 
 async function deleteSession(phone: string) {
-  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/waSession/${phone}?key=${FIREBASE_API_KEY}`;
-  await firestoreFetch(url, { method: 'DELETE' });
+  await getAdminDb().collection('waSession').doc(phone).delete();
 }
 
-// Helper to parse Firestore REST document fields into a structured lead record
+// Helper to shape a stored lead document into a structured lead record
 function parseLeadDoc(doc: any) {
-  const fields = doc.fields || {};
-  const id = doc.name.split("/").pop() || "";
-  
+  const id = doc.id || "";
+
   let responses: Record<string, string> = {};
-  if (fields.responses?.stringValue) {
+  if (typeof doc.responses === 'string') {
     try {
-      responses = JSON.parse(fields.responses.stringValue);
+      responses = JSON.parse(doc.responses);
     } catch (e) {}
   }
 
@@ -989,21 +952,21 @@ function parseLeadDoc(doc: any) {
   ];
 
   for (const f of directFields) {
-    if (fields[f]?.stringValue && !responses[f]) {
-      responses[f] = fields[f].stringValue;
+    if (typeof doc[f] === 'string' && doc[f] && !responses[f]) {
+      responses[f] = doc[f];
     }
   }
 
   return {
     id,
-    name: fields.name?.stringValue || fields.fullName?.stringValue || "Customer",
-    phone: fields.phone?.stringValue || fields.mobile?.stringValue || "",
-    status: fields.status?.stringValue || "New Lead",
-    category: fields.type?.stringValue || fields.category?.stringValue || "Loan Application",
-    language: fields.language?.stringValue || "English",
-    botMuted: fields.botMuted?.booleanValue === true,
-    assignedTo: fields.assignedTo?.stringValue || "",
-    assignedToName: fields.assignedToName?.stringValue || "",
+    name: doc.name || doc.fullName || "Customer",
+    phone: doc.phone || doc.mobile || "",
+    status: doc.status || "New Lead",
+    category: doc.type || doc.category || "Loan Application",
+    language: doc.language || "English",
+    botMuted: doc.botMuted === true,
+    assignedTo: doc.assignedTo || "",
+    assignedToName: doc.assignedToName || "",
     responses
   };
 }
@@ -1017,49 +980,22 @@ async function findExistingLead(phone: string) {
   const phone10 = clean.length === 12 && clean.startsWith('91') ? clean.substring(2) : (clean.length === 10 ? clean : clean);
   const searchPhones = Array.from(new Set([phone10, `91${phone10}`, `+91${phone10}`, phone, clean]));
 
-  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery?key=${FIREBASE_API_KEY}`;
-  
-  const getQueryForField = (fieldPath: string, value: string) => ({
-    structuredQuery: {
-      from: [{ collectionId: "leads" }],
-      where: {
-        fieldFilter: {
-          field: { fieldPath },
-          op: "EQUAL",
-          value: { stringValue: value }
-        }
-      },
-      limit: 1
-    }
-  });
+  const db = getAdminDb();
+
+  const findByField = async (fieldPath: string, value: string) => {
+    const snap = await db.collection("leads").where(fieldPath, "==", value).limit(1).get();
+    return snap.empty ? null : parseLeadDoc(snap.docs[0].data());
+  };
 
   try {
     for (const ph of searchPhones) {
       // 1. Check phone field
-      let res = await firestoreFetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(getQueryForField("phone", ph))
-      });
-      if (res.ok) {
-        let result = await res.json();
-        if (result && result.length > 0 && result[0].document) {
-          return parseLeadDoc(result[0].document);
-        }
-      }
+      const byPhone = await findByField("phone", ph);
+      if (byPhone) return byPhone;
 
       // 2. Check mobile field
-      res = await firestoreFetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(getQueryForField("mobile", ph))
-      });
-      if (res.ok) {
-        let result = await res.json();
-        if (result && result.length > 0 && result[0].document) {
-          return parseLeadDoc(result[0].document);
-        }
-      }
+      const byMobile = await findByField("mobile", ph);
+      if (byMobile) return byMobile;
     }
   } catch (err) {
     console.error("Error finding existing lead in CRM:", err);
@@ -1078,28 +1014,22 @@ async function createLead(data: Record<string, string>, pendingPromises?: Promis
     }
   }
 
-  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/leads?key=${FIREBASE_API_KEY}`;
   const fields: Record<string, any> = {};
   for (const [k, v] of Object.entries(data)) {
-    fields[k] = { stringValue: String(v) };
+    fields[k] = String(v);
   }
-  fields.createdAt = { timestampValue: new Date().toISOString() };
-  fields.source = { stringValue: data.source || 'WhatsApp Automation' };
-  fields.status = { stringValue: 'New Lead' };
-  
-  const res = await firestoreFetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fields }),
-  });
-  
-  if (!res.ok) {
-    console.error("Failed to create lead:", await res.text());
+  fields.createdAt = new Date();
+  fields.source = data.source || 'WhatsApp Automation';
+  fields.status = 'New Lead';
+
+  let leadId = "";
+  try {
+    const ref = await getAdminDb().collection('leads').add(fields);
+    leadId = ref.id;
+  } catch (err) {
+    console.error("Failed to create lead:", err);
     return "";
   }
-  const result = await res.json();
-  const leadName = result.name;
-  const leadId = leadName.split("/").pop() || "";
   
   // Trigger FCM push notification for the new lead
   try {
@@ -1123,30 +1053,22 @@ async function createLead(data: Record<string, string>, pendingPromises?: Promis
 
 async function updateLead(leadId: string, data: Record<string, string>) {
   if (!leadId) return;
-  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/leads/${leadId}?key=${FIREBASE_API_KEY}`;
-  
+
   const fields: Record<string, any> = {};
   for (const [k, v] of Object.entries(data)) {
-    fields[k] = { stringValue: String(v) };
+    fields[k] = String(v);
   }
-  
-  const queryParams = Object.keys(fields)
-    .map(key => `updateMask.fieldPaths=${key}`)
-    .join('&');
-    
-  const patchUrl = `${url}&${queryParams}`;
-  
-  const res = await firestoreFetch(patchUrl, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fields }),
-  });
-  if (!res.ok) {
-    console.error("Failed to update lead:", await res.text());
+
+  try {
+    // Merged, like the REST PATCH with an update mask that this replaces: only
+    // the fields passed in are touched, and a missing lead document is created.
+    await getAdminDb().collection('leads').doc(leadId).set(fields, { merge: true });
+  } catch (err) {
+    console.error("Failed to update lead:", err);
   }
 }
 
-// Helper: Save WhatsApp Message details to Firestore collection for chat history
+// Helper: Save WhatsApp Message details to the `whatsapp_messages` collection for chat history
 async function saveWAMessage(
   phone: string,
   text: string,
@@ -1164,33 +1086,24 @@ async function saveWAMessage(
    */
   mediaId: string = ""
 ) {
-  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/whatsapp_messages?key=${FIREBASE_API_KEY}`;
-
   const fields: Record<string, any> = {
-    phone: { stringValue: phone },
-    text: { stringValue: text },
-    sender: { stringValue: sender },
-    userName: { stringValue: userName },
-    timestamp: { timestampValue: new Date().toISOString() },
-    mediaType: { stringValue: mediaType || "" },
-    mediaUrl: { stringValue: mediaUrl || "" },
-    filename: { stringValue: filename || "" },
-    mediaId: { stringValue: mediaId || "" }
+    phone,
+    text,
+    sender,
+    userName,
+    timestamp: new Date(),
+    mediaType: mediaType || "",
+    mediaUrl: mediaUrl || "",
+    filename: filename || "",
+    mediaId: mediaId || ""
   };
-  
+
   if (leadId) {
-    fields.leadId = { stringValue: leadId };
+    fields.leadId = leadId;
   }
 
   try {
-    const res = await firestoreFetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fields })
-    });
-    if (!res.ok) {
-      console.error("Failed to save WA message to Firestore:", await res.text());
-    }
+    await getAdminDb().collection('whatsapp_messages').add(fields);
   } catch (err) {
     console.error("Error saving WA message:", err);
   }
@@ -1216,17 +1129,16 @@ interface LeadCrmInfo {
  */
 async function getLeadCrmInfo(leadId: string): Promise<LeadCrmInfo | null> {
   if (!leadId) return null;
-  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/leads/${leadId}?key=${FIREBASE_API_KEY}`;
   try {
-    const res = await firestoreFetch(url);
-    if (!res.ok) return null;
-    const doc = await res.json();
+    const snap = await getAdminDb().collection('leads').doc(leadId).get();
+    if (!snap.exists) return null;
+    const data = snap.data() || {};
     return {
-      name: doc.fields?.name?.stringValue || "",
-      status: doc.fields?.status?.stringValue || "New Lead",
-      assignedTo: doc.fields?.assignedTo?.stringValue || "",
-      assignedToName: doc.fields?.assignedToName?.stringValue || "",
-      botMuted: doc.fields?.botMuted?.booleanValue === true,
+      name: data.name || "",
+      status: data.status || "New Lead",
+      assignedTo: data.assignedTo || "",
+      assignedToName: data.assignedToName || "",
+      botMuted: data.botMuted === true,
     };
   } catch (err) {
     console.error("Error reading lead CRM info:", err);

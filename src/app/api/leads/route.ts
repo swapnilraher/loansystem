@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sendLeadNotificationToAdmins } from "@/lib/notificationService";
 import { getAdminDb } from "@/lib/firebase-admin";
+import { serializeDocs } from "@/lib/serialize";
 
 export async function GET(request: Request) {
   try {
@@ -41,7 +42,10 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      leads,
+      // Dates JSON-serialize to ISO on their own; this also normalises the
+      // {_seconds} shapes that came across from Firestore, so the client sees
+      // one timestamp format rather than two.
+      leads: serializeDocs(leads),
       total,
       page,
       limit,
@@ -197,25 +201,21 @@ export async function POST(request: Request) {
         });
 
         if (waResponse.ok) {
-          // Log message to firebase firestore
-          const firestoreUrlMsg = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/whatsapp_messages?key=${FIREBASE_API_KEY}`;
-          const msgData = {
-            fields: {
-              phone: { stringValue: phone10 },
-              leadId: { stringValue: newLeadId || "" },
-              text: { stringValue: message },
-              sender: { stringValue: "staff" },
-              userName: { stringValue: "System" },
-              timestamp: { timestampValue: new Date().toISOString() },
-              mediaType: { stringValue: "" },
-              mediaUrl: { stringValue: "" },
-              filename: { stringValue: "" }
-            }
-          };
-          await firestoreFetch(firestoreUrlMsg, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(msgData)
+          // The welcome message is recorded like any other outbound message so it
+          // appears in the lead's chat thread. This previously wrote to Firestore
+          // over REST using PROJECT_ID, FIREBASE_API_KEY and firestoreFetch — none
+          // of which this file imports, so it threw a ReferenceError into the
+          // surrounding catch on every new lead and the message was never logged.
+          await getAdminDb().collection("whatsapp_messages").add({
+            phone: phone10,
+            leadId: newLeadId || "",
+            text: message,
+            sender: "staff",
+            userName: "System",
+            timestamp: new Date(),
+            mediaType: "",
+            mediaUrl: "",
+            filename: "",
           });
         }
       } catch (waError) {

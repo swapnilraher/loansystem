@@ -16,11 +16,18 @@ if (typeof Date !== "undefined") {
   }
 }
 
+export type MongoFieldValueType =
+  | "increment"
+  | "serverTimestamp"
+  | "delete"
+  | "arrayUnion"
+  | "arrayRemove";
+
 export class MongoFieldValue {
-  readonly type: "increment" | "serverTimestamp" | "delete";
+  readonly type: MongoFieldValueType;
   readonly value?: any;
 
-  constructor(type: "increment" | "serverTimestamp" | "delete", value?: any) {
+  constructor(type: MongoFieldValueType, value?: any) {
     this.type = type;
     this.value = value;
   }
@@ -36,6 +43,16 @@ export class MongoFieldValue {
   static delete(): MongoFieldValue {
     return new MongoFieldValue("delete");
   }
+
+  /** Appends values to an array, skipping any already present — Mongo's $addToSet. */
+  static arrayUnion(...values: any[]): MongoFieldValue {
+    return new MongoFieldValue("arrayUnion", values);
+  }
+
+  /** Removes every occurrence of the given values from an array — Mongo's $pull. */
+  static arrayRemove(...values: any[]): MongoFieldValue {
+    return new MongoFieldValue("arrayRemove", values);
+  }
 }
 
 export { MongoFieldValue as FieldValue };
@@ -44,6 +61,14 @@ export interface DocumentSnapshot<T = any> {
   id: string;
   exists: boolean;
   data(): T | undefined;
+  /**
+   * The document this snapshot came from.
+   *
+   * Firestore snapshots carry one, and server code leans on it heavily — the
+   * password, unlock and agreement routes all do `snapshot.docs[0].ref.update(...)`
+   * after a query rather than rebuilding a reference from the id.
+   */
+  ref: MongoDocRef;
 }
 
 export interface QuerySnapshot<T = any> {
@@ -57,6 +82,8 @@ function processPayloadForMongo(data: Record<string, any>, isUpdate = false) {
   const $set: Record<string, any> = {};
   const $inc: Record<string, number> = {};
   const $unset: Record<string, any> = {};
+  const $addToSet: Record<string, any> = {};
+  const $pull: Record<string, any> = {};
 
   for (const [key, value] of Object.entries(data)) {
     if (key === "_id" || (key === "id" && isUpdate)) {
@@ -70,6 +97,11 @@ function processPayloadForMongo(data: Record<string, any>, isUpdate = false) {
         $set[key] = new Date();
       } else if (value.type === "delete") {
         $unset[key] = "";
+      } else if (value.type === "arrayUnion") {
+        // $each so a single call can append several values, matching arrayUnion(a, b).
+        $addToSet[key] = { $each: value.value || [] };
+      } else if (value.type === "arrayRemove") {
+        $pull[key] = { $in: value.value || [] };
       }
     } else if (
       value &&
@@ -88,6 +120,8 @@ function processPayloadForMongo(data: Record<string, any>, isUpdate = false) {
   if (Object.keys($set).length > 0) updateDoc.$set = $set;
   if (Object.keys($inc).length > 0) updateDoc.$inc = $inc;
   if (Object.keys($unset).length > 0) updateDoc.$unset = $unset;
+  if (Object.keys($addToSet).length > 0) updateDoc.$addToSet = $addToSet;
+  if (Object.keys($pull).length > 0) updateDoc.$pull = $pull;
 
   return updateDoc;
 }
@@ -139,6 +173,7 @@ export class MongoDocRef {
         id: this.id,
         exists: false,
         data: () => undefined,
+        ref: this,
       };
     }
 
@@ -150,6 +185,7 @@ export class MongoDocRef {
       id: logicalId,
       exists: true,
       data: () => ({ ...rest, id: logicalId }),
+      ref: this,
     };
   }
 
@@ -172,6 +208,8 @@ export class MongoDocRef {
       if (Object.keys($set).length > 0) updateObj.$set = $set;
       if (operations.$inc) updateObj.$inc = operations.$inc;
       if (operations.$unset) updateObj.$unset = operations.$unset;
+      if (operations.$addToSet) updateObj.$addToSet = operations.$addToSet;
+      if (operations.$pull) updateObj.$pull = operations.$pull;
 
       await db.collection(this.collectionName).updateOne(
         filter,
@@ -200,6 +238,8 @@ export class MongoDocRef {
     if (operations.$set) updateObj.$set = operations.$set;
     if (operations.$inc) updateObj.$inc = operations.$inc;
     if (operations.$unset) updateObj.$unset = operations.$unset;
+    if (operations.$addToSet) updateObj.$addToSet = operations.$addToSet;
+    if (operations.$pull) updateObj.$pull = operations.$pull;
 
     if (Object.keys(updateObj).length === 0) return;
 
@@ -398,6 +438,13 @@ export class MongoQuery {
         id: logicalId,
         exists: true,
         data: () => ({ ...rest, id: logicalId }),
+        // Built from the logical id and the row's own parent, so `doc.ref.update(...)`
+        // after a query addresses the same document the query returned.
+        ref: new MongoDocRef(
+          this.collectionName,
+          logicalId,
+          _parentId !== undefined ? String(_parentId) : this.parentId
+        ),
       };
     });
 
