@@ -15,13 +15,14 @@ export interface LatestWaMessage {
   sortKey: number
 }
 
+import { getBrowserCache, setBrowserCache } from "@/lib/cache/browserCache"
+
 /**
- * Newest N messages across every conversation — the same cap the WhatsApp inbox
- * works from. Conversations older than this window simply have no preview,
- * which is the right trade: the alternative is streaming the whole collection
- * into every telecaller's browser on every visit to the Leads screen.
+ * Limit recent previews to 50 to drastically reduce database reads.
  */
-const MESSAGE_LIMIT = 600
+const MESSAGE_LIMIT = 50
+const CACHE_KEY = "latest_wa_messages"
+const CACHE_TTL = 2 * 60 * 1000 // 2 minutes
 
 /** Firestore keys `whatsapp_messages` on the bare 10-digit number. */
 export function localWaNumber(raw: string): string {
@@ -31,9 +32,18 @@ export function localWaNumber(raw: string): string {
 
 /** The last thing either side said, one entry per phone number. */
 export function useLatestWhatsApp(limitCount = MESSAGE_LIMIT): Map<string, LatestWaMessage> {
-  const [messages, setMessages] = useState<LatestWaMessage[]>([])
+  const [messages, setMessages] = useState<LatestWaMessage[]>(() => {
+    const cached = getBrowserCache<LatestWaMessage[]>(CACHE_KEY)
+    return cached || []
+  })
 
   useEffect(() => {
+    // If cached recently and valid, delay/skip immediate heavy query
+    const cached = getBrowserCache<LatestWaMessage[]>(CACHE_KEY)
+    if (cached && cached.length > 0) {
+      setMessages(cached)
+    }
+
     const unsubscribe = onSnapshot(
       query(
         collection(db, "whatsapp_messages"),
@@ -41,19 +51,19 @@ export function useLatestWhatsApp(limitCount = MESSAGE_LIMIT): Map<string, Lates
         limit(limitCount)
       ),
       snapshot => {
-        setMessages(
-          snapshot.docs.map(d => {
-            const data = d.data()
-            return {
-              phone: localWaNumber(String(data.phone ?? "")),
-              text: String(data.text ?? ""),
-              sender: data.sender ?? "",
-              mediaType: data.mediaType || "",
-              timestamp: data.timestamp,
-              sortKey: toDate(data.timestamp)?.getTime() ?? 0,
-            }
-          })
-        )
+        const rows: LatestWaMessage[] = snapshot.docs.map(d => {
+          const data = d.data()
+          return {
+            phone: localWaNumber(String(data.phone ?? "")),
+            text: String(data.text ?? ""),
+            sender: data.sender ?? "",
+            mediaType: data.mediaType || "",
+            timestamp: data.timestamp,
+            sortKey: toDate(data.timestamp)?.getTime() ?? 0,
+          }
+        })
+        setMessages(rows)
+        setBrowserCache(CACHE_KEY, rows, CACHE_TTL)
       },
       error => console.error("Latest WhatsApp listener failed:", error)
     )

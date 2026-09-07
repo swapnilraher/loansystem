@@ -86,6 +86,13 @@ export interface DispatchState {
   log: DispatchItem[]
 }
 
+/**
+ * Send time as m:ss. A campaign of a few thousand runs for minutes, and a
+ * bare second count stops being readable well before it finishes.
+ */
+const formatElapsed = (seconds: number): string =>
+  `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`
+
 /** Best guess at which columns hold the number and the name. */
 function guessColumn(columns: string[], kind: "mobile" | "name"): string {
   const patterns =
@@ -123,6 +130,18 @@ export default function WhatsAppCampaignsPage() {
 
   const [dispatch, setDispatch] = React.useState<DispatchState | null>(null)
   const abortRef = React.useRef<AbortController | null>(null)
+
+  // Seconds since this run started sending. Between two progress lines a slow
+  // campaign is indistinguishable from a stalled one; the count is what tells
+  // the admin it is still moving. It restarts with each run rather than
+  // carrying the previous campaign's total into the next one.
+  const [elapsedSeconds, setElapsedSeconds] = React.useState(0)
+  React.useEffect(() => {
+    if (dispatch?.status !== "sending") return
+    setElapsedSeconds(0)
+    const timer = setInterval(() => setElapsedSeconds(seconds => seconds + 1), 1000)
+    return () => clearInterval(timer)
+  }, [dispatch?.status])
 
   const [history, setHistory] = React.useState<CampaignSummary[]>([])
   const [loadingHistory, setLoadingHistory] = React.useState(true)
@@ -957,6 +976,7 @@ export default function WhatsAppCampaignsPage() {
               <div className="mb-2 flex items-center justify-between text-xs font-black text-slate-600">
                 <span>
                   {dispatch.processed} of {dispatch.total} processed
+                  {dispatch.status === "sending" && ` · ${formatElapsed(elapsedSeconds)}`}
                 </span>
                 <span className="text-primary font-black">
                   {dispatch.total > 0

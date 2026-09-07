@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin';
+import { mongoDbAdapter } from "@/lib/db/mongo-adapter";
 
 const getPrivateKey = () => {
   let key = process.env.FIREBASE_PRIVATE_KEY;
@@ -42,21 +43,11 @@ export const getAdminApp = () => {
   });
 };
 
-let cachedDb: admin.firestore.Firestore | null = null;
 let cachedStorage: any = null;
 let cachedAuth: admin.auth.Auth | null = null;
 
 export const getAdminDb = () => {
-  if (!cachedDb) {
-    cachedDb = getAdminApp().firestore();
-    // Enable REST transport fallback to bypass gRPC/firewall blockages
-    try {
-      cachedDb.settings({ preferRest: true, ignoreUndefinedProperties: true });
-    } catch (settingsError) {
-      console.warn("Firestore settings could not be applied (already initialized):", settingsError);
-    }
-  }
-  return cachedDb;
+  return mongoDbAdapter as any;
 };
 
 export const getAdminStorage = () => {

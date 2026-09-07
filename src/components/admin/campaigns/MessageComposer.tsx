@@ -54,7 +54,12 @@ export default function MessageComposer({
    */
   const pickTemplate = (value: string) => {
     const [name, language] = value.split("||")
-    const chosen = templates.find(t => t.name === name && t.language === language)
+    // A name-only match is the fallback: the composer's language dropdown and
+    // the template's own code do not always agree (en against en_US), and a
+    // template that exists under one of them should still be selectable.
+    const chosen =
+      templates.find(t => t.name === name && t.language === language) ||
+      templates.find(t => t.name === name)
     onChange(applyTemplate(message, chosen))
   }
 

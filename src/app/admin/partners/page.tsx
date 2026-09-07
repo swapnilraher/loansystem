@@ -712,7 +712,7 @@ export default function PartnersPage() {
 
       {/* Raise Query Modal */}
       {showQueryModal && selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
           <div className="w-full max-w-md bg-admin-surface border border-admin-border rounded-admin-lg p-6 space-y-4 text-admin-text">
             <h3 className="text-admin-base font-bold">Raise Query to Applicant</h3>
             <div>
@@ -758,7 +758,7 @@ export default function PartnersPage() {
 
       {/* Rejection Modal */}
       {showRejectModal && selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
           <div className="w-full max-w-md bg-admin-surface border border-admin-border rounded-admin-lg p-6 space-y-4 text-admin-text">
             <h3 className="text-admin-base font-bold text-tone-danger-fg">Reject Partner Application</h3>
             <div>

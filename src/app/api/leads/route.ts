@@ -1,13 +1,55 @@
 import { NextResponse } from 'next/server';
-import { firestoreFetch } from '@/lib/firestore-rest';
 import { sendLeadNotificationToAdmins } from "@/lib/notificationService";
 import { getAdminDb } from "@/lib/firebase-admin";
 
-const FIREBASE_API_KEY = "AIzaSyDy-zXamx8BB18MgTXWoyWACKRSKvvOBTo";
-const PROJECT_ID = "dsa-loan";
+export async function GET(request: Request) {
+  try {
+    const url = new URL(request.url);
+    const page = Math.max(Number(url.searchParams.get('page')) || 1, 1);
+    const limit = Math.min(Math.max(Number(url.searchParams.get('limit')) || 20, 1), 200);
+    const offset = (page - 1) * limit;
+    const status = url.searchParams.get('status');
+    const search = url.searchParams.get('search');
+    const includeDeleted = url.searchParams.get('includeDeleted') === 'true';
 
-export async function GET() {
-  return NextResponse.json({ status: 'API is working (REST Mode)' });
+    const db = getAdminDb();
+    let query = db.collection("leads");
+
+    if (!includeDeleted) {
+      query = query.where("deleted", "!=", true);
+    }
+    if (status && status !== "all") {
+      query = query.where("status", "==", status);
+    }
+
+    const totalSnap = await query.get();
+    const total = totalSnap.size;
+
+    const snap = await query.orderBy("createdAt", "desc").offset(offset).limit(limit).get();
+    let leads = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    if (search) {
+      const q = search.toLowerCase();
+      leads = leads.filter((l: any) =>
+        String(l.name || "").toLowerCase().includes(q) ||
+        String(l.phone || "").toLowerCase().includes(q) ||
+        String(l.city || "").toLowerCase().includes(q)
+      );
+    }
+
+    const totalPages = Math.ceil(total / limit) || 1;
+
+    return NextResponse.json({
+      success: true,
+      leads,
+      total,
+      page,
+      limit,
+      totalPages,
+    });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
 }
 
 const lastLeadSubmissionByPhone = new Map<string, number>();
@@ -87,40 +129,24 @@ export async function POST(request: Request) {
       }
     }
     
-    // Map form fields to Firestore REST format
-    const leadData = {
-      fields: {
-        name: { stringValue: data.fullName || data.name || 'N/A' },
-        phone: { stringValue: data.mobileNumber || data.phone || 'N/A' },
-        email: { stringValue: data.email || 'N/A' },
-        type: { stringValue: data.type || (data.source?.includes('Home') ? 'Home Loan' : 'Personal Loan') },
-        amount: { stringValue: data.loanAmount || data.amount || '0' },
-        city: { stringValue: data.city || 'N/A' },
-        employmentType: { stringValue: data.employmentType || 'N/A' },
-        monthlyIncome: { stringValue: data.monthlyIncome || 'N/A' },
-        status: { stringValue: data.status || 'New Lead' },
-        source: { stringValue: data.source || 'Website Landing' },
-        category: { stringValue: data.category || 'Landing' },
-        createdAt: { timestampValue: new Date().toISOString() }
-      }
-    };
-
-    // Use standard fetch to Firestore REST API (Firewall-safe)
-    const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/leads?key=${FIREBASE_API_KEY}`;
-    
-    const response = await firestoreFetch(firestoreUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(leadData)
+    // Insert lead directly into MongoDB
+    const db = getAdminDb();
+    const newDoc = await db.collection("leads").add({
+      name: data.fullName || data.name || 'N/A',
+      phone: data.mobileNumber || data.phone || 'N/A',
+      email: data.email || 'N/A',
+      type: data.type || (data.source?.includes('Home') ? 'Home Loan' : 'Personal Loan'),
+      amount: String(data.loanAmount || data.amount || '0'),
+      city: data.city || 'N/A',
+      employmentType: data.employmentType || 'N/A',
+      monthlyIncome: String(data.monthlyIncome || 'N/A'),
+      status: data.status || 'New Lead',
+      source: data.source || 'Website Landing',
+      category: data.category || 'Landing',
+      createdAt: new Date(),
     });
 
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.error?.message || 'Firestore REST API Error');
-    }
-
-    const newLeadId = result.name.split('/').pop();
+    const newLeadId = newDoc.id;
 
     // Trigger FCM push notification for the new lead concurrently (do not await yet)
     let notificationPromise: Promise<void> | null = null;

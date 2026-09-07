@@ -56,6 +56,17 @@ export interface CampaignMessage {
    * decides whether the header component is attached at all.
    */
   hasImageHeader: boolean
+  /**
+   * `true` when the chosen template carries a COPY_CODE or OTP button, as
+   * authentication templates do.
+   *
+   * Meta rejects such a send unless the code is repeated as a button
+   * parameter alongside the body one, so this is what decides whether that
+   * extra component is attached. It is read from the template's own buttons
+   * rather than from its name, so a newly approved auth template works
+   * without a code change.
+   */
+  hasCopyCodeButton: boolean
 }
 
 export function emptyMessage(enabled: boolean): CampaignMessage {
@@ -63,13 +74,14 @@ export function emptyMessage(enabled: boolean): CampaignMessage {
     enabled,
     mode: "template",
     templateName: "",
-    templateLanguage: "en_US",
+    templateLanguage: "en",
     bodyParams: [],
     imageUrl: "",
     imageSource: "none",
     text: "",
     bodyParamNames: [],
     hasImageHeader: false,
+    hasCopyCodeButton: false,
   }
 }
 
@@ -120,6 +132,13 @@ export interface CampaignSummary {
   counts: CampaignCounts
 }
 
+export interface WaTemplateButton {
+  type: string
+  text: string
+  url?: string
+  phone_number?: string
+}
+
 /** A template as the builder needs it, trimmed down from the Graph response. */
 export interface WaTemplate {
   name: string
@@ -131,6 +150,8 @@ export interface WaTemplate {
   /** Names of variables in order of appearance (e.g. ["1", "2"] or ["customer_name"]) */
   variableNames: string[]
   bodyText: string
+  footerText?: string
+  buttons?: WaTemplateButton[]
   /** `true` when the template's header expects an image. */
   hasImageHeader: boolean
   hasHeaderText: boolean
@@ -156,8 +177,13 @@ export function normalizePhone(raw: unknown): { phone: string | null; reason: st
     if (Number.isFinite(asNumber)) text = asNumber.toFixed(0)
   }
 
+  // Excel frequently exports numbers as floats with trailing '.0'
+  if (text.includes(".")) {
+    text = text.split(".")[0].trim()
+  }
+
   const digits = text.replace(/\D/g, "")
-  if (!digits) return { phone: null, reason: "No digits" }
+  if (!digits) return { phone: null, reason: "No digits or blank" }
 
   let ten = ""
 
@@ -225,6 +251,17 @@ export function countTemplateVariables(bodyText: string): number {
 }
 
 /**
+ * Whether Meta will expect the code echoed back as a button parameter: the
+ * COPY_CODE button on an authentication template, or the OTP button on its
+ * one-tap variant. Button types come through from the Graph response
+ * untouched, so this needs no list of template names to stay correct.
+ */
+export function templateWantsCodeButton(template: WaTemplate): boolean {
+  const kinds = (template.buttons || []).map(b => String(b.type || "").toUpperCase())
+  return kinds.includes("COPY_CODE") || kinds.includes("OTP")
+}
+
+/**
  * The message that results from choosing `template` in the composer.
  *
  * One function so the picker, the "pick a sensible default" path and anything
@@ -249,6 +286,7 @@ export function applyTemplate(
       bodyParams: [],
       bodyParamNames: [],
       hasImageHeader: false,
+      hasCopyCodeButton: false,
       imageUrl: "",
       imageSource: "none",
     }
@@ -278,6 +316,7 @@ export function applyTemplate(
     bodyParams,
     bodyParamNames: names,
     hasImageHeader: template.hasImageHeader,
+    hasCopyCodeButton: templateWantsCodeButton(template),
     imageUrl,
     imageSource: keepsImage ? (imageUrl ? message.imageSource : "none") : "none",
   }
@@ -290,17 +329,25 @@ export function applyTemplate(
  * Graph payload from the same `CampaignMessage`, so this stays a rendering of
  * the same inputs rather than a parallel description of them.
  */
+export interface PreviewResult {
+  image: string
+  text: string
+  footerText?: string
+  buttons?: WaTemplateButton[]
+}
+
 export function previewMessage(
   message: CampaignMessage,
   recipient: { name: string },
   template?: WaTemplate | null
-): { image: string; text: string } {
-  if (!message.enabled) return { image: "", text: "" }
+): PreviewResult {
+  if (!message.enabled) return { image: "", text: "", footerText: "", buttons: [] }
 
   if (message.mode === "custom") {
     return {
       image: message.imageUrl,
       text: fillName(message.text, recipient.name),
+      buttons: [],
     }
   }
 
@@ -321,9 +368,17 @@ export function previewMessage(
     )
   })
 
+  // The same fallback validateMessage uses below: the template is the
+  // authority when it is to hand, the message's own flag while the list is
+  // still loading. An image the builder already ruled out stays ruled out.
+  const wantsImage = template ? template.hasImageHeader : message.hasImageHeader
+  const image = wantsImage && message.imageSource !== "none" ? message.imageUrl : ""
+
   return {
-    image: message.hasImageHeader ? message.imageUrl : "",
+    image,
     text: text || `(template: ${message.templateName || "none selected"})`,
+    footerText: template?.footerText || "",
+    buttons: template?.buttons || [],
   }
 }
 

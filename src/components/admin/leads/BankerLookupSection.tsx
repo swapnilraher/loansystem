@@ -482,7 +482,7 @@ export function BankerLookupSection({ lead, onUpdateLocationDetails }: BankerLoo
 
       {/* Add Banker Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
           <div className="bg-admin-surface border border-admin-border rounded-admin max-w-md w-full p-4 shadow-xl space-y-3">
             <div className="flex items-center justify-between border-b border-admin-border pb-2">
               <h3 className="text-admin-sm font-bold text-admin-text">Add Location Banker Contact</h3>

@@ -177,6 +177,7 @@ export function sanitizeMessage(raw: unknown): CampaignMessage {
     bodyParams,
     bodyParamNames,
     hasImageHeader,
+    hasCopyCodeButton: value.hasCopyCodeButton === true,
     imageUrl,
     imageSource:
       imageUrl && (value.imageSource === "upload" || value.imageSource === "url")
@@ -261,6 +262,22 @@ export async function sendOne(
             : { type: "text", text }
         }),
       })
+    }
+
+    // An authentication template's code has to appear twice: once in the body
+    // and once as the button's parameter. Meta rejects the send outright when
+    // the button component is missing, so it is attached whenever the template
+    // says it has a code button and a code was actually supplied.
+    if (message.hasCopyCodeButton) {
+      const code = fillName(params[0] || "", recipient.name).trim()
+      if (code) {
+        components.push({
+          type: "button",
+          sub_type: "url",
+          index: "0",
+          parameters: [{ type: "text", text: code }],
+        })
+      }
     }
 
     body.type = "template"
