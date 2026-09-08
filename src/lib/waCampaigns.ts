@@ -24,7 +24,7 @@
  */
 
 import { after } from "next/server"
-import { FieldValue } from "firebase-admin/firestore"
+import { MongoFieldValue, MongoFieldValue as FieldValue } from "@/lib/db/mongo-adapter"
 import { getAdminDb } from "./firebase-admin"
 import {
   GRAPH_BASE,
@@ -764,7 +764,7 @@ export async function applyCampaignStatus(
 
     // Campaign counters are a running tally, so each transition moves one count
     // out of its old bucket and into the new one.
-    const counterDelta: Record<string, FirebaseFirestore.FieldValue> = {}
+    const counterDelta: Record<string, MongoFieldValue> = {}
     const previous = slotData.status || "pending"
     if (previous === "sent") counterDelta["counts.sent"] = FieldValue.increment(-1)
     if (previous === "delivered") counterDelta["counts.delivered"] = FieldValue.increment(-1)

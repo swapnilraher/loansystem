@@ -1,4 +1,4 @@
-import { FieldValue } from "firebase-admin/firestore"
+import { MongoFieldValue as FieldValue } from "@/lib/db/mongo-adapter"
 import { requireAdmin } from "@/lib/apiAuth"
 import {
   sendOne,
