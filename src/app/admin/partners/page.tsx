@@ -21,8 +21,7 @@ import {
   FileText,
   UserPlus,
 } from "lucide-react"
-import { doc, updateDoc } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { authedJson } from "@/lib/authedFetch"
 import { useLeads } from "@/lib/hooks/useLeads"
 import { formatINR, formatINRShort, toAmount } from "@/lib/hooks/useBanks"
 import { STATUS_DISBURSED } from "@/lib/disbursement"
@@ -75,7 +74,7 @@ function formatAddress(address: unknown): string {
 }
 
 export default function PartnersPage() {
-  const { partners: firestorePartners, loading: firestoreLoading } = usePartners()
+  const { partners: directoryPartners, loading: directoryLoading } = usePartners()
   const { leads } = useLeads()
   const toast = useToast()
 
@@ -108,13 +107,13 @@ export default function PartnersPage() {
           return
         }
       }
-      if (firestorePartners && firestorePartners.length > 0) {
-        setPartners(firestorePartners.filter(Boolean))
+      if (directoryPartners && directoryPartners.length > 0) {
+        setPartners(directoryPartners.filter(Boolean))
       }
     } catch (e) {
-      console.warn("Fetch partner applications API warning, using Firestore fallback:", e)
-      if (firestorePartners && firestorePartners.length > 0) {
-        setPartners(firestorePartners.filter(Boolean))
+      console.warn("Fetch partner applications API warning, falling back to /api/partners:", e)
+      if (directoryPartners && directoryPartners.length > 0) {
+        setPartners(directoryPartners.filter(Boolean))
       }
     } finally {
       setLoading(false)
@@ -126,11 +125,11 @@ export default function PartnersPage() {
   }, [])
 
   useEffect(() => {
-    if (firestorePartners && firestorePartners.length > 0 && partners.length === 0) {
-      setPartners(firestorePartners.filter(Boolean))
+    if (directoryPartners && directoryPartners.length > 0 && partners.length === 0) {
+      setPartners(directoryPartners.filter(Boolean))
       setLoading(false)
     }
-  }, [firestorePartners])
+  }, [directoryPartners])
 
   /** Lead counts and commission per partner, from confirmed disbursals only. */
   const stats = useMemo(() => {
@@ -188,12 +187,15 @@ export default function PartnersPage() {
 
   const updateStatus = async (partnerId: string, dsaStatus: string) => {
     try {
-      // Still on Firestore: /api/admin/partner-applications only knows the
-      // approve / reject / query actions, not an arbitrary dsaStatus change.
-      await updateDoc(doc(db, "users", partnerId), {
-        dsaStatus,
-        updatedAt: new Date(),
+      // /api/admin/partner-applications only knows the approve / reject / query
+      // actions, not an arbitrary dsaStatus change, so this goes through the partner
+      // record itself. The route stamps `updatedAt` and `updatedBy` from the token.
+      const res = await authedJson("/api/partners", "PATCH", {
+        id: partnerId,
+        partner: { dsaStatus },
       })
+      const payload = await res.json().catch(() => null)
+      if (!res.ok || !payload?.success) throw new Error(payload?.error || "Update failed.")
       toast.push({ tone: "success", title: `Partner status set to ${dsaStatus}` })
       fetchPartnersData()
     } catch {

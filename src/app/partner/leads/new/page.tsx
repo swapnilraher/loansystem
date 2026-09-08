@@ -2,8 +2,7 @@
 
 import React, { useState } from "react"
 import { useAuth } from "@/context/AuthContext"
-import { db } from "@/lib/firebase"
-import { collection, addDoc, serverTimestamp, getDocs, query, where, updateDoc, doc } from "firebase/firestore"
+import { authedJson } from "@/lib/authedFetch"
 import { useRouter } from "next/navigation"
 import { 
   User, 
@@ -52,57 +51,13 @@ export default function NewLeadPage() {
     setError("")
     
     try {
-      const cleanMobile = formData.mobile.replace(/\D/g, "")
-      const phone10 = cleanMobile.length === 12 && cleanMobile.startsWith("91") ? cleanMobile.slice(2) : cleanMobile
+      const partnerNameStr = profile?.name || profile?.fullName || "Partner"
 
-      // Check if lead with this mobile number already exists in CRM
-      if (phone10) {
-        const qPhone = query(collection(db, "leads"), where("phone", "==", phone10))
-        const snap = await getDocs(qPhone)
-        let existingDoc = !snap.empty ? snap.docs[0] : null
-        
-        if (!existingDoc) {
-          const qMobile = query(collection(db, "leads"), where("mobile", "==", phone10))
-          const snapMobile = await getDocs(qMobile)
-          if (!snapMobile.empty) existingDoc = snapMobile.docs[0]
-        }
-
-        if (existingDoc) {
-          const existingData = existingDoc.data()
-          const partnerNameStr = profile?.name || profile?.fullName || "Partner"
-          const remarkNote = `Partner (${partnerNameStr}) updated lead details: ${formData.remarks?.trim() || "Updated application"}`
-          
-          await updateDoc(doc(db, "leads", existingDoc.id), {
-            updatedAt: serverTimestamp(),
-            amount: formData.amount || existingData.amount,
-            type: formData.type || existingData.type,
-            city: formData.city || existingData.city,
-            lastActivityNote: remarkNote,
-            lastActivityType: "Note",
-            lastActivityUser: partnerNameStr,
-            lastActivityTime: serverTimestamp(),
-            lastNote: remarkNote,
-            lastNoteUser: partnerNameStr,
-            lastNoteTime: serverTimestamp()
-          })
-
-          await addDoc(collection(db, `leads/${existingDoc.id}/remarks`), {
-            note: remarkNote,
-            type: "Note",
-            addedBy: user.uid,
-            createdAt: serverTimestamp()
-          })
-
-          setSuccess(true)
-          setTimeout(() => {
-            router.push("/partner/leads")
-          }, 1800)
-          setLoading(false)
-          return
-        }
-      }
-
-      const leadData = {
+      // The duplicate check moved into the route: `/api/leads` matches an existing file
+      // on the phone number and updates it instead of creating a second one, which is
+      // what the two `getDocs` lookups here used to do — and it can search every lead,
+      // where a partner's own query could only ever see their own.
+      const response = await authedJson("/api/leads", "POST", {
         name: formData.name.trim(),
         phone: formData.mobile.trim(),
         mobile: formData.mobile.trim(),
@@ -113,16 +68,39 @@ export default function NewLeadPage() {
         status: "New Lead",
         category: "Partner",
         source: "DSA Partner Portal",
+        // Sent, but NOT yet stored: the route writes a fixed set of fields and drops
+        // these three, so a partner-sourced lead currently lands without its owner.
         partnerId: user.uid,
-        partnerName: profile?.name || profile?.fullName || "Partner",
+        partnerName: partnerNameStr,
         dsaCode: profile?.dsaCode || "",
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+      })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || "Failed to submit customer lead.")
       }
 
-      await addDoc(collection(db, "leads"), leadData)
+      // A new lead comes back as `id`, an existing file matched on the phone number as
+      // `leadId`, and a resubmission inside the route's 15-second window as neither.
+      const leadId = payload.id || payload.leadId
+      const typed = formData.remarks.trim()
+      const remarkNote = payload.leadId
+        ? `Partner (${partnerNameStr}) updated lead details: ${typed || "Updated application"}`
+        : typed
+
+      if (leadId && remarkNote) {
+        // The lead itself is saved by this point, so a rejected remark must not read
+        // back to the partner as a failed submission.
+        const remarkRes = await authedJson(`/api/leads/${leadId}/remarks`, "POST", {
+          remark: { note: remarkNote, type: "Note" },
+        }).catch(() => null)
+        const remarkPayload = await remarkRes?.json().catch(() => null)
+        if (!remarkRes?.ok || !remarkPayload?.success) {
+          console.warn("Lead saved, but its opening remark was not:", remarkPayload?.error)
+        }
+      }
+
       setSuccess(true)
-      
+
       setTimeout(() => {
         router.push("/partner/leads")
       }, 1800)

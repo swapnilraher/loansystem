@@ -2,9 +2,8 @@
 
 import React, { useEffect, useState, useMemo } from "react"
 import { useAuth } from "@/context/AuthContext"
-import { db } from "@/lib/firebase"
-import { collection, query, where, onSnapshot } from "firebase/firestore"
-import { 
+import { usePolledResource, POLL_NORMAL } from "@/lib/hooks/usePolledResource"
+import {
   Users, 
   CheckCircle2, 
   Clock, 
@@ -81,8 +80,6 @@ const tooltipStyle = {
 function PartnerDashboardView() {
   const { user, profile } = useAuth()
   const router = useRouter()
-  const [leads, setLeads] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
   const [copiedLink, setCopiedLink] = useState(false)
   const [copiedPartnerLink, setCopiedPartnerLink] = useState(false)
   const [copiedCode, setCopiedCode] = useState(false)
@@ -99,27 +96,18 @@ function PartnerDashboardView() {
     }
   }, [profile, router])
 
-  // Real-time Leads Listener
-  useEffect(() => {
-    if (!user) return
+  // Leads poll. `/api/leads` scopes a partner to the leads they sourced from their
+  // token, so the `where partnerId == uid` clause this dashboard used to send is gone.
+  const { data: leadsData, loading } = usePolledResource<{ leads: any[] }>(
+    user ? "/api/leads?limit=200" : null,
+    POLL_NORMAL
+  )
 
-    const q = query(
-      collection(db, "leads"),
-      where("partnerId", "==", user.uid)
-    )
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      data.sort(byNewest((l: any) => l.createdAt))
-      setLeads(data)
-      setLoading(false)
-    }, (err) => {
-      console.warn("Leads subscription note:", err)
-      setLoading(false)
-    })
-
-    return () => unsubscribe()
-  }, [user])
+  // Newest first, as the KPI cards, the 7-day chart and the table below all assume.
+  const leads = useMemo(
+    () => [...(leadsData?.leads || [])].sort(byNewest((l: any) => l.createdAt)),
+    [leadsData]
+  )
 
   // Partner Identity & Status Checks
   const dsaStatusRaw = String(profile?.dsaStatus || profile?.status || "").toLowerCase()

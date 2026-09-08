@@ -16,10 +16,9 @@ import {
   CheckCircle2,
 } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
-import { db } from "@/lib/firebase"
-// The two `system_settings` documents come from the API; the per-user notification
-// flags on `users/{uid}` have no route yet, so those two calls stay on Firestore.
-import { doc, getDoc, updateDoc } from "firebase/firestore"
+// Two different records, deliberately kept apart: the company and notification-rule
+// documents are company-wide (`/api/admin/settings`), while the push toggles below
+// them belong to the signed-in person alone (`/api/profile`).
 import { authedFetch, authedJson } from "@/lib/authedFetch"
 import {
   AdminButton,
@@ -49,6 +48,12 @@ export default function SettingsPage() {
     notifyLeads: true,
     notifyPartners: true,
   })
+  /**
+   * The preference block as it came back. `notificationPrefs` is stored as one
+   * object, so a toggle sends it whole — the profile screen keeps its WhatsApp
+   * flags in the same block, and posting two keys alone would wipe them.
+   */
+  const [savedPrefs, setSavedPrefs] = useState<Record<string, unknown>>({})
 
   // 3. System-Wide Notification Customization States (Admin Only)
   const [systemNotif, setSystemNotif] = useState({
@@ -87,14 +92,18 @@ export default function SettingsPage() {
           if (data.notifications) setSystemNotif(prev => ({ ...prev, ...data.notifications }))
         }
 
-        // Load Personal User Notification Settings
-        const userRef = doc(db, "users", user.uid)
-        const userSnap = await getDoc(userRef)
-        if (userSnap.exists()) {
-          const uData = userSnap.data()
+        // Load Personal User Notification Settings — the caller's own record,
+        // chosen server-side from the token rather than by an id from here.
+        const meRes = await authedFetch("/api/profile")
+        const me = await meRes.json().catch(() => null)
+        if (meRes.ok && me?.success && me.profile) {
+          const prefs = (me.profile.notificationPrefs || {}) as Record<string, any>
+          // Flat flags on records written before the move are still honoured.
+          const flag = (key: string) => (prefs[key] ?? me.profile[key]) !== false
+          setSavedPrefs(prefs)
           setUserSettings({
-            notifyLeads: uData.notifyLeads !== false,
-            notifyPartners: uData.notifyPartners !== false,
+            notifyLeads: flag("notifyLeads"),
+            notifyPartners: flag("notifyPartners"),
           })
         }
       } catch (err) {
@@ -133,9 +142,14 @@ export default function SettingsPage() {
     if (!user) return
     const updatedValue = !userSettings[key]
     setUserSettings(prev => ({ ...prev, [key]: updatedValue }))
+    const nextPrefs = { ...savedPrefs, ...userSettings, [key]: updatedValue }
     try {
-      const userRef = doc(db, "users", user.uid)
-      await updateDoc(userRef, { [key]: updatedValue })
+      const res = await authedJson("/api/profile", "PATCH", {
+        profile: { notificationPrefs: nextPrefs },
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok || !data?.success) throw new Error(data?.error || "Save failed.")
+      setSavedPrefs(nextPrefs)
       toast.push({ tone: "success", title: "Preference saved." })
     } catch (err) {
       console.error("Error saving user preference:", err)

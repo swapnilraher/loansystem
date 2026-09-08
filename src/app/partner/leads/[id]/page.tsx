@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from "react"
 import { useAuth } from "@/context/AuthContext"
-import { db } from "@/lib/firebase"
-import { doc, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, updateDoc } from "firebase/firestore"
+import { authedJson } from "@/lib/authedFetch"
+import { usePolledResource, POLL_NORMAL } from "@/lib/hooks/usePolledResource"
 import { useParams, useRouter } from "next/navigation"
 import { toDate } from "@/lib/clientTime"
 import { 
@@ -19,16 +19,23 @@ import {
   Send
 } from "lucide-react"
 
+/** A write through the CRM routes, raised as an error when the route refuses it. */
+async function send(url: string, method: "POST" | "PATCH", body: unknown) {
+  const response = await authedJson(url, method, body)
+  const payload = await response.json().catch(() => null)
+  if (!response.ok || !payload?.success) {
+    throw new Error(payload?.error || "That could not be saved.")
+  }
+  return payload
+}
+
 export default function LeadCRMView() {
   const params = useParams() as { id?: string }
   const id = params?.id
   const { user } = useAuth()
   const router = useRouter()
-  
-  const [lead, setLead] = useState<any>(null)
-  const [remarks, setRemarks] = useState<any[]>([])
+
   const [newRemark, setNewRemark] = useState("")
-  const [loading, setLoading] = useState(true)
   const [sendingRemark, setSendingRemark] = useState(false)
 
   // 💬 Follow-up Prompt states
@@ -37,33 +44,29 @@ export default function LeadCRMView() {
   const [followUpRemarkText, setFollowUpRemarkText] = useState("")
   const [isSavingPromptFollowUp, setIsSavingPromptFollowUp] = useState(false)
 
-  // Fetch Lead & Remarks
+  // Fetch Lead & Remarks. The remarks route serves the `leads/{id}/remarks`
+  // subcollection newest-first, which is the order this timeline already expected.
+  const leadUrl = user && id ? `/api/leads/${id}` : null
+  const {
+    data: leadData,
+    loading,
+    error,
+    refresh: refreshLead,
+  } = usePolledResource<{ lead: any }>(leadUrl, POLL_NORMAL)
+  const { data: remarksData, refresh: refreshRemarks } = usePolledResource<{ remarks: any[] }>(
+    leadUrl ? `${leadUrl}/remarks?limit=200` : null,
+    POLL_NORMAL
+  )
+
+  const lead = leadData?.lead || null
+  const remarks = React.useMemo(() => remarksData?.remarks || [], [remarksData])
+
+  // A lead that will not load — deleted, or not this partner's — sends the screen back
+  // to the list, as the missing-document branch used to. Only a poll that has never
+  // succeeded counts: a dropped request after a good load leaves the screen alone.
   useEffect(() => {
-    if (!user || !id) return
-
-    const leadRef = doc(db, "leads", id as string)
-    const unsubscribeLead = onSnapshot(leadRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setLead({ id: docSnap.id, ...docSnap.data() })
-      } else {
-        router.push("/partner/leads") // Not found
-      }
-      setLoading(false)
-    })
-
-    const remarksRef = collection(db, `leads/${id}/remarks`)
-    const q = query(remarksRef, orderBy("createdAt", "desc"))
-    
-    const unsubscribeRemarks = onSnapshot(q, (snap) => {
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      setRemarks(data)
-    })
-
-    return () => {
-      unsubscribeLead()
-      unsubscribeRemarks()
-    }
-  }, [id, user, router])
+    if (error && !leadData) router.push("/partner/leads")
+  }, [error, leadData, router])
 
   const visibleRemarks = React.useMemo(() => {
     return remarks.filter(remark => {
@@ -87,26 +90,25 @@ export default function LeadCRMView() {
 
     setSendingRemark(true)
     try {
-      const remarksRef = collection(db, `leads/${id}/remarks`)
-      await addDoc(remarksRef, {
-        note: newRemark,
-        type: "Note", // Note, Call, WhatsApp
-        addedBy: user.uid,
-        createdAt: serverTimestamp()
+      // The author comes from the verified token, so `addedBy` is no longer sent.
+      await send(`/api/leads/${id}/remarks`, "POST", {
+        remark: { note: newRemark, type: "Note" }, // Note, Call, WhatsApp
       })
 
-      // Update parent lead document for quick remark display
-      const leadRef = doc(db, 'leads', id as string);
-      await updateDoc(leadRef, {
-        lastActivityNote: newRemark,
-        lastActivityType: "Note",
-        lastActivityUser: user.displayName || user.email || "Partner",
-        lastActivityTime: serverTimestamp(),
-        lastNote: newRemark,
-        lastNoteUser: user.displayName || user.email || "Partner",
-        lastNoteTime: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
+      // Update parent lead document for quick remark display. PATCH stamps `updatedAt`.
+      const now = new Date().toISOString()
+      await send(`/api/leads/${id}`, "PATCH", {
+        lead: {
+          lastActivityNote: newRemark,
+          lastActivityType: "Note",
+          lastActivityUser: user.displayName || user.email || "Partner",
+          lastActivityTime: now,
+          lastNote: newRemark,
+          lastNoteUser: user.displayName || user.email || "Partner",
+          lastNoteTime: now,
+        },
+      })
+      await Promise.all([refreshRemarks(), refreshLead()])
 
       setNewRemark("")
     } catch (err) {
@@ -120,23 +122,20 @@ export default function LeadCRMView() {
     if (!user) return
     try {
       const remarkNote = `Partner initiated ${type}`;
-      const remarksRef = collection(db, `leads/${id}/remarks`)
-      await addDoc(remarksRef, {
-        note: remarkNote,
-        type: type,
-        addedBy: user.uid,
-        createdAt: serverTimestamp()
+      await send(`/api/leads/${id}/remarks`, "POST", {
+        remark: { note: remarkNote, type },
       })
 
       // Update parent lead document
-      const leadRef = doc(db, 'leads', id as string);
-      await updateDoc(leadRef, {
-        lastActivityNote: remarkNote,
-        lastActivityType: type,
-        lastActivityUser: user.displayName || user.email || "Partner",
-        lastActivityTime: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
+      await send(`/api/leads/${id}`, "PATCH", {
+        lead: {
+          lastActivityNote: remarkNote,
+          lastActivityType: type,
+          lastActivityUser: user.displayName || user.email || "Partner",
+          lastActivityTime: new Date().toISOString(),
+        },
+      })
+      await Promise.all([refreshRemarks(), refreshLead()])
     } catch (err) {
       console.error(err)
     }
@@ -169,31 +168,27 @@ export default function LeadCRMView() {
     setIsSavingPromptFollowUp(true);
     try {
       const remarkNote = followUpRemarkText.trim();
-      const remarksRef = collection(db, `leads/${id}/remarks`)
-      await addDoc(remarksRef, {
-        note: remarkNote,
-        type: promptType,
-        addedBy: user.uid,
-        createdAt: serverTimestamp()
+      await send(`/api/leads/${id}/remarks`, "POST", {
+        remark: { note: remarkNote, type: promptType },
       });
 
       // Update parent lead document
-      const leadRef = doc(db, 'leads', id as string);
+      const now = new Date().toISOString()
       const updatePayload: any = {
         lastActivityNote: remarkNote,
         lastActivityType: promptType,
         lastActivityUser: user.displayName || user.email || "Partner",
-        lastActivityTime: serverTimestamp(),
+        lastActivityTime: now,
         lastNote: remarkNote,
         lastNoteUser: user.displayName || user.email || "Partner",
-        lastNoteTime: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        lastNoteTime: now,
       };
-      
+
       if (lead.status === 'New Lead' || lead.status === 'New') {
         updatePayload.status = 'Contacted';
       }
-      await updateDoc(leadRef, updatePayload);
+      await send(`/api/leads/${id}`, "PATCH", { lead: updatePayload });
+      await Promise.all([refreshRemarks(), refreshLead()])
 
       setShowFollowUpPrompt(false);
       setFollowUpRemarkText("");
@@ -205,7 +200,9 @@ export default function LeadCRMView() {
     setIsSavingPromptFollowUp(false);
   };
 
-  if (loading) {
+  // The spinner also covers the gap before the signed-in partner is known, when the
+  // poll is still disabled and has neither data nor an error to show.
+  if (loading || (!lead && !error)) {
     return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>
   }
 
@@ -291,21 +288,21 @@ export default function LeadCRMView() {
 
                   try {
                     // Update main document
-                    const { updateDoc } = await import("firebase/firestore");
-                    await updateDoc(doc(db, "leads", lead.id), { 
-                      status: finalStatus,
-                      ...(selectedStatus === 'Disbursed' && { disbursedAmount: disbursedAmt }),
-                      updatedAt: serverTimestamp() 
+                    await send(`/api/leads/${lead.id}`, "PATCH", {
+                      lead: {
+                        status: finalStatus,
+                        ...(selectedStatus === 'Disbursed' && { disbursedAmount: disbursedAmt }),
+                      },
                     });
-                    
+
                     // Log status change in timeline
-                    const remarksRef = collection(db, `leads/${lead.id}/remarks`);
-                    await addDoc(remarksRef, {
-                      note: `Status changed to: ${finalStatus}${selectedStatus === 'Disbursed' ? ` (Amount: ₹${disbursedAmt})` : ''}`,
-                      type: "Status",
-                      addedBy: user.uid,
-                      createdAt: serverTimestamp()
+                    await send(`/api/leads/${lead.id}/remarks`, "POST", {
+                      remark: {
+                        note: `Status changed to: ${finalStatus}${selectedStatus === 'Disbursed' ? ` (Amount: ₹${disbursedAmt})` : ''}`,
+                        type: "Status",
+                      },
                     });
+                    await Promise.all([refreshLead(), refreshRemarks()]);
                   } catch (err) {
                     console.error("Failed to update status", err);
                     alert("Failed to update status");

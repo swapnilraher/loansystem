@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useMemo } from "react"
-import { doc, serverTimestamp, updateDoc } from "firebase/firestore"
+import { doc, updateDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { authedFetch, authedJson } from "@/lib/authedFetch"
 import { useAuth } from "@/context/AuthContext"
@@ -19,10 +19,27 @@ import { buildStatusTransition, requestDisbursementApproval } from "@/lib/disbur
  *  2. Marking a file disbursed never books the disbursal — it raises a request
  *     for a Manager to sign off.
  *
- * Creating a lead and writing the timeline go through the API routes. Editing an
- * existing lead is still a direct Firestore write: there is no lead-update route
- * to call, and every such call site is marked below.
+ * Every write here goes through an API route. The one exception is the WhatsApp
+ * bot session renamed inside `saveDetails` — `/api/wa-sessions` reads sessions but
+ * cannot write one — and that call site is marked.
  */
+
+/**
+ * One lead update, through `PATCH /api/leads/{id}`.
+ *
+ * The route stamps `updatedAt` and the actor from the verified token, so a caller
+ * sends only the fields it is actually changing. It answers `{ success: false,
+ * error }` rather than throwing, so the failure is re-thrown here and every call
+ * site keeps the single try/catch it already had around the Firestore write.
+ */
+async function patchLead(leadId: string, lead: Record<string, unknown>): Promise<void> {
+  const response = await authedJson(`/api/leads/${encodeURIComponent(leadId)}`, "PATCH", { lead })
+  const payload = await response.json().catch(() => null)
+  if (!response.ok || !payload?.success) {
+    throw new Error(payload?.error || "Could not update this lead.")
+  }
+}
+
 export function useLeadMutations() {
   const { user, profile, adminRole, role } = useAuth()
 
@@ -48,17 +65,16 @@ export function useLeadMutations() {
 
   const updateStatus = useCallback(
     async (lead: Lead, newStatus: string) => {
-      // Firestore: no lead-update route exists yet.
-      await updateDoc(doc(db, "leads", lead.id), {
+      const nowIso = new Date().toISOString()
+      await patchLead(lead.id, {
         status: newStatus,
         followUpDate: null,
         followUpReason: null,
-        updatedAt: serverTimestamp(),
-        statusUpdatedAt: serverTimestamp(),
+        statusUpdatedAt: nowIso,
         lastActivityNote: `Changed status to ${newStatus}`,
         lastActivityType: "Status Update",
         lastActivityUser: staffName,
-        lastActivityTime: serverTimestamp(),
+        lastActivityTime: nowIso,
         ...claimFor(lead),
         ...buildStatusTransition(lead, newStatus),
       })
@@ -76,16 +92,14 @@ export function useLeadMutations() {
       const payload: Record<string, unknown> = {
         followUpDate: null,
         followUpReason: null,
-        updatedAt: serverTimestamp(),
         ...claimFor(lead),
       }
       if (PRE_CONTACT_STATUSES.includes(lead.status)) {
         payload.status = "Contacted"
-        payload.statusUpdatedAt = serverTimestamp()
+        payload.statusUpdatedAt = new Date().toISOString()
       }
 
-      // Firestore: no lead-update route exists yet.
-      await updateDoc(doc(db, "leads", lead.id), payload)
+      await patchLead(lead.id, payload)
       await logLeadActivity(lead.id, kind, note, staffLabel)
       return payload
     },
@@ -94,11 +108,9 @@ export function useLeadMutations() {
 
   const assignAgent = useCallback(
     async (leadId: string, agentId: string, agentName: string) => {
-      // Firestore: no lead-update route exists yet.
-      await updateDoc(doc(db, "leads", leadId), {
+      await patchLead(leadId, {
         assignedTo: agentId || null,
         assignedToName: agentName || null,
-        updatedAt: serverTimestamp(),
       })
       await logLeadActivity(
         leadId,
@@ -112,11 +124,9 @@ export function useLeadMutations() {
 
   const setFollowUpDate = useCallback(
     async (leadId: string, dateString: string) => {
-      // Firestore: no lead-update route exists yet.
-      await updateDoc(doc(db, "leads", leadId), {
-        followUpDate: dateString || null,
-        updatedAt: serverTimestamp(),
-      })
+      // A `datetime-local` value, stored as the local-time string the picker
+      // hands back — the same string the picker is later re-populated from.
+      await patchLead(leadId, { followUpDate: dateString || null })
       if (dateString) {
         await logLeadActivity(
           leadId,
@@ -130,16 +140,21 @@ export function useLeadMutations() {
   )
 
   const setFollowUpReason = useCallback(async (leadId: string, reason: string) => {
-    // Firestore: no lead-update route exists yet.
-    await updateDoc(doc(db, "leads", leadId), {
-      followUpReason: reason || null,
-      updatedAt: serverTimestamp(),
-    })
+    await patchLead(leadId, { followUpReason: reason || null })
   }, [])
 
   const saveDetails = useCallback(
     async (lead: Lead, edits: { name: string; type: string; amount: string }) => {
-      const payload: Record<string, unknown> = { updatedAt: serverTimestamp(), ...claimFor(lead) }
+      /**
+       * `updatedAt` is sent here even though the route stamps its own: pressing
+       * Save with nothing edited and nothing to claim would otherwise send an
+       * empty object, which the route rejects as "Nothing to update" — and a
+       * no-op save has always been a silent success that bumps the lead.
+       */
+      const payload: Record<string, unknown> = {
+        updatedAt: new Date().toISOString(),
+        ...claimFor(lead),
+      }
       const changes: string[] = []
 
       const currentName = lead.panName || lead.fullName || lead.name
@@ -162,8 +177,7 @@ export function useLeadMutations() {
       }
       if (payload.assignedTo) changes.push(`Assigned to ${payload.assignedToName} (Claimed)`)
 
-      // Firestore: no lead-update route exists yet.
-      await updateDoc(doc(db, "leads", lead.id), payload)
+      await patchLead(lead.id, payload)
 
       /**
        * The WhatsApp side keeps its own copy of the customer's name: the bot
@@ -173,7 +187,8 @@ export function useLeadMutations() {
        * CRM no longer uses. (The inbox reads the CRM name for display; this is
        * what the *bot* says.)
        *
-       * Firestore: `waSession` has no API route of its own.
+       * Still Firestore: `/api/wa-sessions` reads sessions but cannot write one,
+       * so this is the last write in the file with nowhere else to go.
        */
       if (renamedTo) {
         const phone = leadPhone(lead).replace(/\D/g, "")
@@ -200,11 +215,9 @@ export function useLeadMutations() {
       const payload: Record<string, unknown> = {
         followUpDate: null,
         followUpReason: null,
-        updatedAt: serverTimestamp(),
         ...claimFor(lead),
       }
-      // Firestore: no lead-update route exists yet.
-      await updateDoc(doc(db, "leads", lead.id), payload)
+      await patchLead(lead.id, payload)
       await logLeadActivity(lead.id, "Note", note.trim(), staffLabel, { manual: true })
       return payload
     },
@@ -226,32 +239,36 @@ export function useLeadMutations() {
    */
   const deleteLead = useCallback(
     async (leadId: string) => {
-      // Firestore: no lead-update route exists yet.
-      await updateDoc(doc(db, "leads", leadId), {
+      /**
+       * `updatedAt` is not sent — it used to be deliberately left untouched so a
+       * deleted lead would not jump to the top of the Admin's list. `PATCH
+       * /api/leads/{id}` now stamps it on every write, so that no longer holds:
+       * keeping it out of the payload is as close as this can get without a
+       * route that accepts an update opting out of the stamp.
+       */
+      await patchLead(leadId, {
         deleted: true,
-        deletedAt: serverTimestamp(),
+        deletedAt: new Date().toISOString(),
         deletedBy: user?.uid || null,
         deletedByName: staffName,
-        /**
-         * `updatedAt` deliberately untouched: a deleted lead must not jump to
-         * the top of the Admin's list, and the last real work on the file is
-         * more useful than the moment somebody hid it.
-         */
       })
     },
     [user?.uid, staffName]
   )
 
-  /** Admin only — enforced by `firestore.rules`, not just by the hidden button. */
+  /**
+   * Admin only, by the UI: the Restore button appears on a deleted lead, and a
+   * deleted lead is one no other role can open. `PATCH /api/leads/{id}` accepts
+   * any signed-in staff member, so this is no longer enforced by the datastore
+   * the way `firestore.rules` used to enforce it.
+   */
   const restoreLead = useCallback(
     async (leadId: string) => {
-      // Firestore: no lead-update route exists yet.
-      await updateDoc(doc(db, "leads", leadId), {
+      await patchLead(leadId, {
         deleted: false,
         deletedAt: null,
         deletedBy: null,
         deletedByName: null,
-        updatedAt: serverTimestamp(),
       })
       await logLeadActivity(leadId, "Status Update", "Restored a deleted lead", staffLabel)
     },
@@ -298,21 +315,21 @@ export function useLeadMutations() {
       // Typed by hand into the post-call prompt, so it counts as a real note.
       await logLeadActivity(lead.id, input.type, input.remark, staffLabel, { manual: true })
 
+      const nowIso = new Date().toISOString()
       const payload: Record<string, unknown> = {
-        updatedAt: serverTimestamp(),
         lastActivityNote: input.remark.trim(),
         lastActivityType: input.type,
         lastActivityUser: staffName,
-        lastActivityTime: serverTimestamp(),
+        lastActivityTime: nowIso,
       }
 
       if (input.status && input.status !== lead.status) {
         payload.status = input.status
-        payload.statusUpdatedAt = serverTimestamp()
+        payload.statusUpdatedAt = nowIso
         await logLeadActivity(lead.id, "Status Update", `Changed status to ${input.status}`, staffLabel)
       } else if (PRE_CONTACT_STATUSES.includes(lead.status)) {
         payload.status = "Contacted"
-        payload.statusUpdatedAt = serverTimestamp()
+        payload.statusUpdatedAt = nowIso
       }
 
       if (input.followUpDate) {
@@ -326,16 +343,14 @@ export function useLeadMutations() {
       }
       if (input.followUpReason) payload.followUpReason = input.followUpReason
 
-      // Firestore: no lead-update route exists yet.
-      await updateDoc(doc(db, "leads", lead.id), payload)
+      await patchLead(lead.id, payload)
       return payload
     },
     [staffLabel, staffName]
   )
 
   const setBotMuted = useCallback(async (leadId: string, muted: boolean) => {
-    // Firestore: no lead-update route exists yet.
-    await updateDoc(doc(db, "leads", leadId), { botMuted: muted })
+    await patchLead(leadId, { botMuted: muted })
   }, [])
 
   /**
@@ -346,13 +361,13 @@ export function useLeadMutations() {
    * the whole reason the two are stored separately: staff can search bankers
    * wherever the file needs to go without rewriting the customer's location.
    *
-   * `updatedAt` is deliberately left alone too, so re-pointing a search does not
-   * bump the lead up the work queue.
+   * `updatedAt` is not sent, for the same reason it never was: re-pointing a
+   * search should not bump the lead up the work queue. The route stamps it
+   * anyway, so that intent now survives only in what this asks for.
    */
   const saveBankerLocation = useCallback(
     async (leadId: string, state: string, district: string) => {
-      // Firestore: no lead-update route exists yet.
-      await updateDoc(doc(db, "leads", leadId), {
+      await patchLead(leadId, {
         bankerState: state || null,
         bankerDistrict: district || null,
       })

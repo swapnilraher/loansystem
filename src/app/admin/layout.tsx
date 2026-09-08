@@ -6,9 +6,9 @@ import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
 import { AdminSidebar, SIDEBAR_ID } from "@/components/admin/AdminSidebar"
 import { AdminHeader } from "@/components/admin/AdminHeader"
-import { db, getMessagingClient } from "@/lib/firebase"
-import { doc, updateDoc, arrayUnion } from "firebase/firestore"
+import { getMessagingClient } from "@/lib/firebase"
 import { getToken, onMessage } from "firebase/messaging"
+import { authedJson } from "@/lib/authedFetch"
 import { motion, AnimatePresence } from "framer-motion"
 
 import { ShieldCheck, LayoutDashboard, Briefcase, Menu, CheckCircle2, Kanban, Handshake, MessageSquare, Sparkles } from "lucide-react"
@@ -162,11 +162,15 @@ export default function AdminLayout({
             });
             if (cancelled) return;
             if (currentToken) {
-              // Save token to admin user document. Still on Firestore: appending to
-              // `fcmTokens` needs an array-union write, and no API route offers one.
-              await updateDoc(doc(db, "users", user.uid), {
-                fcmTokens: arrayUnion(currentToken)
-              });
+              // Registered against the signed-in person's own record. POST rather than
+              // PATCH because one person signs in from several devices and each keeps
+              // its own token: the route appends, where a plain write would leave only
+              // the device that reported last.
+              const res = await authedJson("/api/profile", "POST", { fcmToken: currentToken });
+              const payload = await res.json().catch(() => null);
+              if (!res.ok || !payload?.success) {
+                console.error("Could not register this device for push:", payload?.error);
+              }
             } else {
               console.log("No registration token available. Request permission to generate one.");
             }

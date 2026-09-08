@@ -2,9 +2,8 @@
 
 import React, { useState, useEffect, useMemo } from "react"
 import { useAuth } from "@/context/AuthContext"
-import { db } from "@/lib/firebase"
-import { collection, query, where, onSnapshot } from "firebase/firestore"
-import { 
+import { usePolledResource, POLL_NORMAL } from "@/lib/hooks/usePolledResource"
+import {
   ShieldCheck, 
   CreditCard, 
   Wallet, 
@@ -69,33 +68,27 @@ export default function PartnerCreditCheckPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeReport, setActiveReport] = useState<any | null>(null)
-  const [pastReports, setPastReports] = useState<any[]>([])
 
   const currentPrice = checkType === "SCORE" ? 50 : 149
 
-  // Sync wallet balance & past credit reports from Firestore
-  useEffect(() => {
-    if (!user) return
+  // Past reports are scoped to the partner who pulled them server-side — a credit file
+  // is consumer data, so the route never widens beyond its own caller.
+  const { data: reportsData, refresh: refreshReports } = usePolledResource<{ reports: any[] }>(
+    user ? "/api/credit-reports?limit=200" : null,
+    POLL_NORMAL
+  )
 
+  const pastReports = useMemo(
+    () => [...(reportsData?.reports || [])].sort(byNewest((r: any) => r.createdAt)),
+    [reportsData]
+  )
+
+  // Sync wallet balance from the profile
+  useEffect(() => {
     if (profile?.walletBalance !== undefined) {
       setWalletBalance(Number(profile.walletBalance) || 0)
     }
-
-    const qReports = query(
-      collection(db, "credit_reports"),
-      where("partnerId", "==", user.uid)
-    )
-
-    const unsubscribe = onSnapshot(qReports, (snapshot) => {
-      const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
-      docs.sort(byNewest((r: any) => r.createdAt))
-      setPastReports(docs)
-    }, (err) => {
-      console.warn("Credit reports fetch note:", err)
-    })
-
-    return () => unsubscribe()
-  }, [user, profile])
+  }, [profile])
 
   const handlePerformCheck = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -167,6 +160,8 @@ export default function PartnerCreditCheckPage() {
 
       setActiveReport(data.report)
       setWalletBalance(data.newBalance)
+      // The new report joins the ledger below without waiting for the next poll.
+      await refreshReports()
     } catch (err: any) {
       console.error(err)
       setError(err.message || "Failed to execute credit bureau inquiry.")

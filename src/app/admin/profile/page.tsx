@@ -19,10 +19,7 @@ import {
   MessageSquare,
 } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
-import { db } from "@/lib/firebase"
-// Still on Firestore: this person's `users/{uid}` record — display name, phone and
-// the notification flags — has no API route yet.
-import { doc, getDoc, updateDoc } from "firebase/firestore"
+import { authedFetch, authedJson } from "@/lib/authedFetch"
 import { usePolledResource, POLL_NORMAL } from "@/lib/hooks/usePolledResource"
 import { byNewest, toDate } from "@/lib/clientTime"
 import { useLeads } from "@/lib/hooks/useLeads"
@@ -105,6 +102,12 @@ export default function ProfilePage() {
     notifyWhatsappLeads: true,
     notifyWhatsappUpdates: true,
   })
+  /**
+   * The preference block exactly as it came back, so a toggle can send it whole.
+   * `notificationPrefs` is written as one object, not field by field, so posting a
+   * single flag on its own would drop every other flag stored beside it.
+   */
+  const [savedPrefs, setSavedPrefs] = useState<Record<string, unknown>>({})
 
   /**
    * This person's own activity, matched below on `userName` — the field the
@@ -118,32 +121,39 @@ export default function ProfilePage() {
   )
   const activities = useMemo(() => activityData?.activities || [], [activityData])
 
-  // Load user profile & notification settings
+  /**
+   * This person's own staff record. `/api/profile` picks the document from the
+   * verified token, so there is no id to pass and no way to read anyone else's.
+   *
+   * Fetched once rather than polled: everything below is an open form, and a
+   * background refetch would overwrite whatever is half-typed.
+   */
   useEffect(() => {
     if (!user) return
 
     const loadProfileAndSettings = async () => {
       setLoading(true)
       try {
-        const userRef = doc(db, "users", user.uid)
-        const snap = await getDoc(userRef)
-
-        let nameVal = user.displayName || ""
-        let phoneVal = ""
-        let leadsVal = true
-        let partnersVal = true
-        let waLeadsVal = true
-        let waUpdatesVal = true
-
-        if (snap.exists()) {
-          const data = snap.data()
-          nameVal = data.displayName || data.name || nameVal
-          phoneVal = data.mobileNumber || data.phone || ""
-          leadsVal = data.notifyLeads !== false
-          partnersVal = data.notifyPartners !== false
-          waLeadsVal = data.notifyWhatsappLeads !== false
-          waUpdatesVal = data.notifyWhatsappUpdates !== false
+        const res = await authedFetch("/api/profile")
+        const payload = await res.json().catch(() => null)
+        if (!res.ok || !payload?.success) {
+          throw new Error(payload?.error || "Could not load your profile.")
         }
+
+        const data = (payload.profile || {}) as Record<string, any>
+        // The flags live under `notificationPrefs` — the only notification key the
+        // route lets their owner write. Flat flags on older records still count.
+        const prefs = (data.notificationPrefs || {}) as Record<string, any>
+        const flag = (key: string) => (prefs[key] ?? data[key]) !== false
+
+        const nameVal = data.displayName || data.name || user.displayName || ""
+        const phoneVal = data.mobileNumber || data.phone || ""
+        const leadsVal = flag("notifyLeads")
+        const partnersVal = flag("notifyPartners")
+        const waLeadsVal = flag("notifyWhatsappLeads")
+        const waUpdatesVal = flag("notifyWhatsappUpdates")
+
+        setSavedPrefs(prefs)
 
         setProfileData({
           name: nameVal,
@@ -175,13 +185,15 @@ export default function ProfilePage() {
     if (!user) return
     setSavingProfile(true)
     try {
-      const userRef = doc(db, "users", user.uid)
-      await updateDoc(userRef, {
-        displayName: profileData.name,
-        name: profileData.name,
-        mobileNumber: profileData.phone,
-        phone: profileData.phone
+      // `name` and `phone` are the only identity fields the owner may set — the
+      // route drops the rest, so the old duplicate copies are no longer sent.
+      const res = await authedJson("/api/profile", "PATCH", {
+        profile: { name: profileData.name, phone: profileData.phone },
       })
+      const payload = await res.json().catch(() => null)
+      if (!res.ok || !payload?.success) {
+        throw new Error(payload?.error || "Could not update profile.")
+      }
       toast.push({ tone: "success", title: "Profile updated successfully!" })
     } catch (err) {
       console.error("Error updating profile details:", err)
@@ -196,9 +208,17 @@ export default function ProfilePage() {
     if (!user) return
     const updatedValue = !settings[key]
     setSettings(prev => ({ ...prev, [key]: updatedValue }))
+    // Sent as a whole block, including anything stored alongside these four flags.
+    const nextPrefs = { ...savedPrefs, ...settings, [key]: updatedValue }
     try {
-      const userRef = doc(db, "users", user.uid)
-      await updateDoc(userRef, { [key]: updatedValue })
+      const res = await authedJson("/api/profile", "PATCH", {
+        profile: { notificationPrefs: nextPrefs },
+      })
+      const payload = await res.json().catch(() => null)
+      if (!res.ok || !payload?.success) {
+        throw new Error(payload?.error || "Could not save preference.")
+      }
+      setSavedPrefs(nextPrefs)
       toast.push({ tone: "success", title: "Preference saved." })
     } catch (err) {
       console.error("Error updating setting:", err)

@@ -10,15 +10,15 @@ import {
   signOut as firebaseSignOut,
   signInWithEmailAndPassword
 } from "firebase/auth";
-import { auth, db } from "@/lib/firebase";
-import { doc, getDoc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { auth } from "@/lib/firebase";
+import { authedFetch, authedJson } from "@/lib/authedFetch";
 import { useRouter } from "next/navigation";
 import { CrmRole, normalizeRole } from "@/lib/permissions";
 
 interface AuthContextType {
   user: User | null;
   profile: any;
-  /** Raw role label as stored in Firestore (e.g. "Assistant Telecaller"). */
+  /** Raw role label as stored on the staff record (e.g. "Assistant Telecaller"). */
   adminRole: string | null;
   /** Raw label mapped onto one of the three CRM roles. Use this for access checks. */
   role: CrmRole | null;
@@ -41,11 +41,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 /**
  * Mirrors the staff member's CRM role from `admin_users` onto their Auth token.
  *
- * Firestore rules cannot query, so they cannot look somebody up in `admin_users`
- * by email — the claim is what makes role-based rules possible at all. The
- * server writes it; here we only ask for it and refresh the token if it changed.
+ * The claim is what every API route trusts (`@/lib/apiAuth`) when it decides
+ * what a request may see — including `/api/profile` below, which cannot find a
+ * staff record for a token that does not carry it. The server writes it; here we
+ * only ask for it and refresh the token if it changed.
  *
- * A failure must never block sign-in: the rules simply deny the CRM collections,
+ * A failure must never block sign-in: the routes simply refuse the CRM data,
  * which is the correct outcome for a session whose role could not be proven.
  */
 async function syncCrmClaims(user: User): Promise<void> {
@@ -63,6 +64,43 @@ async function syncCrmClaims(user: User): Promise<void> {
   }
 }
 
+/** What `GET /api/profile` answers with for the caller behind the ID token. */
+interface OwnRecord {
+  kind: "staff" | "partner";
+  /** Already normalised to one of the three CRM roles. Staff only. */
+  role?: CrmRole | null;
+  profile: any;
+}
+
+/**
+ * The signed-in person's own record — staff or partner — chosen by their token.
+ *
+ * There is no id to pass: the route reads the caller out of the token, which is
+ * what replaced the `users` / `admin_users` lookups this context used to do by
+ * hand. `null` means the session owns no record the server will hand over (a
+ * portal customer, or a deactivated staff account), which lands in the same
+ * "no CRM role" state the empty `admin_users` query used to produce.
+ *
+ * Retried once, because this runs on every page load before anything renders:
+ * a single dropped request would otherwise show a real Admin the access-denied
+ * screen until they thought to reload.
+ */
+async function fetchOwnRecord(): Promise<OwnRecord | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await authedFetch("/api/profile");
+      // A refusal is an answer, not a failure — do not spend the retry on it.
+      if (response.status === 401 || response.status === 403) return null;
+      const data = await response.json();
+      if (response.ok && data.success) return data as OwnRecord;
+    } catch (error) {
+      console.warn("Could not load your profile:", error);
+    }
+    if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 600));
+  }
+  return null;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any>(null);
@@ -72,136 +110,106 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    /**
+     * Only the newest sign-in state may write to the context.
+     *
+     * Resolving a role is a network round trip now, so a sign-out — or a second
+     * auth event — arriving mid-flight could otherwise drop a stale answer on
+     * top of a newer one, which is how a signed-out screen ends up still
+     * holding an Admin role. Bumping it in the cleanup covers unmount too.
+     */
+    let currentRun = 0;
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      const run = ++currentRun;
       setUser(user);
-      if (user) {
-        // Resolve CRM access before reading anything: Firestore rules gate every
-        // staff collection on the `crm` custom claim, so the reads below fail
-        // until this token carries it.
+
+      if (!user) {
+        setProfile(null);
+        setAdminRole(null);
+        setStaffProfile(null);
+        setAccountDisabled(false);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Resolve CRM access before asking for anything: `/api/profile` picks the
+        // caller out of the `crm` claim, so it cannot see a staff record until
+        // this token carries it.
         await syncCrmClaims(user);
 
-        // Fetch or create profile
-        const docRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(docRef);
-        
-        let loadedProfile: any = null;
+        const own = await fetchOwnRecord();
+        // A newer auth event owns the context; this answer is already stale.
+        if (run !== currentRun) return;
 
-        if (docSnap.exists()) {
-          loadedProfile = docSnap.data();
-        }
+        const record: any = own?.profile || null;
 
-        // Fallback / enrichment lookup by mobile number (from user.phoneNumber or localStorage)
-        const storedMobile = typeof window !== "undefined" ? localStorage.getItem("tsm_onboarding_mobile") : null;
-        const rawMobile = user.phoneNumber || loadedProfile?.mobileNumber || storedMobile || user.uid;
-        const cleanMobile = rawMobile ? String(rawMobile).replace(/\D/g, "").slice(-10) : "";
-
-        if (cleanMobile.length === 10) {
-          if (!loadedProfile) {
-            const mobileDocRef = doc(db, "users", cleanMobile);
-            const mobileSnap = await getDoc(mobileDocRef);
-            if (mobileSnap.exists()) {
-              loadedProfile = mobileSnap.data();
-            } else {
-              const q = query(collection(db, "users"), where("mobileNumber", "==", cleanMobile));
-              const qSnap = await getDocs(q);
-              if (!qSnap.empty) {
-                loadedProfile = qSnap.docs[0].data();
-              }
-            }
-          }
-
-          // If profile is missing name or dsaCode, enrich from partner_applications
-          if (!loadedProfile?.name && !loadedProfile?.fullName) {
-            try {
-              const appRef = doc(db, "partner_applications", cleanMobile);
-              const appSnap = await getDoc(appRef);
-              if (appSnap.exists()) {
-                const appData = appSnap.data();
-                loadedProfile = {
-                  ...(loadedProfile || {}),
-                  ...appData,
-                  mobileNumber: cleanMobile,
-                  role: "partner",
-                  name: appData.fullName || appData.contactPersonName || appData.businessName || "Partner",
-                  fullName: appData.fullName || appData.contactPersonName || "Partner",
-                  dsaCode: appData.dsaCode || loadedProfile?.dsaCode,
-                  dsaStatus: appData.dsaStatus || appData.status || loadedProfile?.dsaStatus,
-                };
-              }
-            } catch (aErr) {
-              console.warn("Could not enrich from partner_applications:", aErr);
-            }
-          }
-        }
-
-        if (loadedProfile) {
-          const resolvedName = loadedProfile.name || loadedProfile.fullName || loadedProfile.contactPersonName || loadedProfile.businessName || user.displayName || "";
-          if (resolvedName) {
-            loadedProfile.name = resolvedName;
-            loadedProfile.fullName = loadedProfile.fullName || resolvedName;
-          }
-          setProfile(loadedProfile);
+        if (record) {
+          // Every screen reads a display name off the profile, and the records
+          // spell it half a dozen ways. Settle it once, here.
+          const resolvedName = record.name || record.fullName || record.contactPersonName || record.businessName || user.displayName || "";
+          setProfile(
+            resolvedName
+              ? { ...record, name: resolvedName, fullName: record.fullName || resolvedName }
+              : record
+          );
         } else {
-          const newProfile = {
+          /**
+           * Nothing on the server belongs to this session yet — a first Google
+           * or WhatsApp sign-in. This used to be written to `users/{uid}`; the
+           * profile route writes no new documents, so it stays local and the
+           * screens that ask a signed-in visitor to complete their details
+           * still see a profile to fill in.
+           */
+          setProfile({
             uid: user.uid,
             email: user.email,
             displayName: user.displayName,
             photoURL: user.photoURL,
             role: "user",
             createdAt: new Date().toISOString(),
-          };
-          await setDoc(docRef, newProfile);
-          setProfile(newProfile);
+          });
         }
 
         // Check Admin Role
         setAccountDisabled(false);
-        if (user.email) {
-          if (user.email === "swapnil.r.aher@gmail.com") {
-            setAdminRole("Super Admin");
-            setStaffProfile(null);
+        if (user.email === "swapnil.r.aher@gmail.com") {
+          // The founding account predates the staff table and has no record in it.
+          setAdminRole("Super Admin");
+          setStaffProfile(null);
+        } else if (own?.kind === "staff") {
+          /**
+           * `syncCrmClaims` has already linked this record to the Auth uid
+           * server-side; reflect that locally so the very first render matches
+           * leads by both id shapes (see `ViewerIdentity`).
+           */
+          const staffData: any = record ? { ...record, uid: record.uid || user.uid } : null;
+
+          setStaffProfile(staffData);
+          // Deactivated accounts keep their record but lose all CRM access.
+          if (staffData?.status === "Inactive") {
+            setAdminRole(null);
+            setAccountDisabled(true);
           } else {
-            const adminQuery = query(collection(db, "admin_users"), where("email", "==", user.email));
-            const adminSnapshot = await getDocs(adminQuery);
-            if (!adminSnapshot.empty) {
-              const staffDoc = adminSnapshot.docs[0];
-              const staffData: any = { id: staffDoc.id, ...staffDoc.data() };
-
-              /**
-               * `syncCrmClaims` has already linked this record to the Auth uid
-               * server-side; reflect that locally so the very first render
-               * matches leads by both id shapes (see `ViewerIdentity`) without
-               * waiting for the snapshot to come back round.
-               */
-              staffData.uid = staffData.uid || user.uid;
-
-              setStaffProfile(staffData);
-              // Deactivated accounts keep their record but lose all CRM access.
-              if (staffData.status === "Inactive") {
-                setAdminRole(null);
-                setAccountDisabled(true);
-              } else {
-                setAdminRole(staffData.role);
-              }
-            } else {
-              setAdminRole(null);
-              setStaffProfile(null);
-            }
+            // The raw stored label, as before — `role` normalises it for access checks.
+            setAdminRole(staffData?.role || own.role || null);
           }
         } else {
           setAdminRole(null);
           setStaffProfile(null);
         }
-      } else {
-        setProfile(null);
-        setAdminRole(null);
-        setStaffProfile(null);
-        setAccountDisabled(false);
+      } finally {
+        // Route guards wait on this, so it has to fall even when the lookup
+        // failed: an unresolved role is "no access", never a permanent splash.
+        if (run === currentRun) setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      currentRun++;
+      unsubscribe();
+    };
   }, []);
 
   const loginWithGoogle = async (idToken: string) => {
@@ -278,12 +286,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  /**
+   * Saves changes onto the caller's own record.
+   *
+   * The route decides which fields may move — role, status, dsaCode and the KYC
+   * blocks are not among them — so a rejected field is dropped server-side
+   * rather than written. A failed save throws, as the direct write did, so the
+   * forms that call this keep showing their own error.
+   */
   const updateProfile = async (data: any) => {
     if (!user) return;
-    const docRef = doc(db, "users", user.uid);
-    const updatedProfile = { ...profile, ...data, updatedAt: new Date().toISOString() };
-    await setDoc(docRef, updatedProfile, { merge: true });
-    setProfile(updatedProfile);
+    const response = await authedJson("/api/profile", "PATCH", { profile: data });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload.success) {
+      throw new Error(payload.error || "Could not save your profile.");
+    }
+    setProfile((prev: any) => ({ ...(prev || {}), ...data, updatedAt: new Date().toISOString() }));
   };
 
   const signInWithGooglePopup = async () => {

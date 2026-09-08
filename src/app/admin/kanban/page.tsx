@@ -3,8 +3,7 @@
 import React, { useMemo, useState } from "react"
 import Link from "next/link"
 import { Eye, EyeOff, GripVertical, Phone } from "lucide-react"
-import { doc, serverTimestamp, updateDoc } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { authedJson } from "@/lib/authedFetch"
 import { useLeads, Lead, logLeadActivity } from "@/lib/hooks/useLeads"
 import { useAuth } from "@/context/AuthContext"
 import { useViewerIdentity } from "@/lib/hooks/useViewerIdentity"
@@ -67,7 +66,7 @@ export default function KanbanPage() {
    * role without `leads:viewDeleted`.
    */
   const [showDeleted, setShowDeleted] = useState(false)
-  const { leads, loading, canSeeDeleted } = useLeads({ includeDeleted: showDeleted })
+  const { leads, loading, canSeeDeleted, refresh } = useLeads({ includeDeleted: showDeleted })
   const toast = useToast()
   const now = useNow()
 
@@ -113,19 +112,28 @@ export default function KanbanPage() {
     }
 
     try {
-      // Still on Firestore: /api/leads has no PATCH, so there is nowhere to send a
-      // status change yet. The rest of the board reads through `useLeads`.
-      await updateDoc(doc(db, "leads", leadId), {
-        status: newStatus,
-        updatedAt: serverTimestamp(),
-        ...buildStatusTransition(lead, newStatus),
+      // The route stamps `updatedAt` and the actor from the token, so the drop
+      // sends only the stage it moved the file to.
+      const response = await authedJson(`/api/leads/${encodeURIComponent(leadId)}`, "PATCH", {
+        lead: {
+          status: newStatus,
+          ...buildStatusTransition(lead, newStatus),
+        },
       })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || "Could not move this lead.")
+      }
       await logLeadActivity(
         leadId,
         "Status Update",
         `Changed status to ${newStatus} via the pipeline board`,
         staffLabel
       )
+      // The board renders from `useLeads`, which is a fetch and not a live
+      // subscription — without this the card springs back to the column it came
+      // from until something else refetches.
+      await refresh()
     } catch (error) {
       console.error("Error updating lead status:", error)
       toast.push({ tone: "danger", title: "Could not move this lead" })

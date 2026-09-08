@@ -2,11 +2,6 @@
 
 import React, { useMemo, useState } from "react"
 import { CheckCircle2, Clock, IndianRupee, TrendingUp, Wallet } from "lucide-react"
-// Settling a payout still writes through Firestore: PATCH /api/commission-ledger
-// takes only { id, status, note } and would drop the UTR, which this screen shows
-// and keeps for audit. Everything else on the page is on the route.
-import { doc, serverTimestamp, updateDoc } from "firebase/firestore"
-import { db } from "@/lib/firebase"
 import { authedJson } from "@/lib/authedFetch"
 import { usePolledResource, POLL_NORMAL } from "@/lib/hooks/usePolledResource"
 import { byNewest, type TimeLike } from "@/lib/clientTime"
@@ -105,14 +100,16 @@ export default function PayoutsPage() {
     }
     setBusy(true)
     try {
-      // Blocked on the route: PATCH /api/commission-ledger has no field for the UTR
-      // or the remarks, and a settlement recorded without its UTR is not auditable.
-      await updateDoc(doc(db, "commission_ledger", settling.id), {
+      // The UTR travels with the status: the route refuses a settlement without one,
+      // and the table renders it back as the audit reference.
+      const res = await authedJson("/api/commission-ledger", "PATCH", {
+        id: settling.id,
         status: "Settled",
         utrNumber: utr.trim(),
         settlementRemarks: remarks.trim(),
-        settledAt: serverTimestamp(),
       })
+      const payload = await res.json().catch(() => null)
+      if (!res.ok || !payload?.success) throw new Error(payload?.error || "Settlement failed.")
       await refresh()
       toast.push({
         tone: "success",

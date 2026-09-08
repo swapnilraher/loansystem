@@ -2,9 +2,8 @@
 
 import React, { useEffect, useState, useMemo } from "react"
 import { useAuth } from "@/context/AuthContext"
-import { db } from "@/lib/firebase"
-import { collection, query, where, onSnapshot } from "firebase/firestore"
-import { 
+import { usePolledResource, POLL_NORMAL } from "@/lib/hooks/usePolledResource"
+import {
   Wallet, 
   ArrowDownRight, 
   Clock, 
@@ -43,56 +42,36 @@ import { cn } from "@/lib/utils"
 
 export default function PartnerWallet() {
   const { user, profile } = useAuth()
-  const [commissions, setCommissions] = useState<any[]>([])
-  const [walletTxs, setWalletTxs] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"commissions" | "topups">("commissions")
   const [filterStatus, setFilterStatus] = useState("all")
   const [topUpModalOpen, setTopUpModalOpen] = useState(false)
   const [walletBalance, setWalletBalance] = useState<number>(Number(profile?.walletBalance) || 0)
 
+  // Both ledgers are pinned to the caller's own partner id server-side, so neither
+  // query carries a partnerId of its own any more.
+  const { data: commissionData, loading } = usePolledResource<{ entries: any[] }>(
+    user ? "/api/commission-ledger?limit=200" : null,
+    POLL_NORMAL
+  )
+  const { data: walletData } = usePolledResource<{ transactions: any[] }>(
+    user ? "/api/wallet-transactions?limit=200" : null,
+    POLL_NORMAL
+  )
+
+  const commissions = useMemo(
+    () => [...(commissionData?.entries || [])].sort(byNewest((c: any) => c.createdAt)),
+    [commissionData]
+  )
+  const walletTxs = useMemo(
+    () => [...(walletData?.transactions || [])].sort(byNewest((t: any) => t.createdAt)),
+    [walletData]
+  )
+
   useEffect(() => {
-    if (!user) return
-
-    // 1. Sync commissions ledger
-    const qComm = query(
-      collection(db, "commission_ledger"),
-      where("partnerId", "==", user.uid)
-    )
-
-    const unsubComm = onSnapshot(qComm, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      data.sort(byNewest((c: any) => c.createdAt))
-      setCommissions(data)
-      setLoading(false)
-    }, (err) => {
-      console.warn("Wallet ledger error:", err)
-      setLoading(false)
-    })
-
-    // 2. Sync wallet transactions (Top-ups & Bureau deductions)
-    const qTx = query(
-      collection(db, "wallet_transactions"),
-      where("partnerId", "==", user.uid)
-    )
-
-    const unsubTx = onSnapshot(qTx, (snapshot) => {
-      const txData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
-      txData.sort(byNewest((t: any) => t.createdAt))
-      setWalletTxs(txData)
-    }, (err) => {
-      console.warn("Wallet txs error:", err)
-    })
-
     if (profile?.walletBalance !== undefined) {
       setWalletBalance(Number(profile.walletBalance) || 0)
     }
-
-    return () => {
-      unsubComm()
-      unsubTx()
-    }
-  }, [user, profile])
+  }, [profile])
 
   const totalEarned = useMemo(() => {
     return commissions.reduce((sum, c) => sum + toAmount(c.commissionAmount || 0), 0)

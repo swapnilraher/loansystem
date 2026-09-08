@@ -155,11 +155,32 @@ export function requireAdmin(request: Request): Promise<Authorized | Rejected> {
 export interface PartnerCaller {
   uid: string
   email: string
-  /** `users` document id. Partner-owned rows are keyed on the uid, which is also this id in practice. */
+  /**
+   * What partner-owned rows are keyed on — leads, wallet transactions and commission
+   * entries all carry `partnerId == <the partner's uid>`.
+   */
   partnerId: string
+  /**
+   * The `users` document id, which is NOT always the uid.
+   *
+   * Older partner records were created under the mobile number and only later gained a
+   * uid field, so the two diverge for anyone who signed up before that. Reading the
+   * profile by uid returns nothing for them, which is exactly the shape of bug that
+   * leaves a legacy partner staring at an empty portal.
+   */
+  docId: string
   mobileNumber: string
   dsaCode: string | null
   status: string | null
+  /**
+   * What this portal account actually is.
+   *
+   * The portal serves two audiences from the same `users` collection: DSA partners, and
+   * the plain customers who apply through the site. Both need to read and write their
+   * own record, so both resolve here — but only "partner" may reach partner-scoped data,
+   * which is what callers check.
+   */
+  portalRole: "partner" | "user"
 }
 
 export async function partnerOf(request: Request): Promise<PartnerCaller | null> {
@@ -187,15 +208,22 @@ export async function partnerOf(request: Request): Promise<PartnerCaller | null>
 
     const doc = snapshot.docs[0]
     const data = doc.data() as Record<string, unknown>
-    if (String(data.role || "") !== "partner") return null
+    // A plain customer resolves too. Rejecting them here left /dashboard and the
+    // profile-completion step with no way to read or save their own record at all.
+    const role = String(data.role || "user")
+    const portalRole: "partner" | "user" = role === "partner" ? "partner" : "user"
 
     return {
       uid: decoded.uid,
       email: String(decoded.email || data.email || "").trim().toLowerCase(),
-      partnerId: decoded.uid,
+      // Owned rows are keyed on the uid; the profile document may live under a
+      // different id, so both are carried rather than assumed equal.
+      partnerId: (data.uid as string) || decoded.uid,
+      docId: doc.id,
       mobileNumber: String(data.mobileNumber || data.mobile || ""),
       dsaCode: (data.dsaCode as string) || null,
       status: (data.dsaStatus as string) || null,
+      portalRole,
     }
   } catch (error) {
     console.warn("[apiAuth] Rejected a partner request with an unusable ID token:", error)

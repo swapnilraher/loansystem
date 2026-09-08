@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from "react"
+import React, { useMemo, useState } from "react"
 import {
   AlertCircle,
   FileText,
@@ -17,20 +17,6 @@ import {
   Layers,
   Key,
 } from "lucide-react"
-// Still on Firestore: staff accounts (`admin_users`) and the portal customer list
-// (`users`) have no API route yet. The activity feed below is on the route.
-import {
-  collection,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  serverTimestamp,
-  onSnapshot,
-  query,
-  orderBy,
-} from "firebase/firestore"
-import { db } from "@/lib/firebase"
 import { usePolledResource, POLL_NORMAL } from "@/lib/hooks/usePolledResource"
 import { useUsers, AdminUser } from "@/lib/hooks/useUsers"
 import { useLeads } from "@/lib/hooks/useLeads"
@@ -40,7 +26,7 @@ import { useStaffIncentives } from "@/lib/hooks/useStaffPerformance"
 import { formatINR } from "@/lib/hooks/useBanks"
 import { formatDayShort } from "@/lib/dates"
 import { hashPassword } from "@/lib/passwordSecurity"
-import { authedFetch } from "@/lib/authedFetch"
+import { authedFetch, authedJson } from "@/lib/authedFetch"
 import {
   AdminButton,
   Column,
@@ -109,8 +95,16 @@ export default function UsersPage() {
   const { leads } = useLeads()
   const { incentives } = useStaffIncentives()
 
-  const [portalUsers, setPortalUsers] = useState<PortalUser[]>([])
-  const [portalLoading, setPortalLoading] = useState(true)
+  /**
+   * Portal customers (`users`), newest first — the ordering the route applies, and
+   * the one this tab has always shown. The route is Admin-only, so a role without
+   * that reach sees the tab empty rather than someone else's applicant details.
+   */
+  const { data: portalData, loading: portalLoading } = usePolledResource<{ users: PortalUser[] }>(
+    "/api/users?portal=true",
+    POLL_NORMAL
+  )
+  const portalUsers = useMemo(() => portalData?.users || [], [portalData])
 
   // Top Tabs: "analytics" | "journey" | "porter" | "admins" | "portal"
   const [tab, setTab] = useState<string>(canViewStaff ? "analytics" : "portal")
@@ -127,17 +121,6 @@ export default function UsersPage() {
   const [saving, setSaving] = useState(false)
   const [portalDetail, setPortalDetail] = useState<PortalUser | null>(null)
   const [confirm, setConfirm] = useState<{ member: AdminUser; action: "toggle" | "delete" } | null>(null)
-
-  useEffect(() => {
-    const unsubscribe = onSnapshot(
-      query(collection(db, "users"), orderBy("createdAt", "desc")),
-      snapshot => {
-        setPortalUsers(snapshot.docs.map(d => ({ id: d.id, ...d.data() }) as PortalUser))
-        setPortalLoading(false)
-      }
-    )
-    return () => unsubscribe()
-  }, [])
 
   // The analytics engine matches activity to staff by `userName`, which the route
   // cannot filter on (it indexes `staffId`), so the filtering stays here — but over
@@ -216,6 +199,7 @@ export default function UsersPage() {
     setSaving(true)
     try {
       if (editing) {
+        // `updatedAt` is stamped by the route from the verified token.
         const updateData: any = {
           name: form.name.trim(),
           email: form.email.trim().toLowerCase(),
@@ -227,7 +211,6 @@ export default function UsersPage() {
           annualLeaves: Number(form.annualLeaves) || 0,
           leavesTaken: Number(form.leavesTaken) || 0,
           leaveNotes: form.leaveNotes.trim(),
-          updatedAt: serverTimestamp(),
         }
 
         if (form.password.trim()) {
@@ -237,32 +220,41 @@ export default function UsersPage() {
           updateData.mustChangePassword = true
         }
 
-        await updateDoc(doc(db, "admin_users", editing.id), updateData)
+        const res = await authedJson("/api/users", "PATCH", { id: editing.id, user: updateData })
+        const payload = await res.json().catch(() => null)
+        if (!res.ok || !payload?.success) throw new Error(payload?.error || "Update failed.")
         toast.push({ tone: "success", title: `${form.name} updated` })
       } else {
         const rawPassword = form.password.trim() || "123456"
         const { salt, hash } = hashPassword(rawPassword)
 
-        const docRef = await addDoc(collection(db, "admin_users"), {
-          name: form.name.trim(),
-          email: form.email.trim().toLowerCase(),
-          phone: form.phone.trim(),
-          role: form.role,
-          designation: form.designation.trim(),
-          status: form.status,
-          joiningDate: form.joiningDate || new Date().toISOString().split("T")[0],
-          annualLeaves: Number(form.annualLeaves) || 12,
-          leavesTaken: Number(form.leavesTaken) || 0,
-          leaveNotes: form.leaveNotes.trim(),
-          passwordHash: hash,
-          passwordSalt: salt,
-          mustChangePassword: true,
-          failedLoginAttempts: 0,
-          lockoutUntil: null,
-          lockoutReason: null,
-          lockoutLevel: 0,
-          createdAt: serverTimestamp(),
+        // `joinedAt` and `createdAt` are stamped by the route, which also refuses a
+        // second account on an email that already has one.
+        const res = await authedJson("/api/users", "POST", {
+          user: {
+            name: form.name.trim(),
+            email: form.email.trim().toLowerCase(),
+            phone: form.phone.trim(),
+            role: form.role,
+            designation: form.designation.trim(),
+            status: form.status,
+            joiningDate: form.joiningDate || new Date().toISOString().split("T")[0],
+            annualLeaves: Number(form.annualLeaves) || 12,
+            leavesTaken: Number(form.leavesTaken) || 0,
+            leaveNotes: form.leaveNotes.trim(),
+            passwordHash: hash,
+            passwordSalt: salt,
+            mustChangePassword: true,
+            failedLoginAttempts: 0,
+            lockoutUntil: null,
+            lockoutReason: null,
+            lockoutLevel: 0,
+          },
         })
+        const payload = await res.json().catch(() => null)
+        if (!res.ok || !payload?.success) {
+          throw new Error(payload?.error || "Could not create the account.")
+        }
 
         if (rawPassword) {
           try {
@@ -322,10 +314,21 @@ export default function UsersPage() {
     try {
       if (action === "toggle") {
         const nextStatus = member.status === "Active" ? "Inactive" : "Active"
-        await updateDoc(doc(db, "admin_users", member.id), { status: nextStatus })
+        const res = await authedJson("/api/users", "PATCH", {
+          id: member.id,
+          user: { status: nextStatus },
+        })
+        const payload = await res.json().catch(() => null)
+        if (!res.ok || !payload?.success) throw new Error(payload?.error || "Update failed.")
         toast.push({ tone: "success", title: `${member.name} set to ${nextStatus}` })
       } else if (action === "delete") {
-        await deleteDoc(doc(db, "admin_users", member.id))
+        // The route refuses to delete the caller's own account, which would lock
+        // them out of the CRM mid-session.
+        const res = await authedFetch(`/api/users?id=${encodeURIComponent(member.id)}`, {
+          method: "DELETE",
+        })
+        const payload = await res.json().catch(() => null)
+        if (!res.ok || !payload?.success) throw new Error(payload?.error || "Delete failed.")
         toast.push({ tone: "success", title: `${member.name} deleted` })
       }
     } catch (err) {

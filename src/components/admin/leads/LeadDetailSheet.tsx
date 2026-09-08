@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from "react"
+import React, { useMemo, useState } from "react"
 import {
   AlertCircle,
   ArrowUpRight,
@@ -20,8 +20,6 @@ import {
   Trash2,
   User,
 } from "lucide-react"
-import { collection, onSnapshot, query, where } from "firebase/firestore"
-import { db } from "@/lib/firebase"
 import { cn } from "@/lib/utils"
 import { byNewest, type TimeLike } from "@/lib/clientTime"
 import { POLL_NORMAL, usePolledResource } from "@/lib/hooks/usePolledResource"
@@ -90,6 +88,19 @@ interface LeadFile {
   sortKey: number
 }
 
+/** A row as `/api/whatsapp-messages` returns it. */
+interface WhatsAppMessageRow {
+  id: string
+  phone?: string
+  mediaType?: string
+  mediaUrl?: string
+  filename?: string
+  text?: string
+  sender?: "customer" | "bot" | "staff"
+  userName?: string
+  timestamp?: unknown
+}
+
 /** `whatsapp_messages` is keyed on the bare 10-digit number. */
 function localNumber(raw: string): string {
   const clean = (raw || "").replace(/\D/g, "")
@@ -107,7 +118,7 @@ interface LeadDetailSheetProps {
   telecallers: AdminUser[]
   canAssign: boolean
   canDelete: boolean
-  // Mutations return their Firestore payload; the sheet only cares that they
+  // Mutations return the payload they sent; the sheet only cares that they
   // settled, so the results are intentionally untyped here.
   onAssign: (leadId: string, agentId: string, agentName: string) => Promise<unknown>
   onFollowUpDate: (leadId: string, value: string) => Promise<unknown>
@@ -180,12 +191,6 @@ export function LeadDetailSheet({
     })
   }, [activities, isAdmin])
 
-  // Stamped with the number it was loaded for, so switching leads shows nothing
-  // rather than the previous lead's files until the new snapshot lands.
-  const [fileState, setFileState] = useState<{ phone: string; rows: LeadFile[] }>({
-    phone: "",
-    rows: [],
-  })
   const [editing, setEditing] = useState(false)
   const [edits, setEdits] = useState({ name: "", type: "", amount: "" })
   const [savingEdits, setSavingEdits] = useState(false)
@@ -228,43 +233,45 @@ export function LeadDetailSheet({
    * phone number and nothing else. Matching on the number is what makes those
    * files visible instead of silently missing.
    *
-   * Still Firestore: `whatsapp_messages` has no read route — `/api/whatsapp` only
-   * sends — so there is nowhere yet to ask for a bounded page of this thread.
+   * The listener that used to read the whole thread is a poll now, and a poll has
+   * to be bounded: the route answers newest-first, so the cap drops the oldest
+   * messages on a very long thread rather than the recent documents staff are
+   * looking for.
    */
-  useEffect(() => {
-    if (!filePhone) return
-    const unsubscribe = onSnapshot(
-      query(collection(db, "whatsapp_messages"), where("phone", "==", filePhone)),
-      snapshot => {
-        const rows: LeadFile[] = []
-        snapshot.docs.forEach(d => {
-          const data = d.data()
-          const mediaType = data.mediaType || ""
-          // Text-only chatter is not a file; it belongs in the chat thread.
-          if (mediaType !== "image" && mediaType !== "document") return
-          rows.push({
-            id: d.id,
-            mediaType,
-            mediaUrl: data.mediaUrl || "",
-            filename: data.filename || "",
-            caption: data.text || "",
-            sender: data.sender || "customer",
-            userName: data.userName || "",
-            timestamp: data.timestamp,
-            sortKey: toDate(data.timestamp)?.getTime() ?? 0,
-          })
-        })
-        // Sorted client-side so Firestore needs no composite index.
-        rows.sort((a, b) => b.sortKey - a.sortKey)
-        setFileState({ phone: filePhone, rows })
-      },
-      err => console.error("Lead files listener error:", err)
-    )
-    return () => unsubscribe()
-  }, [filePhone])
+  const { data: messagePage } = usePolledResource<{ messages: WhatsAppMessageRow[] }>(
+    filePhone ? `/api/whatsapp-messages?phone=${encodeURIComponent(filePhone)}&limit=500` : null,
+    POLL_NORMAL
+  )
 
-  /** Only trusted once it belongs to the lead currently on screen. */
-  const files = fileState.phone === filePhone ? fileState.rows : []
+  /**
+   * The poll keeps its last good payload while the next one is in flight, so each
+   * row is checked against the number currently on screen — switching leads shows
+   * nothing rather than the previous lead's files, which is what the snapshot's
+   * phone stamp used to guarantee.
+   */
+  const files = useMemo<LeadFile[]>(() => {
+    const rows: LeadFile[] = []
+    for (const message of messagePage?.messages || []) {
+      if (message.phone !== filePhone) continue
+      const mediaType = message.mediaType || ""
+      // Text-only chatter is not a file; it belongs in the chat thread.
+      if (mediaType !== "image" && mediaType !== "document") continue
+      rows.push({
+        id: message.id,
+        mediaType,
+        mediaUrl: message.mediaUrl || "",
+        filename: message.filename || "",
+        caption: message.text || "",
+        sender: message.sender || "customer",
+        userName: message.userName || "",
+        timestamp: message.timestamp,
+        sortKey: toDate(message.timestamp)?.getTime() ?? 0,
+      })
+    }
+    // Newest first, as the tab has always shown them.
+    rows.sort((a, b) => b.sortKey - a.sortKey)
+    return rows
+  }, [messagePage, filePhone])
 
   // Pulled out so the memo's dependencies are plain values — the React compiler
   // rejects optional-chained members in a dependency array.

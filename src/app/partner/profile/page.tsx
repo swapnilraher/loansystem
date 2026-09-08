@@ -2,9 +2,8 @@
 
 import React, { useState, useEffect } from "react"
 import { useAuth } from "@/context/AuthContext"
-import { db } from "@/lib/firebase"
-import { doc, updateDoc } from "firebase/firestore"
-import { 
+import { authedJson } from "@/lib/authedFetch"
+import {
   UserCircle, 
   Building2, 
   Smartphone, 
@@ -101,8 +100,13 @@ export default function PartnerProfile() {
         }
 
         if (user) {
-          const userRef = doc(db, "users", user.uid)
-          await updateDoc(userRef, { bankDetails })
+          // `/api/profile` writes the caller's own record, chosen from the token —
+          // there is no id to pass, and `bankDetails` is on its allow-list.
+          const saveRes = await authedJson("/api/profile", "PATCH", { profile: { bankDetails } })
+          const savePayload = await saveRes.json().catch(() => null)
+          if (!saveRes.ok || !savePayload?.success) {
+            throw new Error(savePayload?.error || "Could not save these bank details.")
+          }
           setSavedBank(bankDetails)
           setIsEditingBank(false)
           setSuccessMsg("✓ Bank Account verified and updated successfully via Penny Drop!")

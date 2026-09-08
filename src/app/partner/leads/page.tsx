@@ -2,19 +2,10 @@
 
 import React, { useEffect, useState, useMemo } from "react"
 import { useAuth } from "@/context/AuthContext"
-import { db } from "@/lib/firebase"
-import { 
-  collection, 
-  query, 
-  where, 
-  onSnapshot, 
-  doc, 
-  addDoc, 
-  updateDoc, 
-  serverTimestamp 
-} from "firebase/firestore"
-import { 
-  Search, 
+import { authedJson } from "@/lib/authedFetch"
+import { usePolledResource, POLL_NORMAL } from "@/lib/hooks/usePolledResource"
+import {
+  Search,
   Filter, 
   Eye, 
   MessageSquare, 
@@ -49,10 +40,18 @@ import { formatINR, toAmount } from "@/lib/hooks/useBanks"
 import { byNewest, timeAgo } from "@/lib/clientTime"
 import { cn } from "@/lib/utils"
 
+/** A write through the CRM routes, raised as an error when the route refuses it. */
+async function send(url: string, method: "POST" | "PATCH", body: unknown) {
+  const response = await authedJson(url, method, body)
+  const payload = await response.json().catch(() => null)
+  if (!response.ok || !payload?.success) {
+    throw new Error(payload?.error || "That could not be saved.")
+  }
+  return payload
+}
+
 export default function PartnerLeadsPage() {
   const { user, profile } = useAuth()
-  const [leads, setLeads] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("All")
   const [typeFilter, setTypeFilter] = useState("All")
@@ -73,29 +72,25 @@ export default function PartnerLeadsPage() {
   const [followUpRemarkText, setFollowUpRemarkText] = useState("")
   const [isSavingPromptFollowUp, setIsSavingPromptFollowUp] = useState(false)
 
-  // Subscribe to Partner's Leads in Firestore
-  useEffect(() => {
-    if (!user) return
+  // The partner's own leads. `/api/leads` pins a partner to the leads they sourced from
+  // their verified token, so the `where partnerId == uid` clause this screen used to
+  // send is now both unnecessary and unenforceable from the browser.
+  const {
+    data: leadsData,
+    loading,
+    error,
+    refresh,
+  } = usePolledResource<{ leads: any[] }>("/api/leads?limit=200", POLL_NORMAL)
 
-    const q = query(
-      collection(db, "leads"),
-      where("partnerId", "==", user.uid)
-    )
+  // Newest first as before. The route orders by `createdAt` too, but a lead written
+  // without one would otherwise land wherever the query left it.
+  const leads = useMemo(
+    () => [...(leadsData?.leads || [])].sort(byNewest((l: any) => l.createdAt)),
+    [leadsData]
+  )
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      data.sort(byNewest((l: any) => l.createdAt))
-      setLeads(data)
-      setLoading(false)
-    }, (err) => {
-      console.warn("Leads fetch error:", err)
-      setLoading(false)
-    })
-
-    return () => unsubscribe()
-  }, [user])
-
-  // Listen to window focus for automated follow-up remark prompts
+  // Listen to window focus for automated follow-up remark prompts. The poll refetches
+  // on focus by itself, so this stays the only listener the screen adds.
   useEffect(() => {
     const handleFocus = () => {
       const pendingStr = localStorage.getItem("pendingFollowUp")
@@ -144,22 +139,22 @@ export default function PartnerLeadsPage() {
         alert("WhatsApp message dispatched successfully!")
         setWaModalOpen(false)
 
-        const remarksRef = collection(db, `leads/${waTarget.id}/remarks`)
-        await addDoc(remarksRef, {
-          note: `Sent WhatsApp: ${waMessage}`,
-          type: "WhatsApp",
-          addedBy: user.uid,
-          createdAt: serverTimestamp()
+        const remarkNote = `Sent WhatsApp: ${waMessage}`
+        // The remark's author is taken from the token now, so `addedBy` is not sent.
+        await send(`/api/leads/${waTarget.id}/remarks`, "POST", {
+          remark: { note: remarkNote, type: "WhatsApp" },
         })
 
-        const leadRef = doc(db, "leads", waTarget.id)
-        await updateDoc(leadRef, {
-          lastActivityNote: `Sent WhatsApp: ${waMessage}`,
-          lastActivityType: "WhatsApp",
-          lastActivityUser: profile?.name || user.displayName || user.email || "Partner",
-          lastActivityTime: serverTimestamp(),
-          updatedAt: serverTimestamp()
+        // PATCH stamps `updatedAt` itself.
+        await send(`/api/leads/${waTarget.id}`, "PATCH", {
+          lead: {
+            lastActivityNote: remarkNote,
+            lastActivityType: "WhatsApp",
+            lastActivityUser: profile?.name || user.displayName || user.email || "Partner",
+            lastActivityTime: new Date().toISOString(),
+          },
         })
+        await refresh()
       } else {
         alert("Error: " + (data.error || "Failed to send"))
       }
@@ -174,31 +169,27 @@ export default function PartnerLeadsPage() {
     setIsSavingPromptFollowUp(true)
     try {
       const remarkNote = followUpRemarkText.trim()
-      const remarksRef = collection(db, `leads/${promptLeadId}/remarks`)
-      await addDoc(remarksRef, {
-        note: remarkNote,
-        type: promptType,
-        addedBy: user.uid,
-        createdAt: serverTimestamp()
+      await send(`/api/leads/${promptLeadId}/remarks`, "POST", {
+        remark: { note: remarkNote, type: promptType },
       })
 
-      const leadRef = doc(db, "leads", promptLeadId)
+      const now = new Date().toISOString()
       const targetLead = leads.find(l => l.id === promptLeadId)
       const updatePayload: any = {
         lastActivityNote: remarkNote,
         lastActivityType: promptType,
         lastActivityUser: profile?.name || user.displayName || "Partner",
-        lastActivityTime: serverTimestamp(),
+        lastActivityTime: now,
         lastNote: remarkNote,
         lastNoteUser: profile?.name || user.displayName || "Partner",
-        lastNoteTime: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        lastNoteTime: now,
       }
-      
+
       if (targetLead && (targetLead.status === "New Lead" || targetLead.status === "New")) {
         updatePayload.status = "Contacted"
       }
-      await updateDoc(leadRef, updatePayload)
+      await send(`/api/leads/${promptLeadId}`, "PATCH", { lead: updatePayload })
+      await refresh()
 
       setShowFollowUpPrompt(false)
       setFollowUpRemarkText("")
@@ -268,6 +259,14 @@ export default function PartnerLeadsPage() {
           </AdminLinkButton>
         </div>
       </div>
+
+      {/* A failed poll keeps the last good list on screen, so this shows only when
+          nothing has ever loaded. */}
+      {error && !leadsData && (
+        <div className="p-3.5 bg-tone-danger-bg text-tone-danger-fg rounded-admin text-admin-xs font-semibold border border-tone-danger-bd">
+          {error}
+        </div>
+      )}
 
       {/* ── Filter & Search Toolbar ── */}
       <div className="p-3.5 bg-admin-surface rounded-admin border border-admin-border shadow-sm flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
@@ -605,11 +604,12 @@ export default function PartnerLeadsPage() {
       )}
 
       {/* ── Bulk Upload Modal ── */}
+      {/* The modal posts each row through `/api/leads` itself and no longer takes the
+          partner's identity; it reports back so the list can pick the rows up. */}
       <BulkUploadModal
         isOpen={bulkModalOpen}
         onClose={() => setBulkModalOpen(false)}
-        partnerId={user?.uid || ""}
-        partnerName={profile?.name || "Partner"}
+        onSuccess={refresh}
       />
     </div>
   )

@@ -1,16 +1,5 @@
 "use client"
 
-import { db } from "@/lib/firebase"
-import {
-  addDoc,
-  collection,
-  doc,
-  getDocs,
-  query,
-  serverTimestamp,
-  updateDoc,
-  where,
-} from "firebase/firestore"
 import { authedFetch, authedJson } from "@/lib/authedFetch"
 import { toMillis } from "@/lib/clientTime"
 import { Lead, logLeadActivity } from "@/lib/hooks/useLeads"
@@ -24,12 +13,27 @@ import { Bank, calcConnectorCommission, calcStaffIncentive, formatINR, toAmount 
  * the bank, confirms the amount and approves — which is the only moment
  * incentives and connector commission are written.
  *
- * The timeline and the staff incentive ledger go through the API routes. Two
- * things here are still written straight to Firestore because no route exists
- * for them yet: the lead document itself (there is no lead-update route) and
- * `commission_ledger` (its route reads and settles rows but cannot create one).
- * Both are noted at the call sites.
+ * Every write here goes through an API route: the lead itself through `PATCH
+ * /api/leads/{id}`, the timeline, the staff incentive ledger and the connector
+ * commission through their own.
  */
+
+/**
+ * One lead update, through `PATCH /api/leads/{id}`.
+ *
+ * The route stamps `updatedAt` and the actor from the verified token, so only the
+ * fields actually changing go on the wire. A refusal comes back as `{ success:
+ * false, error }`, which is re-thrown so the approval screen's existing catch
+ * still sees a failed disbursal as a throw.
+ */
+async function patchLead(leadId: string, lead: Record<string, unknown>): Promise<void> {
+  const response = await authedJson(`/api/leads/${encodeURIComponent(leadId)}`, "PATCH", { lead })
+  const payload = await response.json().catch(() => null)
+  if (!response.ok || !payload?.success) {
+    throw new Error(payload?.error || "Could not update this lead.")
+  }
+}
+
 export const STATUS_PENDING_APPROVAL = "Disbursement Approval Pending"
 export const STATUS_DISBURSED = "Disbursed"
 
@@ -84,7 +88,10 @@ export function buildStatusTransition(
   }
 
   return {
-    statusHistory: { ...history, [newStatus]: new Date() },
+    // ISO rather than a `Date`: this map is merged into a JSON request body, so
+    // it would be serialized to a string on the way out regardless — and the
+    // readers all go through `toDate`, which takes either.
+    statusHistory: { ...history, [newStatus]: new Date().toISOString() },
     statusDurations,
   }
 }
@@ -111,17 +118,15 @@ export async function requestDisbursementApproval(
         : (lead as any).preApprovalStatus || "Bank Processing",
     disbursementRequestedBy: staff.uid || null,
     disbursementRequestedByName: staff.name,
-    disbursementRequestedAt: serverTimestamp(),
+    disbursementRequestedAt: new Date().toISOString(),
     rejectionReason: null,
     followUpDate: null,
     followUpReason: null,
-    updatedAt: serverTimestamp(),
     ...buildStatusTransition(lead, STATUS_PENDING_APPROVAL),
     ...extra,
   }
 
-  // Still Firestore: there is no lead-update API route to move this to.
-  await updateDoc(doc(db, "leads", lead.id), payload)
+  await patchLead(lead.id, payload)
   await logLeadActivity(
     lead.id,
     "Disbursement Request",
@@ -147,12 +152,6 @@ async function incentiveAlreadyCredited(staffId: string, leadId: string): Promis
   }
   const incentives = (payload.incentives || []) as { leadId?: string; status?: string }[]
   return incentives.some(row => row.leadId === leadId && (row.status || "") !== "Reversed")
-}
-
-/** True when this lead has already been credited in the connector ledger. */
-async function commissionAlreadyCredited(leadId: string): Promise<boolean> {
-  const snap = await getDocs(query(collection(db, "commission_ledger"), where("leadId", "==", leadId)))
-  return snap.docs.some(d => (d.data().status || "") !== "Reversed")
 }
 
 export interface ApprovalInput {
@@ -196,10 +195,9 @@ export async function approveDisbursement({
     connectorCommissionRate: bank?.connectorCommission ?? null,
     approvedBy: approver.uid || null,
     approvedByName: approver.name,
-    approvedAt: serverTimestamp(),
+    approvedAt: new Date().toISOString(),
     approvalRemarks: remarks || null,
     rejectionReason: null,
-    updatedAt: serverTimestamp(),
     ...buildStatusTransition(lead, STATUS_DISBURSED),
   }
 
@@ -207,8 +205,7 @@ export async function approveDisbursement({
     leadPayload.type = productType
   }
 
-  // Still Firestore: there is no lead-update API route to move this to.
-  await updateDoc(doc(db, "leads", lead.id), leadPayload)
+  await patchLead(lead.id, leadPayload)
 
   // 1. Telecaller incentive — only for the staff member who owns the file.
   if (
@@ -238,27 +235,43 @@ export async function approveDisbursement({
     }
   }
 
-  // 2. Connector commission — only when the lead was sourced by a DSA partner.
-  //    Still Firestore: `/api/commission-ledger` reads and settles rows but has
-  //    no route for creating one, so the idempotency check above it stays on
-  //    Firestore too rather than checking one database and writing to another.
-  if (lead.partnerId && connectorCommission > 0 && !(await commissionAlreadyCredited(lead.id))) {
-    await addDoc(collection(db, "commission_ledger"), {
-      partnerId: lead.partnerId,
-      partnerName: lead.partnerName || "DSA Partner",
-      dsaCode: lead.dsaCode || "Unknown",
-      leadId: lead.id,
-      customerName: lead.name || lead.fullName || "Customer",
-      productType: productType || lead.type || "Loan",
-      bankName: bank?.name || "—",
-      disbursedAmount: String(amount),
-      commissionAmount: String(Math.round(connectorCommission)),
-      commissionPercentage: String(bank?.connectorCommission ?? ""),
-      status: "Under Settlement",
-      approvedBy: approver.uid || null,
-      approvedByName: approver.name,
-      createdAt: serverTimestamp(),
+  /**
+   * 2. Connector commission — only when the lead was sourced by a DSA partner.
+   *
+   * `POST /api/commission-ledger` is keyed on `leadId` server-side: a file that
+   * already has a row comes back as `{ alreadyExisted: true }` instead of a
+   * second row, so the hand-rolled read-then-write check this used to do is
+   * gone. That check is now stricter than it was — it skipped rows marked
+   * `Reversed`, where the route counts any existing row — which is the safer
+   * direction for money: a reversed commission is re-credited by a person, not
+   * by re-approving the disbursal.
+   */
+  if (lead.partnerId && connectorCommission > 0) {
+    const response = await authedJson("/api/commission-ledger", "POST", {
+      entry: {
+        partnerId: lead.partnerId,
+        partnerName: lead.partnerName || "DSA Partner",
+        dsaCode: lead.dsaCode || "Unknown",
+        leadId: lead.id,
+        customerName: lead.name || lead.fullName || "Customer",
+        productType: productType || lead.type || "Loan",
+        bankName: bank?.name || "—",
+        disbursedAmount: String(amount),
+        commissionAmount: String(Math.round(connectorCommission)),
+        // The route stores a numeric `amount` of its own alongside the string
+        // the payouts screens read, so it is given the real figure rather than
+        // being left to default to zero.
+        amount: Math.round(connectorCommission),
+        commissionPercentage: String(bank?.connectorCommission ?? ""),
+        status: "Under Settlement",
+        approvedBy: approver.uid || null,
+        approvedByName: approver.name,
+      },
     })
+    const payload = await response.json().catch(() => null)
+    if (!response.ok || !payload?.success) {
+      throw new Error(payload?.error || "Could not credit the connector commission.")
+    }
   }
 
   const parts = [
@@ -277,15 +290,13 @@ export async function approveDisbursement({
 export async function rejectDisbursement(lead: Lead, reason: string, approver: StaffRef) {
   const revertTo = (lead as any).preApprovalStatus || "Bank Processing"
 
-  // Still Firestore: there is no lead-update API route to move this to.
-  await updateDoc(doc(db, "leads", lead.id), {
+  await patchLead(lead.id, {
     status: revertTo,
     approvalStatus: "Rejected" as ApprovalState,
     rejectionReason: reason,
     rejectedBy: approver.uid || null,
     rejectedByName: approver.name,
-    rejectedAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    rejectedAt: new Date().toISOString(),
     ...buildStatusTransition(lead, revertTo),
   })
 

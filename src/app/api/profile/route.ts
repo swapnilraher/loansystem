@@ -35,7 +35,9 @@ export async function GET(request: Request) {
     const db = getAdminDb()
 
     if (auth.who.kind === "partner") {
-      const snap = await db.collection("users").doc(auth.who.partner.partnerId).get()
+      // docId, not partnerId: a legacy partner document lives under the mobile
+      // number while owned rows are still keyed on the uid.
+      const snap = await db.collection("users").doc(auth.who.partner.docId).get()
       return NextResponse.json({
         success: true,
         kind: "partner",
@@ -93,9 +95,9 @@ export async function PATCH(request: Request) {
     // Narrowed inline rather than through a boolean: a discriminated union only
     // narrows on the check itself.
     if (auth.who.kind === "partner") {
-      const partnerId = auth.who.partner.partnerId
-      await db.collection("users").doc(partnerId).set(update, { merge: true })
-      return NextResponse.json({ success: true, id: partnerId })
+      const docId = auth.who.partner.docId
+      await db.collection("users").doc(docId).set(update, { merge: true })
+      return NextResponse.json({ success: true, id: docId })
     }
 
     const caller = auth.who.caller
@@ -139,7 +141,7 @@ export async function POST(request: Request) {
     const db = getAdminDb()
     const collection = auth.who.kind === "partner" ? "users" : "admin_users"
     const docId =
-      auth.who.kind === "partner" ? auth.who.partner.partnerId : auth.who.caller.staffId
+      auth.who.kind === "partner" ? auth.who.partner.docId : auth.who.caller.staffId
 
     if (!docId) throw new Error("No record to register this device against.")
 
