@@ -1,16 +1,16 @@
 /**
  * Who is calling an API route, proved rather than claimed.
  *
- * Firestore rules protect direct database access, but they cannot protect the
- * server routes: every route in `src/app/api` talks to Firestore through the
- * service account (`firestoreFetch`), which bypasses rules entirely. So a route
- * that writes anything an Admin owns has to check the caller itself — otherwise
- * "Admin only" means nothing more than a hidden button, and anyone who can reach
- * the URL is an Admin.
+ * Every route reaches MongoDB through the service account, which answers to nothing
+ * but the code around it — there is no database-side rule layer to fall back on now
+ * that Firestore is gone. So a route that touches anything an Admin owns has to check
+ * its caller here, or "Admin only" means nothing more than a hidden button and anyone
+ * who can reach the URL is an Admin.
  *
- * The caller proves who they are with the Firebase ID token their browser
- * already holds. The role comes from the custom claims written by
- * `/api/auth/claims`, which is the same source `firestore.rules` trusts.
+ * The caller proves who they are with the Firebase ID token their browser already
+ * holds — Firebase remains the identity provider even though it is no longer the
+ * database. Staff roles come from the custom claims written by `/api/auth/claims`,
+ * with a lookup in `admin_users` as the fallback.
  *
  * NEVER import this from client code.
  */
@@ -90,7 +90,7 @@ export async function callerOf(request: Request): Promise<ApiCaller | null> {
           }
         }
       } catch (dbErr) {
-        console.warn("[apiAuth] Firestore staff fallback failed:", dbErr)
+        console.warn("[apiAuth] admin_users fallback lookup failed:", dbErr)
       }
     }
 
