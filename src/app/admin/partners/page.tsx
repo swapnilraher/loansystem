@@ -188,6 +188,8 @@ export default function PartnersPage() {
 
   const updateStatus = async (partnerId: string, dsaStatus: string) => {
     try {
+      // Still on Firestore: /api/admin/partner-applications only knows the
+      // approve / reject / query actions, not an arbitrary dsaStatus change.
       await updateDoc(doc(db, "users", partnerId), {
         dsaStatus,
         updatedAt: new Date(),

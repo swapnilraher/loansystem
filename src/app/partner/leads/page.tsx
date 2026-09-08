@@ -46,7 +46,7 @@ import {
 } from "@/components/admin/ui"
 import { BulkUploadModal } from "@/components/ui/BulkUploadModal"
 import { formatINR, toAmount } from "@/lib/hooks/useBanks"
-import { timeAgo, toDate } from "@/lib/dates"
+import { byNewest, timeAgo } from "@/lib/clientTime"
 import { cn } from "@/lib/utils"
 
 export default function PartnerLeadsPage() {
@@ -84,11 +84,7 @@ export default function PartnerLeadsPage() {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      data.sort((a: any, b: any) => {
-        const tA = a.createdAt?.toMillis?.() || (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0)
-        const tB = b.createdAt?.toMillis?.() || (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0)
-        return tB - tA
-      })
+      data.sort(byNewest((l: any) => l.createdAt))
       setLeads(data)
       setLoading(false)
     }, (err) => {

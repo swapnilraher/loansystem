@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { db } from "@/lib/firebase"
-import { collection, onSnapshot, query, where } from "firebase/firestore"
+import { useMemo } from "react"
+import { usePolledResource, POLL_NORMAL } from "@/lib/hooks/usePolledResource"
+import { byNewest } from "@/lib/clientTime"
 import { Lead } from "@/lib/hooks/useLeads"
 import { toAmount } from "@/lib/hooks/useBanks"
 import { STATUS_DISBURSED, STATUS_PENDING_APPROVAL } from "@/lib/disbursement"
@@ -31,51 +31,49 @@ const NO_INCENTIVES: StaffIncentive[] = []
  * a telecaller has no business loading the whole team's earnings. Omit them
  * entirely (`undefined`) to read the whole ledger.
  *
+ * The route enforces that scoping rather than trusting it: a Telecaller is pinned
+ * to their own rows whatever ids are sent. The ids still travel because an Admin
+ * or Manager reading one person's card needs to say whose.
+ *
  * It takes a *list* because `staffId` copies `leads.assignedTo`, which holds
  * either an `admin_users` document id or a Firebase Auth uid — see
  * `ViewerIdentity`. Matching on one shape alone loses a person's own earnings.
  */
 export function useStaffIncentives(staffIds?: string[] | null) {
-  const [rows, setRows] = useState<StaffIncentive[]>([])
-  const [snapshotLoading, setSnapshotLoading] = useState(true)
-  // Re-subscribing on every render would thrash the listener: the caller passes
-  // a fresh array each time, so key the effect on its contents rather than the
-  // array's identity.
+  // Keyed on the contents rather than the array's identity: the caller passes a
+  // fresh array on every render.
   const idKey = staffIds ? staffIds.join("|") : ""
   /** Scoped to a person whose ids are not known yet — mid sign-in, not "all". */
   const scopedToNobody = !!staffIds && idKey === ""
 
-  useEffect(() => {
-    // The nobody case is *derived* below rather than written from here: calling
-    // setState in an effect body cascades renders, which this codebase's lint
-    // rules reject outright.
-    if (scopedToNobody) return
-
-    const ids = idKey ? idKey.split("|") : null
-    const ledger = collection(db, "staff_incentives")
-    const unsubscribe = onSnapshot(
-      // `in` caps at 30 values; a person never has more than a handful of ids.
-      ids ? query(ledger, where("staffId", "in", ids.slice(0, 30))) : query(ledger),
-      snapshot => {
-        const next = snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as StaffIncentive[]
-        next.sort((a, b) => {
-          const t = (x: any) => (x?.toMillis ? x.toMillis() : 0)
-          return t(b.createdAt) - t(a.createdAt)
-        })
-        setRows(next)
-        setSnapshotLoading(false)
-      },
-      err => {
-        console.error("Error fetching staff incentives:", err)
-        setSnapshotLoading(false)
-      }
-    )
-    return () => unsubscribe()
+  // A null url disables the poll: asking for nobody's rows must not fall through
+  // to the unscoped read an Admin would get.
+  const url = useMemo(() => {
+    if (scopedToNobody) return null
+    // A person never answers to more than a handful of ids.
+    const ids = idKey ? idKey.split("|").slice(0, 30) : []
+    // The ledger was read whole before, and the team totals add every row up, so
+    // ask for the route's ceiling rather than its default page.
+    const params = new URLSearchParams({ limit: "1000" })
+    if (ids.length) params.set("staffIds", ids.join(","))
+    return `/api/staff-incentives?${params.toString()}`
   }, [scopedToNobody, idKey])
+
+  const { data, loading, refresh } = usePolledResource<{ incentives: StaffIncentive[] }>(
+    url,
+    POLL_NORMAL
+  )
+
+  const rows = useMemo(
+    () => [...(data?.incentives || [])].sort(byNewest(i => i.createdAt)),
+    [data]
+  )
 
   return {
     incentives: scopedToNobody ? NO_INCENTIVES : rows,
-    loading: scopedToNobody ? false : snapshotLoading,
+    loading: scopedToNobody ? false : loading,
+    /** Call after crediting an incentive so the totals do not wait for the next poll. */
+    refresh,
   }
 }
 
@@ -116,6 +114,8 @@ export function computeStaffPerformance(
   const disbursedLeads = owned.filter(l => l.status === STATUS_DISBURSED)
   const converted = owned.filter(l => CONVERTED_STATUSES.includes(l.status)).length
 
+  // The team screens hand this the whole ledger and call it once per member, so
+  // this filter picks whose card is being drawn — it is not the access check.
   const incentiveEarned = incentives
     .filter(
       i =>

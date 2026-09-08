@@ -1,8 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { db } from "@/lib/firebase"
-import { collection, onSnapshot, query } from "firebase/firestore"
+import { useMemo } from "react"
+import { usePolledResource, POLL_NORMAL } from "@/lib/hooks/usePolledResource"
 
 /**
  * Bank master record. Admin-only writes; every other role reads it so the
@@ -28,44 +27,41 @@ export interface Bank {
 /** Used before any bank is configured, and for legacy ledger rows. */
 export const DEFAULT_CONNECTOR_COMMISSION = 2
 
+/** As stored: every field is optional until an Admin has filled the card in. */
+type BankRow = Partial<Bank> & { id: string }
+
 export function useBanks() {
-  const [banks, setBanks] = useState<Bank[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, loading, error, refresh } = usePolledResource<{ banks: BankRow[] }>(
+    "/api/banks",
+    POLL_NORMAL
+  )
 
-  useEffect(() => {
-    const unsubscribe = onSnapshot(
-      query(collection(db, "banks")),
-      snapshot => {
-        const rows = snapshot.docs.map(d => {
-          const data = d.data()
-          return {
-            id: d.id,
-            name: data.name || "Unnamed Bank",
-            type: data.type || "Personal Loan",
-            staffIncentive: Number(data.staffIncentive) || 0,
-            connectorCommission: Number(data.connectorCommission) || 0,
-            active: data.active !== false,
-            notes: data.notes || "",
-            createdAt: data.createdAt,
-            updatedAt: data.updatedAt,
-          } as Bank
-        })
-        rows.sort((a, b) => a.name.localeCompare(b.name))
-        setBanks(rows)
-        setLoading(false)
-      },
-      err => {
-        console.error("Error fetching banks:", err)
-        setError("Failed to load the bank list.")
-        setLoading(false)
-      }
+  const banks = useMemo(() => {
+    const rows = (data?.banks || []).map(
+      bank =>
+        ({
+          id: bank.id,
+          name: bank.name || "Unnamed Bank",
+          type: bank.type || "Personal Loan",
+          staffIncentive: Number(bank.staffIncentive) || 0,
+          connectorCommission: Number(bank.connectorCommission) || 0,
+          active: bank.active !== false,
+          notes: bank.notes || "",
+          createdAt: bank.createdAt,
+          updatedAt: bank.updatedAt,
+        }) as Bank
     )
+    rows.sort((a, b) => a.name.localeCompare(b.name))
+    return rows
+  }, [data])
 
-    return () => unsubscribe()
-  }, [])
-
-  return { banks, loading, error }
+  return {
+    banks,
+    loading,
+    error: error ? "Failed to load the bank list." : null,
+    /** Call after creating or editing a bank so the list does not wait for the next poll. */
+    refresh,
+  }
 }
 
 /** Parses the loosely-typed amounts stored on leads ("450000", 450000, "₹4,50,000"). */

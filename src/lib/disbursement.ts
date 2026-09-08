@@ -11,6 +11,8 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore"
+import { authedFetch, authedJson } from "@/lib/authedFetch"
+import { toMillis } from "@/lib/clientTime"
 import { Lead, logLeadActivity } from "@/lib/hooks/useLeads"
 import { Bank, calcConnectorCommission, calcStaffIncentive, formatINR, toAmount } from "@/lib/hooks/useBanks"
 
@@ -21,6 +23,12 @@ import { Bank, calcConnectorCommission, calcStaffIncentive, formatINR, toAmount 
  * parks it in `Disbursement Approval Pending`; a Manager or Admin then picks
  * the bank, confirms the amount and approves — which is the only moment
  * incentives and connector commission are written.
+ *
+ * The timeline and the staff incentive ledger go through the API routes. Two
+ * things here are still written straight to Firestore because no route exists
+ * for them yet: the lead document itself (there is no lead-update route) and
+ * `commission_ledger` (its route reads and settles rows but cannot create one).
+ * Both are noted at the call sites.
  */
 export const STATUS_PENDING_APPROVAL = "Disbursement Approval Pending"
 export const STATUS_DISBURSED = "Disbursed"
@@ -52,8 +60,10 @@ export function buildStatusTransition(
 
   const enteredAt = history[oldStatus] || lead.createdAt
   if (enteredAt) {
-    const t1 = enteredAt.toDate ? enteredAt.toDate().getTime() : new Date(enteredAt).getTime()
-    const diffMs = new Date().getTime() - t1
+    // Reaches here as an ISO string from the API, or as a Firestore Timestamp on
+    // a lead a screen has not re-fetched yet; `toMillis` reads both.
+    const t1 = toMillis(enteredAt)
+    const diffMs = t1 ? new Date().getTime() - t1 : NaN
 
     if (!isNaN(diffMs) && diffMs >= 0) {
       const diffHrs = diffMs / (1000 * 60 * 60)
@@ -110,6 +120,7 @@ export async function requestDisbursementApproval(
     ...extra,
   }
 
+  // Still Firestore: there is no lead-update API route to move this to.
   await updateDoc(doc(db, "leads", lead.id), payload)
   await logLeadActivity(
     lead.id,
@@ -119,9 +130,28 @@ export async function requestDisbursementApproval(
   )
 }
 
-/** True when this lead has already been credited in the given ledger. */
-async function alreadyCredited(collectionName: string, leadId: string): Promise<boolean> {
-  const snap = await getDocs(query(collection(db, collectionName), where("leadId", "==", leadId)))
+/**
+ * True when this lead has already earned its staff incentive.
+ *
+ * `/api/staff-incentives` has no `leadId` filter, so the check reads the closing
+ * telecaller's own rows — the only place a row for this lead could sit — and
+ * matches in memory.
+ */
+async function incentiveAlreadyCredited(staffId: string, leadId: string): Promise<boolean> {
+  const response = await authedFetch(
+    `/api/staff-incentives?staffIds=${encodeURIComponent(staffId)}&limit=1000`
+  )
+  const payload = await response.json().catch(() => null)
+  if (!response.ok || !payload?.success) {
+    throw new Error(payload?.error || "Could not check existing incentives.")
+  }
+  const incentives = (payload.incentives || []) as { leadId?: string; status?: string }[]
+  return incentives.some(row => row.leadId === leadId && (row.status || "") !== "Reversed")
+}
+
+/** True when this lead has already been credited in the connector ledger. */
+async function commissionAlreadyCredited(leadId: string): Promise<boolean> {
+  const snap = await getDocs(query(collection(db, "commission_ledger"), where("leadId", "==", leadId)))
   return snap.docs.some(d => (d.data().status || "") !== "Reversed")
 }
 
@@ -177,29 +207,42 @@ export async function approveDisbursement({
     leadPayload.type = productType
   }
 
+  // Still Firestore: there is no lead-update API route to move this to.
   await updateDoc(doc(db, "leads", lead.id), leadPayload)
 
   // 1. Telecaller incentive — only for the staff member who owns the file.
-  if (lead.assignedTo && staffIncentive > 0 && !(await alreadyCredited("staff_incentives", lead.id))) {
-    await addDoc(collection(db, "staff_incentives"), {
-      staffId: lead.assignedTo,
-      staffName: lead.assignedToName || "Staff",
-      leadId: lead.id,
-      customerName: lead.name || lead.fullName || "Customer",
-      productType: productType || lead.type || "Loan",
-      bankId: bank?.id || null,
-      bankName: bank?.name || "—",
-      disbursedAmount: String(amount),
-      incentiveAmount: Math.round(staffIncentive),
-      status: "Earned",
-      approvedBy: approver.uid || null,
-      approvedByName: approver.name,
-      createdAt: serverTimestamp(),
+  if (
+    lead.assignedTo &&
+    staffIncentive > 0 &&
+    !(await incentiveAlreadyCredited(lead.assignedTo, lead.id))
+  ) {
+    const response = await authedJson("/api/staff-incentives", "POST", {
+      incentive: {
+        staffId: lead.assignedTo,
+        staffName: lead.assignedToName || "Staff",
+        leadId: lead.id,
+        customerName: lead.name || lead.fullName || "Customer",
+        productType: productType || lead.type || "Loan",
+        bankId: bank?.id || null,
+        bankName: bank?.name || "—",
+        disbursedAmount: String(amount),
+        incentiveAmount: Math.round(staffIncentive),
+        status: "Earned",
+        approvedBy: approver.uid || null,
+        approvedByName: approver.name,
+      },
     })
+    const payload = await response.json().catch(() => null)
+    if (!response.ok || !payload?.success) {
+      throw new Error(payload?.error || "Could not credit the staff incentive.")
+    }
   }
 
   // 2. Connector commission — only when the lead was sourced by a DSA partner.
-  if (lead.partnerId && connectorCommission > 0 && !(await alreadyCredited("commission_ledger", lead.id))) {
+  //    Still Firestore: `/api/commission-ledger` reads and settles rows but has
+  //    no route for creating one, so the idempotency check above it stays on
+  //    Firestore too rather than checking one database and writing to another.
+  if (lead.partnerId && connectorCommission > 0 && !(await commissionAlreadyCredited(lead.id))) {
     await addDoc(collection(db, "commission_ledger"), {
       partnerId: lead.partnerId,
       partnerName: lead.partnerName || "DSA Partner",
@@ -234,6 +277,7 @@ export async function approveDisbursement({
 export async function rejectDisbursement(lead: Lead, reason: string, approver: StaffRef) {
   const revertTo = (lead as any).preApprovalStatus || "Bank Processing"
 
+  // Still Firestore: there is no lead-update API route to move this to.
   await updateDoc(doc(db, "leads", lead.id), {
     status: revertTo,
     approvalStatus: "Rejected" as ApprovalState,

@@ -1,9 +1,15 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from "react"
+import React, { useMemo, useState } from "react"
 import { CheckCircle2, Clock, IndianRupee, TrendingUp, Wallet } from "lucide-react"
-import { collection, doc, onSnapshot, query, serverTimestamp, updateDoc } from "firebase/firestore"
+// Settling a payout still writes through Firestore: PATCH /api/commission-ledger
+// takes only { id, status, note } and would drop the UTR, which this screen shows
+// and keeps for audit. Everything else on the page is on the route.
+import { doc, serverTimestamp, updateDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { authedJson } from "@/lib/authedFetch"
+import { usePolledResource, POLL_NORMAL } from "@/lib/hooks/usePolledResource"
+import { byNewest, type TimeLike } from "@/lib/clientTime"
 import { formatINR, formatINRShort, toAmount } from "@/lib/hooks/useBanks"
 import { formatDayShort } from "@/lib/dates"
 import {
@@ -33,16 +39,14 @@ interface CommissionRow {
   utrNumber?: string
   settlementRemarks?: string
   approvedByName?: string
-  createdAt?: unknown
-  settledAt?: unknown
+  createdAt?: TimeLike
+  settledAt?: TimeLike
 }
 
 const PENDING = "Under Settlement"
 
 export default function PayoutsPage() {
   const toast = useToast()
-  const [rows, setRows] = useState<CommissionRow[]>([])
-  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("All")
 
@@ -52,20 +56,17 @@ export default function PayoutsPage() {
   const [busy, setBusy] = useState(false)
   const [rejecting, setRejecting] = useState<CommissionRow | null>(null)
 
-  useEffect(() => {
-    const unsubscribe = onSnapshot(query(collection(db, "commission_ledger")), snapshot => {
-      const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }) as CommissionRow)
-      // Sorted in memory so Firestore needs no composite index.
-      data.sort((a, b) => {
-        const tA = (a.createdAt as { toMillis?: () => number })?.toMillis?.() ?? 0
-        const tB = (b.createdAt as { toMillis?: () => number })?.toMillis?.() ?? 0
-        return tB - tA
-      })
-      setRows(data)
-      setLoading(false)
-    })
-    return () => unsubscribe()
-  }, [])
+  const { data, loading, refresh } = usePolledResource<{ entries: CommissionRow[] }>(
+    "/api/commission-ledger?limit=1000",
+    POLL_NORMAL
+  )
+
+  // Newest first, as before. The route orders by `createdAt` too, but a row written
+  // without one would otherwise land wherever the query left it.
+  const rows = useMemo(
+    () => [...(data?.entries || [])].sort(byNewest(row => row.createdAt)),
+    [data]
+  )
 
   const totals = useMemo(() => {
     const commission = rows.reduce((sum, row) => sum + toAmount(row.commissionAmount), 0)
@@ -104,12 +105,15 @@ export default function PayoutsPage() {
     }
     setBusy(true)
     try {
+      // Blocked on the route: PATCH /api/commission-ledger has no field for the UTR
+      // or the remarks, and a settlement recorded without its UTR is not auditable.
       await updateDoc(doc(db, "commission_ledger", settling.id), {
         status: "Settled",
         utrNumber: utr.trim(),
         settlementRemarks: remarks.trim(),
         settledAt: serverTimestamp(),
       })
+      await refresh()
       toast.push({
         tone: "success",
         title: "Settlement recorded",
@@ -126,10 +130,13 @@ export default function PayoutsPage() {
   const reject = async () => {
     if (!rejecting) return
     try {
-      await updateDoc(doc(db, "commission_ledger", rejecting.id), {
+      const res = await authedJson("/api/commission-ledger", "PATCH", {
+        id: rejecting.id,
         status: "Rejected",
-        updatedAt: serverTimestamp(),
       })
+      const payload = await res.json().catch(() => null)
+      if (!res.ok || !payload?.success) throw new Error(payload?.error || "Rejection failed.")
+      await refresh()
       toast.push({ tone: "warn", title: "Payout rejected" })
     } catch (e) {
       console.error("Rejection failed:", e)

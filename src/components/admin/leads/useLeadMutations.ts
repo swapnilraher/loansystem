@@ -1,22 +1,27 @@
 "use client"
 
 import { useCallback, useMemo } from "react"
-import { addDoc, collection, doc, getDoc, getDocs, query, serverTimestamp, updateDoc, where } from "firebase/firestore"
+import { doc, serverTimestamp, updateDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { authedFetch, authedJson } from "@/lib/authedFetch"
 import { useAuth } from "@/context/AuthContext"
-import { Lead, logLeadActivity } from "@/lib/hooks/useLeads"
+import { Lead, invalidateLeadsCache, logLeadActivity } from "@/lib/hooks/useLeads"
 import { leadPhone, PRE_CONTACT_STATUSES } from "@/components/admin/leads/leadFilters"
 import { shouldAutoClaimLead } from "@/lib/permissions"
 import { buildStatusTransition, requestDisbursementApproval } from "@/lib/disbursement"
 
 /**
- * Every Firestore write the leads screen performs, in one place.
+ * Every write the leads screen performs, in one place.
  *
  * Two rules are baked into each mutation and must not be bypassed:
  *  1. A telecaller's first real contact with an unassigned lead claims it
  *     (`shouldAutoClaimLead`), so the incentive follows whoever worked the file.
  *  2. Marking a file disbursed never books the disbursal — it raises a request
  *     for a Manager to sign off.
+ *
+ * Creating a lead and writing the timeline go through the API routes. Editing an
+ * existing lead is still a direct Firestore write: there is no lead-update route
+ * to call, and every such call site is marked below.
  */
 export function useLeadMutations() {
   const { user, profile, adminRole, role } = useAuth()
@@ -43,6 +48,7 @@ export function useLeadMutations() {
 
   const updateStatus = useCallback(
     async (lead: Lead, newStatus: string) => {
+      // Firestore: no lead-update route exists yet.
       await updateDoc(doc(db, "leads", lead.id), {
         status: newStatus,
         followUpDate: null,
@@ -78,6 +84,7 @@ export function useLeadMutations() {
         payload.statusUpdatedAt = serverTimestamp()
       }
 
+      // Firestore: no lead-update route exists yet.
       await updateDoc(doc(db, "leads", lead.id), payload)
       await logLeadActivity(lead.id, kind, note, staffLabel)
       return payload
@@ -87,6 +94,7 @@ export function useLeadMutations() {
 
   const assignAgent = useCallback(
     async (leadId: string, agentId: string, agentName: string) => {
+      // Firestore: no lead-update route exists yet.
       await updateDoc(doc(db, "leads", leadId), {
         assignedTo: agentId || null,
         assignedToName: agentName || null,
@@ -104,6 +112,7 @@ export function useLeadMutations() {
 
   const setFollowUpDate = useCallback(
     async (leadId: string, dateString: string) => {
+      // Firestore: no lead-update route exists yet.
       await updateDoc(doc(db, "leads", leadId), {
         followUpDate: dateString || null,
         updatedAt: serverTimestamp(),
@@ -121,6 +130,7 @@ export function useLeadMutations() {
   )
 
   const setFollowUpReason = useCallback(async (leadId: string, reason: string) => {
+    // Firestore: no lead-update route exists yet.
     await updateDoc(doc(db, "leads", leadId), {
       followUpReason: reason || null,
       updatedAt: serverTimestamp(),
@@ -152,6 +162,7 @@ export function useLeadMutations() {
       }
       if (payload.assignedTo) changes.push(`Assigned to ${payload.assignedToName} (Claimed)`)
 
+      // Firestore: no lead-update route exists yet.
       await updateDoc(doc(db, "leads", lead.id), payload)
 
       /**
@@ -161,6 +172,8 @@ export function useLeadMutations() {
        * or the inbox and the bot keep addressing the customer by the name the
        * CRM no longer uses. (The inbox reads the CRM name for display; this is
        * what the *bot* says.)
+       *
+       * Firestore: `waSession` has no API route of its own.
        */
       if (renamedTo) {
         const phone = leadPhone(lead).replace(/\D/g, "")
@@ -190,6 +203,7 @@ export function useLeadMutations() {
         updatedAt: serverTimestamp(),
         ...claimFor(lead),
       }
+      // Firestore: no lead-update route exists yet.
       await updateDoc(doc(db, "leads", lead.id), payload)
       await logLeadActivity(lead.id, "Note", note.trim(), staffLabel, { manual: true })
       return payload
@@ -212,6 +226,7 @@ export function useLeadMutations() {
    */
   const deleteLead = useCallback(
     async (leadId: string) => {
+      // Firestore: no lead-update route exists yet.
       await updateDoc(doc(db, "leads", leadId), {
         deleted: true,
         deletedAt: serverTimestamp(),
@@ -230,6 +245,7 @@ export function useLeadMutations() {
   /** Admin only — enforced by `firestore.rules`, not just by the hidden button. */
   const restoreLead = useCallback(
     async (leadId: string) => {
+      // Firestore: no lead-update route exists yet.
       await updateDoc(doc(db, "leads", leadId), {
         deleted: false,
         deletedAt: null,
@@ -247,9 +263,11 @@ export function useLeadMutations() {
       let bankName = ""
       if (bankId) {
         try {
-          const bankSnap = await getDoc(doc(db, "banks", bankId))
-          if (bankSnap.exists()) {
-            bankName = bankSnap.data()?.name || ""
+          const response = await authedFetch("/api/banks")
+          const payload = await response.json().catch(() => null)
+          if (response.ok && payload?.success) {
+            const banks = (payload.banks || []) as { id: string; name?: string }[]
+            bankName = banks.find(bank => bank.id === bankId)?.name || ""
           }
         } catch (err) {
           console.error("Failed to fetch bank name during request:", err)
@@ -308,6 +326,7 @@ export function useLeadMutations() {
       }
       if (input.followUpReason) payload.followUpReason = input.followUpReason
 
+      // Firestore: no lead-update route exists yet.
       await updateDoc(doc(db, "leads", lead.id), payload)
       return payload
     },
@@ -315,6 +334,7 @@ export function useLeadMutations() {
   )
 
   const setBotMuted = useCallback(async (leadId: string, muted: boolean) => {
+    // Firestore: no lead-update route exists yet.
     await updateDoc(doc(db, "leads", leadId), { botMuted: muted })
   }, [])
 
@@ -331,6 +351,7 @@ export function useLeadMutations() {
    */
   const saveBankerLocation = useCallback(
     async (leadId: string, state: string, district: string) => {
+      // Firestore: no lead-update route exists yet.
       await updateDoc(doc(db, "leads", leadId), {
         bankerState: state || null,
         bankerDistrict: district || null,
@@ -341,8 +362,16 @@ export function useLeadMutations() {
 
   /**
    * A lead typed in by hand — walk-ins and phone enquiries that never touched
-   * the landing page. It lands owned by whoever entered it unless the form
-   * assigns it onward, so the file is never orphaned at creation.
+   * the landing page.
+   *
+   * The duplicate check that used to run here has moved into `POST /api/leads`,
+   * which matches an existing lead on either phone field and updates it in place
+   * rather than creating a second file. The route answers with `id` for a new
+   * lead and `leadId` for one it updated, which is how the two are told apart.
+   *
+   * The route writes a fixed field set and has no owner field, so `assignedTo` /
+   * `assignedToName` are accepted from the form but not yet stored: a manually
+   * entered lead lands unassigned until the route carries them.
    */
   const createLead = useCallback(
     async (input: {
@@ -355,51 +384,8 @@ export function useLeadMutations() {
       assignedTo?: string
       assignedToName?: string
     }) => {
-      const rawPhone = input.phone.trim()
-      const cleanPhone = rawPhone.replace(/\D/g, "")
-      const phone10 = cleanPhone.length === 12 && cleanPhone.startsWith("91") ? cleanPhone.slice(2) : cleanPhone
-
-      if (phone10) {
-        try {
-          const qPhone = query(collection(db, "leads"), where("phone", "==", phone10))
-          const snap = await getDocs(qPhone)
-          let existingDoc = !snap.empty ? snap.docs[0] : null
-          
-          if (!existingDoc) {
-            const qMobile = query(collection(db, "leads"), where("mobile", "==", phone10))
-            const snapMobile = await getDocs(qMobile)
-            if (!snapMobile.empty) existingDoc = snapMobile.docs[0]
-          }
-
-          if (existingDoc) {
-            const existingData = existingDoc.data()
-            const remarkNote = `Lead details updated manually by ${staffName}`
-            await updateDoc(doc(db, "leads", existingDoc.id), {
-              updatedAt: serverTimestamp(),
-              name: input.name.trim() || existingData.name,
-              fullName: input.name.trim() || existingData.fullName,
-              type: input.type || existingData.type,
-              amount: String(input.amount ?? "0").trim() || existingData.amount,
-              city: input.city?.trim() || existingData.city,
-              lastActivityNote: remarkNote,
-              lastActivityType: "Update",
-              lastActivityUser: staffName,
-              lastActivityTime: serverTimestamp(),
-              lastNote: remarkNote,
-              lastNoteUser: staffName,
-              lastNoteTime: serverTimestamp()
-            })
-            await logLeadActivity(existingDoc.id, "Note", remarkNote, staffLabel, { manual: true })
-            return existingDoc.id
-          }
-        } catch (err) {
-          console.error("Error checking existing lead in createLead:", err)
-        }
-      }
-
-      const ref = await addDoc(collection(db, "leads"), {
+      const response = await authedJson("/api/leads", "POST", {
         name: input.name.trim(),
-        fullName: input.name.trim(),
         phone: input.phone.trim(),
         email: input.email?.trim() || "",
         city: input.city?.trim() || "",
@@ -408,16 +394,32 @@ export function useLeadMutations() {
         status: "New Lead",
         category: "Portal",
         source: "Manual Entry",
-        assignedTo: input.assignedTo || user?.uid || null,
-        assignedToName: input.assignedToName || staffName,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        statusUpdatedAt: serverTimestamp(),
       })
-      await logLeadActivity(ref.id, "Note", `Lead created manually by ${staffName}`, staffLabel)
-      return ref.id
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || "Could not save this lead.")
+      }
+
+      const createdId = String(payload.id || "")
+      const updatedId = String(payload.leadId || "")
+
+      if (createdId) {
+        await logLeadActivity(createdId, "Note", `Lead created manually by ${staffName}`, staffLabel)
+      } else if (updatedId) {
+        await logLeadActivity(
+          updatedId,
+          "Note",
+          `Lead details updated manually by ${staffName}`,
+          staffLabel,
+          { manual: true }
+        )
+      }
+
+      // Empty only when the route swallowed a repeat submission of the same
+      // number inside its 15-second window; the caller ignores the id.
+      return createdId || updatedId
     },
-    [user?.uid, staffName, staffLabel]
+    [staffName, staffLabel]
   )
 
   const importLeads = useCallback(
@@ -427,7 +429,7 @@ export function useLeadMutations() {
     ) => {
       let count = 0
       for (const row of rows) {
-        await addDoc(collection(db, "leads"), {
+        const response = await authedJson("/api/leads", "POST", {
           name: row[mapping.name] || "Unknown",
           phone: String(row[mapping.phone] ?? ""),
           email: mapping.email ? row[mapping.email] || "" : "",
@@ -436,10 +438,14 @@ export function useLeadMutations() {
           status: "New Lead",
           category: "Bulk",
           source: "Excel Upload",
-          createdAt: serverTimestamp(),
         })
+        const payload = await response.json().catch(() => null)
+        if (!response.ok || !payload?.success) {
+          throw new Error(payload?.error || "Could not import this file.")
+        }
         count++
       }
+      invalidateLeadsCache()
       return count
     },
     []

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useMemo } from "react"
 import Link from "next/link"
 import {
   ArrowUpRight,
@@ -30,8 +30,7 @@ import {
   YAxis,
 } from "recharts"
 
-import { db } from "@/lib/firebase"
-import { collection, onSnapshot, query } from "firebase/firestore"
+import { usePolledResource, POLL_NORMAL } from "@/lib/hooks/usePolledResource"
 import { useAuth } from "@/context/AuthContext"
 import { useViewerIdentity } from "@/lib/hooks/useViewerIdentity"
 import { useLeads } from "@/lib/hooks/useLeads"
@@ -86,7 +85,6 @@ export default function AdminOverview() {
   const viewer = useViewerIdentity()
   const { leads: allLeads, loading } = useLeads()
   const { users: adminUsers } = useUsers()
-  const [activities, setActivities] = useState<{ type?: string; userName?: string }[]>([])
   const now = useNow()
 
   // Every metric below is computed from leads this role is allowed to see, so a
@@ -103,16 +101,16 @@ export default function AdminOverview() {
   // A telecaller only ever loads their own incentive rows.
   const { incentives } = useStaffIncentives(canViewTeam ? undefined : viewer.ids)
 
-  // The whole activity log is only needed for the Team Performance panel, which
-  // Admins and Managers see. A telecaller was downloading every activity in the
-  // organisation to render nothing with it.
-  useEffect(() => {
-    if (!canViewTeam) return
-    const unsubscribe = onSnapshot(query(collection(db, "lead_activities")), snapshot => {
-      setActivities(snapshot.docs.map(doc => doc.data()))
-    })
-    return () => unsubscribe()
-  }, [canViewTeam])
+  // Activity is only needed for the Team Performance panel, which Admins and
+  // Managers see — a null url keeps a telecaller from fetching it at all.
+  //
+  // Bounded to the most recent rows rather than the whole collection: it is the
+  // largest in the CRM, and the panel counts by `userName`, which the rows written
+  // in the browser carry but the route cannot filter on (only `staffId`).
+  const { data: activityData } = usePolledResource<{
+    activities: { type?: string; userName?: string }[]
+  }>(canViewTeam ? "/api/lead-activities?limit=500" : null, POLL_NORMAL)
+  const activities = useMemo(() => activityData?.activities || [], [activityData])
 
   const pipeline = useMemo(() => {
     const todayStart = startOfDay(now)

@@ -23,6 +23,8 @@ import {
 import { collection, onSnapshot, query, where } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { cn } from "@/lib/utils"
+import { byNewest, type TimeLike } from "@/lib/clientTime"
+import { POLL_NORMAL, usePolledResource } from "@/lib/hooks/usePolledResource"
 import {
   AdminButton,
   EmptyState,
@@ -66,7 +68,7 @@ interface Activity {
   type?: string
   note?: string
   userName?: string
-  timestamp?: unknown
+  timestamp?: TimeLike
 }
 
 /**
@@ -145,7 +147,22 @@ export function LeadDetailSheet({
   const isAdmin = role === "Admin"
   const toast = useToast()
   const [tab, setTab] = useState<Tab>("timeline")
-  const [activities, setActivities] = useState<Activity[]>([])
+
+  const leadId = lead?.id
+
+  /**
+   * The lead's timeline. Bounded by a limit now that it arrives as one response
+   * instead of an incremental stream — no lead comes close to 200 rows, and an
+   * unbounded read would re-download the whole timeline every poll.
+   */
+  const { data: activityPage, refresh: refreshActivities } = usePolledResource<{
+    activities: Activity[]
+  }>(leadId ? `/api/lead-activities?leadId=${encodeURIComponent(leadId)}&limit=200` : null, POLL_NORMAL)
+
+  const activities = useMemo(
+    () => [...(activityPage?.activities || [])].sort(byNewest(act => act.timestamp)),
+    [activityPage]
+  )
 
   const visibleActivities = useMemo(() => {
     return activities.filter(act => {
@@ -200,23 +217,6 @@ export function LeadDetailSheet({
     setConfirmDelete(false)
   }
 
-  const leadId = lead?.id
-
-  useEffect(() => {
-    if (!leadId) return
-    const unsubscribe = onSnapshot(
-      query(collection(db, "lead_activities"), where("leadId", "==", leadId)),
-      snapshot => {
-        const rows = snapshot.docs.map(d => ({ id: d.id, ...d.data() }) as Activity)
-        // Sorted client-side so Firestore needs no composite index.
-        rows.sort((a, b) => (toDate(b.timestamp)?.getTime() ?? 0) - (toDate(a.timestamp)?.getTime() ?? 0))
-        setActivities(rows)
-      },
-      err => console.error("Activities listener error:", err)
-    )
-    return () => unsubscribe()
-  }, [leadId])
-
   const filePhone = localNumber(lead ? leadPhone(lead) : "")
 
   /**
@@ -227,6 +227,9 @@ export function LeadDetailSheet({
    * and anything that arrived while the lead was still being created — carries a
    * phone number and nothing else. Matching on the number is what makes those
    * files visible instead of silently missing.
+   *
+   * Still Firestore: `whatsapp_messages` has no read route — `/api/whatsapp` only
+   * sends — so there is nowhere yet to ask for a bounded page of this thread.
    */
   useEffect(() => {
     if (!filePhone) return
@@ -289,6 +292,7 @@ export function LeadDetailSheet({
     setSavingEdits(true)
     try {
       await onSaveDetails(lead, edits)
+      await refreshActivities()
       setEditing(false)
     } catch (e) {
       console.error("Error saving edits:", e)
@@ -302,6 +306,7 @@ export function LeadDetailSheet({
     setSavingNote(true)
     try {
       await onSaveNote(lead, note)
+      await refreshActivities()
       setNote("")
       toast.push({ tone: "success", title: "नोट सेव्ह झाली" })
     } catch (e) {
@@ -576,10 +581,12 @@ export function LeadDetailSheet({
                       value={assignedOption}
                       onChange={e => {
                         const agent = telecallers.find(t => ownerIdOf(t) === e.target.value)
-                        onAssign(lead.id, e.target.value, agent?.name || "").catch(err => {
-                          console.error("Assignment failed:", err)
-                          toast.push({ tone: "danger", title: "Failed to assign agent" })
-                        })
+                        onAssign(lead.id, e.target.value, agent?.name || "")
+                          .then(refreshActivities)
+                          .catch(err => {
+                            console.error("Assignment failed:", err)
+                            toast.push({ tone: "danger", title: "Failed to assign agent" })
+                          })
                       }}
                     >
                       <option value="">-- Unassigned / claim lead --</option>
@@ -601,9 +608,9 @@ export function LeadDetailSheet({
                     type="datetime-local"
                     defaultValue={typeof lead.followUpDate === "string" ? lead.followUpDate : ""}
                     onChange={e => {
-                      onFollowUpDate(lead.id, e.target.value).catch(err =>
-                        console.error("Failed to update follow-up date:", err)
-                      )
+                      onFollowUpDate(lead.id, e.target.value)
+                        .then(refreshActivities)
+                        .catch(err => console.error("Failed to update follow-up date:", err))
                     }}
                   />
                 </Field>

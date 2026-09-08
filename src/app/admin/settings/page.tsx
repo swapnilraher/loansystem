@@ -17,7 +17,10 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import { db } from "@/lib/firebase"
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore"
+// The two `system_settings` documents come from the API; the per-user notification
+// flags on `users/{uid}` have no route yet, so those two calls stay on Firestore.
+import { doc, getDoc, updateDoc } from "firebase/firestore"
+import { authedFetch, authedJson } from "@/lib/authedFetch"
 import {
   AdminButton,
   PageHeader,
@@ -75,11 +78,13 @@ export default function SettingsPage() {
     const loadAllSettings = async () => {
       setLoading(true)
       try {
-        // Load Company Settings
-        const compRef = doc(db, "system_settings", "company")
-        const compSnap = await getDoc(compRef)
-        if (compSnap.exists()) {
-          setCompanyInfo(prev => ({ ...prev, ...compSnap.data() }))
+        // Company profile and the system-wide notification rules arrive together —
+        // the route returns both documents when no `doc` is named.
+        const res = await authedFetch("/api/admin/settings")
+        const data = await res.json().catch(() => null)
+        if (res.ok && data?.success) {
+          if (data.company) setCompanyInfo(prev => ({ ...prev, ...data.company }))
+          if (data.notifications) setSystemNotif(prev => ({ ...prev, ...data.notifications }))
         }
 
         // Load Personal User Notification Settings
@@ -91,13 +96,6 @@ export default function SettingsPage() {
             notifyLeads: uData.notifyLeads !== false,
             notifyPartners: uData.notifyPartners !== false,
           })
-        }
-
-        // Load System-Wide Notification Customizations
-        const sysRef = doc(db, "system_settings", "notifications")
-        const sysSnap = await getDoc(sysRef)
-        if (sysSnap.exists()) {
-          setSystemNotif(prev => ({ ...prev, ...sysSnap.data() }))
         }
       } catch (err) {
         console.error("Error loading settings:", err)
@@ -114,12 +112,13 @@ export default function SettingsPage() {
     e.preventDefault()
     setSavingCompany(true)
     try {
-      const compRef = doc(db, "system_settings", "company")
-      await setDoc(compRef, {
-        ...companyInfo,
-        updatedAt: new Date().toISOString(),
-        updatedBy: user?.email || "Admin",
-      }, { merge: true })
+      // `updatedAt` / `updatedBy` are stamped by the route from the verified token.
+      const res = await authedJson("/api/admin/settings", "PATCH", {
+        doc: "company",
+        settings: companyInfo,
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok || !data?.success) throw new Error(data?.error || "Save failed.")
       toast.push({ tone: "success", title: "Company profile updated successfully!" })
     } catch (err) {
       console.error("Error saving company profile:", err)
@@ -150,12 +149,12 @@ export default function SettingsPage() {
     e.preventDefault()
     setSavingSystemNotif(true)
     try {
-      const sysRef = doc(db, "system_settings", "notifications")
-      await setDoc(sysRef, {
-        ...systemNotif,
-        updatedAt: new Date().toISOString(),
-        updatedBy: user?.email || "Admin",
-      }, { merge: true })
+      const res = await authedJson("/api/admin/settings", "PATCH", {
+        doc: "notifications",
+        settings: systemNotif,
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok || !data?.success) throw new Error(data?.error || "Save failed.")
       toast.push({ tone: "success", title: "System Notification options saved!" })
     } catch (err) {
       console.error("Error saving notification customization:", err)

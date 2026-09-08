@@ -162,7 +162,8 @@ export default function AdminLayout({
             });
             if (cancelled) return;
             if (currentToken) {
-              // Save token to admin user document
+              // Save token to admin user document. Still on Firestore: appending to
+              // `fcmTokens` needs an array-union write, and no API route offers one.
               await updateDoc(doc(db, "users", user.uid), {
                 fcmTokens: arrayUnion(currentToken)
               });

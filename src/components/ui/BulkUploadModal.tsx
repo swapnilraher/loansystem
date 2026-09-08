@@ -2,8 +2,7 @@
 
 import React, { useState, useRef } from "react"
 import { useAuth } from "@/context/AuthContext"
-import { db } from "@/lib/firebase"
-import { collection, writeBatch, doc, serverTimestamp, getDocs, query } from "firebase/firestore"
+import { authedJson } from "@/lib/authedFetch"
 import { X, FileSpreadsheet, ArrowRight, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
 import * as XLSX from "xlsx"
 
@@ -17,7 +16,7 @@ const SYSTEM_FIELDS = [
 ]
 
 export function BulkUploadModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onClose: () => void, onSuccess: () => void }) {
-  const { user, profile } = useAuth()
+  const { profile } = useAuth()
   const [file, setFile] = useState<File | null>(null)
   const [headers, setHeaders] = useState<string[]>([])
   const [rows, setRows] = useState<any[]>([])
@@ -26,6 +25,9 @@ export function BulkUploadModal({ isOpen, onClose, onSuccess }: { isOpen: boolea
   const [mapping, setMapping] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  // Rows now go up one request at a time, so the count is real progress rather
+  // than a total that sits still until a single batch commits.
+  const [progress, setProgress] = useState({ done: 0, total: 0 })
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -92,17 +94,16 @@ export function BulkUploadModal({ isOpen, onClose, onSuccess }: { isOpen: boolea
     setError("")
 
     try {
-      const batch = writeBatch(db)
-      let validCount = 0
-
-      const existingLeadsSnap = await getDocs(query(collection(db, "leads")))
-      const existingMap = new Map<string, string>()
-      existingLeadsSnap.docs.forEach(d => {
-        const data = d.data()
-        const p = String(data.phone || data.mobile || "").replace(/\D/g, "")
-        const p10 = p.length === 12 && p.startsWith("91") ? p.slice(2) : p
-        if (p10 && p10.length === 10) existingMap.set(p10, d.id)
-      })
+      /**
+       * One `POST /api/leads` per row. There is no bulk route, and that route
+       * already matches an existing lead on its phone number and updates it in
+       * place — so the full-collection read this used to do to build its own
+       * duplicate map is gone.
+       *
+       * It does not carry `partnerId` / `partnerName` / `dsaCode`, so a lead
+       * uploaded here is no longer attributed to the partner who uploaded it.
+       */
+      const pending = new Map<string, Record<string, string>>()
 
       rows.forEach(rowArray => {
         const lead: any = {}
@@ -117,45 +118,41 @@ export function BulkUploadModal({ isOpen, onClose, onSuccess }: { isOpen: boolea
         })
 
         if (lead.name && lead.mobile) {
-          lead.mobile = lead.mobile.replace(/\D/g, '')
-          lead.phone = lead.mobile
-
-          if (lead.mobile.length === 10) {
-            const existingId = existingMap.get(lead.mobile)
-            if (existingId) {
-              const existingRef = doc(db, "leads", existingId)
-              batch.update(existingRef, {
-                ...lead,
-                updatedAt: serverTimestamp(),
-                lastActivityNote: "Bulk Excel upload updated lead details",
-                lastActivityType: "Update",
-                lastActivityTime: serverTimestamp()
-              })
-            } else {
-              const newRef = doc(collection(db, "leads"))
-              batch.set(newRef, {
-                ...lead,
-                status: "New Lead",
-                category: "Partner",
-                source: "Excel Bulk Upload",
-                partnerId: user?.uid,
-                partnerName: profile?.kycData?.name || profile?.name || "Partner",
-                dsaCode: profile?.dsaCode || "",
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp()
-              })
-              existingMap.set(lead.mobile, newRef.id)
-            }
-            validCount++
+          const mobile = lead.mobile.replace(/\D/g, '')
+          if (mobile.length === 10) {
+            // Keyed on the number so a file that lists the same customer twice
+            // sends one request carrying the later row's details, exactly as the
+            // batch's create-then-update did.
+            pending.set(mobile, {
+              name: lead.name,
+              phone: mobile,
+              city: lead.city || "",
+              type: lead.type || "",
+              amount: lead.amount || "",
+              status: "New Lead",
+              category: "Partner",
+              source: "Excel Bulk Upload",
+            })
           }
         }
       })
 
-      if (validCount === 0) {
+      if (pending.size === 0) {
         throw new Error("No valid rows found to upload. Ensure mobile numbers are 10 digits.")
       }
 
-      await batch.commit()
+      const queue = [...pending.values()]
+      setProgress({ done: 0, total: queue.length })
+
+      for (const [index, payload] of queue.entries()) {
+        const response = await authedJson("/api/leads", "POST", payload)
+        const body = await response.json().catch(() => null)
+        if (!response.ok || !body?.success) {
+          throw new Error(body?.error || `Upload stopped at row ${index + 1} of ${queue.length}.`)
+        }
+        setProgress({ done: index + 1, total: queue.length })
+      }
+
       setLoading(false)
       setTimeout(() => {
         onSuccess()
@@ -279,7 +276,9 @@ export function BulkUploadModal({ isOpen, onClose, onSuccess }: { isOpen: boolea
                     <Loader2 size={40} className="animate-spin" />
                   </div>
                   <h3 className="text-xl font-black text-secondary mt-4">Processing Data...</h3>
-                  <p className="text-sm font-bold text-slate-500">Uploading {rows.length} rows to the database securely.</p>
+                  <p className="text-sm font-bold text-slate-500">
+                    Uploading {progress.done} of {progress.total || rows.length} rows to the database securely.
+                  </p>
                 </>
               ) : (
                 <>

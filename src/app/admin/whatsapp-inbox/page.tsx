@@ -16,7 +16,7 @@ import {
   Smile,
   X,
 } from "lucide-react"
-import { collection, limit, onSnapshot, orderBy, query, doc, updateDoc, serverTimestamp } from "firebase/firestore"
+import { collection, limit, onSnapshot, orderBy, query } from "firebase/firestore"
 
 import { db } from "@/lib/firebase"
 import { getBrowserCache, setBrowserCache } from "@/lib/cache/browserCache"
@@ -29,7 +29,7 @@ import { useNow } from "@/lib/hooks/useNow"
 import { useLeads, Lead } from "@/lib/hooks/useLeads"
 import { useUsers, type AdminUser } from "@/lib/hooks/useUsers"
 import { useViewerIdentity } from "@/lib/hooks/useViewerIdentity"
-import { can, normalizeRole, ownsLead, shouldAutoClaimLead } from "@/lib/permissions"
+import { can, normalizeRole, ownsLead } from "@/lib/permissions"
 import { useLeadMutations } from "@/components/admin/leads/useLeadMutations"
 import { LeadDetailSheet } from "@/components/admin/leads/LeadDetailSheet"
 import { leadName, leadPhone } from "@/components/admin/leads/leadFilters"
@@ -160,7 +160,12 @@ export default function WhatsAppInboxPage() {
   const staffName = profile?.name || user?.displayName || user?.email || "Staff"
 
   /**
-   * Live, and ordered by Firestore rather than in memory: a single-field
+   * The last two Firestore reads on this screen. `whatsapp_messages` and
+   * `waSession` have no API route to read them from yet — /api/whatsapp is
+   * send-only — so the thread stays on the listener rather than losing its
+   * history to a route that does not exist.
+   *
+   * Live, and ordered by the query rather than in memory: a single-field
    * `orderBy` needs only the automatic index, and pairing it with `limit` is
    * what keeps this from streaming the whole collection into the browser.
    */
@@ -245,9 +250,11 @@ export default function WhatsAppInboxPage() {
    * the listener is the authority on what has been stored, and deciding it
    * while rendering avoids a second render pass on every snapshot.
    *
-   * Matched on sender, number and text within a few seconds of when the bubble
-   * was written; each stored message settles only one bubble, so sending the
-   * same words twice still shows two.
+   * Matched on sender, number and text within fifteen seconds of when the
+   * bubble was written — the same window as the give-up timeout in `send`, so a
+   * stored copy that is slow to arrive still retires its bubble rather than
+   * landing beside it as a duplicate. Each stored message settles only one
+   * bubble, so sending the same words twice still shows two.
    */
   const visiblePending = useMemo(() => {
     if (pending.length === 0) return pending
@@ -259,7 +266,7 @@ export default function WhatsAppInboxPage() {
           message.phone === ticket.phone &&
           (message.text || "") === (ticket.text || "") &&
           !claimed.has(message.id) &&
-          message.sortKey >= ticket.sortKey - 5000
+          message.sortKey >= ticket.sortKey - 15000
       )
       if (!stored) return true
       claimed.add(stored.id)
@@ -464,16 +471,10 @@ export default function WhatsAppInboxPage() {
     }
 
     try {
-      // Auto-claim unassigned lead when a staff member sends a direct WhatsApp message
+      // POST /api/whatsapp claims an unassigned lead for whoever sent the
+      // message, from the `senderUid` passed below, so the claim is no longer
+      // written from here as well.
       const staffUid = user?.uid || profile?.id
-      if (activeLead && shouldAutoClaimLead(role, activeLead) && staffUid) {
-        void updateDoc(doc(db, "leads", activeLead.id), {
-          assignedTo: staffUid,
-          assignedToName: staffName,
-          updatedAt: serverTimestamp(),
-          ...(activeLead.status === "New Lead" || activeLead.status === "New" ? { status: "Contacted" } : {})
-        }).catch(err => console.error("Error auto-claiming lead on WhatsApp send:", err))
-      }
 
       let uploaded: {
         mediaId: string

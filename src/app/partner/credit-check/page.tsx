@@ -40,7 +40,7 @@ import {
 } from "@/components/admin/ui"
 import WalletTopUpModal from "@/components/partner/WalletTopUpModal"
 import { formatINR, toAmount } from "@/lib/hooks/useBanks"
-import { timeAgo, toDate } from "@/lib/dates"
+import { byNewest, timeAgo } from "@/lib/clientTime"
 import { cn } from "@/lib/utils"
 
 export default function PartnerCreditCheckPage() {
@@ -88,11 +88,7 @@ export default function PartnerCreditCheckPage() {
 
     const unsubscribe = onSnapshot(qReports, (snapshot) => {
       const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
-      docs.sort((a: any, b: any) => {
-        const tA = a.createdAt?.toMillis?.() || 0
-        const tB = b.createdAt?.toMillis?.() || 0
-        return tB - tA
-      })
+      docs.sort(byNewest((r: any) => r.createdAt))
       setPastReports(docs)
     }, (err) => {
       console.warn("Credit reports fetch note:", err)

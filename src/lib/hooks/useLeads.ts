@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
+import { serverTimestamp, doc, updateDoc } from 'firebase/firestore';
+import { authedJson } from '@/lib/authedFetch';
 import { useAuth } from '@/context/AuthContext';
 import { can, canSeeLead } from '@/lib/permissions';
 import { useViewerIdentity } from '@/lib/hooks/useViewerIdentity';
@@ -195,16 +196,17 @@ export const logLeadActivity = async (
   options: { manual?: boolean } = {}
 ) => {
   try {
-    await addDoc(collection(db, 'lead_activities'), {
-      leadId,
-      type,
-      note,
-      userName,
-      manual: options.manual === true,
-      timestamp: serverTimestamp()
+    const res = await authedJson('/api/lead-activities', 'POST', {
+      // The route stamps the actor and the timestamp from the verified token.
+      activity: { leadId, type, note, userName, manual: options.manual === true }
     });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok || !payload?.success) {
+      throw new Error(payload?.error || 'Failed to log the activity.');
+    }
 
-    // Sync last activity info to the lead document
+    // Sync last activity info to the lead document.
+    // Still Firestore: there is no lead-update API route to move this to yet.
     const leadRef = doc(db, 'leads', leadId);
     await updateDoc(leadRef, {
       lastActivityNote: note,

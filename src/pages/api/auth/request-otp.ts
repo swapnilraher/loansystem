@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, setDoc } from 'firebase/firestore';
+import { getAdminDb } from '@/lib/firebase-admin';
 import crypto from 'crypto';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -13,13 +12,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   
   // Find admin_user document
-  const adminQuery = query(collection(db, 'admin_users'), where('email', '==', email));
-  const snapshot = await getDocs(adminQuery);
+  const db = getAdminDb();
+  const snapshot = await db.collection('admin_users').where('email', '==', email).limit(1).get();
   if (snapshot.empty) {
     return res.status(404).json({ message: 'User not found' });
   }
   const docRef = snapshot.docs[0].ref;
-  const adminData = snapshot.docs[0].data();
+  const adminData = (snapshot.docs[0].data() || {}) as any;
   
   // Get phone number from admin data
   const phoneNumber = adminData.phone || adminData.phoneNumber || adminData.mobile;
@@ -33,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const expiresAt = Date.now() + (process.env.OTP_EXPIRY_MINUTES ? parseInt(process.env.OTP_EXPIRY_MINUTES) * 60 * 1000 : 5 * 60 * 1000);
   
   // Store OTP hash and expiry
-  await setDoc(docRef, { otpHash, otpExpiresAt: expiresAt }, { merge: true });
+  await docRef.set({ otpHash, otpExpiresAt: expiresAt }, { merge: true });
   
   // Send via WhatsApp Business API
   const PHONE_ID = process.env.WHATSAPP_PHONE_ID || "1112131761984283";

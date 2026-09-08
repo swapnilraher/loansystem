@@ -17,6 +17,8 @@ import {
   Layers,
   Key,
 } from "lucide-react"
+// Still on Firestore: staff accounts (`admin_users`) and the portal customer list
+// (`users`) have no API route yet. The activity feed below is on the route.
 import {
   collection,
   addDoc,
@@ -29,6 +31,7 @@ import {
   orderBy,
 } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { usePolledResource, POLL_NORMAL } from "@/lib/hooks/usePolledResource"
 import { useUsers, AdminUser } from "@/lib/hooks/useUsers"
 import { useLeads } from "@/lib/hooks/useLeads"
 import { useAuth } from "@/context/AuthContext"
@@ -108,7 +111,6 @@ export default function UsersPage() {
 
   const [portalUsers, setPortalUsers] = useState<PortalUser[]>([])
   const [portalLoading, setPortalLoading] = useState(true)
-  const [activities, setActivities] = useState<any[]>([])
 
   // Top Tabs: "analytics" | "journey" | "porter" | "admins" | "portal"
   const [tab, setTab] = useState<string>(canViewStaff ? "analytics" : "portal")
@@ -137,13 +139,15 @@ export default function UsersPage() {
     return () => unsubscribe()
   }, [])
 
-  useEffect(() => {
-    if (!canViewStaff) return
-    const unsubscribe = onSnapshot(query(collection(db, "lead_activities")), snapshot => {
-      setActivities(snapshot.docs.map(d => ({ id: d.id, ...d.data() })))
-    })
-    return () => unsubscribe()
-  }, [canViewStaff])
+  // The analytics engine matches activity to staff by `userName`, which the route
+  // cannot filter on (it indexes `staffId`), so the filtering stays here — but over
+  // the most recent 500 rows rather than the whole collection, which is the largest
+  // in the CRM and far too big to re-fetch on a poll.
+  const { data: activityData } = usePolledResource<{ activities: any[] }>(
+    canViewStaff ? "/api/lead-activities?limit=500" : null,
+    POLL_NORMAL
+  )
+  const activities = useMemo(() => activityData?.activities || [], [activityData])
 
   // Analytics KPI & Staff Metrics Computation
   const kpis = useMemo(

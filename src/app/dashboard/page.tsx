@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/Button"
 import { useAuth } from "@/context/AuthContext"
 import { db } from "@/lib/firebase"
 import { collection, addDoc, serverTimestamp, query, where, onSnapshot, getDocs, updateDoc, doc } from "firebase/firestore"
+import { byNewest, toDate } from "@/lib/clientTime"
 
 export default function UserDashboard() {
   const router = useRouter()
@@ -87,11 +88,7 @@ export default function UserDashboard() {
       
       const apps = s.docs.map(d => ({ id: d.id, ...d.data() }));
       // Client-side sorting
-      apps.sort((a: any, b: any) => {
-        const dateA = a.createdAt?.toDate?.() || new Date(0);
-        const dateB = b.createdAt?.toDate?.() || new Date(0);
-        return dateB.getTime() - dateA.getTime();
-      });
+      apps.sort(byNewest((a: any) => a.createdAt));
 
       setUserApplications(apps);
       setAppLoading(false);
@@ -117,11 +114,7 @@ export default function UserDashboard() {
       
       const refs = s.docs.map(d => ({ id: d.id, ...d.data() }));
       // Client-side sorting
-      refs.sort((a: any, b: any) => {
-        const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
-        const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
-        return dateB.getTime() - dateA.getTime();
-      });
+      refs.sort(byNewest((r: any) => r.createdAt));
 
       setReferrals(refs);
     }, (error) => {
@@ -265,7 +258,7 @@ export default function UserDashboard() {
                       <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center font-black text-xs uppercase">{(ref.panName || ref.displayName || "U").substring(0,1)}</div>
                       <div>
                         <p className="font-bold text-xs">{ref.panName || ref.displayName || "Anonymous"}</p>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Joined {ref.createdAt ? (new Date(ref.createdAt)).toLocaleDateString() : 'Today'}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Joined {toDate(ref.createdAt)?.toLocaleDateString() || 'Today'}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
@@ -463,7 +456,7 @@ export default function UserDashboard() {
                         <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary shrink-0"><FileText size={20} /></div>
                         <div>
                           <h4 className="font-black text-sm lg:text-lg">{app.product}</h4>
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{app.id.substring(0,8).toUpperCase()} • {app.createdAt?.toDate?.()?.toLocaleDateString() || 'Today'}</p>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{app.id.substring(0,8).toUpperCase()} • {toDate(app.createdAt)?.toLocaleDateString() || 'Today'}</p>
                         </div>
                       </div>
                       <div className="flex items-center justify-between w-full md:w-auto md:gap-8">

@@ -1,22 +1,11 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
-import {
-  collection,
-  doc,
-  limit,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
-  updateDoc,
-  writeBatch,
-} from "firebase/firestore"
+import { useCallback, useMemo, useState } from "react"
 
-import { db } from "@/lib/firebase"
+import { authedJson } from "@/lib/authedFetch"
+import { POLL_FAST, usePolledResource } from "@/lib/hooks/usePolledResource"
 import { useAuth } from "@/context/AuthContext"
 import {
-  WA_NOTIFICATIONS_COLLECTION,
   identityTokens,
   isRecipient,
   type WaNotification,
@@ -26,15 +15,20 @@ import {
  * Newest N notifications across the whole CRM, filtered to the signed-in staff
  * member in memory.
  *
- * Filtering client-side rather than with `array-contains-any` is deliberate.
- * A `where(...) + orderBy(...)` pair needs a composite index created by hand in
- * the Firebase console, and this CRM ships no `firestore.rules`/index config —
- * a missing index would mean the bell silently shows nothing on first deploy.
- * `orderBy` on a single field uses the automatic index, so this works the moment
- * the code lands. It also matches how `useLeads` and the WhatsApp inbox already
- * work: stream, then apply the visibility rule in the client.
+ * The route hands back the whole feed and the visibility rule is applied here,
+ * exactly as the Firestore listener did. `recipients` holds every id shape a
+ * reader could be addressed by — see `waNotificationShared` — so the match needs
+ * the reader's own identifiers, which only the client has. It also matches how
+ * `useLeads` and the WhatsApp inbox already work: load, then apply the rule in
+ * the client.
+ *
+ * Polled rather than delta-polled: `?since=` would return only what arrived
+ * after the newest row held, so a notification marked read on another device
+ * would never lose its badge here. The bell needs the current state of the
+ * newest hundred, not just the additions to it.
  */
 const FEED_LIMIT = 100
+const FEED_URL = `/api/wa-notifications?limit=${FEED_LIMIT}`
 
 export interface UseWaNotifications {
   notifications: WaNotification[]
@@ -51,6 +45,35 @@ export interface UseWaNotifications {
   markAllRead: () => Promise<void>
 }
 
+type FeedRow = Partial<WaNotification> & { id?: string }
+
+interface NotificationFeed {
+  notifications?: FeedRow[]
+}
+
+/** JSON rows carry no defaults, so the ones the listener applied are applied here. */
+function normalize(row: FeedRow): WaNotification {
+  const id = String(row.id ?? "")
+  return {
+    id,
+    messageId: row.messageId || id,
+    leadId: row.leadId || "",
+    leadName: row.leadName || "Customer",
+    phone: row.phone || "",
+    message: row.message || "",
+    mediaType: row.mediaType || "",
+    leadStatus: row.leadStatus || "New Lead",
+    assignedTo: row.assignedTo ?? null,
+    assignedToName: row.assignedToName ?? null,
+    recipients: Array.isArray(row.recipients) ? row.recipients : [],
+    read: row.read === true,
+    readAt: row.readAt,
+    readBy: row.readBy ?? null,
+    receivedAt: row.receivedAt,
+    createdAt: row.createdAt,
+  }
+}
+
 /** `whatsapp_messages` is keyed on the bare 10-digit number. */
 function localNumber(raw: string): string {
   const clean = (raw || "").replace(/\D/g, "")
@@ -60,9 +83,35 @@ function localNumber(raw: string): string {
 export function useWaNotifications(): UseWaNotifications {
   const { user, profile, staffProfile } = useAuth()
   const uid = user?.uid ?? null
-  const [all, setAll] = useState<WaNotification[]>([])
-  const [snapshotLoading, setSnapshotLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+
+  /** A null url turns the poll off, so a signed-out tab makes no requests. */
+  const {
+    data,
+    loading: feedLoading,
+    error,
+    refresh,
+  } = usePolledResource<NotificationFeed>(uid ? FEED_URL : null, POLL_FAST)
+
+  /**
+   * Ids marked read from this tab, held until the feed catches up.
+   *
+   * Firestore replayed a write to its own listener immediately; a poll has to
+   * wait for the round trip, and `refresh()` is skipped outright while a tick is
+   * already in flight. Without this the badge would sit there for up to a full
+   * interval after the staff member cleared it.
+   */
+  const [optimisticRead, setOptimisticRead] = useState<string[]>([])
+
+  const all = useMemo(() => {
+    const rows = data?.notifications
+    if (!rows || rows.length === 0) return [] as WaNotification[]
+    return rows.map(row => {
+      const notification = normalize(row)
+      return optimisticRead.includes(notification.id)
+        ? { ...notification, read: true }
+        : notification
+    })
+  }, [data, optimisticRead])
 
   /**
    * Every id this person could be addressed by. `leads.assignedTo` holds an
@@ -82,58 +131,6 @@ export function useWaNotifications(): UseWaNotifications {
   )
 
   /**
-   * Only subscribes while somebody is signed in. The signed-out case is
-   * *derived* below rather than written from here — calling setState in an
-   * effect body triggers a cascading render, which this codebase's lint rules
-   * reject outright.
-   */
-  useEffect(() => {
-    if (!uid) return
-
-    const unsubscribe = onSnapshot(
-      query(
-        collection(db, WA_NOTIFICATIONS_COLLECTION),
-        orderBy("createdAt", "desc"),
-        limit(FEED_LIMIT)
-      ),
-      snapshot => {
-        setAll(
-          snapshot.docs.map(d => {
-            const data = d.data()
-            return {
-              id: d.id,
-              messageId: data.messageId || d.id,
-              leadId: data.leadId || "",
-              leadName: data.leadName || "Customer",
-              phone: data.phone || "",
-              message: data.message || "",
-              mediaType: data.mediaType || "",
-              leadStatus: data.leadStatus || "New Lead",
-              assignedTo: data.assignedTo ?? null,
-              assignedToName: data.assignedToName ?? null,
-              recipients: Array.isArray(data.recipients) ? data.recipients : [],
-              read: data.read === true,
-              readAt: data.readAt,
-              readBy: data.readBy ?? null,
-              receivedAt: data.receivedAt,
-              createdAt: data.createdAt,
-            } as WaNotification
-          })
-        )
-        setError(null)
-        setSnapshotLoading(false)
-      },
-      err => {
-        console.error("WhatsApp notification listener failed:", err)
-        setError(err.message)
-        setSnapshotLoading(false)
-      }
-    )
-
-    return () => unsubscribe()
-  }, [uid])
-
-  /**
    * Only what this staff member is meant to see. Signing out empties
    * `viewerTokens`, so any rows still held from the last session stop matching
    * on their own — no clean-up write needed.
@@ -143,51 +140,45 @@ export function useWaNotifications(): UseWaNotifications {
     [uid, all, viewerTokens]
   )
 
-  /** Nothing is loading when there is nobody to load it for. */
-  const loading = uid ? snapshotLoading : false
+  /**
+   * Nothing is loading when there is nobody to load it for. The extra clause
+   * covers signing in after mount: the poll starts enabled at that point but its
+   * own `loading` flag has already been cleared, and the bell should show the
+   * spinner rather than "nothing here" while the first response is in flight.
+   */
+  const loading = uid ? feedLoading || (!data && !error) : false
 
   const unread = useMemo(() => notifications.filter(n => !n.read), [notifications])
 
-  const readerLabel =
-    staffProfile?.name || profile?.name || user?.displayName || user?.email || "Staff"
+  /** One request, so opening a busy thread is still a single round-trip. */
+  const markMany = useCallback(
+    async (targets: WaNotification[]) => {
+      const ids = targets.filter(n => !n.read).map(n => n.id)
+      if (ids.length === 0) return
+      setOptimisticRead(prev => [...prev, ...ids])
+      try {
+        const response = await authedJson("/api/wa-notifications", "PATCH", { ids })
+        const payload = await response.json().catch(() => null)
+        if (!response.ok || !payload?.success) {
+          throw new Error(payload?.error || "Could not mark these read.")
+        }
+        await refresh()
+      } catch (err) {
+        console.error("Failed to mark WhatsApp notifications read:", err)
+        // Put the badge back rather than leaving it lying about a write that failed.
+        setOptimisticRead(prev => prev.filter(id => !ids.includes(id)))
+      }
+    },
+    [refresh]
+  )
 
   const markRead = useCallback(
     async (id: string) => {
       const target = notifications.find(n => n.id === id)
       if (!target || target.read) return
-      try {
-        await updateDoc(doc(db, WA_NOTIFICATIONS_COLLECTION, id), {
-          read: true,
-          readAt: serverTimestamp(),
-          readBy: readerLabel,
-        })
-      } catch (err) {
-        console.error("Failed to mark WhatsApp notification read:", err)
-      }
+      await markMany([target])
     },
-    [notifications, readerLabel]
-  )
-
-  /** One batched write, so opening a busy thread is a single round-trip. */
-  const markMany = useCallback(
-    async (targets: WaNotification[]) => {
-      const pending = targets.filter(n => !n.read)
-      if (pending.length === 0) return
-      try {
-        const batch = writeBatch(db)
-        for (const notification of pending) {
-          batch.update(doc(db, WA_NOTIFICATIONS_COLLECTION, notification.id), {
-            read: true,
-            readAt: serverTimestamp(),
-            readBy: readerLabel,
-          })
-        }
-        await batch.commit()
-      } catch (err) {
-        console.error("Failed to mark WhatsApp notifications read:", err)
-      }
-    },
-    [readerLabel]
+    [markMany, notifications]
   )
 
   const markReadForLead = useCallback(
@@ -207,6 +198,11 @@ export function useWaNotifications(): UseWaNotifications {
     [markMany, unread]
   )
 
+  /**
+   * By id, not the route's `markAllRead` flag: that clears the collection for
+   * every staff member at once, where this only ever clears what this reader can
+   * see.
+   */
   const markAllRead = useCallback(async () => {
     await markMany(unread)
   }, [markMany, unread])

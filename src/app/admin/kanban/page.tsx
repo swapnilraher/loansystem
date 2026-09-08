@@ -113,6 +113,8 @@ export default function KanbanPage() {
     }
 
     try {
+      // Still on Firestore: /api/leads has no PATCH, so there is nowhere to send a
+      // status change yet. The rest of the board reads through `useLeads`.
       await updateDoc(doc(db, "leads", leadId), {
         status: newStatus,
         updatedAt: serverTimestamp(),

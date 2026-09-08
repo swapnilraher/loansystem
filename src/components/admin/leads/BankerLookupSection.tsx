@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react"
 import { Building2, Phone, Mail, MapPin, Search, Plus, RefreshCw, MessageSquare, Loader2 } from "lucide-react"
-import { collection, addDoc, serverTimestamp } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { authedJson } from "@/lib/authedFetch"
 import { useToast } from "@/components/admin/ui"
 import { Select } from "./fields"
 import { lookupPincode } from "@/lib/pincode"
@@ -241,11 +240,26 @@ export function BankerLookupSection({ lead, onUpdateLocationDetails }: BankerLoo
     }
 
     try {
-      await addDoc(collection(db, "bankers"), {
-        ...newBanker,
-        active: true,
-        createdAt: serverTimestamp()
+      /**
+       * The directory this card searches is the shipped banker file plus an
+       * Admin overlay, and `/api/admin/bankers` is what maintains the overlay —
+       * so an added banker has to be posted in the directory's own field names
+       * (`bank`/`name`/`mobile`/`district`) to be findable afterwards. `email`
+       * is not part of that record and is not stored.
+       */
+      const response = await authedJson("/api/admin/bankers", "POST", {
+        bank: newBanker.bankName,
+        name: newBanker.bankerName,
+        mobile: newBanker.phone,
+        branch: newBanker.branch,
+        district: newBanker.district,
+        state: newBanker.state,
+        active: true
       })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || "Failed to save banker contact")
+      }
       toast.push({ tone: "success", title: "Banker contact saved successfully!" })
       setShowAddModal(false)
       setNewBanker({
@@ -260,7 +274,10 @@ export function BankerLookupSection({ lead, onUpdateLocationDetails }: BankerLoo
       })
     } catch (err) {
       console.error(err)
-      toast.push({ tone: "danger", title: "Failed to save banker contact" })
+      toast.push({
+        tone: "danger",
+        title: err instanceof Error ? err.message : "Failed to save banker contact"
+      })
     }
   }
 

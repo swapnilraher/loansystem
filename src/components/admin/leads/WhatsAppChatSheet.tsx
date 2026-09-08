@@ -73,6 +73,11 @@ export function WhatsAppChatSheet({
     return clean.length === 12 && clean.startsWith("91") ? clean.slice(2) : clean
   })()
 
+  /**
+   * Still on Firestore: nothing serves `whatsapp_messages` over HTTP yet
+   * (/api/whatsapp only sends), so migrating this read would leave the thread
+   * empty. Same for the lead's `botMuted` flag below.
+   */
   useEffect(() => {
     if (!leadId || !localNumber) return
 
@@ -130,7 +135,9 @@ export function WhatsAppChatSheet({
    * The stored thread plus anything still on its way out.
    *
    * A pending bubble drops out the moment its stored copy arrives, matched on
-   * text within a few seconds of when it was written; one stored message
+   * text within fifteen seconds of when it was written — the same window as the
+   * give-up timeout in `send`, so a stored copy that is slow to arrive retires
+   * its bubble instead of landing beside it as a duplicate. One stored message
    * settles only one bubble, so sending the same words twice still shows two.
    * Each bubble also remembers the lead it belongs to, so switching customers
    * never carries someone else's message along.
@@ -145,7 +152,7 @@ export function WhatsAppChatSheet({
           message.sender === "staff" &&
           (message.text || "") === (ticket.text || "") &&
           !claimed.has(message.id) &&
-          message.sortKey >= ticket.sortKey - 5000
+          message.sortKey >= ticket.sortKey - 15000
       )
       if (!stored) return true
       claimed.add(stored.id)

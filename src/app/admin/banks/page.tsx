@@ -2,8 +2,7 @@
 
 import React, { useMemo, useState } from "react"
 import { Building2, IndianRupee, Percent, Plus, Power, ShieldCheck, Trash2 } from "lucide-react"
-import { addDoc, collection, deleteDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { authedFetch, authedJson } from "@/lib/authedFetch"
 import { useAuth } from "@/context/AuthContext"
 import { can } from "@/lib/permissions"
 import { Bank, formatINR, formatINRShort, toAmount, useBanks } from "@/lib/hooks/useBanks"
@@ -53,7 +52,9 @@ export default function BanksPage() {
   const { role } = useAuth()
   const toast = useToast()
   const canManage = can(role, "banks:manage")
-  const { banks, loading } = useBanks()
+  // `refresh` after every write: this is the screen that edits the rate card, and
+  // a poll would otherwise leave the change off screen for up to a minute.
+  const { banks, loading, refresh } = useBanks()
   const { leads } = useLeads()
 
   const [search, setSearch] = useState("")
@@ -135,13 +136,15 @@ export default function BanksPage() {
         connectorCommission,
         notes: form.notes.trim(),
         active: form.active,
-        updatedAt: serverTimestamp(),
       }
-      if (editing) {
-        await updateDoc(doc(db, "banks", editing.id), payload)
-      } else {
-        await addDoc(collection(db, "banks"), { ...payload, createdAt: serverTimestamp() })
+      const response = editing
+        ? await authedJson("/api/banks", "PATCH", { id: editing.id, bank: payload })
+        : await authedJson("/api/banks", "POST", { bank: payload })
+      const result = await response.json().catch(() => null)
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || "Save failed.")
       }
+      await refresh()
       toast.push({ tone: "success", title: editing ? `${name} updated` : `${name} added` })
       setFormOpen(false)
       setForm(EMPTY_FORM)
@@ -156,10 +159,15 @@ export default function BanksPage() {
   const toggleActive = async (bank: Bank) => {
     if (!canManage) return
     try {
-      await updateDoc(doc(db, "banks", bank.id), {
-        active: !bank.active,
-        updatedAt: serverTimestamp(),
+      const response = await authedJson("/api/banks", "PATCH", {
+        id: bank.id,
+        bank: { active: !bank.active },
       })
+      const result = await response.json().catch(() => null)
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || "Update failed.")
+      }
+      await refresh()
     } catch (err) {
       console.error("Error toggling bank:", err)
       toast.push({ tone: "danger", title: "Could not change this bank's status" })
@@ -169,7 +177,15 @@ export default function BanksPage() {
   const remove = async () => {
     if (!confirmDelete) return
     try {
-      await deleteDoc(doc(db, "banks", confirmDelete.id))
+      const response = await authedFetch(
+        `/api/banks?id=${encodeURIComponent(confirmDelete.id)}`,
+        { method: "DELETE" }
+      )
+      const result = await response.json().catch(() => null)
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || "Delete failed.")
+      }
+      await refresh()
       toast.push({ tone: "success", title: `${confirmDelete.name} removed from the rate card` })
     } catch (err) {
       console.error("Error deleting bank:", err)

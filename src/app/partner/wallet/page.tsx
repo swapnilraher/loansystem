@@ -38,7 +38,7 @@ import {
 } from "@/components/admin/ui"
 import WalletTopUpModal from "@/components/partner/WalletTopUpModal"
 import { formatINR, formatINRShort, toAmount } from "@/lib/hooks/useBanks"
-import { timeAgo, toDate } from "@/lib/dates"
+import { byNewest, timeAgo } from "@/lib/clientTime"
 import { cn } from "@/lib/utils"
 
 export default function PartnerWallet() {
@@ -62,11 +62,7 @@ export default function PartnerWallet() {
 
     const unsubComm = onSnapshot(qComm, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      data.sort((a: any, b: any) => {
-        const tA = a.createdAt?.toMillis?.() || (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0)
-        const tB = b.createdAt?.toMillis?.() || (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0)
-        return tB - tA
-      })
+      data.sort(byNewest((c: any) => c.createdAt))
       setCommissions(data)
       setLoading(false)
     }, (err) => {
@@ -82,11 +78,7 @@ export default function PartnerWallet() {
 
     const unsubTx = onSnapshot(qTx, (snapshot) => {
       const txData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
-      txData.sort((a: any, b: any) => {
-        const tA = a.createdAt?.toMillis?.() || (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0)
-        const tB = b.createdAt?.toMillis?.() || (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0)
-        return tB - tA
-      })
+      txData.sort(byNewest((t: any) => t.createdAt))
       setWalletTxs(txData)
     }, (err) => {
       console.warn("Wallet txs error:", err)

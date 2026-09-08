@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import {
   User,
   Mail,
@@ -20,7 +20,11 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import { db } from "@/lib/firebase"
-import { doc, getDoc, updateDoc, collection, query, onSnapshot } from "firebase/firestore"
+// Still on Firestore: this person's `users/{uid}` record — display name, phone and
+// the notification flags — has no API route yet.
+import { doc, getDoc, updateDoc } from "firebase/firestore"
+import { usePolledResource, POLL_NORMAL } from "@/lib/hooks/usePolledResource"
+import { byNewest, toDate } from "@/lib/clientTime"
 import { useLeads } from "@/lib/hooks/useLeads"
 import {
   AdminButton,
@@ -36,7 +40,6 @@ export default function ProfilePage() {
   const toast = useToast()
   const [loading, setLoading] = useState(true)
   const [savingProfile, setSavingProfile] = useState(false)
-  const [activities, setActivities] = useState<any[]>([])
 
   // Profile data states
   const [profileData, setProfileData] = useState({
@@ -103,14 +106,17 @@ export default function ProfilePage() {
     notifyWhatsappUpdates: true,
   })
 
-  // Fetch activities on mount
-  useEffect(() => {
-    const q = query(collection(db, "lead_activities"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setActivities(snapshot.docs.map(doc => doc.data()));
-    });
-    return () => unsubscribe();
-  }, []);
+  /**
+   * This person's own activity, matched below on `userName` — the field the
+   * browser writes. The route can only filter on `staffId`, which the rows logged
+   * from the CRM do not carry, so the match stays here and the fetch is bounded to
+   * the most recent rows instead of the whole (very large) collection.
+   */
+  const { data: activityData } = usePolledResource<{ activities: any[] }>(
+    "/api/lead-activities?limit=500",
+    POLL_NORMAL
+  )
+  const activities = useMemo(() => activityData?.activities || [], [activityData])
 
   // Load user profile & notification settings
   useEffect(() => {
@@ -205,7 +211,7 @@ export default function ProfilePage() {
   const currentUserName = profileData.name || user?.displayName || user?.email || ""
   const userActivities = activities.filter(act => {
     return act.userName && currentUserName && act.userName.toLowerCase().includes(currentUserName.toLowerCase())
-  }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+  }).sort(byNewest(act => act.timestamp))
 
   // Calculate some performance metrics
   const disbursedCount = leads.filter(l => l.status === 'Disbursed' || l.status === 'Converted').length
@@ -526,6 +532,8 @@ export default function ProfilePage() {
                   userActivities.slice(0, 20).map((act, index) => {
                     const isStatusChange = act.details?.toLowerCase().includes("status")
                     const isNote = act.details?.toLowerCase().includes("note")
+                    // ISO string off the route, a Timestamp on anything not yet migrated.
+                    const at = toDate(act.timestamp)
 
                     return (
                       <div
@@ -545,7 +553,7 @@ export default function ProfilePage() {
                           <span className="admin-num">ID: {act.leadId?.substring(0, 8) || "System"}</span>
                           <span className="flex items-center gap-1">
                             <Clock size={10} />
-                            {new Date(act.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })} at {new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {at?.toLocaleDateString([], { month: 'short', day: 'numeric' })} at {at?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
                       </div>

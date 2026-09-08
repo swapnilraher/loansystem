@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext"
 import { db } from "@/lib/firebase"
 import { doc, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, updateDoc } from "firebase/firestore"
 import { useParams, useRouter } from "next/navigation"
+import { toDate } from "@/lib/clientTime"
 import { 
   ArrowLeft, 
   Phone, 
@@ -396,7 +397,7 @@ export default function LeadCRMView() {
                         remark.type === 'WhatsApp' ? 'text-emerald-500' : 'text-primary'
                       }`}>{remark.type}</span>
                       <span className="text-[9px] font-bold text-slate-400">
-                        {remark.createdAt?.toDate ? new Date(remark.createdAt.toDate()).toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Just now'}
+                        {toDate(remark.createdAt)?.toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) || 'Just now'}
                       </span>
                     </div>
                     <p className="text-sm font-bold text-secondary">{remark.note}</p>

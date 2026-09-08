@@ -57,7 +57,7 @@ import {
 } from "@/components/admin/ui"
 import PartnerAgreementModal from "@/components/partner/PartnerAgreementModal"
 import { formatINR, formatINRShort, toAmount } from "@/lib/hooks/useBanks"
-import { timeAgo, toDate } from "@/lib/dates"
+import { byNewest, timeAgo, toDate } from "@/lib/clientTime"
 import { cn } from "@/lib/utils"
 import PartnerLandingPage from "@/components/partner/landing/PartnerLandingPage"
 
@@ -110,11 +110,7 @@ function PartnerDashboardView() {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      data.sort((a: any, b: any) => {
-        const tA = a.createdAt?.toMillis?.() || (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0)
-        const tB = b.createdAt?.toMillis?.() || (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0)
-        return tB - tA
-      })
+      data.sort(byNewest((l: any) => l.createdAt))
       setLeads(data)
       setLoading(false)
     }, (err) => {
