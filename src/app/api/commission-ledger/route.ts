@@ -1,4 +1,12 @@
-import { guarded, rows, limitOf, ANY_STAFF, ADMIN_OR_MANAGER } from "@/lib/apiCollection"
+import {
+  guarded,
+  guardedShared,
+  seesEverything,
+  ownerIdOf,
+  rows,
+  limitOf,
+  ADMIN_OR_MANAGER,
+} from "@/lib/apiCollection"
 
 /**
  * Connector commission owed and settled.
@@ -10,18 +18,19 @@ import { guarded, rows, limitOf, ANY_STAFF, ADMIN_OR_MANAGER } from "@/lib/apiCo
  */
 
 export async function GET(request: Request) {
-  return guarded(request, ANY_STAFF, async ({ db, url, caller }) => {
-    const isPrivileged = caller.role === "Admin" || caller.role === "Manager"
-    const requestedPartner = String(url.searchParams.get("partnerId") || "").trim()
+  // Shared: the payouts screen reads the whole ledger, a partner reads their own rows.
+  return guardedShared(request, async ({ db, url, who }) => {
     const status = String(url.searchParams.get("status") || "").trim()
-
     let query = db.collection("commission_ledger")
 
-    if (isPrivileged) {
+    if (seesEverything(who)) {
+      const requestedPartner = String(url.searchParams.get("partnerId") || "").trim()
       if (requestedPartner) query = query.where("partnerId", "==", requestedPartner)
     } else {
-      // Pinned to the caller, whatever they asked for.
-      const own = caller.staffId || caller.uid
+      // Pinned to the caller's own id, whatever they asked for.
+      const own =
+        ownerIdOf(who) ??
+        (who.kind === "staff" ? who.caller.staffId || who.caller.uid : null)
       if (!own) return { entries: [] }
       query = query.where("partnerId", "==", own)
     }
@@ -33,8 +42,43 @@ export async function GET(request: Request) {
   })
 }
 
+export async function POST(request: Request) {
+  return guarded<{ entry?: Record<string, unknown> }>(
+    request,
+    ADMIN_OR_MANAGER,
+    async ({ db, body }) => {
+      const entry = body.entry || {}
+      const leadId = String(entry.leadId || "").trim()
+      if (!leadId) throw new Error("A leadId is required.")
+
+      // Disbursal can be approved from more than one screen, so the write is keyed on
+      // the lead rather than appended blindly — otherwise one file pays out twice.
+      const existing = await db
+        .collection("commission_ledger")
+        .where("leadId", "==", leadId)
+        .limit(1)
+        .get()
+      if (!existing.empty) return { id: existing.docs[0].id, alreadyExisted: true }
+
+      const ref = await db.collection("commission_ledger").add({
+        ...entry,
+        amount: Number(entry.amount) || 0,
+        status: String(entry.status || "pending"),
+        createdAt: new Date(),
+      })
+      return { id: ref.id, alreadyExisted: false }
+    }
+  )
+}
+
 export async function PATCH(request: Request) {
-  return guarded<{ id?: string; status?: string; note?: string }>(
+  return guarded<{
+    id?: string
+    status?: string
+    note?: string
+    utrNumber?: string
+    settlementRemarks?: string
+  }>(
     request,
     ADMIN_OR_MANAGER,
     async ({ db, body, caller }) => {
@@ -55,11 +99,20 @@ export async function PATCH(request: Request) {
         throw new Error("That entry has already been settled.")
       }
 
+      // The settle form requires a UTR and the payouts table renders it, so it is
+      // written rather than dropped.
+      const settling = status === "settled"
+      if (settling && !String(body.utrNumber || "").trim()) {
+        throw new Error("A UTR number is required to settle a payout.")
+      }
+
       await ref.update({
         status,
         note: String(body.note || ""),
-        settledAt: status === "settled" ? new Date() : null,
-        settledBy: status === "settled" ? caller.email || caller.uid : null,
+        utrNumber: String(body.utrNumber || ""),
+        settlementRemarks: String(body.settlementRemarks || ""),
+        settledAt: settling ? new Date() : null,
+        settledBy: settling ? caller.email || caller.uid : null,
         updatedAt: new Date(),
       })
       return { id, status }

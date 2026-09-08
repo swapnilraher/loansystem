@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, query, onSnapshot, where } from 'firebase/firestore';
+import { useMemo } from 'react';
+import { usePolledResource, POLL_NORMAL } from '@/lib/hooks/usePolledResource';
+import { byNewest } from '@/lib/clientTime';
 
 export interface Partner {
   id: string;
@@ -41,41 +41,24 @@ export interface Partner {
 }
 
 export function usePartners() {
-  const [partners, setPartners] = useState<Partner[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // `/api/partners` returns the whole partner document — kycData, panData, bankDetails
+  // and agreementData included — for every `users` row with role == "partner".
+  const { data, loading, error } = usePolledResource<{ partners: Partner[] }>(
+    '/api/partners',
+    POLL_NORMAL
+  );
 
-  useEffect(() => {
-    // We filter by role == "partner". We can't strictly orderBy if we haven't indexed, 
-    // so we'll just fetch where role == partner and sort locally to avoid requiring manual Firebase Indexes.
-    const q = query(
-      collection(db, 'users'), 
-      where('role', '==', 'partner')
+  const partners = useMemo<Partner[]>(() => {
+    // The route sorts by name; this screen has always shown most-recently-touched
+    // first, so it is re-sorted here on updatedAt, falling back to createdAt.
+    return [...(data?.partners || [])].sort(
+      byNewest<Partner>(partner => partner.updatedAt || partner.createdAt)
     );
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const partnersArray = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Partner[];
-      
-      // Sort locally by creation date descending
-      partnersArray.sort((a, b) => {
-        const timeA = a.updatedAt?.seconds || a.createdAt?.seconds || 0;
-        const timeB = b.updatedAt?.seconds || b.createdAt?.seconds || 0;
-        return timeB - timeA;
-      });
-      
-      setPartners(partnersArray);
-      setLoading(false);
-    }, (err) => {
-      console.error("Firestore error:", err);
-      setError("Failed to fetch partners. Check permissions.");
-      setLoading(false);
-    });
+  }, [data]);
 
-    return () => unsubscribe();
-  }, []);
-
-  return { partners, loading, error };
+  return {
+    partners,
+    loading,
+    error: error ? "Failed to fetch partners. Check permissions." : null,
+  };
 }

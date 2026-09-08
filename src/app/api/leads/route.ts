@@ -2,8 +2,16 @@ import { NextResponse } from 'next/server';
 import { sendLeadNotificationToAdmins } from "@/lib/notificationService";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { serializeDocs } from "@/lib/serialize";
+import { requireStaffOrPartner } from "@/lib/apiAuth";
 
 export async function GET(request: Request) {
+  // This route answered without checking anyone at all, so every lead in the
+  // business — names, phone numbers, cities — was readable by anyone who knew the
+  // URL. POST below stays public because the marketing forms depend on it, but
+  // nothing public ever reads the list.
+  const auth = await requireStaffOrPartner(request);
+  if (!auth.ok) return auth.response;
+
   try {
     const url = new URL(request.url);
     const page = Math.max(Number(url.searchParams.get('page')) || 1, 1);
@@ -15,6 +23,13 @@ export async function GET(request: Request) {
 
     const db = getAdminDb();
     let query = db.collection("leads");
+
+    // A partner sees only the leads they sourced, whatever they ask for. The portal
+    // used to enforce this with a Firestore `where partnerId == uid` clause, which
+    // moves here now that the query runs under the service account.
+    if (auth.who.kind === "partner") {
+      query = query.where("partnerId", "==", auth.who.partner.partnerId);
+    }
 
     if (!includeDeleted) {
       query = query.where("deleted", "!=", true);

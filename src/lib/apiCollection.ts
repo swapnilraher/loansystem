@@ -9,7 +9,12 @@
  * from somewhere else.
  */
 import { NextResponse } from "next/server"
-import { requireRole, type ApiCaller } from "@/lib/apiAuth"
+import {
+  requireRole,
+  requireStaffOrPartner,
+  type ApiCaller,
+  type EitherCaller,
+} from "@/lib/apiAuth"
 import type { CrmRole } from "@/lib/permissions"
 import { getAdminDb } from "@/lib/firebase-admin"
 import { serializeDocs, reviveDates } from "@/lib/serialize"
@@ -66,6 +71,60 @@ export async function guarded<T = unknown>(
     console.error(`[${request.method} ${new URL(request.url).pathname}]`, message)
     return NextResponse.json({ success: false, error: message }, { status: 500 })
   }
+}
+
+/**
+ * Like `guarded`, but for the collections BOTH the CRM and the partner portal read.
+ *
+ * The handler receives which kind of caller it got, because that is what decides scope:
+ * a Manager sees the whole ledger, a partner only rows carrying their own id. Serving
+ * both from one route keeps that decision in one place instead of duplicating the query
+ * into a parallel `/api/partner/...` route that could drift out of step.
+ */
+export async function guardedShared<T = unknown>(
+  request: Request,
+  handler: (ctx: {
+    who: EitherCaller
+    url: URL
+    db: ReturnType<typeof getAdminDb>
+    body: T
+  }) => Promise<unknown>
+): Promise<NextResponse> {
+  const auth = await requireStaffOrPartner(request)
+  if (!auth.ok) return auth.response
+
+  try {
+    let body = {} as T
+    if (request.method !== "GET" && request.method !== "DELETE") {
+      try {
+        body = reviveDates(await request.json()) as T
+      } catch {
+        body = {} as T
+      }
+    }
+
+    const result = await handler({
+      who: auth.who,
+      url: new URL(request.url),
+      db: getAdminDb(),
+      body,
+    })
+    return NextResponse.json({ success: true, ...(result as object) })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Request failed."
+    console.error(`[${request.method} ${new URL(request.url).pathname}]`, message)
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
+  }
+}
+
+/** True when this caller may see every row rather than only their own. */
+export function seesEverything(who: EitherCaller): boolean {
+  return who.kind === "staff" && (who.caller.role === "Admin" || who.caller.role === "Manager")
+}
+
+/** The id a partner's own rows are keyed on, or null for staff. */
+export function ownerIdOf(who: EitherCaller): string | null {
+  return who.kind === "partner" ? who.partner.partnerId : null
 }
 
 /** A query snapshot as plain rows, with ids and ISO timestamps. */

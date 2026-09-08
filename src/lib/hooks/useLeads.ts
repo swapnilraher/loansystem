@@ -1,9 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { db } from '@/lib/firebase';
-import { serverTimestamp, doc, updateDoc } from 'firebase/firestore';
-import { authedJson } from '@/lib/authedFetch';
+import { authedFetch, authedJson } from '@/lib/authedFetch';
 import { useAuth } from '@/context/AuthContext';
 import { can, canSeeLead } from '@/lib/permissions';
 import { useViewerIdentity } from '@/lib/hooks/useViewerIdentity';
@@ -145,7 +143,10 @@ export function useLeads(options: UseLeadsOptions = {}) {
       if (options.search) params.set("search", options.search);
       if (options.includeDeleted) params.set("includeDeleted", "true");
 
-      const res = await fetch(`/api/leads?${params.toString()}`);
+      // The route now identifies its caller — a bare fetch would come back 401,
+      // and a partner's own scoping is derived from the token rather than a query
+      // parameter the browser could change.
+      const res = await authedFetch(`/api/leads?${params.toString()}`);
       if (!res.ok) {
         throw new Error(`Failed to fetch leads: ${res.statusText}`);
       }
@@ -205,19 +206,24 @@ export const logLeadActivity = async (
       throw new Error(payload?.error || 'Failed to log the activity.');
     }
 
-    // Sync last activity info to the lead document.
-    // Still Firestore: there is no lead-update API route to move this to yet.
-    const leadRef = doc(db, 'leads', leadId);
-    await updateDoc(leadRef, {
-      lastActivityNote: note,
-      lastActivityType: type,
-      lastActivityUser: userName,
-      lastActivityTime: serverTimestamp(),
-      ...(options.manual
-        ? { lastNote: note, lastNoteUser: userName, lastNoteTime: serverTimestamp() }
-        : {}),
-      updatedAt: serverTimestamp()
+    // Sync last activity info to the lead document. The PATCH route stamps `updatedAt`
+    // (and the actor) itself, so only the activity fields go on the wire.
+    const now = new Date().toISOString();
+    const syncRes = await authedJson(`/api/leads/${leadId}`, 'PATCH', {
+      lead: {
+        lastActivityNote: note,
+        lastActivityType: type,
+        lastActivityUser: userName,
+        lastActivityTime: now,
+        ...(options.manual
+          ? { lastNote: note, lastNoteUser: userName, lastNoteTime: now }
+          : {})
+      }
     });
+    const syncPayload = await syncRes.json().catch(() => null);
+    if (!syncRes.ok || !syncPayload?.success) {
+      throw new Error(syncPayload?.error || 'Failed to update the lead.');
+    }
 
     invalidateLeadsCache();
   } catch (error: any) {

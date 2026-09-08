@@ -16,9 +16,6 @@ import {
   Smile,
   X,
 } from "lucide-react"
-import { collection, limit, onSnapshot, orderBy, query } from "firebase/firestore"
-
-import { db } from "@/lib/firebase"
 import { getBrowserCache, setBrowserCache } from "@/lib/cache/browserCache"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/context/AuthContext"
@@ -26,6 +23,7 @@ import { useWaNotificationsContext } from "@/context/WaNotificationsContext"
 import { useToast } from "@/components/admin/ui"
 import { formatDayShort, timeAgo, toDate } from "@/lib/dates"
 import { useNow } from "@/lib/hooks/useNow"
+import { POLL_FAST, POLL_NORMAL, usePolledResource } from "@/lib/hooks/usePolledResource"
 import { useLeads, Lead } from "@/lib/hooks/useLeads"
 import { useUsers, type AdminUser } from "@/lib/hooks/useUsers"
 import { useViewerIdentity } from "@/lib/hooks/useViewerIdentity"
@@ -62,6 +60,28 @@ interface WaSession {
   category: string
 }
 
+/** A `whatsapp_messages` row exactly as the route serves it: ISO timestamps, no defaults. */
+interface InboxRow {
+  id?: string
+  phone?: string
+  text?: string
+  sender?: WaMessage["sender"]
+  userName?: string
+  timestamp?: unknown
+  mediaType?: string
+  mediaUrl?: string
+  filename?: string
+  leadId?: string
+}
+
+/** A `waSession` row. Its id is the phone number the bot is talking to. */
+interface SessionRow {
+  id?: string
+  name?: string
+  step?: unknown
+  category?: string
+}
+
 interface Conversation {
   phone: string
   name: string
@@ -75,7 +95,7 @@ interface Conversation {
   awaitingReply: boolean
 }
 
-/** Firestore keys `whatsapp_messages` on the bare 10-digit number. */
+/** `whatsapp_messages` is keyed on the bare 10-digit number. */
 function localNumber(raw: string): string {
   const clean = (raw || "").replace(/\D/g, "")
   return clean.length === 12 && clean.startsWith("91") ? clean.slice(2) : clean
@@ -99,19 +119,88 @@ export default function WhatsAppInboxPage() {
   const { users } = useUsers()
   const mutations = useLeadMutations()
 
-  const [messages, setMessages] = useState<WaMessage[]>(() => {
-    return getBrowserCache<WaMessage[]>("wa_inbox_messages") || []
-  })
-  const [sessions, setSessions] = useState<Record<string, WaSession>>(() => {
-    return getBrowserCache<Record<string, WaSession>>("wa_inbox_sessions") || {}
-  })
-  const [loading, setLoading] = useState(() => {
-    const cached = getBrowserCache<WaMessage[]>("wa_inbox_messages")
-    return !cached || cached.length === 0
-  })
   const [messageLimit, setMessageLimit] = useState(80)
-  const [error, setError] = useState<string | null>(null)
   const [detailLead, setDetailLead] = useState<Lead | null>(null)
+
+  /**
+   * The thread store and the bot's session state.
+   *
+   * Ordered and capped by the route rather than in memory: `whatsapp_messages`
+   * comes back newest-first under `limit`, which is what keeps this from pulling
+   * the whole collection into the browser — the same job `orderBy` + `limit` did
+   * on the listener. A chat screen polls fast; the sessions only supply the name,
+   * category and bot step on each row, so they poll at the ordinary rate.
+   */
+  const {
+    data: messageData,
+    loading: messagesLoading,
+    error,
+    refresh: refreshMessages,
+  } = usePolledResource<{ messages: InboxRow[] }>(
+    `/api/whatsapp-messages?limit=${messageLimit}`,
+    POLL_FAST
+  )
+
+  const { data: sessionData } = usePolledResource<{ sessions: SessionRow[] }>(
+    "/api/wa-sessions?limit=100",
+    POLL_NORMAL
+  )
+
+  /** Both caches only cover the gap before the first poll answers. */
+  const [cachedMessages] = useState<WaMessage[]>(
+    () => getBrowserCache<WaMessage[]>("wa_inbox_messages") || []
+  )
+  const [cachedSessions] = useState<Record<string, WaSession>>(
+    () => getBrowserCache<Record<string, WaSession>>("wa_inbox_sessions") || {}
+  )
+
+  const messages = useMemo((): WaMessage[] => {
+    const rows = messageData?.messages
+    if (!rows) return cachedMessages
+    return rows.map(row => ({
+      id: String(row.id ?? ""),
+      phone: localNumber(String(row.phone ?? "")),
+      text: row.text,
+      sender: row.sender,
+      userName: row.userName,
+      timestamp: row.timestamp,
+      mediaType: row.mediaType || "",
+      mediaUrl: row.mediaUrl || "",
+      filename: row.filename || "",
+      leadId: row.leadId || "",
+      sortKey: toDate(row.timestamp)?.getTime() ?? 0,
+    }))
+  }, [messageData, cachedMessages])
+
+  const sessions = useMemo((): Record<string, WaSession> => {
+    const rows = sessionData?.sessions
+    if (!rows) return cachedSessions
+    const next: Record<string, WaSession> = {}
+    for (const row of rows) {
+      const phone = localNumber(String(row.id ?? ""))
+      if (!phone) continue
+      next[phone] = {
+        phone,
+        name: row.name || "",
+        step: Number(row.step ?? 0),
+        category: row.category || "",
+      }
+    }
+    return next
+  }, [sessionData, cachedSessions])
+
+  useEffect(() => {
+    if (!messageData?.messages) return
+    setBrowserCache("wa_inbox_messages", messages, 2 * 60 * 1000)
+  }, [messageData, messages])
+
+  useEffect(() => {
+    if (!sessionData?.sessions) return
+    setBrowserCache("wa_inbox_sessions", sessions, 5 * 60 * 1000)
+  }, [sessionData, sessions])
+
+  /** A warm cache stands in for the first poll, so the spinner is not shown twice. */
+  const loading = messagesLoading && messages.length === 0
 
   const telecallers = useMemo(
     () =>
@@ -159,78 +248,6 @@ export default function WhatsAppInboxPage() {
 
   const staffName = profile?.name || user?.displayName || user?.email || "Staff"
 
-  /**
-   * The last two Firestore reads on this screen. `whatsapp_messages` and
-   * `waSession` have no API route to read them from yet — /api/whatsapp is
-   * send-only — so the thread stays on the listener rather than losing its
-   * history to a route that does not exist.
-   *
-   * Live, and ordered by the query rather than in memory: a single-field
-   * `orderBy` needs only the automatic index, and pairing it with `limit` is
-   * what keeps this from streaming the whole collection into the browser.
-   */
-  useEffect(() => {
-    const unsubscribe = onSnapshot(
-      query(
-        collection(db, "whatsapp_messages"),
-        orderBy("timestamp", "desc"),
-        limit(messageLimit)
-      ),
-      snapshot => {
-        const rows = snapshot.docs.map(d => {
-          const data = d.data()
-          return {
-            id: d.id,
-            phone: localNumber(String(data.phone ?? "")),
-            text: data.text,
-            sender: data.sender,
-            userName: data.userName,
-            timestamp: data.timestamp,
-            mediaType: data.mediaType || "",
-            mediaUrl: data.mediaUrl || "",
-            filename: data.filename || "",
-            leadId: data.leadId || "",
-            sortKey: toDate(data.timestamp)?.getTime() ?? 0,
-          }
-        })
-        setMessages(rows)
-        setBrowserCache("wa_inbox_messages", rows, 2 * 60 * 1000)
-        setError(null)
-        setLoading(false)
-      },
-      err => {
-        console.error("WhatsApp inbox listener failed:", err)
-        setError(err.message)
-        setLoading(false)
-      }
-    )
-    return () => unsubscribe()
-  }, [messageLimit])
-
-  /** Bot session state — capped to 100 to prevent full collection scan */
-  useEffect(() => {
-    const unsubscribe = onSnapshot(
-      query(collection(db, "waSession"), limit(100)),
-      snapshot => {
-        const next: Record<string, WaSession> = {}
-        snapshot.docs.forEach(d => {
-          const data = d.data()
-          const phone = localNumber(d.id)
-          next[phone] = {
-            phone,
-            name: data.name || "",
-            step: Number(data.step ?? 0),
-            category: data.category || "",
-          }
-        })
-        setSessions(next)
-        setBrowserCache("wa_inbox_sessions", next, 5 * 60 * 1000)
-      },
-      err => console.error("waSession listener failed:", err)
-    )
-    return () => unsubscribe()
-  }, [])
-
   /** An object URL that belongs to the bubble, not to the composer. */
   const ticketPreviewUrl = (file: File) => {
     const url = URL.createObjectURL(file)
@@ -247,8 +264,8 @@ export default function WhatsAppInboxPage() {
   /**
    * A pending bubble retires the moment its stored copy shows up, so the
    * message is never on screen twice. Derived rather than pruned in an effect:
-   * the listener is the authority on what has been stored, and deciding it
-   * while rendering avoids a second render pass on every snapshot.
+   * the poll is the authority on what has been stored, and deciding it while
+   * rendering avoids a second render pass on every tick.
    *
    * Matched on sender, number and text within fifteen seconds of when the
    * bubble was written — the same window as the give-up timeout in `send`, so a
@@ -443,7 +460,7 @@ export default function WhatsAppInboxPage() {
       id: `pending-${pendingSeq.current++}`,
       phone,
       // What the server will store, so the confirmed copy can be matched to
-      // this bubble when the listener delivers it.
+      // this bubble when the poll delivers it.
       text: caption || (kind ? defaultMediaText(kind, staged!.file.name) : ""),
       sender: "staff",
       userName: staffName,
@@ -523,9 +540,12 @@ export default function WhatsAppInboxPage() {
       })
       const result = await response.json()
       if (result.success) {
-        // The stored copy normally arrives on the next snapshot and replaces
-        // the bubble; this only covers the case where the send succeeded but
-        // the CRM failed to log it, so the clock does not hang there forever.
+        // Pull the stored copy in now rather than waiting up to a full tick for
+        // it — that swap is what retires the bubble.
+        void refreshMessages()
+        // The stored copy normally arrives on that refresh and replaces the
+        // bubble; this only covers the case where the send succeeded but the CRM
+        // failed to log it, so the clock does not hang there forever.
         window.setTimeout(
           () => setPending(prev => prev.filter(p => p.id !== ticket.id)),
           15000

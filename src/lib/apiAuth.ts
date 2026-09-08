@@ -138,3 +138,110 @@ export async function requireRole(
 export function requireAdmin(request: Request): Promise<Authorized | Rejected> {
   return requireRole(request, ["Admin"])
 }
+
+/**
+ * A signed-in partner (DSA / connector), who is not CRM staff.
+ *
+ * `callerOf` resolves CRM staff only — it looks the caller up in `admin_users` and
+ * returns null for anyone absent — so a partner fails every staff gate. That is correct
+ * for the CRM, but the partner portal is a signed-in surface too, and its screens read
+ * their own leads, wallet and commission rows. Without this they get a 401 from every
+ * route and the portal is simply dark.
+ *
+ * The partner is resolved from the verified token's uid, never from a body field. The
+ * older partner routes take `partnerId` from the request body and trust it, which means
+ * one partner can read another's data by editing the payload; routes built on this do not.
+ */
+export interface PartnerCaller {
+  uid: string
+  email: string
+  /** `users` document id. Partner-owned rows are keyed on the uid, which is also this id in practice. */
+  partnerId: string
+  mobileNumber: string
+  dsaCode: string | null
+  status: string | null
+}
+
+export async function partnerOf(request: Request): Promise<PartnerCaller | null> {
+  const idToken = bearerToken(request)
+  if (!idToken) return null
+
+  try {
+    let decoded
+    try {
+      decoded = await getAdminAuth().verifyIdToken(idToken, false)
+    } catch {
+      decoded = await getAdminAuth().verifyIdToken(idToken, true)
+    }
+
+    const db = getAdminDb()
+    let snapshot = await db.collection("users").where("uid", "==", decoded.uid).limit(1).get()
+
+    // Partner records predate the uid field being written consistently, so fall back to
+    // the phone number the account was created with.
+    if (snapshot.empty && decoded.phone_number) {
+      const mobile = String(decoded.phone_number).replace(/^\+91/, "")
+      snapshot = await db.collection("users").where("mobileNumber", "==", mobile).limit(1).get()
+    }
+    if (snapshot.empty) return null
+
+    const doc = snapshot.docs[0]
+    const data = doc.data() as Record<string, unknown>
+    if (String(data.role || "") !== "partner") return null
+
+    return {
+      uid: decoded.uid,
+      email: String(decoded.email || data.email || "").trim().toLowerCase(),
+      partnerId: decoded.uid,
+      mobileNumber: String(data.mobileNumber || data.mobile || ""),
+      dsaCode: (data.dsaCode as string) || null,
+      status: (data.dsaStatus as string) || null,
+    }
+  } catch (error) {
+    console.warn("[apiAuth] Rejected a partner request with an unusable ID token:", error)
+    return null
+  }
+}
+
+export type PartnerAuthorized = { ok: true; partner: PartnerCaller }
+
+export async function requirePartner(
+  request: Request
+): Promise<PartnerAuthorized | Rejected> {
+  const partner = await partnerOf(request)
+  if (!partner) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { success: false, error: "Sign in as a partner to continue." },
+        { status: 401 }
+      ),
+    }
+  }
+  return { ok: true, partner }
+}
+
+/**
+ * Either kind of signed-in caller, for routes both the CRM and the portal read.
+ *
+ * The caller's kind decides scope, so a route can serve a Manager the whole ledger and a
+ * partner only their own rows without duplicating the route.
+ */
+export type EitherCaller =
+  | { kind: "staff"; caller: ApiCaller }
+  | { kind: "partner"; partner: PartnerCaller }
+
+export async function requireStaffOrPartner(
+  request: Request
+): Promise<{ ok: true; who: EitherCaller } | Rejected> {
+  const staff = await callerOf(request)
+  if (staff && staff.role) return { ok: true, who: { kind: "staff", caller: staff } }
+
+  const partner = await partnerOf(request)
+  if (partner) return { ok: true, who: { kind: "partner", partner } }
+
+  return {
+    ok: false,
+    response: NextResponse.json({ success: false, error: "Sign in required." }, { status: 401 }),
+  }
+}

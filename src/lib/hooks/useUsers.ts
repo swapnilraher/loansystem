@@ -1,8 +1,7 @@
 "use client"
 
-import { useState, useEffect } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, query, onSnapshot, orderBy, Timestamp } from 'firebase/firestore';
+import { useMemo } from 'react';
+import { usePolledResource, POLL_NORMAL } from '@/lib/hooks/usePolledResource';
 
 export interface AdminUser {
   id: string;
@@ -41,33 +40,24 @@ export function ownerIdOf(member: Pick<AdminUser, 'id' | 'uid'>): string {
 }
 
 export function useUsers() {
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  // The staff directory changes a few times a week, so the slow tier is plenty.
+  // `/api/users` already returns it ordered by name ascending.
+  const { data, loading, error } = usePolledResource<{ users: AdminUser[] }>(
+    '/api/users',
+    POLL_NORMAL
+  );
 
-  useEffect(() => {
-    const q = query(collection(db, 'admin_users'), orderBy('name', 'asc'));
-    
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const usersArray: AdminUser[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        usersArray.push({
-          id: doc.id,
-          ...data,
-          joinedAt: data.joinedAt ? data.joinedAt : Timestamp.now(),
-        } as AdminUser);
-      });
-      setUsers(usersArray);
-      setLoading(false);
-    }, (err) => {
-      console.error("Error fetching admin users: ", err);
-      setError(err);
-      setLoading(false);
-    });
+  const users = useMemo<AdminUser[]>(() => {
+    const rows = data?.users || [];
+    return rows.map(user => ({
+      ...user,
+      // Same fallback as before, in the wire shape the routes speak: an ISO string.
+      joinedAt: user.joinedAt ? user.joinedAt : new Date().toISOString(),
+    }));
+  }, [data]);
 
-    return () => unsubscribe();
-  }, []);
+  // Callers type this as an `Error`, so the message comes back wrapped.
+  const asError = useMemo(() => (error ? new Error(error) : null), [error]);
 
-  return { users, loading, error };
+  return { users, loading, error: asError };
 }

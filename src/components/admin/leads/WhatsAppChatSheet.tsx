@@ -2,9 +2,8 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import { Clock, Download, Eye, FileText, ImageOff, Loader2, Paperclip, Send, Smile, X } from "lucide-react"
-import { collection, doc, limit, onSnapshot, query, where } from "firebase/firestore"
-import { db } from "@/lib/firebase"
 import { getBrowserCache, setBrowserCache } from "@/lib/cache/browserCache"
+import { POLL_FAST, usePolledResource } from "@/lib/hooks/usePolledResource"
 import { DOCUMENT_ACCEPT, PHOTO_ACCEPT, validateMedia } from "@/lib/whatsappMediaShared"
 import { cn } from "@/lib/utils"
 import { Sheet, useToast } from "@/components/admin/ui"
@@ -27,6 +26,20 @@ interface ChatMessage {
   pending?: boolean
   /** Set on pending bubbles only, so they stay with the lead they were typed for. */
   leadId?: string
+}
+
+/** A `whatsapp_messages` row exactly as the route serves it: ISO timestamps, no defaults. */
+interface ChatRow {
+  id?: string
+  /** The 10-digit number the row was filed under; the thread checks it. */
+  phone?: string
+  text?: string
+  sender?: ChatMessage["sender"]
+  userName?: string
+  timestamp?: unknown
+  mediaType?: string
+  mediaUrl?: string
+  filename?: string
 }
 
 const EMOJI = ["😀","😂","🙂","😉","😍","🙏","👍","👎","👏","💪","🔥","🎉","❤️","✨","📞","💬","💼","💰","📅","⏰"]
@@ -53,14 +66,12 @@ export function WhatsAppChatSheet({
   onExternalHandoff,
 }: WhatsAppChatSheetProps) {
   const toast = useToast()
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  /** Sent, not yet confirmed by the listener — shown with a clock on it. */
+  /** Sent, not yet confirmed by the poll — shown with a clock on it. */
   const [pending, setPending] = useState<ChatMessage[]>([])
   const pendingSeq = useRef(0)
   const [draft, setDraft] = useState("")
   const [uploading, setUploading] = useState(false)
   const [emojiOpen, setEmojiOpen] = useState(false)
-  const [botMuted, setBotMuted] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
 
   const leadId = lead?.id
@@ -74,62 +85,73 @@ export function WhatsAppChatSheet({
   })()
 
   /**
-   * Still on Firestore: nothing serves `whatsapp_messages` over HTTP yet
-   * (/api/whatsapp only sends), so migrating this read would leave the thread
-   * empty. Same for the lead's `botMuted` flag below.
+   * This customer's thread, newest fifty. A null url while the sheet is closed
+   * or the lead has no number keeps a shut sheet from polling at all.
    */
-  useEffect(() => {
-    if (!leadId || !localNumber) return
+  const { data: messageData, refresh: refreshMessages } = usePolledResource<{
+    messages: ChatRow[]
+  }>(
+    leadId && localNumber
+      ? `/api/whatsapp-messages?phone=${encodeURIComponent(localNumber)}&limit=50`
+      : null,
+    POLL_FAST
+  )
 
-    // 1. Instant Cache Check for 0ms initial render
-    const cacheKey = `wa_chat_${localNumber}`
-    const cached = getBrowserCache<ChatMessage[]>(cacheKey)
-    if (cached && cached.length > 0) {
-      setMessages(cached)
+  /**
+   * Bot mute state is toggled from here and from the automation screens, so it
+   * is read from the lead document rather than from the snapshot the table
+   * holds. The id check keeps the previous customer's flag off the screen for
+   * the tick between opening another thread and its first answer.
+   */
+  const { data: leadData, refresh: refreshLead } = usePolledResource<{
+    lead?: { id?: string; botMuted?: boolean }
+  }>(leadId ? `/api/leads/${encodeURIComponent(leadId)}` : null, POLL_FAST)
+
+  const botMuted = leadData?.lead?.id === leadId && !!leadData?.lead?.botMuted
+
+  /** Instant first render from the session cache, until the first poll answers. */
+  const [cached, setCached] = useState<ChatMessage[]>([])
+  useEffect(() => {
+    if (!localNumber) {
+      setCached([])
+      return
     }
+    setCached(getBrowserCache<ChatMessage[]>(`wa_chat_${localNumber}`) || [])
+  }, [localNumber])
 
-    const unsubscribe = onSnapshot(
-      query(
-        collection(db, "whatsapp_messages"),
-        where("phone", "==", localNumber),
-        limit(50)
-      ),
-      snapshot => {
-        const rows: ChatMessage[] = snapshot.docs.map(d => {
-          const data = d.data()
-          return {
-            id: d.id,
-            text: data.text,
-            sender: data.sender,
-            userName: data.userName,
-            timestamp: data.timestamp,
-            mediaType: data.mediaType || "",
-            mediaUrl: data.mediaUrl || "",
-            filename: data.filename || "",
-            sortKey: toDate(data.timestamp)?.getTime() ?? 0,
-          }
-        })
-        // Sorted in memory so Firestore does not need a composite index.
-        rows.sort((a, b) => a.sortKey - b.sortKey)
-        setMessages(rows)
-        setBrowserCache(cacheKey, rows, 2 * 60 * 1000)
-      },
-      error => console.error("Error listening to WhatsApp messages:", error)
-    )
-    return () => unsubscribe()
-  }, [leadId, localNumber])
+  /** Poll rows for *this* customer, or null while the answer in hand is stale. */
+  const fresh = useMemo((): ChatMessage[] | null => {
+    const rows = messageData?.messages
+    if (!rows || !localNumber) return null
 
-  // Bot mute state is toggled from here and from the automation screens, so it
-  // is read live rather than from the lead snapshot the table holds.
+    // The url changes the moment another thread opens while the poll still holds
+    // the previous customer's answer; the number on each row tells the two apart.
+    const mine = rows.filter(row => String(row.phone ?? "") === localNumber)
+    if (mine.length === 0 && rows.length > 0) return null
+
+    const ordered: ChatMessage[] = mine.map(row => ({
+      id: String(row.id ?? ""),
+      text: row.text,
+      sender: row.sender,
+      userName: row.userName,
+      timestamp: row.timestamp,
+      mediaType: row.mediaType || "",
+      mediaUrl: row.mediaUrl || "",
+      filename: row.filename || "",
+      sortKey: toDate(row.timestamp)?.getTime() ?? 0,
+    }))
+    // The route answers newest-first so the cap keeps the most recent messages;
+    // a thread reads oldest-first.
+    ordered.sort((a, b) => a.sortKey - b.sortKey)
+    return ordered
+  }, [messageData, localNumber])
+
+  const messages = fresh ?? cached
+
   useEffect(() => {
-    if (!leadId) return
-    const unsubscribe = onSnapshot(
-      doc(db, "leads", leadId),
-      snapshot => setBotMuted(!!snapshot.data()?.botMuted),
-      error => console.error("Error listening to active lead doc:", error)
-    )
-    return () => unsubscribe()
-  }, [leadId])
+    if (!fresh || !localNumber) return
+    setBrowserCache(`wa_chat_${localNumber}`, fresh, 2 * 60 * 1000)
+  }, [fresh, localNumber])
 
   /**
    * The stored thread plus anything still on its way out.
@@ -211,6 +233,9 @@ export function WhatsAppChatSheet({
         senderName,
       })
       if (result.success) {
+        // Pull the stored copy in now rather than waiting up to a full tick for
+        // it — that swap is what retires the bubble.
+        void refreshMessages()
         // Covers a send that went out but was never logged, so the clock
         // cannot hang in the thread indefinitely.
         window.setTimeout(
@@ -267,8 +292,14 @@ export function WhatsAppChatSheet({
         mediaType: uploaded.mediaKind,
         filename: uploaded.filename,
       })
-      if (result.success) setDraft("")
-      else toast.push({ tone: "danger", title: "फाइल पाठवू शकलो नाही", description: result.error })
+      if (result.success) {
+        setDraft("")
+        // The attachment has no pending bubble, so the refresh is the only thing
+        // that puts it in the thread before the next tick.
+        void refreshMessages()
+      } else {
+        toast.push({ tone: "danger", title: "फाइल पाठवू शकलो नाही", description: result.error })
+      }
     } catch (e) {
       console.error("File upload/send error:", e)
       toast.push({ tone: "danger", title: "फाइल पाठवताना त्रुटी आली" })
@@ -324,7 +355,13 @@ export function WhatsAppChatSheet({
           {botMuted ? "ऑटो-चॅट बंद आहे (bot muted)" : "ऑटो-चॅट सुरू आहे (bot active)"}
         </span>
         <button
-          onClick={() => lead && onMuteToggle(lead.id, !botMuted)}
+          onClick={async () => {
+            if (!lead) return
+            await onMuteToggle(lead.id, !botMuted)
+            // The flag lives on the lead document, so the banner only turns over
+            // once the poll has read it back.
+            void refreshLead()
+          }}
           className="admin-focus px-2.5 py-1 rounded bg-white dark:bg-wa-header border border-wa-divider text-admin-2xs font-bold text-wa-header-fg hover:bg-wa-hover transition-colors"
         >
           {botMuted ? "सुरू करा" : "बंद करा"}
