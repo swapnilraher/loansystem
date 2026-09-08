@@ -40,6 +40,15 @@ try {
 const args = process.argv.slice(2);
 const DRY = args.includes("--dry");
 const FRESH = args.includes("--fresh");
+/**
+ * Skips subcollection discovery entirely.
+ *
+ * Probing costs one listCollections round trip per document, and on a collection known
+ * to be flat that is the largest avoidable draw on Firestore's daily read quota — it is
+ * what stopped the whatsapp_messages pass twice. Only leads and wa_campaigns hold
+ * subcollections in this project.
+ */
+const SKIP_SUBS = args.includes("--no-subcollections");
 const ONLY = (args.find((a) => a.startsWith("--only=")) || "").replace("--only=", "");
 const ONLY_SET = ONLY ? new Set(ONLY.split(",").map((s) => s.trim()).filter(Boolean)) : null;
 
@@ -230,7 +239,7 @@ for (const colRef of topLevel) {
 
       // Probing costs one round trip per document, so it stops as soon as a sample
       // says this collection has no subcollections at all.
-      if (hasSubcollections !== false) {
+      if (!SKIP_SUBS && hasSubcollections !== false) {
         for (const snap of page.docs) {
           if (hasSubcollections === null && probed >= PROBE_LIMIT) {
             hasSubcollections = false;
