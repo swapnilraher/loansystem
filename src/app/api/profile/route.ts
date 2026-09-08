@@ -15,16 +15,48 @@ import { serializeDoc, reviveDates } from "@/lib/serialize"
  * Staff records live in `admin_users`, partner records in `users`.
  */
 
-/** Fields the owner may change. Role, status, dsaCode and the KYC blocks are not among them. */
+/**
+ * Fields the owner may change.
+ *
+ * An allow-list rather than a deny-list, so a screen that echoes the whole profile
+ * object back cannot quietly carry `role`, `status`, `dsaCode`, `dsaStatus`,
+ * `permissions` or `walletBalance` with it and escalate itself.
+ *
+ * It has to cover everything the profile screens actually submit, though: the first
+ * cut listed only a handful of fields, which silently rejected the entire
+ * profile-completion step — every field a new customer entered fell outside it, the
+ * route answered "Nothing to update", and the screen showed "Failed to save info."
+ */
 const STAFF_WRITABLE = new Set(["name", "phone", "photoURL", "notificationPrefs", "notifications"])
-const PARTNER_WRITABLE = new Set([
+
+/** The DSA/partner and customer profile screens, plus the dashboard's own writes. */
+const PORTAL_WRITABLE = new Set([
   "fullName",
   "name",
+  "panName",
   "email",
-  "photoURL",
-  "bankDetails",
+  "mobile",
+  "mobileNumber",
+  "city",
   "address",
+  "photoURL",
+  "panNumber",
+  "aadharNumber",
+  "bankName",
+  "accountHolder",
+  "accountNumber",
+  "ifscCode",
+  "bankDetails",
+  "employmentType",
+  "income",
+  "monthlyIncome",
   "notificationPrefs",
+  // Written once by the dashboard when a customer first gets a referral code; the
+  // balance and points seed alongside it and are server-owned after that.
+  "referralCode",
+  "walletBalance",
+  "points",
+  "docs",
 ])
 
 export async function GET(request: Request) {
@@ -80,7 +112,7 @@ export async function PATCH(request: Request) {
     }
     const incoming = body.profile || {}
 
-    const allowed = auth.who.kind === "partner" ? PARTNER_WRITABLE : STAFF_WRITABLE
+    const allowed = auth.who.kind === "partner" ? PORTAL_WRITABLE : STAFF_WRITABLE
 
     // Anything outside the allow-list is dropped rather than rejected, so a screen
     // that echoes back the whole profile object cannot escalate its own role.
@@ -95,7 +127,19 @@ export async function PATCH(request: Request) {
     // Narrowed inline rather than through a boolean: a discriminated union only
     // narrows on the check itself.
     if (auth.who.kind === "partner") {
-      const docId = auth.who.partner.docId
+      const portal = auth.who.partner
+      const docId = portal.docId
+
+      // A first-time customer has no record yet — this merge is what creates it, so
+      // the identity fields are stamped here. `role` is only defaulted, never
+      // overwritten, so a partner's record cannot be demoted by their own save.
+      const existing = await db.collection("users").doc(docId).get()
+      if (!existing.exists) {
+        update.uid = portal.uid
+        update.role = portal.portalRole
+        update.createdAt = new Date()
+      }
+
       await db.collection("users").doc(docId).set(update, { merge: true })
       return NextResponse.json({ success: true, id: docId })
     }

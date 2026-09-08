@@ -204,7 +204,29 @@ export async function partnerOf(request: Request): Promise<PartnerCaller | null>
       const mobile = String(decoded.phone_number).replace(/^\+91/, "")
       snapshot = await db.collection("users").where("mobileNumber", "==", mobile).limit(1).get()
     }
-    if (snapshot.empty) return null
+    if (snapshot.empty) {
+      /**
+       * A verified Firebase user with no `users` record yet — someone signing in for
+       * the very first time.
+       *
+       * Returning null here made sign-up impossible: without a record they failed
+       * every portal gate, and the only way to get a record was through a gated route.
+       * AuthContext used to break that loop by creating the document from the browser,
+       * which is exactly the direct database write this migration removed. So the
+       * caller is synthesised instead, keyed on the uid, and the first profile write
+       * upserts the document into existence.
+       */
+      return {
+        uid: decoded.uid,
+        email: String(decoded.email || "").trim().toLowerCase(),
+        partnerId: decoded.uid,
+        docId: decoded.uid,
+        mobileNumber: String(decoded.phone_number || "").replace(/^\+91/, ""),
+        dsaCode: null,
+        status: null,
+        portalRole: "user",
+      }
+    }
 
     const doc = snapshot.docs[0]
     const data = doc.data() as Record<string, unknown>
