@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
+import { authedFetch } from "@/lib/authedFetch"
 import { useRouter } from "next/navigation"
 import { 
   LayoutDashboard, 
@@ -32,8 +33,6 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { useAuth } from "@/context/AuthContext"
-import { db } from "@/lib/firebase"
-import { collection, addDoc, serverTimestamp, query, where, onSnapshot, getDocs, updateDoc, doc } from "firebase/firestore"
 import { byNewest, toDate } from "@/lib/clientTime"
 
 export default function UserDashboard() {
@@ -76,52 +75,59 @@ export default function UserDashboard() {
   // Data Fetching (Optimized to avoid Firestore Index requirement temporarily)
   useEffect(() => {
     if (!user) return;
-    
-    // Removing orderBy to avoid Index requirement. We'll sort client-side.
-    const q = query(
-      collection(db, "leads"), 
-      where("userId", "==", user.uid)
-    );
+    let cancelled = false;
 
-    const unsubscribe = onSnapshot(q, (s) => {
-      if (!isMounted.current) return;
-      
-      const apps = s.docs.map(d => ({ id: d.id, ...d.data() }));
-      // Client-side sorting
-      apps.sort(byNewest((a: any) => a.createdAt));
+    // The route scopes a signed-in customer to their own applications from the
+    // token, so there is no userId parameter to pass — asking for someone else's
+    // is not expressible.
+    (async () => {
+      try {
+        const response = await authedFetch("/api/leads?limit=100");
+        const payload = await response.json().catch(() => null);
+        if (cancelled || !isMounted.current) return;
+        if (!response.ok || !payload?.success) {
+          throw new Error(payload?.error || "Could not load your applications.");
+        }
+        const apps = (payload.leads || []) as any[];
+        apps.sort(byNewest((a: any) => a.createdAt));
+        setUserApplications(apps);
+      } catch (error) {
+        console.error("Applications load failed:", error);
+      } finally {
+        if (!cancelled && isMounted.current) setAppLoading(false);
+      }
+    })();
 
-      setUserApplications(apps);
-      setAppLoading(false);
-    }, (error) => {
-      console.error("Firestore leads error:", error);
-      if (isMounted.current) setAppLoading(false);
-    });
-
-    return () => unsubscribe();
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
   useEffect(() => {
     if (!profile?.referralCode) return;
-    
-    // Removing orderBy to avoid Index requirement.
-    const q = query(
-      collection(db, "users"), 
-      where("referredBy", "==", profile.referralCode)
-    );
+    let cancelled = false;
 
-    const unsubscribe = onSnapshot(q, (s) => {
-      if (!isMounted.current) return;
-      
-      const refs = s.docs.map(d => ({ id: d.id, ...d.data() }));
-      // Client-side sorting
-      refs.sort(byNewest((r: any) => r.createdAt));
+    (async () => {
+      try {
+        const response = await authedFetch(
+          `/api/users?referredBy=${encodeURIComponent(profile.referralCode)}`
+        );
+        const payload = await response.json().catch(() => null);
+        if (cancelled || !isMounted.current) return;
+        if (!response.ok || !payload?.success) {
+          throw new Error(payload?.error || "Could not load your referrals.");
+        }
+        const refs = (payload.users || []) as any[];
+        refs.sort(byNewest((r: any) => r.createdAt));
+        setReferrals(refs);
+      } catch (error) {
+        console.error("Referrals load failed:", error);
+      }
+    })();
 
-      setReferrals(refs);
-    }, (error) => {
-      console.error("Firestore referrals error:", error);
-    });
-
-    return () => unsubscribe();
+    return () => {
+      cancelled = true;
+    };
   }, [profile?.referralCode]);
 
   const menuItems = [
@@ -165,47 +171,31 @@ export default function UserDashboard() {
       const cleanMobile = rawMobile.replace(/\D/g, "")
       const phone10 = cleanMobile.length === 12 && cleanMobile.startsWith("91") ? cleanMobile.slice(2) : cleanMobile
 
-      if (phone10) {
-        const qPhone = query(collection(db, "leads"), where("phone", "==", phone10))
-        const snap = await getDocs(qPhone)
-        let existingDoc = !snap.empty ? snap.docs[0] : null
-        
-        if (!existingDoc) {
-          const qMobile = query(collection(db, "leads"), where("mobile", "==", phone10))
-          const snapMobile = await getDocs(qMobile)
-          if (!snapMobile.empty) existingDoc = snapMobile.docs[0]
-        }
+      // The find-by-phone / update-else-create dance this screen used to perform by
+      // hand is what POST /api/leads already does, against the same two fields and
+      // with the same "move to the top of the pipeline" behaviour. Duplicating it
+      // here only risked the two drifting apart.
 
-        if (existingDoc) {
-          await updateDoc(doc(db, "leads", existingDoc.id), {
-            updatedAt: serverTimestamp(),
-            amount: String(data.amount || data.loanAmount || "0"),
-            type: String(data.type || "Personal Loan"),
-            lastActivityNote: "User re-submitted application from Dashboard",
-            lastActivityType: "Update",
-            lastActivityTime: serverTimestamp()
-          })
-          alert("Application updated successfully! Moved to top of pipeline.")
-          setShowNewApp(false)
-          setActiveTab("applications")
-          return
-        }
-      }
-
-      await addDoc(collection(db, "leads"), {
-        ...data,
-        userId: user.uid,
-        status: "New Lead",
-        source: "User Dashboard",
-        category: "Portal",
-        phone: data.mobile || profile?.mobile || "",
-        email: data.email || profile?.email || user.email || "",
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        fullName: data.panName || profile?.panName || user.displayName || "",
-        bankName: data.bankName || profile?.bankName || "",
-        accountHolder: data.accountHolder || profile?.accountHolder || ""
+      const response = await authedFetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...data,
+          userId: user.uid,
+          status: "New Lead",
+          source: "User Dashboard",
+          category: "Portal",
+          phone: data.mobile || profile?.mobile || "",
+          email: data.email || profile?.email || user.email || "",
+          fullName: data.panName || profile?.panName || user.displayName || "",
+          bankName: data.bankName || profile?.bankName || "",
+          accountHolder: data.accountHolder || profile?.accountHolder || ""
+        }),
       });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || "Failed to submit.");
+      }
 
       alert("Application submitted successfully!");
       setShowNewApp(false);

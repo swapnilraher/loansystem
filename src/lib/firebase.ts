@@ -1,5 +1,13 @@
+/**
+ * Firebase in the browser: authentication, file storage and push messaging.
+ *
+ * There is deliberately no Firestore here. The database is MongoDB, reached through
+ * the API routes under `src/app/api` — nothing in the browser talks to a database
+ * directly any more. Re-adding a `db` export would let a component quietly open a
+ * second source of truth, which is the exact state this migration removed: reads
+ * coming from one database while writes went to another.
+ */
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { initializeFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAuth } from "firebase/auth";
 import { getMessaging, isSupported } from "firebase/messaging";
@@ -17,10 +25,6 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// Fix for gRPC / Firewall issues: Use Long Polling
-const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-});
 
 const storage = getStorage(app);
 const auth = getAuth(app);
@@ -40,5 +44,5 @@ export const getMessagingClient = async () => {
   return messagingPromise;
 };
 
-export { app, db, storage, auth };
+export { app, storage, auth };
 

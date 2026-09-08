@@ -1,8 +1,6 @@
 "use client"
 
 import { useCallback, useMemo } from "react"
-import { doc, updateDoc } from "firebase/firestore"
-import { db } from "@/lib/firebase"
 import { authedFetch, authedJson } from "@/lib/authedFetch"
 import { useAuth } from "@/context/AuthContext"
 import { Lead, invalidateLeadsCache, logLeadActivity } from "@/lib/hooks/useLeads"
@@ -19,9 +17,7 @@ import { buildStatusTransition, requestDisbursementApproval } from "@/lib/disbur
  *  2. Marking a file disbursed never books the disbursal — it raises a request
  *     for a Manager to sign off.
  *
- * Every write here goes through an API route. The one exception is the WhatsApp
- * bot session renamed inside `saveDetails` — `/api/wa-sessions` reads sessions but
- * cannot write one — and that call site is marked.
+ * Every write here goes through an API route.
  */
 
 /**
@@ -187,18 +183,18 @@ export function useLeadMutations() {
        * CRM no longer uses. (The inbox reads the CRM name for display; this is
        * what the *bot* says.)
        *
-       * Still Firestore: `/api/wa-sessions` reads sessions but cannot write one,
-       * so this is the last write in the file with nowhere else to go.
+       * Keeps the bot's copy of the name in step with the lead's.
        */
       if (renamedTo) {
         const phone = leadPhone(lead).replace(/\D/g, "")
         const local = phone.length === 12 && phone.startsWith("91") ? phone.slice(2) : phone
         if (local) {
-          // The document only exists while a bot conversation is in flight, so
-          // a missing one is the normal case, not an error.
-          await updateDoc(doc(db, "waSession", local), { name: renamedTo }).catch(error =>
-            console.debug("No live WhatsApp session to rename:", error)
-          )
+          // The session only exists while a bot conversation is in flight, so a
+          // missing one is the normal case rather than an error worth surfacing.
+          await authedJson("/api/wa-sessions", "PATCH", {
+            phone: local,
+            session: { name: renamedTo },
+          }).catch(error => console.debug("No live WhatsApp session to rename:", error))
         }
       }
 

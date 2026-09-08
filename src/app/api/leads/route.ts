@@ -24,11 +24,17 @@ export async function GET(request: Request) {
     const db = getAdminDb();
     let query = db.collection("leads");
 
-    // A partner sees only the leads they sourced, whatever they ask for. The portal
-    // used to enforce this with a Firestore `where partnerId == uid` clause, which
-    // moves here now that the query runs under the service account.
+    // A portal caller sees only their own leads, whatever they ask for. The two
+    // audiences are keyed differently: a DSA partner on the leads they sourced
+    // (`partnerId`), a customer on the applications they submitted (`userId`).
+    // Both clauses used to live in the browser and had to move here once the query
+    // started running under the service account.
     if (auth.who.kind === "partner") {
-      query = query.where("partnerId", "==", auth.who.partner.partnerId);
+      const portal = auth.who.partner;
+      query =
+        portal.portalRole === "partner"
+          ? query.where("partnerId", "==", portal.partnerId)
+          : query.where("userId", "==", portal.uid);
     }
 
     if (!includeDeleted) {
@@ -42,7 +48,7 @@ export async function GET(request: Request) {
     const total = totalSnap.size;
 
     const snap = await query.orderBy("createdAt", "desc").offset(offset).limit(limit).get();
-    let leads = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    let leads = snap.docs.map((doc: { id: string; data: () => object }) => ({ id: doc.id, ...doc.data() }));
 
     if (search) {
       const q = search.toLowerCase();
@@ -134,7 +140,11 @@ export async function POST(request: Request) {
           if (data.monthlyIncome) updateData.monthlyIncome = String(data.monthlyIncome);
 
           await db.collection("leads").doc(existingLeadId).update(updateData);
-          await db.collection(`leads/${existingLeadId}/remarks`).add({
+          // The adapter takes a collection NAME, not a Firestore-style path — a
+          // slash path here made a literal collection called "leads/<id>/remarks",
+          // so these notes landed somewhere nothing ever reads. Subcollections go
+          // through the parent document reference.
+          await db.collection("leads").doc(existingLeadId).collection("remarks").add({
             note: `Re-submitted lead details from ${data.source || 'Web Form'} (Amount: ₹${data.loanAmount || data.amount || '0'})`,
             type: "Note",
             addedBy: "System",
