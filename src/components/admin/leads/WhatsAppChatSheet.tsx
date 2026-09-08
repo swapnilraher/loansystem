@@ -42,6 +42,12 @@ interface ChatRow {
   filename?: string
 }
 
+/** `whatsapp_messages` is keyed on the bare 10-digit number. */
+function waNumberKey(raw: string): string {
+  const clean = (raw || "").replace(/\D/g, "")
+  return clean.length === 12 && clean.startsWith("91") ? clean.slice(2) : clean
+}
+
 const EMOJI = ["😀","😂","🙂","😉","😍","🙏","👍","👎","👏","💪","🔥","🎉","❤️","✨","📞","💬","💼","💰","📅","⏰"]
 
 interface WhatsAppChatSheetProps {
@@ -79,10 +85,7 @@ export function WhatsAppChatSheet({
 
   // The customer's 10-digit number is the key `whatsapp_messages` is written
   // against; a stored 91-prefixed number would never match.
-  const localNumber = (() => {
-    const clean = phone.replace(/\D/g, "")
-    return clean.length === 12 && clean.startsWith("91") ? clean.slice(2) : clean
-  })()
+  const localNumber = useMemo(() => waNumberKey(phone), [phone])
 
   /**
    * This customer's thread, newest fifty. A null url while the sheet is closed
@@ -110,14 +113,10 @@ export function WhatsAppChatSheet({
   const botMuted = leadData?.lead?.id === leadId && !!leadData?.lead?.botMuted
 
   /** Instant first render from the session cache, until the first poll answers. */
-  const [cached, setCached] = useState<ChatMessage[]>([])
-  useEffect(() => {
-    if (!localNumber) {
-      setCached([])
-      return
-    }
-    setCached(getBrowserCache<ChatMessage[]>(`wa_chat_${localNumber}`) || [])
-  }, [localNumber])
+  const cached = useMemo(
+    () => (localNumber ? getBrowserCache<ChatMessage[]>(`wa_chat_${localNumber}`) || [] : []),
+    [localNumber]
+  )
 
   /** Poll rows for *this* customer, or null while the answer in hand is stale. */
   const fresh = useMemo((): ChatMessage[] | null => {
@@ -183,9 +182,13 @@ export function WhatsAppChatSheet({
     return waiting.length > 0 ? [...messages, ...waiting] : messages
   }, [messages, pending, leadId])
 
+  // Follow the thread as it grows. Keyed on the count rather than the array:
+  // every poll hands back a fresh array whether or not anything changed, and
+  // scrolling on that would drag the view off whatever the reader had scrolled
+  // back to, every four seconds.
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [thread])
+  }, [thread.length])
 
   const post = async (body: Record<string, unknown>) => {
     const response = await fetch("/api/whatsapp", {

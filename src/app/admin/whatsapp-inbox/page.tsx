@@ -614,13 +614,15 @@ export default function WhatsAppInboxPage() {
           </div>
         </div>
 
+        {/* A failed tick keeps the list on screen and clears itself on the next
+            one, so only a poll that has never succeeded shows its error here. */}
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar">
           {loading ? (
             <div className="flex items-center justify-center gap-2 py-16 text-wa-meta">
               <Loader2 size={16} className="animate-spin" />
               <span className="text-admin-sm">Loading conversations…</span>
             </div>
-          ) : error ? (
+          ) : error && messages.length === 0 ? (
             <p className="px-4 py-12 text-center text-admin-sm text-tone-danger-fg">{error}</p>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center gap-2 px-6 py-16 text-center">

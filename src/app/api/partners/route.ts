@@ -1,4 +1,4 @@
-import { guarded, rows, limitOf, ADMIN_OR_MANAGER } from "@/lib/apiCollection"
+import { guarded, rows, limitOf, ADMIN_OR_MANAGER, ADMIN_ONLY } from "@/lib/apiCollection"
 
 /**
  * Partner (DSA / connector) records, from `users` where role is "partner".
@@ -27,4 +27,31 @@ export async function GET(request: Request) {
     )
     return { partners }
   })
+}
+
+export async function PATCH(request: Request) {
+  return guarded<{ id?: string; partner?: Record<string, unknown> }>(
+    request,
+    ADMIN_ONLY,
+    async ({ db, body, caller }) => {
+      const id = String(body.id || "").trim()
+      if (!id) throw new Error("A partner id is required.")
+
+      const update = { ...(body.partner || {}) }
+      delete update.id
+      delete update._id
+      // The role is what makes this document a partner at all; letting it through
+      // would let an edit screen turn a partner into something else.
+      delete update.role
+      delete update.uid
+      if (!Object.keys(update).length) throw new Error("Nothing to update.")
+
+      await db.collection("users").doc(id).update({
+        ...update,
+        updatedAt: new Date(),
+        updatedBy: caller.email || caller.uid,
+      })
+      return { id }
+    }
+  )
 }

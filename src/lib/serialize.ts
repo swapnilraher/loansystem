@@ -37,6 +37,10 @@ const TIMESTAMP_FIELDS = new Set([
   "completedAt",
   "startedAt",
   "date",
+  // Written by logLeadActivity's sync back onto the lead. Without these the column
+  // holds both strings and Dates, and BSON orders every string before every date.
+  "lastActivityTime",
+  "lastNoteTime",
 ])
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/

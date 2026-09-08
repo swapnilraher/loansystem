@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { requireStaffOrPartner } from "@/lib/apiAuth"
 import { getAdminDb } from "@/lib/firebase-admin"
+import { MongoFieldValue } from "@/lib/db/mongo-adapter"
 import { serializeDoc, reviveDates } from "@/lib/serialize"
 
 /**
@@ -114,6 +115,42 @@ export async function PATCH(request: Request) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Could not save your profile."
     console.error("[PATCH /api/profile]", message)
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
+  }
+}
+
+/**
+ * Registers a browser push token against the signed-in person.
+ *
+ * Separate from PATCH because it appends to an array rather than replacing a field:
+ * one person signs in from several devices and each contributes a token, so a plain
+ * write would drop every device but the last. This is the only caller of arrayUnion in
+ * the project, and the reason the adapter needed it.
+ */
+export async function POST(request: Request) {
+  const auth = await requireStaffOrPartner(request)
+  if (!auth.ok) return auth.response
+
+  try {
+    const body = (await request.json().catch(() => ({}))) as { fcmToken?: string }
+    const token = String(body.fcmToken || "").trim()
+    if (!token) throw new Error("A token is required.")
+
+    const db = getAdminDb()
+    const collection = auth.who.kind === "partner" ? "users" : "admin_users"
+    const docId =
+      auth.who.kind === "partner" ? auth.who.partner.partnerId : auth.who.caller.staffId
+
+    if (!docId) throw new Error("No record to register this device against.")
+
+    await db.collection(collection).doc(docId).update({
+      fcmTokens: MongoFieldValue.arrayUnion(token),
+      updatedAt: new Date(),
+    })
+    return NextResponse.json({ success: true })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Could not register this device."
+    console.error("[POST /api/profile]", message)
     return NextResponse.json({ success: false, error: message }, { status: 500 })
   }
 }
