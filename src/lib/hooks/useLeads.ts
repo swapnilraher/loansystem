@@ -104,6 +104,8 @@ export interface UseLeadsOptions {
 
 const CACHE_KEY = "leads_list";
 const CACHE_TTL = 3 * 60 * 1000; // 3 minutes
+/** Matches the ceiling `/api/leads` enforces, so a page is never silently short. */
+const PAGE_SIZE = 200;
 
 export function useLeads(options: UseLeadsOptions = {}) {
   const { role } = useAuth();
@@ -136,23 +138,50 @@ export function useLeads(options: UseLeadsOptions = {}) {
 
       setLoading(true);
 
-      const params = new URLSearchParams();
-      params.set("limit", String(options.limit || 200));
-      if (options.page) params.set("page", String(options.page));
-      if (options.status) params.set("status", options.status);
-      if (options.search) params.set("search", options.search);
-      if (options.includeDeleted) params.set("includeDeleted", "true");
+      const buildParams = (page: number) => {
+        const params = new URLSearchParams();
+        params.set("limit", String(options.limit || PAGE_SIZE));
+        params.set("page", String(page));
+        if (options.status) params.set("status", options.status);
+        if (options.search) params.set("search", options.search);
+        if (options.includeDeleted) params.set("includeDeleted", "true");
+        return params;
+      };
 
-      // The route now identifies its caller — a bare fetch would come back 401,
-      // and a partner's own scoping is derived from the token rather than a query
+      /**
+       * The route caps a single response at 200, so one request could never return
+       * a collection larger than that — the screens ask for no page at all and
+       * treat what comes back as "all leads", which silently truncated a 563-lead
+       * pipeline to its first 200. The listener this replaced streamed the whole
+       * collection, so the pages are followed here to match.
+       *
+       * `options.page` still wins when a caller genuinely wants one page.
+       */
+      // The route identifies its caller — a bare fetch comes back 401, and a
+      // portal caller's scoping is derived from the token rather than a query
       // parameter the browser could change.
-      const res = await authedFetch(`/api/leads?${params.toString()}`);
-      if (!res.ok) {
-        throw new Error(`Failed to fetch leads: ${res.statusText}`);
+      const firstRes = await authedFetch(`/api/leads?${buildParams(options.page || 1).toString()}`);
+      if (!firstRes.ok) {
+        throw new Error(`Failed to fetch leads: ${firstRes.statusText}`);
       }
 
-      const data = await res.json();
-      const leadsArray = (data.leads || []) as Lead[];
+      const data = await firstRes.json();
+      let leadsArray = (data.leads || []) as Lead[];
+
+      if (!options.page && Number(data.totalPages) > 1) {
+        const pages = [];
+        for (let page = 2; page <= Number(data.totalPages); page++) pages.push(page);
+
+        const rest = await Promise.all(
+          pages.map(async page => {
+            const res = await authedFetch(`/api/leads?${buildParams(page).toString()}`);
+            if (!res.ok) return [] as Lead[];
+            const payload = await res.json().catch(() => null);
+            return (payload?.leads || []) as Lead[];
+          })
+        );
+        leadsArray = leadsArray.concat(...rest);
+      }
 
       const scopedLeads = can(role, 'leads:viewAll')
         ? leadsArray
