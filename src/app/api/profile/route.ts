@@ -77,8 +77,7 @@ export async function PATCH(request: Request) {
     }
     const incoming = body.profile || {}
 
-    const isPartner = auth.who.kind === "partner"
-    const allowed = isPartner ? PARTNER_WRITABLE : STAFF_WRITABLE
+    const allowed = auth.who.kind === "partner" ? PARTNER_WRITABLE : STAFF_WRITABLE
 
     // Anything outside the allow-list is dropped rather than rejected, so a screen
     // that echoes back the whole profile object cannot escalate its own role.
@@ -90,9 +89,12 @@ export async function PATCH(request: Request) {
     update.updatedAt = new Date()
 
     const db = getAdminDb()
-    if (isPartner) {
-      await db.collection("users").doc(auth.who.partner.partnerId).set(update, { merge: true })
-      return NextResponse.json({ success: true, id: auth.who.partner.partnerId })
+    // Narrowed inline rather than through a boolean: a discriminated union only
+    // narrows on the check itself.
+    if (auth.who.kind === "partner") {
+      const partnerId = auth.who.partner.partnerId
+      await db.collection("users").doc(partnerId).set(update, { merge: true })
+      return NextResponse.json({ success: true, id: partnerId })
     }
 
     const caller = auth.who.caller
