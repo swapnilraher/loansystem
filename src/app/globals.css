@@ -398,6 +398,85 @@
   --color-brand-soft-fg: var(--brand-soft-fg);
 }
 
+/* ==========================================================================
+   PARTNER ONBOARDING SURFACE
+   --------------------------------------------------------------------------
+   The onboarding wizard follows the visual grammar of the payment-gateway
+   onboarding flows a prospective DSA has already met (Cashfree, Razorpay):
+   a numbered circle stepper, a near-black full-width primary action pinned to
+   the bottom of the viewport, and an offer strip under the stepper.
+
+   Why its own tokens rather than reuse: the primary action here is
+   deliberately NOT the brand blue. Blue is used on this screen for state --
+   the current step, a selected option, a link -- and a blue CTA competes with
+   all three. Near-black wins the contrast fight without adding a hue, which is
+   exactly why the gateways landed on it.
+
+   Everything structural still comes from the admin tokens.
+   ========================================================================== */
+:root {
+  --ob-cta: #111827;
+  --ob-cta-hover: #000000;
+  --ob-cta-fg: #ffffff;
+
+  --ob-step-done: #16a34a;
+  --ob-step-done-fg: #ffffff;
+  --ob-step-line-done: #16a34a;
+  --ob-step-idle: #e6e8ec;
+  --ob-step-idle-fg: #98a2b3;
+
+  --ob-ok: #16a34a;
+  --ob-ok-soft: #ecfdf3;
+  --ob-ok-bd: #a6f4c5;
+
+  --ob-promo-from: #6d28d9;
+  --ob-promo-to: #16a34a;
+  --ob-promo-fg: #ffffff;
+
+  --ob-sheet-scrim: rgba(16, 24, 40, 0.55);
+}
+
+[data-admin-theme="dark"] {
+  /* Inverted: a near-black button on a near-black page is invisible. */
+  --ob-cta: #f2f4f7;
+  --ob-cta-hover: #ffffff;
+  --ob-cta-fg: #0b0f16;
+
+  --ob-step-done: #2ee6a8;
+  --ob-step-done-fg: #06231a;
+  --ob-step-line-done: #2ee6a8;
+  --ob-step-idle: #232d3b;
+  --ob-step-idle-fg: #8a97ab;
+
+  --ob-ok: #5fe0ab;
+  --ob-ok-soft: #0e2a20;
+  --ob-ok-bd: #174433;
+
+  --ob-promo-from: #7c3aed;
+  --ob-promo-to: #10b981;
+  --ob-promo-fg: #ffffff;
+
+  --ob-sheet-scrim: rgba(2, 4, 8, 0.7);
+}
+
+@theme inline {
+  --color-ob-cta: var(--ob-cta);
+  --color-ob-cta-hover: var(--ob-cta-hover);
+  --color-ob-cta-fg: var(--ob-cta-fg);
+  --color-ob-step-done: var(--ob-step-done);
+  --color-ob-step-done-fg: var(--ob-step-done-fg);
+  --color-ob-step-line-done: var(--ob-step-line-done);
+  --color-ob-step-idle: var(--ob-step-idle);
+  --color-ob-step-idle-fg: var(--ob-step-idle-fg);
+  --color-ob-ok: var(--ob-ok);
+  --color-ob-ok-soft: var(--ob-ok-soft);
+  --color-ob-ok-bd: var(--ob-ok-bd);
+  --color-ob-promo-from: var(--ob-promo-from);
+  --color-ob-promo-to: var(--ob-promo-to);
+  --color-ob-promo-fg: var(--ob-promo-fg);
+  --color-ob-scrim: var(--ob-sheet-scrim);
+}
+
 @theme inline {
   --color-admin-bg: var(--admin-bg);
   --color-admin-surface: var(--admin-surface);
