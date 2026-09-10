@@ -197,7 +197,7 @@ export async function POST(request: Request) {
         } catch (error) {
           console.warn("[wa-campaigns/dispatch] Could not create the campaign document:", error)
           firestoreWarning =
-            "Firestore is unavailable, so this campaign will not appear in history. Messages are still being delivered."
+            "The database is unavailable, so this campaign will not appear in history. Messages are still being delivered."
         }
       }
 
@@ -254,9 +254,11 @@ export async function POST(request: Request) {
         try {
           await logResults(campaignId, results, sent, failed, message2.enabled, finished)
         } catch (error) {
-          console.warn("[wa-campaigns/dispatch] Firestore logging skipped:", error)
+          // The wire key stays `firestoreWarning` because the admin page reads it
+          // by that name; the storage behind it has been MongoDB since the migration.
+          console.warn("[wa-campaigns/dispatch] Result logging skipped:", error)
           firestoreWarning =
-            "Firestore did not accept the log for this batch (daily quota, most likely). The messages were delivered; the report will be incomplete."
+            "The database did not accept the log for this batch. The messages were delivered; the report will be incomplete."
         }
       }
 

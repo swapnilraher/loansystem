@@ -1310,24 +1310,58 @@ async function handleWebhookRequest(request: Request, pendingPromises: Promise<a
      * `wamid` of the outgoing message, which `applyCampaignStatus` maps back to
      * the campaign recipient it belongs to.
      *
-     * A receipt for anything else (an inbox reply, an OTP) resolves to nothing
-     * and is ignored, so this stays cheap for the overwhelming majority of
-     * callbacks. Failures never propagate: WhatsApp must get its 200 whatever
-     * happens here, or it will retry the delivery forever.
+     * A receipt for a campaign message resolves to its recipient row. A receipt
+     * for anything else used to resolve to nothing and vanish — which is how an
+     * OTP outage stayed invisible for days: Meta accepted every send with HTTP
+     * 200, then reported the real reason here, on a channel that discarded it.
+     * Every `failed` / `undelivered` receipt is now persisted regardless of what
+     * it belongs to, keyed by message id and carrying Meta's own error payload.
+     * Failures never propagate: WhatsApp must get its 200 whatever happens here,
+     * or it will retry the delivery forever.
      */
     const statuses = body?.entry?.[0]?.changes?.[0]?.value?.statuses;
     if (Array.isArray(statuses) && statuses.length > 0) {
       pendingPromises.push(
         (async () => {
           for (const status of statuses) {
+            const at = status?.timestamp
+              ? new Date(Number(status.timestamp) * 1000)
+              : new Date();
+            const metaError = status?.errors?.[0];
+            const errorText =
+              metaError?.error_data?.details || metaError?.title || "";
+
+            // Recorded before the campaign lookup so a throw there cannot cost
+            // us the diagnosis. `recipient_id` attributes it without needing the
+            // sender to have stored the outgoing message id anywhere.
+            if (status?.status === "failed" || status?.status === "undelivered") {
+              console.error(
+                `[Webhook] WhatsApp ${status.status} to ${status?.recipient_id}:`,
+                `code=${metaError?.code ?? "?"}`,
+                `title=${metaError?.title ?? "?"}`,
+                `details=${errorText || "(none)"}`
+              );
+              try {
+                await getAdminDb()
+                  .collection("wa_delivery_failures")
+                  .doc(String(status?.id || `${status?.recipient_id}-${at.getTime()}`))
+                  .set({
+                    messageId: status?.id || "",
+                    recipient: status?.recipient_id || "",
+                    status: status.status,
+                    errorCode: metaError?.code ?? null,
+                    errorTitle: metaError?.title || "",
+                    errorDetails: errorText,
+                    errorHref: metaError?.href || "",
+                    conversationId: status?.conversation?.id || "",
+                    at,
+                  });
+              } catch (error) {
+                console.error("[Webhook] Could not record delivery failure:", error);
+              }
+            }
+
             try {
-              const at = status?.timestamp
-                ? new Date(Number(status.timestamp) * 1000)
-                : new Date();
-              const errorText =
-                status?.errors?.[0]?.error_data?.details ||
-                status?.errors?.[0]?.title ||
-                "";
               await applyCampaignStatus(status?.id, status?.status, errorText, at);
             } catch (error) {
               console.error("[Webhook] Campaign status update failed:", error);

@@ -19,47 +19,23 @@ export async function POST(request: Request) {
 
     console.log("Generated OTP:", otp);
 
-    // Save to Firestore
+    // Save to MongoDB. `getAdminDb()` has returned the Mongo adapter since the
+    // migration — the old "Firestore" wording here sent a live OTP outage
+    // investigation after a Firestore quota that nothing reads any more.
     try {
-      console.log("Saving to Firestore...");
+      console.log("Saving OTP to MongoDB...");
       const db = getAdminDb();
       await db.collection("otp_codes").doc(phoneNumber).set({
         otp,
         expiresAt,
         phoneNumber
       });
-      console.log("Firestore save successful");
-    } catch (fsError: any) {
-      console.error("Firestore Error:", fsError);
-      
-      const debugHeader = request.headers.get("x-debug-key");
-      if (debugHeader === "techstar-debug") {
-        const rawKey = process.env.FIREBASE_PRIVATE_KEY || "";
-        // We import the helper function indirectly or parse it inline for diagnostic view
-        let key = rawKey;
-        if (key.startsWith('"') && key.endsWith('"')) {
-          key = key.slice(1, -1);
-        }
-        if (key.startsWith("'") && key.endsWith("'")) {
-          key = key.slice(1, -1);
-        }
-        const cleanKey = key.replace(/\\n/g, '\n');
-
-        return NextResponse.json({ 
-          error: "Database error. Please try again later.",
-          diagnostics: {
-            rawKeyLength: rawKey.length,
-            rawKeyStart: rawKey.substring(0, 30),
-            rawKeyEnd: rawKey.substring(rawKey.length - 30),
-            cleanKeyLength: cleanKey.length,
-            cleanKeyStart: cleanKey.substring(0, 30),
-            cleanKeyEnd: cleanKey.substring(cleanKey.length - 30),
-            errorMessage: fsError?.message || String(fsError),
-            errorStack: fsError?.stack
-          }
-        }, { status: 500 });
-      }
-
+      console.log("MongoDB save successful");
+    } catch (dbError: any) {
+      // Deliberately no key material in the response: this used to dump the
+      // start and end of FIREBASE_PRIVATE_KEY to any caller who guessed a
+      // hardcoded header, and it described Firebase while the failure is Mongo.
+      console.error("MongoDB OTP write failed:", dbError);
       return NextResponse.json({ error: "Database error. Please try again later." }, { status: 500 });
     }
 

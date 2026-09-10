@@ -38,46 +38,46 @@ export async function checkPartnerEligibility(
   try {
     const db = getAdminDb();
     if (db) {
-      // 1. Check in 'partners' collection (approved DSA partners)
-      const partnerDoc = await db.collection("partners").doc(cleanPhone).get();
-      partnerData = partnerDoc.exists ? partnerDoc.data() : null;
-
-      if (!partnerData) {
-        const pQ = await db.collection("partners").where("mobileNumber", "==", cleanPhone).limit(1).get();
-        if (!pQ.empty) {
-          partnerData = pQ.docs[0].data();
+      /**
+       * Every lookup goes out at once.
+       *
+       * These ran one after another, each awaiting the last, and against Mongo
+       * Atlas the six serialized round trips pushed the OTP route past its
+       * function timeout — the caller was killed after the OTP had been stored
+       * but before Meta was ever called. They are independent reads, so the
+       * cost is now one round trip instead of six. The id lookup and the field
+       * query for a collection race together; the id result still wins.
+       */
+      const firstMatch = (...snaps: any[]) => {
+        for (const snap of snaps) {
+          if (!snap) continue;
+          if (snap.exists) return snap.data();
+          if (snap.empty === false && snap.docs?.length) return snap.docs[0].data();
         }
-      }
+        return null;
+      };
 
-      // 2. Check in 'users' collection
-      const userDoc = await db.collection("users").doc(cleanPhone).get();
-      userData = userDoc.exists ? userDoc.data() : null;
+      const settled = <T>(p: Promise<T>) => p.catch(() => null);
+      const [partnerById, partnerByMobile, userById, userByPhone, userByMobile, appById, appByMobile] =
+        await Promise.all([
+          settled(db.collection("partners").doc(cleanPhone).get()),
+          settled(db.collection("partners").where("mobileNumber", "==", cleanPhone).limit(1).get()),
+          settled(db.collection("users").doc(cleanPhone).get()),
+          settled(db.collection("users").where("phoneNumber", "==", cleanPhone).limit(1).get()),
+          settled(db.collection("users").where("mobileNumber", "==", cleanPhone).limit(1).get()),
+          settled(db.collection("partner_applications").doc(cleanPhone).get()),
+          settled(db.collection("partner_applications").where("mobileNumber", "==", cleanPhone).limit(1).get()),
+        ]);
 
-      if (!userData) {
-        const uQ = await db.collection("users").where("phoneNumber", "==", cleanPhone).limit(1).get();
-        if (!uQ.empty) {
-          userData = uQ.docs[0].data();
-        } else {
-          const uQ2 = await db.collection("users").where("mobileNumber", "==", cleanPhone).limit(1).get();
-          if (!uQ2.empty) {
-            userData = uQ2.docs[0].data();
-          }
-        }
-      }
-
-      // 3. Check in 'partner_applications' collection
-      const appDoc = await db.collection("partner_applications").doc(cleanPhone).get();
-      appData = appDoc.exists ? appDoc.data() : null;
-
-      if (!appData) {
-        const aQ = await db.collection("partner_applications").where("mobileNumber", "==", cleanPhone).limit(1).get();
-        if (!aQ.empty) {
-          appData = aQ.docs[0].data();
-        }
-      }
+      // 1. 'partners' collection (approved DSA partners)
+      partnerData = firstMatch(partnerById, partnerByMobile);
+      // 2. 'users' collection — phoneNumber is checked before mobileNumber, as before
+      userData = firstMatch(userById, userByPhone, userByMobile);
+      // 3. 'partner_applications' collection
+      appData = firstMatch(appById, appByMobile);
     }
   } catch (err) {
-    console.warn("checkPartnerEligibility fallback (Firestore not accessible):", err);
+    console.warn("checkPartnerEligibility fallback (database not accessible):", err);
   }
 
   // Determine aggregate status

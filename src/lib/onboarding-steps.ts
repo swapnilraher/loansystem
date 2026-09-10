@@ -180,8 +180,13 @@ export function stepFieldsFor(app: any, opts?: { mobileVerified?: boolean }) {
 export function resumeUrlFor(state: OnboardingState, applicationId?: string): string {
   // An approved partner always lands on the portal — the dashboard prompts for
   // the MOU if it is still unsigned.
-  if (state.isApproved || state.isCompleted) return "/";
-  if (state.isSubmitted) {
+  if (state.isApproved) return "/";
+  // `isCompleted` only means every onboarding step is filled in, which happens
+  // well before approval. Sending it to "/" dropped partners whose application
+  // was still under review onto the public marketing homepage, which looked
+  // exactly like the OTP had failed. Completed-but-unapproved belongs on the
+  // status page alongside submitted.
+  if (state.isSubmitted || state.isCompleted) {
     return `/application-status${applicationId ? `?id=${encodeURIComponent(applicationId)}` : ""}`;
   }
   return "/onboarding";
