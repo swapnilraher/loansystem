@@ -506,13 +506,17 @@ export default function PartnerLogin() {
                       Registered Mobile Number
                     </label>
                     <div className={cn(
-                      "flex h-10 sm:h-11 rounded-admin border bg-admin-bg overflow-hidden transition-all",
-                      "focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15",
-                      mobileInvalid ? "border-tone-danger-bd" : "border-admin-border"
+                      "flex h-11 sm:h-12 rounded-xl border bg-white overflow-hidden transition-all",
+                      "focus-within:border-indigo-600 focus-within:ring-2 focus-within:ring-indigo-600/10",
+                      mobileInvalid ? "border-rose-400" : "border-slate-200"
                     )}>
-                      <span className="flex items-center px-3 bg-admin-surface border-r border-admin-border text-admin-xs font-semibold text-admin-text select-none shrink-0">
-                        +91
-                      </span>
+                      <div className="flex items-center gap-1 px-3 bg-slate-50 border-r border-slate-200 text-xs font-semibold text-slate-800 select-none shrink-0">
+                        <span className="text-base" role="img" aria-label="India flag">🇮🇳</span>
+                        <span>IND (+91)</span>
+                        <svg className="w-3 h-3 text-slate-400 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
                       <input
                         id="mobile-input"
                         autoFocus
@@ -526,36 +530,46 @@ export default function PartnerLogin() {
                         disabled={otpSent || isMobileVerified}
                         onChange={e => { setMobileNumber(e.target.value.replace(/\D/g, "")); setError("") }}
                         aria-invalid={mobileInvalid}
-                        className="w-full px-3 bg-transparent text-admin-sm text-admin-text placeholder:text-admin-subtle focus:outline-none"
+                        className="w-full px-3.5 bg-transparent text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none"
                       />
                     </div>
-                    <p className={cn("text-admin-2xs", mobileInvalid ? "text-tone-danger-fg" : "text-admin-subtle")}>
+                    <p className={cn("text-xs", mobileInvalid ? "text-rose-500" : "text-slate-400")}>
                       {mobileInvalid ? "Enter a valid 10-digit number." : "OTP will be sent to this number."}
                     </p>
+
+                    <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 pt-0.5 select-none">
+                      <input type="checkbox" defaultChecked className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                      <span>Receive account updates via WhatsApp 💬</span>
+                    </label>
                   </div>
 
                   {/* Verified: the OTP section is replaced by this strip */}
                   {isMobileVerified ? (
-                    <div className="flex items-center gap-2 px-3.5 py-3 rounded-admin bg-tone-success-bg border border-tone-success-bd text-tone-success-fg text-admin-sm font-semibold animate-fadeIn">
-                      <CheckCircle2 size={16} className="shrink-0" />
+                    <div className="flex items-center gap-2 px-3.5 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-semibold animate-fadeIn">
+                      <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
                       <span>Mobile Number Verified</span>
-                      <span className="ml-auto text-admin-xs font-normal opacity-80">
+                      <span className="ml-auto text-xs font-normal opacity-80">
                         {loading ? "Signing you in..." : "Redirecting..."}
                       </span>
                     </div>
                   ) : !otpSent ? (
-                    <AdminButton
+                    <button
                       type="submit"
-                      variant="brand"
-                      loading={otpLoading}
                       disabled={busy || !isMobileValid}
-                      className="group w-full shadow-admin-1"
+                      className="w-full h-12 rounded-xl bg-[#18181b] hover:bg-black text-white text-sm font-semibold shadow-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      {otpLoading
-                        ? <>Sending OTP…</>
-                        : <>Get Verification OTP <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5 shrink-0" /></>
-                      }
-                    </AdminButton>
+                      {otpLoading ? (
+                        <>
+                          <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" />
+                          <span>Sending OTP…</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Get Verification OTP</span>
+                          <ArrowRight size={14} className="shrink-0" />
+                        </>
+                      )}
+                    </button>
                   ) : (
                     /* Inline OTP Verification directly underneath mobile number */
                     <div className="space-y-4 pt-3 border-t border-admin-border animate-fadeIn">

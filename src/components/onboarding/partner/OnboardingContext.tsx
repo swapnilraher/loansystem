@@ -317,8 +317,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       ...derived,
       // Before submission "done" means ready to submit; `partnerStepCompletion`
       // can only see the submitted flag, which by definition is not set yet.
-      7: isSubmitted || Boolean(form.agreementSigned && form.declareTruth && form.declareTerms),
-      8: outcomeStatus === "approved" || outcomeStatus === "active",
+      3: isSubmitted || Boolean(form.agreementSigned && form.declareTruth && form.declareTerms),
     }
   }, [form, mobileNumber, isSubmitted, application])
 
@@ -338,9 +337,11 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
        * application is out of the partner's hands either way.
        */
       if (isSubmitted) {
-        return id === 8 ? null : "This application has been submitted and is locked for review."
+        return id === 3 ? null : "This application has been submitted and is locked for review."
       }
-      if (id === 8) return "This opens once you have submitted the application in step 7."
+      if (id === 3 && (!stepDone[1] || !stepDone[2])) {
+        return "Complete step 1 and step 2 first before reviewing."
+      }
       for (let earlier = 1 as PartnerStepId; earlier < id; earlier++) {
         if (!stepDone[earlier as PartnerStepId]) {
           return `Finish step ${earlier} — ${titleOf(earlier as PartnerStepId)} — first.`
@@ -421,7 +422,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
           setIsSubmitted(true)
           setApplicationId(d.applicationId || `TSM-DSA-${mob}`)
           setApplication(d)
-          setStep(8)
+          setStep(3)
           return
         }
 
@@ -435,8 +436,8 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
          */
         const serverStep = firstIncompletePartnerStep(d)
         const localStep =
-          localMeta.currentStep && localMeta.currentStep >= 1 && localMeta.currentStep <= 8
-            ? localMeta.currentStep
+          localMeta.currentStep && localMeta.currentStep >= 1 && localMeta.currentStep <= 3
+            ? (localMeta.currentStep as PartnerStepId)
             : null
 
         setStep(serverStep)
@@ -450,7 +451,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
           })
         } else if (serverStep > 1) {
           setRestoredNote(
-            `Picked up where you left off — step ${serverStep} of 8, ${titleOf(serverStep).toLowerCase()}.`
+            `Picked up where you left off — step ${serverStep} of 3, ${titleOf(serverStep).toLowerCase()}.`
           )
         }
 
@@ -770,7 +771,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     const onPop = (e: PopStateEvent) => {
       const target = (e.state as { onboardingStep?: number } | null)?.onboardingStep
-      if (!target || target < 1 || target > 8) return
+      if (!target || target < 1 || target > 3) return
       if (lockReasonRef.current(target as PartnerStepId)) return
       pendingFocusStep.current = target as PartnerStepId
       setStepErrorRaw(null)
@@ -821,36 +822,30 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       const f = form
       switch (id) {
         case 1:
+          // Personal & Business Details (formerly steps 1, 2, 3)
           if (f.fullName.trim().length < 2)
             return { field: "ob-fullName", message: "Enter your full name exactly as printed on your PAN card." }
           if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim()))
             return { field: "ob-email", message: "Enter a valid email address — this is where your partner ID is sent." }
-          return null
-        case 2:
           if (f.partnerType === "Firm" && f.businessName.trim().length < 2)
             return { field: "ob-businessName", message: "Enter the registered name of your firm or company." }
           if (!f.designation.trim())
             return { field: "ob-designation", message: "Tell us your role in the business." }
           if (f.isGstRegistered === "Yes" && !GSTIN_RE.test(f.gstin.trim().toUpperCase()))
             return { field: "ob-gstin", message: "Enter a valid 15-character GSTIN, or answer No to the GST question." }
-          return null
-        case 3:
-          // An individual sees their own name pre-filled in this control but
-          // has not necessarily typed into it, so the empty state is legal as
-          // long as step 1 supplied a name. `toApplicationShape` resolves the
-          // same way, so what is validated is what gets saved.
           if ((f.contactPersonName || f.fullName).trim().length < 2)
             return { field: "ob-contactPersonName", message: "Enter the name of the person we should contact." }
           if (f.alternateMobile.trim() && !MOBILE_RE.test(f.alternateMobile.trim()))
             return { field: "ob-alternateMobile", message: "That alternate number is not a valid 10-digit mobile number." }
-          if (!PINCODE_RE.test(f.pinCode.trim()))
-            return { field: "ob-pinCode", message: "A 6-digit PIN code is required." }
           if (f.addressLine1.trim().length < 2)
             return { field: "ob-addressLine1", message: "Address line 1 is required." }
           if (!f.city.trim()) return { field: "ob-city", message: "City is required." }
           if (!f.stateName.trim()) return { field: "ob-stateName", message: "State is required." }
+          if (!PINCODE_RE.test(f.pinCode.trim()))
+            return { field: "ob-pinCode", message: "A 6-digit PIN code is required." }
           return null
-        case 4: {
+        case 2: {
+          // KYC, Bank & Documents (formerly steps 4, 5, 6)
           if (!PAN_RE.test(f.panNumber.trim().toUpperCase()))
             return { field: "ob-panNumber", message: "Enter a valid 10-character PAN number (for example ABCDE1234F)." }
           if (!f.dob) return { field: "ob-dob", message: "Date of birth is required." }
@@ -858,9 +853,6 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
           if (age === null) return { field: "ob-dob", message: "That date of birth could not be read." }
           if (age < 18 || age > 80)
             return { field: "ob-dob", message: "A DSA partner must be between 18 and 80 years old." }
-          return null
-        }
-        case 5:
           if (f.accountHolderName.trim().length < 2)
             return { field: "ob-accountHolderName", message: "Enter the account holder's name exactly as your bank has it." }
           if (!/^\d{6,20}$/.test(f.accountNumber.trim()))
@@ -869,8 +861,6 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
             return { field: "ob-confirmAccountNumber", message: "The two account numbers do not match." }
           if (!IFSC_RE.test(f.ifsc.trim().toUpperCase()))
             return { field: "ob-ifsc", message: "Enter a valid 11-character IFSC code." }
-          return null
-        case 6:
           if (!f.documents.panDoc) return { field: "ob-doc-panDoc", message: "Upload a scan or photo of your PAN card." }
           if (!f.documents.aadhaarFrontDoc)
             return { field: "ob-doc-aadhaarFrontDoc", message: "Upload the front of your Aadhaar card." }
@@ -882,7 +872,9 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
           if (f.isGstRegistered === "Yes" && !f.documents.gstDoc)
             return { field: "ob-doc-gstDoc", message: "Upload your GST registration certificate." }
           return null
-        case 7:
+        }
+        case 3:
+          // Review & Submit (formerly step 7)
           if (!f.agreementSigned)
             return { field: "ob-agreement", message: "Sign the partner MOU with an OTP before submitting." }
           if (!f.declareTruth || !f.declareTerms)
@@ -960,7 +952,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       rejectField(problem.field, problem.message)
       return
     }
-    // Step 7 is not a save, it is the submission — handled by submitApplication.
+    // Step 3 is not a save-and-continue, it is the submission — handled by submitApplication.
     if (step === LAST_INPUT_STEP) return
 
     /*
@@ -969,7 +961,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
      * the MOU — is the worst possible moment. Verifying is optional, so this
      * runs on the way out of the KYC step whether they pressed it or not.
      */
-    if (step === 4 && !form.panVerified) {
+    if (step === 2 && !form.panVerified) {
       const clash = await checkPanAvailable()
       if (clash) return
     }
@@ -979,7 +971,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
     // Carry the payout name forward once, so the bank step opens pre-filled
     // with the name the account is most likely in.
-    if (step === 3 && !form.accountHolderName.trim()) {
+    if (step === 1 && !form.accountHolderName.trim()) {
       patch({
         accountHolderName:
           form.partnerType === "Individual" ? form.fullName.trim() : form.businessName.trim() || form.fullName.trim(),
@@ -1491,10 +1483,10 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     [uploadDoc]
   )
 
-  // ── step 7: submit ──────────────────────────────────────────────────────
+  // ── step 3: submit ──────────────────────────────────────────────────────
 
   const submitApplication = useCallback(async () => {
-    const problem = validateStep(7)
+    const problem = validateStep(3)
     if (problem) {
       rejectField(problem.field, problem.message)
       return
@@ -1507,7 +1499,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     setStepError(null)
     try {
       // The declarations themselves are part of the record, not just a gate.
-      await persistStep(7)
+      await persistStep(3)
 
       const res = await fetchWithTimeout("/api/onboarding/submit", {
         method: "POST",
@@ -1537,7 +1529,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
         status: data.status || "under_review",
         submittedAt: data.submittedAt || new Date().toISOString(),
       })
-      setStep(8)
+      setStep(3)
       window.scrollTo({ top: 0, behavior: "smooth" })
     } catch (err) {
       console.error("[onboarding] final submit failed", { mobile: mobileNumber, error: describeError(err) })

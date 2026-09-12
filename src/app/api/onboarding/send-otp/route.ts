@@ -242,6 +242,11 @@ export async function POST(request: Request) {
       console.warn("Audit log note:", auditErr);
     }
 
+    if (!delivered && process.env.NODE_ENV === "development") {
+      console.log(`\n========================================\n[LOCAL DEV OTP] Mobile: ${cleanPhone} -> OTP: ${otp}\n========================================\n`);
+      delivered = true;
+    }
+
     if (!delivered) {
       // The stored OTP is useless if nothing carried it, and leaving it behind
       // would hold the caller in the 30-second cooldown for an OTP they never got.

@@ -10,7 +10,7 @@
  *   - `ONBOARDING_STEPS` is the coarse, persisted lifecycle a
  *     `partner_applications` document moves through. Admin screens and the
  *     older API responses read these, so they do not change.
- *   - `PARTNER_ONBOARDING_STEPS` is the 8-step wizard a partner actually
+ *   - `PARTNER_ONBOARDING_STEPS` is the 3-step wizard a partner actually
  *     sees. `uiStepFor` maps one onto the other, so "where is this partner
  *     right now?" is answered the same way on the server and on the client
  *     — after a refresh, on another device, or after logging out and back in.
@@ -41,9 +41,9 @@ export interface OnboardingStepStatuses {
 
 export interface OnboardingState extends OnboardingStepStatuses {
   currentStep: OnboardingStep;
-  /** 1..8 — the wizard step the onboarding page should open. */
+  /** 1..3 — the wizard step the onboarding page should open. */
   uiStep: PartnerStepId;
-  /** Per-step completion for the 8-step wizard, keyed by step id. */
+  /** Per-step completion for the 3-step wizard, keyed by step id. */
   stepDone: Record<PartnerStepId, boolean>;
   isMobileVerified: boolean;
   isSubmitted: boolean;
@@ -53,7 +53,7 @@ export interface OnboardingState extends OnboardingStepStatuses {
 }
 
 /**
- * The 8 steps a partner sees. Order is the order they are walked through, and
+ * The 3 steps a partner sees. Order is the order they are walked through, and
  * the `id` is what gets persisted as `currentStep` — so renumbering these is a
  * data migration, not a cosmetic change.
  *
@@ -61,21 +61,16 @@ export interface OnboardingState extends OnboardingStepStatuses {
  * phone header at 360px without truncating.
  */
 export const PARTNER_ONBOARDING_STEPS = [
-  { id: 1, key: "BASIC_INFO", title: "Basic information", description: "Who is applying" },
-  { id: 2, key: "BUSINESS", title: "Business details", description: "Entity type & GST" },
-  { id: 3, key: "CONTACT", title: "Contact & address", description: "Where we reach you" },
-  { id: 4, key: "KYC", title: "KYC verification", description: "PAN, Aadhaar & date of birth" },
-  { id: 5, key: "BANK", title: "Bank account", description: "Where your payouts land" },
-  { id: 6, key: "DOCUMENTS", title: "Document upload", description: "Proofs we file with lenders" },
-  { id: 7, key: "REVIEW", title: "Review & confirm", description: "Sign the MOU and submit" },
-  { id: 8, key: "STATUS", title: "Approval status", description: "Track the review" },
+  { id: 1, key: "PERSONAL_BUSINESS", title: "Personal & Business Details", description: "Who you are and your business" },
+  { id: 2, key: "KYC_DOCUMENTS", title: "KYC & Bank Account", description: "Verification, bank & documents" },
+  { id: 3, key: "REVIEW_SUBMIT", title: "Review & Submit", description: "Check everything and submit" },
 ] as const;
 
-export type PartnerStepId = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+export type PartnerStepId = 1 | 2 | 3;
 export type PartnerStepKey = (typeof PARTNER_ONBOARDING_STEPS)[number]["key"];
 
-/** The last step a partner fills in. Step 8 is a read-only outcome screen. */
-export const LAST_INPUT_STEP: PartnerStepId = 7;
+/** The last step a partner fills in. Step 3 includes review + status. */
+export const LAST_INPUT_STEP: PartnerStepId = 3;
 
 export const PAN_RE = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
 export const IFSC_RE = /^[A-Z]{4}0[A-Z0-9]{6}$/;
@@ -143,13 +138,11 @@ function gstAnswered(app: any): boolean {
 }
 
 /**
- * Whether each of the 8 wizard steps has everything it needs.
+ * Whether each of the 3 wizard steps has everything it needs.
  *
- * The one definition both sides read: the server derives `uiStep` from it so a
- * resumed draft opens on the right step, and the wizard derives its ticks and
- * its "you may jump here" rule from it so the rail never disagrees with the
- * form. Every predicate works off the same flat shape the API persists, so the
- * client can pass an unsaved in-memory draft through it unchanged.
+ * Step 1 (Personal & Business): basic info + business details + contact/address
+ * Step 2 (KYC & Documents): KYC + bank account + document uploads
+ * Step 3 (Review & Submit): declarations signed + agreement + submitted
  */
 export function partnerStepCompletion(app: any): Record<PartnerStepId, boolean> {
   const a = app || {};
@@ -160,21 +153,29 @@ export function partnerStepCompletion(app: any): Record<PartnerStepId, boolean> 
   const aadhaarFront = Boolean(docs.aadhaarDoc || docs.aadhaarFrontDoc);
   const submitted = isApplicationSubmitted(a);
 
+  // Step 1: basic info + business + contact/address
+  const step1BasicInfo = Boolean(a.partnerType && (a.fullName || a.contactPersonName) && a.email);
+  const step1Business = Boolean(gstAnswered(a) && (!isFirm || (a.firmType && a.businessName)) && a.designation);
+  const step1Contact = Boolean(
+    (a.contactPersonName || a.fullName) &&
+      a.addressLine1 &&
+      a.city &&
+      a.stateName &&
+      PINCODE_RE.test(String(a.pinCode || ""))
+  );
+
+  // Step 2: KYC + bank + documents
+  const step2Kyc = Boolean(PAN_RE.test(String(a.panNumber || "").toUpperCase()) && a.dob && a.gender);
+  const step2Bank = Boolean(bank.accountHolderName && bank.accountNumber && IFSC_RE.test(String(bank.ifsc || "").toUpperCase()));
+  const step2Docs = Boolean(docs.panDoc && aadhaarFront && (combined || docs.aadhaarBackDoc));
+
+  // Step 3: review + submit
+  const step3 = Boolean(submitted && hasSignedAgreement(a));
+
   return {
-    1: Boolean(a.partnerType && (a.fullName || a.contactPersonName) && a.email),
-    2: Boolean(gstAnswered(a) && (!isFirm || (a.firmType && a.businessName)) && a.designation),
-    3: Boolean(
-      (a.contactPersonName || a.fullName) &&
-        a.addressLine1 &&
-        a.city &&
-        a.stateName &&
-        PINCODE_RE.test(String(a.pinCode || ""))
-    ),
-    4: Boolean(PAN_RE.test(String(a.panNumber || "").toUpperCase()) && a.dob && a.gender),
-    5: Boolean(bank.accountHolderName && bank.accountNumber && IFSC_RE.test(String(bank.ifsc || "").toUpperCase())),
-    6: Boolean(docs.panDoc && aadhaarFront && (combined || docs.aadhaarBackDoc)),
-    7: Boolean(submitted && hasSignedAgreement(a)),
-    8: Boolean(String(a.status || "").toLowerCase() === "approved" || String(a.status || "").toLowerCase() === "active"),
+    1: step1BasicInfo && step1Business && step1Contact,
+    2: step2Kyc && step2Bank && step2Docs,
+    3: step3,
   };
 }
 
@@ -182,15 +183,15 @@ export function partnerStepCompletion(app: any): Record<PartnerStepId, boolean> 
  * The step a partner should land on: the first one still missing something.
  *
  * Once the application has been submitted there is nothing left to fill in, so
- * it always resolves to the status screen regardless of what step 7 thinks.
+ * it always resolves to step 3 (review/status) regardless.
  */
 export function firstIncompletePartnerStep(app: any): PartnerStepId {
-  if (isApplicationSubmitted(app)) return 8;
-  const done = partnerStepCompletion(app);
-  for (let id = 1; id <= LAST_INPUT_STEP; id++) {
-    if (!done[id as PartnerStepId]) return id as PartnerStepId;
+  if (isApplicationSubmitted(app)) return 3;
+  const completion = partnerStepCompletion(app);
+  for (let id = 1; id <= 2; id++) {
+    if (!completion[id as PartnerStepId]) return id as PartnerStepId;
   }
-  return LAST_INPUT_STEP;
+  return 3;
 }
 
 /**
@@ -237,35 +238,29 @@ export function deriveOnboardingState(app: any, opts?: { mobileVerified?: boolea
 /**
  * Map a canonical lifecycle step onto the wizard.
  *
- * Only for callers that hold a step key and no document — anything with the
- * document itself should use `firstIncompletePartnerStep`, which reads the real
- * data instead of a coarse status. The wizard splits BASIC_DETAILS across four
- * steps and BUSINESS_DETAILS across two, so this can only name the first step
- * of each group.
+ * The 3-step wizard groups: step 1 = personal/business, step 2 = KYC/docs/bank,
+ * step 3 = review/submit/status.
  */
 export function uiStepFor(step: OnboardingStep): PartnerStepId {
   switch (step) {
     case "MOBILE_VERIFICATION":
     case "BASIC_DETAILS":
-      return 1;
     case "BUSINESS_DETAILS":
-      return 5;
+      return 1;
     case "DOCUMENTS":
-      return 6;
+      return 2;
     case "PREVIEW":
     case "AGREEMENT":
-      return 7;
+      return 3;
     default:
-      return 8;
+      return 3;
   }
 }
 
 /** Canonical lifecycle step a given wizard step writes into. */
 export function stepKeyForUiStep(uiStep: number): OnboardingStep {
-  if (uiStep <= 4) return "BASIC_DETAILS";
-  if (uiStep === 5) return "BUSINESS_DETAILS";
-  if (uiStep === 6) return "DOCUMENTS";
-  if (uiStep === 7) return "PREVIEW";
+  if (uiStep <= 1) return "BASIC_DETAILS";
+  if (uiStep === 2) return "DOCUMENTS";
   return "COMPLETED";
 }
 

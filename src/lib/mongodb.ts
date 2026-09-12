@@ -12,7 +12,10 @@ if (!process.env.VERCEL) {
   }
 }
 
-const uri = process.env.MONGODB_URI || "mongodb+srv://Vercel-Admin-atlas-aquamarine-crystal:NoemLRaawLWJ7q9N@atlas-aquamarine-crysta.n5ac9i3.mongodb.net/loansystem?retryWrites=true&w=majority";
+const DIRECT_URI = "mongodb://Vercel-Admin-atlas-aquamarine-crystal:NoemLRaawLWJ7q9N@ac-f8e9yri-shard-00-00.n5ac9i3.mongodb.net:27017,ac-f8e9yri-shard-00-01.n5ac9i3.mongodb.net:27017,ac-f8e9yri-shard-00-02.n5ac9i3.mongodb.net:27017/loansystem?ssl=true&replicaSet=atlas-9akn4v-shard-0&authSource=admin&retryWrites=true&w=majority";
+const SRV_URI = "mongodb+srv://Vercel-Admin-atlas-aquamarine-crystal:NoemLRaawLWJ7q9N@atlas-aquamarine-crysta.n5ac9i3.mongodb.net/loansystem?retryWrites=true&w=majority";
+
+const uri = process.env.MONGODB_URI || (process.env.VERCEL ? SRV_URI : DIRECT_URI);
 const defaultDbName = process.env.MONGODB_DB || "loansystem";
 
 const options: MongoClientOptions = {

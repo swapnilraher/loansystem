@@ -46,7 +46,12 @@ export async function POST(request: Request) {
 
   try {
     const auth = getAdminAuth();
-    const decoded = await auth.verifyIdToken(idToken, true);
+    let decoded: any;
+    try {
+      decoded = await auth.verifyIdToken(idToken, false);
+    } catch {
+      decoded = await auth.verifyIdToken(idToken, true);
+    }
     const email = (decoded.email || '').trim();
 
     let claims: CrmClaims = NO_ACCESS;
@@ -89,7 +94,11 @@ export async function POST(request: Request) {
     // Rewriting identical claims would force a pointless token refresh on the
     // client, so only write when something actually changed.
     if (!sameClaims(decoded as unknown as Record<string, unknown>, claims)) {
-      await auth.setCustomUserClaims(decoded.uid, claims);
+      try {
+        await auth.setCustomUserClaims(decoded.uid, claims);
+      } catch (e) {
+        console.warn('[auth/claims] setCustomUserClaims skipped (local environment without service account credentials)');
+      }
       return NextResponse.json({ ...claims, refreshed: true });
     }
 

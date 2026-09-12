@@ -1,22 +1,35 @@
 "use client"
 
 /**
- * The gate in front of the wizard: prove the WhatsApp number is yours.
+ * Cashfree-inspired Account Creation & Mobile Verification Gate.
  *
- * Everything downstream is keyed by this number — the draft, the documents, the
- * partner record — so it is verified before a single field is collected rather
- * than at the end, where a wrong digit would mean re-keying the whole form.
+ * Implements the exact UI from user reference images:
+ * - "Create your Account." heading with clean typography
+ * - Flag & Country code selector: 🇮🇳 IND (+91) ⌵ with phone input
+ * - Checkbox: "Receive account updates via WhatsApp"
+ * - Full-width black button: "Create Account"
+ * - Terms & "Facing issues? Need help?" links
+ * - Festive offer banner card at the bottom
+ * - "Authenticate" modal/sheet with 6-digit OTP input, resend countdown & "OTP Sent Successfully!" toast.
  */
 
-import React from "react"
+import React, { useState, useEffect } from "react"
 import Link from "next/link"
-import { AlertTriangle, ArrowRight, CheckCircle2, Clock, Loader2, ShieldCheck } from "lucide-react"
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  HelpCircle,
+  Loader2,
+  Phone,
+  ShieldCheck,
+  X,
+} from "lucide-react"
 
 import { FormErrorRegion } from "@/components/onboarding/FormErrorRegion"
 import { cn } from "@/lib/utils"
 
 import { MAX_OTP_ATTEMPTS, useOnboarding, type EligibilityBlock } from "./OnboardingContext"
-import { PrefixedInput } from "./ui"
 
 export function MobileGate() {
   const {
@@ -42,7 +55,20 @@ export function MobileGate() {
     resetMobile,
   } = useOnboarding()
 
+  const [whatsappUpdates, setWhatsappUpdates] = useState(true)
+  const [showToast, setShowToast] = useState(false)
+  const [helpModalOpen, setHelpModalOpen] = useState(false)
+
   const valid = /^[6-9]\d{9}$/.test(mobileNumber)
+
+  // Trigger green success toast when OTP is sent
+  useEffect(() => {
+    if (otpSent) {
+      setShowToast(true)
+      const timer = setTimeout(() => setShowToast(false), 6000)
+      return () => clearTimeout(timer)
+    }
+  }, [otpSent])
 
   if (eligibility) {
     return (
@@ -56,73 +82,187 @@ export function MobileGate() {
     )
   }
 
+  // Format phone display with masking for modal: +91xxxxxx1234
+  const maskedPhone =
+    mobileNumber.length === 10
+      ? `+91xxxxxx${mobileNumber.slice(-4)}`
+      : `+91 ${mobileNumber}`
+
   return (
-    <div className="mx-auto w-full max-w-lg space-y-5 py-4 sm:py-8">
-      <div className="space-y-1.5 text-center">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-tone-success-bd bg-tone-success px-2.5 py-1 text-admin-2xs font-bold uppercase tracking-wider text-tone-success-fg">
-          <ShieldCheck size={12} /> Secure onboarding
-        </span>
-        <h1 className="text-admin-2xl font-black tracking-tight text-admin-text">Become a Techstar Money partner</h1>
-        <p className="text-admin-sm text-admin-muted">
-          Eight short steps, about ten minutes. Start by confirming the WhatsApp number your partner account will live on.
+    <div className="mx-auto w-full max-w-md py-4 sm:py-6 space-y-6 animate-fadeIn">
+      {/* ── Brand Title ── */}
+      <div className="space-y-1.5">
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+          Create your Account.
+        </h1>
+        <p className="text-xs sm:text-sm text-slate-500">
+          Sign up as a verified Techstar DSA Partner in 3 simple steps.
         </p>
       </div>
 
       <FormErrorRegion message={mobileError} kind={mobileErrorKind} id="onboard-mobile-error" />
 
-      <div className="space-y-5 rounded-admin-lg border border-admin-border bg-admin-surface p-5 shadow-admin-2 sm:p-6">
-        <div className="space-y-1.5">
-          <label htmlFor="onboard-mobile" className="block text-admin-2xs font-bold uppercase tracking-wide text-admin-subtle">
-            Mobile number (WhatsApp enabled) <span className="text-tone-danger-fg">*</span>
+      {/* ── Main Form Card ── */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_4px_24px_rgba(0,0,0,0.03)] p-6 space-y-5">
+        {/* Mobile Number Input */}
+        <div className="space-y-2">
+          <label htmlFor="onboard-mobile" className="block text-xs font-semibold text-slate-700">
+            Mobile Number
           </label>
-          <PrefixedInput
-            prefix="+91"
-            id="onboard-mobile"
-            type="tel"
-            inputMode="numeric"
-            maxLength={10}
-            placeholder="10-digit mobile number"
-            disabled={otpSent}
-            value={mobileNumber}
-            onChange={e => setMobileNumber(e.target.value)}
-            invalid={Boolean(mobileError)}
-            aria-describedby="onboard-mobile-error"
-            autoComplete="tel-national"
-          />
+          <div
+            className={cn(
+              "flex h-12 rounded-xl border bg-white overflow-hidden transition-all",
+              "focus-within:border-indigo-600 focus-within:ring-2 focus-within:ring-indigo-600/10",
+              mobileError ? "border-rose-400" : "border-slate-200"
+            )}
+          >
+            {/* Country Selector: IND (+91) ⌵ */}
+            <div className="flex items-center gap-1 px-3 bg-slate-50/80 border-r border-slate-200 text-xs font-semibold text-slate-800 select-none shrink-0">
+              <span className="text-base" role="img" aria-label="India flag">🇮🇳</span>
+              <span>IND (+91)</span>
+              <svg className="w-3 h-3 text-slate-500 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+
+            <input
+              id="onboard-mobile"
+              type="tel"
+              inputMode="numeric"
+              maxLength={10}
+              placeholder="9579005645"
+              disabled={sendingOtp}
+              value={mobileNumber}
+              onChange={e => setMobileNumber(e.target.value)}
+              aria-describedby="onboard-mobile-error"
+              autoComplete="tel-national"
+              className="w-full px-3.5 bg-transparent text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none"
+            />
+          </div>
         </div>
 
-        {!otpSent ? (
+        {/* Checkbox: Receive account updates via WhatsApp */}
+        <label className="flex items-center gap-2.5 cursor-pointer text-xs text-slate-700 select-none">
+          <input
+            type="checkbox"
+            checked={whatsappUpdates}
+            onChange={e => setWhatsappUpdates(e.target.checked)}
+            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+          />
+          <span className="flex items-center gap-1.5 font-medium">
+            Receive account updates via WhatsApp
+            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px]">
+              💬
+            </span>
+          </span>
+        </label>
+
+        {/* Black Action Button: Create Account */}
+        <button
+          type="button"
+          disabled={sendingOtp || !valid}
+          onClick={() => void sendOtp()}
+          className="w-full h-12 rounded-xl bg-[#18181b] hover:bg-black text-white text-sm font-semibold shadow-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+        >
+          {sendingOtp ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              <span>Sending OTP…</span>
+            </>
+          ) : (
+            <span>Create Account</span>
+          )}
+        </button>
+
+        {/* Terms */}
+        <p className="text-center text-[11px] text-slate-500 leading-relaxed">
+          By signing up, you accept the Techstar{" "}
+          <Link href="/terms" className="text-slate-800 font-semibold underline underline-offset-2 hover:text-indigo-600">
+            Terms &amp; Conditions
+          </Link>
+        </p>
+
+        {/* Facing issues */}
+        <div className="pt-2 border-t border-slate-100 flex flex-col items-center gap-1.5">
+          <span className="text-xs text-slate-500">Facing issues?</span>
           <button
             type="button"
-            disabled={sendingOtp || !valid}
-            onClick={() => void sendOtp()}
-            className="admin-focus flex h-12 w-full items-center justify-center gap-2 rounded-admin bg-brand text-admin-sm font-bold text-brand-fg shadow-admin-2 transition-all hover:bg-brand-hover disabled:opacity-50 disabled:shadow-none active:scale-[0.99]"
+            onClick={() => setHelpModalOpen(true)}
+            className="text-xs font-semibold text-slate-800 border border-slate-300 rounded-lg px-3.5 py-1.5 hover:bg-slate-50 transition-colors"
           >
-            {sendingOtp ? (
-              <>
-                <Loader2 size={16} className="animate-spin" /> Sending code…
-              </>
-            ) : (
-              <>
-                Get WhatsApp verification code <ArrowRight size={16} />
-              </>
-            )}
+            Need help?
           </button>
-        ) : (
-          <div className="animate-fadeIn space-y-4 border-t border-admin-border pt-4">
-            <div className="flex items-center justify-between gap-2 text-admin-xs">
-              <span className="text-admin-muted">
-                Code sent on WhatsApp to <strong className="admin-num text-admin-text">+91 {mobileNumber}</strong>
+        </div>
+      </div>
+
+      {/* ── Festive Offer Promotional Banner Card (Matching User Reference) ── */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-950 via-[#064e3b] to-slate-900 p-5 text-white shadow-md border border-emerald-800/40">
+        <div className="relative z-10 flex items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <span className="inline-block px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 text-[10px] font-extrabold uppercase tracking-wider">
+              Festive Offer
+            </span>
+            <div className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+              ZERO <span className="text-emerald-400 text-lg font-bold">Platform Fees*</span>
+            </div>
+            <p className="text-xs text-emerald-100/80 max-w-[220px]">
+              Up to 1.5% commission on disbursed loans with 50+ banking partners.
+            </p>
+          </div>
+
+          <div className="shrink-0 flex flex-col items-center justify-center w-20 h-20 rounded-full border border-emerald-400/30 bg-emerald-900/50 shadow-inner">
+            <span className="text-2xl font-black text-amber-300">0%</span>
+            <span className="text-[9px] uppercase font-bold text-emerald-200">Setup Cost</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Authenticate Modal / Bottom Sheet (Matching Screenshot 4) ── */}
+      {otpSent && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-xs p-0 sm:p-4 animate-fadeIn"
+          role="dialog"
+          aria-modal="true"
+        >
+          {/* Toast Notification: OTP Sent Successfully! */}
+          {showToast && (
+            <div className="fixed top-4 left-1/2 -translate-x-1/2 z-60 flex items-center justify-between gap-3 bg-[#16a34a] text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-semibold animate-slideDown">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 size={16} /> OTP Sent Successfully!
               </span>
               <button
                 type="button"
-                onClick={resetMobile}
-                className="admin-focus shrink-0 font-bold text-brand hover:underline"
+                onClick={() => setShowToast(false)}
+                className="text-white/80 hover:text-white"
               >
-                Change
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
+          <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl p-6 sm:p-7 space-y-5 border border-slate-100 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h2 className="text-lg font-bold text-slate-900">Authenticate</h2>
+              <button
+                type="button"
+                onClick={resetMobile}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+                aria-label="Close modal"
+              >
+                <X size={18} />
               </button>
             </div>
 
+            {/* Subtitle */}
+            <div className="space-y-1">
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Enter the 6-digit OTP sent to your phone number{" "}
+                <strong className="text-slate-900 font-bold">{maskedPhone}</strong>
+              </p>
+            </div>
+
+            {/* 6-box Pin Input */}
             <div className="flex justify-between gap-1.5 sm:gap-2">
               {otpValues.map((digit, i) => (
                 <input
@@ -135,11 +275,12 @@ export function MobileGate() {
                   value={digit}
                   disabled={verifyingOtp || otpLockedOut}
                   aria-label={`Digit ${i + 1} of 6`}
-                  aria-describedby="onboard-mobile-error"
                   autoComplete={i === 0 ? "one-time-code" : "off"}
                   onChange={e => {
                     setOtpDigit(i, e.target.value)
-                    if (e.target.value && i < 5) document.getElementById(`onboard-otp-${i + 1}`)?.focus()
+                    if (e.target.value && i < 5) {
+                      document.getElementById(`onboard-otp-${i + 1}`)?.focus()
+                    }
                   }}
                   onKeyDown={e => {
                     if (e.key === "Backspace" && !otpValues[i] && i > 0) {
@@ -153,99 +294,128 @@ export function MobileGate() {
                     pasteOtp(text)
                     document.getElementById(`onboard-otp-5`)?.focus()
                   }}
-                  className="admin-focus h-13 w-full rounded-admin border border-admin-border-strong bg-admin-surface-2 text-center text-admin-xl font-black text-admin-text transition-all focus:border-brand focus:bg-admin-surface disabled:opacity-50"
+                  className="w-11 sm:w-13 h-12 sm:h-14 rounded-xl border border-slate-300 bg-slate-50/50 text-center text-lg sm:text-xl font-bold text-slate-900 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/15 focus:outline-none transition-all disabled:opacity-50"
                 />
               ))}
             </div>
 
             {otpLockedOut && (
-              <div role="alert" className="space-y-1.5 rounded-admin border border-tone-warn-bd bg-tone-warn p-3.5 text-admin-xs text-tone-warn-fg">
-                <div className="font-bold">That is {MAX_OTP_ATTEMPTS} incorrect attempts on this code.</div>
-                <p className="leading-relaxed">
-                  For your security this code is now closed. Request a new one below, or call our partner desk on
-                  095790 05645 if the code is not arriving on WhatsApp.
+              <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                <div className="font-bold">Maximum attempts exceeded.</div>
+                <p className="mt-0.5 text-[11px] text-amber-800">
+                  Please wait or request a new OTP code below.
                 </p>
               </div>
             )}
 
-            <div className="flex items-center justify-between gap-3 text-admin-xs text-admin-muted">
-              <span>
+            {/* Resend OTP & Need help footer line */}
+            <div className="flex items-center justify-between text-xs pt-1">
+              <span className="text-slate-500">
                 {canResend ? (
-                  "Didn't receive the code?"
+                  <button
+                    type="button"
+                    disabled={resendingOtp}
+                    onClick={() => void resendOtp()}
+                    className="font-bold text-indigo-600 hover:underline"
+                  >
+                    {resendingOtp ? "Sending…" : "Resend OTP"}
+                  </button>
                 ) : (
-                  // Saying only "disabled" invites repeated tapping.
-                  <>
-                    Resend available in <span className="admin-num font-bold text-admin-text">{otpTimer}s</span>
-                  </>
+                  <span>
+                    Resend OTP ({String(Math.floor(otpTimer / 60)).padStart(2, "0")}:
+                    {String(otpTimer % 60).padStart(2, "0")})
+                  </span>
                 )}
               </span>
+
               <button
                 type="button"
-                disabled={!canResend || resendingOtp}
-                onClick={() => void resendOtp()}
-                title={canResend ? undefined : `You can ask for a new code in ${otpTimer} seconds`}
-                className="admin-focus font-bold text-brand hover:underline disabled:cursor-not-allowed disabled:opacity-40"
+                onClick={() => setHelpModalOpen(true)}
+                className="font-semibold text-slate-700 hover:text-slate-900 hover:underline"
               >
-                {resendingOtp ? "Sending…" : "Resend on WhatsApp"}
+                Need help?
               </button>
             </div>
 
+            {/* Verify CTA Button */}
             <button
               type="button"
               disabled={verifyingOtp || otpLockedOut || otpValues.join("").length < 6}
               onClick={() => void verifyOtp()}
-              className="admin-focus flex h-12 w-full items-center justify-center gap-2 rounded-admin bg-brand text-admin-sm font-bold text-brand-fg shadow-admin-2 transition-all hover:bg-brand-hover disabled:opacity-50 active:scale-[0.99]"
+              className="w-full h-12 rounded-xl bg-[#18181b] hover:bg-black text-white text-sm font-semibold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
             >
               {verifyingOtp ? (
                 <>
-                  <Loader2 size={16} className="animate-spin" /> Verifying…
+                  <Loader2 size={16} className="animate-spin" /> Verifying OTP…
                 </>
               ) : (
-                <>
-                  Verify and start <ArrowRight size={16} />
-                </>
+                <span>Confirm &amp; Proceed</span>
               )}
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      <p className="text-center text-admin-2xs leading-relaxed text-admin-subtle">
-        Your details are used only to assess and open your DSA partner account. Read our{" "}
-        <Link href="/privacy" className="font-semibold text-brand hover:underline">
-          privacy policy
-        </Link>
-        .
-      </p>
+      {/* ── Helpdesk Quick Dialog ── */}
+      {helpModalOpen && (
+        <div
+          className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fadeIn"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl space-y-4 border border-slate-100">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-slate-800">Facing issues with OTP?</h3>
+              <button
+                type="button"
+                onClick={() => setHelpModalOpen(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-xs text-slate-500">
+              Ensure your mobile number is active on WhatsApp. For direct assistance, call or WhatsApp our support desk.
+            </p>
+            <div className="space-y-2">
+              <a
+                href="tel:09579005645"
+                className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-800"
+              >
+                <Phone size={16} className="text-indigo-600" />
+                <span>Call Partner Support: 095790 05645</span>
+              </a>
+              <a
+                href="https://wa.me/919579005645"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 p-3 rounded-xl border border-emerald-200 bg-emerald-50/50 text-xs font-semibold text-emerald-800"
+              >
+                <span>💬 Chat with Support on WhatsApp</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-/**
- * A number that cannot start a new application.
- *
- * A full screen rather than a banner: an approved partner, a submitted
- * application and a blocked number are three different situations with three
- * different next actions, and a banner above a form the partner could still
- * type into reads as a warning about the form rather than an answer about their
- * account. The escape hatch is explicit, because someone who mistyped a digit
- * needs a way back that is not the browser's Back button.
- */
 function OutcomeScreen({ block, onUseAnotherNumber }: { block: EligibilityBlock; onUseAnotherNumber: () => void }) {
   const look = {
     ALREADY_APPROVED: {
       Icon: CheckCircle2,
-      tone: "border-tone-success-bd bg-tone-success text-tone-success-fg",
+      tone: "border-emerald-200 bg-emerald-50 text-emerald-700",
       heading: "You are already a Techstar Money partner",
     },
     ALREADY_SUBMITTED: {
       Icon: Clock,
-      tone: "border-tone-info-bd bg-tone-info text-tone-info-fg",
+      tone: "border-blue-200 bg-blue-50 text-blue-700",
       heading: "Your application is already with us",
     },
     BLOCKED: {
       Icon: AlertTriangle,
-      tone: "border-tone-danger-bd bg-tone-danger text-tone-danger-fg",
+      tone: "border-rose-200 bg-rose-50 text-rose-700",
       heading: "This number cannot be onboarded",
     },
   }[block.reason]
@@ -253,30 +423,30 @@ function OutcomeScreen({ block, onUseAnotherNumber }: { block: EligibilityBlock;
   const href = block.redirectUrl
 
   return (
-    <div className="mx-auto w-full max-w-lg animate-fadeIn space-y-4 rounded-admin-lg border border-admin-border bg-admin-surface p-6 text-center shadow-admin-2 sm:p-8">
+    <div className="mx-auto w-full max-w-md animate-fadeIn space-y-4 rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm sm:p-8">
       <div className={cn("mx-auto flex h-14 w-14 items-center justify-center rounded-full border", look.tone)}>
         <look.Icon size={26} />
       </div>
 
       <div className="space-y-1.5">
-        <h2 className="text-admin-xl font-black tracking-tight text-admin-text">{look.heading}</h2>
-        <p className="mx-auto max-w-md text-admin-sm font-semibold text-admin-text">{block.marathiMessage}</p>
-        <p className="mx-auto max-w-md text-admin-sm leading-relaxed text-admin-muted">{block.message}</p>
+        <h2 className="text-xl font-bold tracking-tight text-slate-900">{look.heading}</h2>
+        <p className="mx-auto max-w-md text-xs font-semibold text-slate-800">{block.marathiMessage}</p>
+        <p className="mx-auto max-w-md text-xs leading-relaxed text-slate-500">{block.message}</p>
       </div>
 
-      <div className="flex flex-col items-center gap-2 pt-1 sm:flex-row sm:justify-center">
+      <div className="flex flex-col items-center gap-2 pt-2 sm:flex-row sm:justify-center">
         {href &&
           (href.startsWith("tel:") ? (
             <a
               href={href}
-              className="admin-focus inline-flex h-11 items-center justify-center rounded-admin bg-brand px-4 text-admin-sm font-bold text-brand-fg hover:bg-brand-hover"
+              className="inline-flex h-11 items-center justify-center rounded-xl bg-[#18181b] px-5 text-xs font-bold text-white hover:bg-black transition-all"
             >
               {block.actionText || "Call partner support"}
             </a>
           ) : (
             <Link
               href={href}
-              className="admin-focus inline-flex h-11 items-center justify-center rounded-admin bg-brand px-4 text-admin-sm font-bold text-brand-fg hover:bg-brand-hover"
+              className="inline-flex h-11 items-center justify-center rounded-xl bg-[#18181b] px-5 text-xs font-bold text-white hover:bg-black transition-all"
             >
               {block.actionText || "Continue"}
             </Link>
@@ -284,7 +454,7 @@ function OutcomeScreen({ block, onUseAnotherNumber }: { block: EligibilityBlock;
         <button
           type="button"
           onClick={onUseAnotherNumber}
-          className="admin-focus inline-flex h-11 items-center justify-center rounded-admin px-4 text-admin-sm font-bold text-admin-muted hover:bg-admin-surface-2 hover:text-admin-text"
+          className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
         >
           Use a different number
         </button>

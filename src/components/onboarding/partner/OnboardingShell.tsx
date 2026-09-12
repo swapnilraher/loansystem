@@ -1,44 +1,47 @@
 "use client"
 
 /**
- * The frame the eight steps sit in.
+ * Cashfree-inspired DSA Partner Onboarding Shell.
  *
- * Two columns from `lg`: a fixed rail on the left that answers "how much is
- * left?" without scrolling, and the step itself on the right. Below `lg` the
- * rail collapses into a one-line bar with a full-screen list behind it, because
- * eight rows above the fold would leave no room for the form on a phone.
+ * Implements the streamlined 3-step partner onboarding wizard with:
+ * 1. Top bar featuring Back navigation, 3-step horizontal stepper, and Help action.
+ * 2. Festive/anniversary promotional banner.
+ * 3. Focused, centered clean card container matching Cashfree's merchant onboarding UI.
  */
 
 import React, { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { AlertTriangle, ArrowLeft, CheckCircle2, Clock, Headphones, Loader2, Lock } from "lucide-react"
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Check,
+  ChevronLeft,
+  Clock,
+  HelpCircle,
+  Headphones,
+  Loader2,
+  Lock,
+  MessageSquare,
+  Phone,
+  X,
+} from "lucide-react"
 
 import { FormErrorRegion } from "@/components/onboarding/FormErrorRegion"
 import { LAST_INPUT_STEP, type PartnerStepId } from "@/lib/onboarding-steps"
+import { cn } from "@/lib/utils"
 
 import { useOnboarding } from "./OnboardingContext"
 import { MobileGate } from "./MobileGate"
-import { MobileStepBar, MobileStepSheet, StepRail } from "./StepRail"
 import { formatWhen } from "./net"
-import { Step1BasicInfo } from "./steps/Step1BasicInfo"
-import { Step2BusinessDetails } from "./steps/Step2BusinessDetails"
-import { Step3ContactAddress } from "./steps/Step3ContactAddress"
-import { Step4Kyc } from "./steps/Step4Kyc"
-import { Step5BankDetails } from "./steps/Step5BankDetails"
-import { Step6Documents } from "./steps/Step6Documents"
-import { Step7Review } from "./steps/Step7Review"
-import { Step8Status } from "./steps/Step8Status"
+import { Step1PersonalBusiness } from "./steps/Step1PersonalBusiness"
+import { Step2KycDocuments } from "./steps/Step2KycDocuments"
+import { Step3ReviewSubmit } from "./steps/Step3ReviewSubmit"
 
 const STEP_COMPONENTS: Record<PartnerStepId, () => React.JSX.Element> = {
-  1: Step1BasicInfo,
-  2: Step2BusinessDetails,
-  3: Step3ContactAddress,
-  4: Step4Kyc,
-  5: Step5BankDetails,
-  6: Step6Documents,
-  7: Step7Review,
-  8: Step8Status,
+  1: Step1PersonalBusiness,
+  2: Step2KycDocuments,
+  3: Step3ReviewSubmit,
 }
 
 export function OnboardingShell() {
@@ -48,6 +51,7 @@ export function OnboardingShell() {
     form,
     step,
     goToStep,
+    back,
     stepDone,
     lockReason,
     stepError,
@@ -62,150 +66,248 @@ export function OnboardingShell() {
     isSubmitted,
   } = useOnboarding()
 
-  const [sheetOpen, setSheetOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
 
   const locked = isMobileVerified ? lockReason(step) : null
-  const StepBody = STEP_COMPONENTS[step]
-  const identity = form.fullName || form.businessName || (mobileNumber ? `+91 ${mobileNumber}` : "New partner")
+  const StepBody = STEP_COMPONENTS[step] || Step1PersonalBusiness
+  const canGoBack = isMobileVerified && !isSubmitted && step > 1
 
   return (
-    <div className="partner-root flex min-h-dvh flex-col bg-admin-bg font-sans text-admin-text">
-      <TopBar showSteps={isMobileVerified && !isSubmitted} onOpenSteps={() => setSheetOpen(true)} step={step} stepDone={stepDone} />
+    <div className="min-h-dvh flex flex-col bg-[#f8fafc] text-slate-900 font-sans antialiased">
+      {/* ── Cashfree-style Top Header ── */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
+        <div className="mx-auto flex h-14 w-full max-w-3xl items-center justify-between px-3 sm:px-6">
+          {/* Back button */}
+          <button
+            type="button"
+            onClick={back}
+            disabled={!canGoBack}
+            className={cn(
+              "w-9 h-9 rounded-full flex items-center justify-center transition-all",
+              canGoBack
+                ? "text-slate-700 hover:bg-slate-100 active:scale-95 cursor-pointer"
+                : "text-transparent pointer-events-none opacity-0"
+            )}
+            aria-label="Previous step"
+          >
+            <ChevronLeft size={22} className="stroke-[2.5]" />
+          </button>
 
-      {isMobileVerified && !isSubmitted && (
-        <MobileStepSheet
-          open={sheetOpen}
-          onClose={() => setSheetOpen(false)}
-          current={step}
-          stepDone={stepDone}
-          lockReason={lockReason}
-          onJump={goToStep}
-        />
+          {/* Stepper with 3 circles & connecting lines (matching Cashfree) */}
+          {isMobileVerified && !isSubmitted ? (
+            <div className="flex items-center gap-1.5 sm:gap-3">
+              {[1, 2, 3].map((sId, idx) => {
+                const id = sId as PartnerStepId
+                const isDone = stepDone[id]
+                const isActive = step === id
+                const isPast = step > id || isDone
+
+                return (
+                  <React.Fragment key={sId}>
+                    {idx > 0 && (
+                      <div
+                        className={cn(
+                          "h-1 w-6 sm:w-12 rounded-full transition-all duration-300",
+                          isPast ? "bg-[#16a34a]" : "bg-slate-200"
+                        )}
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => isDone && goToStep(id)}
+                      disabled={!isDone && !isActive}
+                      className={cn(
+                        "w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold transition-all duration-200",
+                        isDone
+                          ? "bg-[#16a34a] text-white shadow-xs hover:brightness-105 cursor-pointer"
+                          : isActive
+                            ? "bg-[#0f4bb4] text-white shadow-md ring-4 ring-blue-100"
+                            : "bg-[#e2e8f0] text-slate-500 cursor-not-allowed"
+                      )}
+                      aria-label={`Step ${id}`}
+                    >
+                      {isDone ? <Check size={14} className="stroke-[3]" /> : id}
+                    </button>
+                  </React.Fragment>
+                )
+              })}
+            </div>
+          ) : (
+            <Link href="/" className="flex items-center gap-2 no-underline">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0f4bb4] text-white font-black text-xs shadow-xs">
+                TSM
+              </span>
+              <span className="font-bold text-slate-800 text-sm tracking-tight hidden xs:inline">
+                Techstar Partner
+              </span>
+            </Link>
+          )}
+
+          {/* Help Button (?) */}
+          <button
+            type="button"
+            onClick={() => setHelpOpen(true)}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100 hover:text-[#0f4bb4] transition-colors"
+            aria-label="Help and support"
+          >
+            <HelpCircle size={20} className="stroke-[2]" />
+          </button>
+        </div>
+
+        {/* ── Anniversary/Offer Gradient Ribbon ── */}
+        <div className="bg-gradient-to-r from-[#6d28d9] via-[#4338ca] to-[#059669] text-white text-[11px] sm:text-xs font-semibold py-1.5 px-3 text-center tracking-wide flex items-center justify-center gap-2">
+          <span>Anniversary offer! Partner Onboarding @ 0% Platform Fee* · Instant Disbursals</span>
+        </div>
+      </header>
+
+      {/* ── Help Modal ── */}
+      {helpOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-fadeIn"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl space-y-4 border border-slate-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#0f4bb4] flex items-center justify-center">
+                  <Headphones size={18} />
+                </div>
+                <h3 className="text-base font-bold text-slate-800">Partner Helpdesk</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setHelpOpen(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Have questions regarding DSA registration, verification or commissions? Our dedicated onboarding team is here to assist.
+            </p>
+
+            <div className="space-y-2 pt-1">
+              <a
+                href="tel:09579005645"
+                className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 transition-all group"
+              >
+                <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center group-hover:bg-[#0f4bb4] group-hover:text-white transition-colors">
+                  <Phone size={16} />
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 font-medium">Direct Phone Call</div>
+                  <div className="text-sm font-bold text-slate-800">095790 05645</div>
+                </div>
+              </a>
+
+              <a
+                href="https://wa.me/919579005645?text=Hello%20Techstar%20Team%2C%20I%20need%20assistance%20with%20DSA%20Partner%20Onboarding."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 transition-all group"
+              >
+                <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center group-hover:bg-[#16a34a] group-hover:text-white transition-colors">
+                  <MessageSquare size={16} />
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 font-medium">Instant WhatsApp Support</div>
+                  <div className="text-sm font-bold text-emerald-700">+91 95790 05645</div>
+                </div>
+              </a>
+            </div>
+
+            <div className="text-[11px] text-slate-400 text-center pt-1 border-t border-slate-100">
+              Support Hours: Mon – Sat (10:00 AM – 7:00 PM IST)
+            </div>
+          </div>
+        </div>
       )}
 
-      <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col lg:flex-row">
-        {/* ── Rail ───────────────────────────────────────────────────────── */}
-        {isMobileVerified && !isSubmitted && (
-          <aside className="hidden w-80 shrink-0 border-r border-admin-border bg-admin-surface p-6 lg:block xl:w-88">
-            <div className="sticky top-20 space-y-6">
-              <div className="flex items-center gap-3 border-b border-admin-border pb-5">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-admin-lg bg-brand text-admin-sm font-black text-brand-fg shadow-admin-2">
-                  {identity.replace(/^\+91\s*/, "").slice(0, 2).toUpperCase()}
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate text-admin-sm font-extrabold text-admin-text">{identity}</span>
-                  <span className="block truncate text-admin-2xs font-semibold text-admin-subtle">
-                    {form.partnerType}
-                    {form.partnerType === "Firm" ? ` · ${form.firmType}` : ""}
-                  </span>
-                </span>
-              </div>
+      {/* ── Main Focused Content ── */}
+      <main className="flex-1 px-3 sm:px-6 py-6 sm:py-10">
+        <div className="mx-auto w-full max-w-xl">
+          {!isMobileVerified ? (
+            <MobileGate />
+          ) : (
+            <div className="space-y-4">
+              {/* Verified number badge */}
+              <VerifiedStrip
+                mobileNumber={mobileNumber}
+                resuming={resuming}
+                locked={isSubmitted}
+                onDiscard={discardLocalDraft}
+                onChange={resetMobile}
+              />
 
-              <StepRail current={step} stepDone={stepDone} lockReason={lockReason} onJump={goToStep} />
+              <FormErrorRegion message={stepError} kind={stepErrorKind} id="onboarding-step-error" />
 
-              <div className="space-y-2 border-t border-admin-border pt-5 text-admin-2xs text-admin-subtle">
-                <div className="flex items-center gap-1.5 text-admin-xs font-bold text-admin-text">
-                  <Headphones size={14} className="text-brand" /> Stuck on something?
+              {restoredNote && !draftConflict && (
+                <div className="flex items-start gap-2 rounded-xl border border-blue-200 bg-blue-50/80 px-3.5 py-2.5 text-xs font-semibold text-blue-900">
+                  <Clock size={14} className="mt-0.5 shrink-0 text-blue-600" />
+                  <span>{restoredNote}</span>
                 </div>
-                <p className="leading-relaxed text-admin-muted">
-                  Our partner desk in Chhatrapati Sambhajinagar can walk you through any step.
-                </p>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5">
-                  <a href="tel:09579005645" className="admin-focus font-bold text-admin-text hover:text-brand">
-                    095790 05645
-                  </a>
-                  <a
-                    href="https://wa.me/919579005645"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="admin-focus font-bold text-tone-success-fg hover:brightness-95"
-                  >
-                    WhatsApp
-                  </a>
+              )}
+
+              {draftConflict && (
+                <div className="space-y-2.5 rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-xs text-amber-900 shadow-xs">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-600" />
+                    <div className="space-y-1">
+                      <div className="font-bold text-sm">Two versions of this application</div>
+                      <p className="leading-relaxed">
+                        Your account has you on step {draftConflict.serverStep}; this device was left on step{" "}
+                        {draftConflict.localStep}, {formatWhen(draftConflict.localSavedAt)}. We opened{" "}
+                        {draftConflict.applied === "server" ? "the one from your account" : "the one from this device"}.
+                      </p>
+                    </div>
+                  </div>
+                  {draftConflict.applied === "server" && (
+                    <div className="flex flex-wrap gap-2 pl-6 pt-1">
+                      <button
+                        type="button"
+                        onClick={preferLocalDraft}
+                        className="h-8 rounded-lg border border-amber-300 bg-white px-3 font-bold text-amber-950 hover:bg-amber-100 transition-colors"
+                      >
+                        Use this device&rsquo;s version
+                      </button>
+                      <button
+                        type="button"
+                        onClick={dismissDraftConflict}
+                        className="h-8 rounded-lg px-3 font-semibold text-amber-800 hover:bg-amber-100/60 transition-colors"
+                      >
+                        Keep account&rsquo;s version
+                      </button>
+                    </div>
+                  )}
                 </div>
+              )}
+
+              <div id="onboarding-step-pane">
+                {locked ? (
+                  <LockedStep reason={locked} onGo={() => goToStep(firstOpen(stepDone))} />
+                ) : (
+                  <StepBody />
+                )}
               </div>
             </div>
-          </aside>
-        )}
+          )}
+        </div>
+      </main>
 
-        {/* ── Step ───────────────────────────────────────────────────────── */}
-        <main className="flex-1 bg-admin-surface px-3.5 py-5 sm:px-6 sm:py-8 lg:px-10">
-          <div className="mx-auto w-full max-w-3xl">
-            {!isMobileVerified ? (
-              <MobileGate />
-            ) : (
-              <div className="space-y-4">
-                <VerifiedStrip
-                  mobileNumber={mobileNumber}
-                  resuming={resuming}
-                  locked={isSubmitted}
-                  onDiscard={discardLocalDraft}
-                  onChange={resetMobile}
-                />
-
-                <FormErrorRegion message={stepError} kind={stepErrorKind} id="onboarding-step-error" />
-
-                {restoredNote && !draftConflict && (
-                  <div className="flex items-start gap-2 rounded-admin border border-tone-info-bd bg-tone-info px-3.5 py-2.5 text-admin-xs font-semibold text-tone-info-fg">
-                    <Clock size={14} className="mt-px shrink-0" />
-                    <span>{restoredNote}</span>
-                  </div>
-                )}
-
-                {draftConflict && (
-                  <div className="space-y-2.5 rounded-admin-lg border border-tone-warn-bd bg-tone-warn p-3.5 text-admin-xs text-tone-warn-fg">
-                    <div className="flex items-start gap-2">
-                      <AlertTriangle size={15} className="mt-px shrink-0" />
-                      <div className="space-y-1">
-                        <div className="font-bold">Two versions of this application</div>
-                        <p className="leading-relaxed">
-                          Your account has you on step {draftConflict.serverStep}; this device was left on step{" "}
-                          {draftConflict.localStep}, {formatWhen(draftConflict.localSavedAt)}. We opened{" "}
-                          {draftConflict.applied === "server" ? "the one from your account" : "the one from this device"}.
-                        </p>
-                      </div>
-                    </div>
-                    {draftConflict.applied === "server" && (
-                      <div className="flex flex-wrap gap-2 pl-6">
-                        <button
-                          type="button"
-                          onClick={preferLocalDraft}
-                          className="admin-focus h-9 rounded-admin border border-tone-warn-bd bg-admin-surface px-3 font-bold text-admin-text hover:bg-admin-surface-2"
-                        >
-                          Use this device&rsquo;s version
-                        </button>
-                        <button
-                          type="button"
-                          onClick={dismissDraftConflict}
-                          className="admin-focus h-9 rounded-admin px-3 font-bold hover:bg-tone-warn-bd"
-                        >
-                          Keep my account&rsquo;s version
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div id="onboarding-step-pane">
-                  {locked ? <LockedStep reason={locked} onGo={() => goToStep(firstOpen(stepDone))} /> : <StepBody />}
-                </div>
-              </div>
-            )}
-          </div>
-        </main>
-      </div>
-
-      <footer className="border-t border-admin-border bg-admin-surface px-4 py-4">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 text-admin-2xs text-admin-subtle">
+      {/* ── Footer ── */}
+      <footer className="border-t border-slate-200 bg-white px-4 py-4 mt-auto">
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
           <span>© {new Date().getFullYear()} Techstar Money Solution Pvt. Ltd.</span>
-          <span className="flex items-center gap-3">
-            <Link href="/terms" className="font-semibold hover:text-admin-text">
-              Terms
+          <span className="flex items-center gap-4">
+            <Link href="/terms" className="hover:text-slate-800 transition-colors">
+              Terms & Conditions
             </Link>
-            <Link href="/privacy" className="font-semibold hover:text-admin-text">
-              Privacy
+            <Link href="/privacy" className="hover:text-slate-800 transition-colors">
+              Privacy Policy
             </Link>
-            <a href="tel:09579005645" className="font-semibold hover:text-admin-text">
+            <a href="tel:09579005645" className="font-semibold text-slate-700 hover:text-slate-900 transition-colors">
               095790 05645
             </a>
           </span>
@@ -215,13 +317,6 @@ export function OnboardingShell() {
   )
 }
 
-/**
- * The first step that still needs work — where "go fix it" sends you.
- *
- * Capped at the last input step: step 8 is never "done" until an application is
- * approved, so an uncapped search would send a partner who has filled in
- * everything to the one screen they cannot open.
- */
 function firstOpen(stepDone: Record<PartnerStepId, boolean>): PartnerStepId {
   for (let id = 1; id <= LAST_INPUT_STEP; id++) {
     if (!stepDone[id as PartnerStepId]) return id as PartnerStepId
@@ -229,48 +324,6 @@ function firstOpen(stepDone: Record<PartnerStepId, boolean>): PartnerStepId {
   return LAST_INPUT_STEP
 }
 
-function TopBar({
-  showSteps,
-  onOpenSteps,
-  step,
-  stepDone,
-}: {
-  showSteps: boolean
-  onOpenSteps: () => void
-  step: PartnerStepId
-  stepDone: Record<PartnerStepId, boolean>
-}) {
-  return (
-    <header className="sticky top-0 z-30 border-b border-admin-border bg-admin-surface/95 backdrop-blur-md">
-      <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
-        <Link href="/" className="admin-focus group flex min-w-0 items-center gap-2.5 no-underline">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-admin border border-brand-strong/20 bg-brand shadow-admin-1">
-            <Image src="/img/logo.webp" alt="Techstar Money Solution" width={36} height={36} className="object-contain" />
-          </span>
-          <span className="min-w-0">
-            <span className="block truncate text-admin-sm font-extrabold tracking-tight text-admin-text">
-              Techstar Money Solution
-            </span>
-            <span className="block truncate text-admin-2xs font-bold uppercase tracking-widest text-admin-subtle">
-              Partner onboarding
-            </span>
-          </span>
-        </Link>
-
-        <a
-          href="tel:09579005645"
-          aria-label="Call partner support on 095790 05645"
-          className="admin-focus flex h-10 w-10 shrink-0 items-center justify-center rounded-admin border border-admin-border bg-admin-surface-2 text-brand hover:bg-admin-surface-3"
-        >
-          <Headphones size={17} />
-        </a>
-      </div>
-      {showSteps && <MobileStepBar current={step} stepDone={stepDone} onOpen={onOpenSteps} />}
-    </header>
-  )
-}
-
-/** The verified-number strip that sits above every step. */
 function VerifiedStrip({
   mobileNumber,
   resuming,
@@ -285,34 +338,40 @@ function VerifiedStrip({
   onChange: () => void
 }) {
   return (
-    <div className="flex items-center justify-between gap-2 rounded-admin border border-tone-success-bd bg-tone-success px-3.5 py-2.5 text-admin-xs text-tone-success-fg">
+    <div className="flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50/70 px-3.5 py-2 text-xs text-emerald-900">
       <div className="flex min-w-0 items-center gap-2">
-        <CheckCircle2 size={16} className="shrink-0" />
-        <span className="min-w-0">
+        <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+          <Check size={12} className="stroke-[3]" />
+        </div>
+        <span className="min-w-0 font-medium">
           <span>Verified </span>
-          <strong className="admin-num whitespace-nowrap font-bold">+91 {mobileNumber}</strong>
+          <strong className="font-bold tracking-wide">+91 {mobileNumber}</strong>
           {resuming && (
-            <span className="flex items-center gap-1 text-admin-2xs font-semibold opacity-80">
-              <Loader2 size={11} className="animate-spin" /> Restoring your saved progress…
+            <span className="inline-flex items-center gap-1 text-[11px] font-normal text-emerald-700 ml-2">
+              <Loader2 size={11} className="animate-spin" /> Restoring saved draft…
             </span>
           )}
         </span>
       </div>
       {!locked && (
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2 text-[11px]">
           <button
             type="button"
             onClick={onDiscard}
-            title="Remove the copy of this application saved in this browser"
-            className="admin-focus text-admin-2xs font-semibold opacity-80 hover:opacity-100"
+            title="Remove local browser copy"
+            className="text-slate-500 hover:text-slate-800"
           >
-            Discard local copy
+            Clear local
           </button>
-          <span aria-hidden="true" className="opacity-40">
+          <span aria-hidden="true" className="text-slate-300">
             ·
           </span>
-          <button type="button" onClick={onChange} className="admin-focus text-admin-2xs font-bold hover:underline">
-            Change number
+          <button
+            type="button"
+            onClick={onChange}
+            className="font-bold text-emerald-800 hover:underline"
+          >
+            Change
           </button>
         </div>
       )}
@@ -320,25 +379,20 @@ function VerifiedStrip({
   )
 }
 
-/**
- * A step reached by deep link, a stale tab, or the browser's Back button whose
- * prerequisites are not met. It says what is missing rather than rendering an
- * empty shell the partner cannot submit.
- */
 function LockedStep({ reason, onGo }: { reason: string; onGo: () => void }) {
   return (
-    <div className="space-y-3 rounded-admin-lg border border-admin-border bg-admin-surface-2 p-6 text-center">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-admin-surface-3 text-admin-muted">
-        <Lock size={20} />
+    <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-xs">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+        <Lock size={22} />
       </div>
       <div className="space-y-1">
-        <h2 className="text-admin-lg font-bold text-admin-text">This step is not open yet</h2>
-        <p className="mx-auto max-w-md text-admin-sm text-admin-muted">{reason}</p>
+        <h2 className="text-lg font-bold text-slate-800">This step is not open yet</h2>
+        <p className="mx-auto max-w-md text-xs text-slate-500">{reason}</p>
       </div>
       <button
         type="button"
         onClick={onGo}
-        className="admin-focus inline-flex h-11 items-center gap-1.5 rounded-admin bg-brand px-4 text-admin-sm font-bold text-brand-fg hover:bg-brand-hover"
+        className="inline-flex h-11 items-center gap-1.5 rounded-lg bg-[#18181b] px-5 text-sm font-semibold text-white hover:bg-black transition-all"
       >
         <ArrowLeft size={15} /> Go to the step that needs finishing
       </button>

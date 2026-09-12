@@ -1,9 +1,9 @@
 /**
  * The wizard's in-memory shape, and how it maps onto what the API persists.
  *
- * Everything the 8 steps collect lives in one flat `OnboardingForm` object
- * rather than forty `useState` calls: a step needs to read fields three steps
- * back (the review screen reads all of them), drafts are saved and restored
+ * Everything the 3 steps collect lives in one flat `OnboardingForm` object
+ * rather than forty `useState` calls: a step needs to read fields from other
+ * steps (the review screen reads all of them), drafts are saved and restored
  * wholesale, and `partnerStepCompletion` wants a single object to inspect.
  */
 
@@ -219,15 +219,12 @@ export function payloadForStep(step: PartnerStepId, form: OnboardingForm): Recor
   const app = toApplicationShape(form, "")
   switch (step) {
     case 1:
+      // Personal & Business Details (old steps 1-3)
       return {
         partnerType: form.partnerType,
         fullName: app.fullName,
         email: app.email,
         referredByDsaCode: app.referredByDsaCode || null,
-      }
-    case 2:
-      return {
-        partnerType: form.partnerType,
         firmType: app.firmType,
         businessName: app.businessName || null,
         designation: app.designation,
@@ -235,9 +232,6 @@ export function payloadForStep(step: PartnerStepId, form: OnboardingForm): Recor
         gstin: app.gstin,
         gstValid: form.gstValid,
         gstDetails: form.gstDetails,
-      }
-    case 3:
-      return {
         contactPersonName: app.contactPersonName,
         alternateMobile: app.alternateMobile || null,
         addressLine1: app.addressLine1,
@@ -248,7 +242,8 @@ export function payloadForStep(step: PartnerStepId, form: OnboardingForm): Recor
         stateName: app.stateName,
         pinCode: app.pinCode,
       }
-    case 4:
+    case 2:
+      // KYC & Bank Account & Documents (old steps 4-6)
       return {
         panNumber: app.panNumber,
         panVerified: form.panVerified,
@@ -259,16 +254,12 @@ export function payloadForStep(step: PartnerStepId, form: OnboardingForm): Recor
         aadhaarVerified: form.aadhaarVerified,
         aadhaarName: form.aadhaarName || null,
         docUploadMethod: form.docUploadMethod,
-      }
-    case 5:
-      return { bankDetails: app.bankDetails }
-    case 6:
-      return {
+        bankDetails: app.bankDetails,
         documents: app.documents,
         aadhaarCombined: form.aadhaarCombined,
-        docUploadMethod: form.docUploadMethod,
       }
     default:
+      // Review & Submit (old step 7)
       return {
         declareTruth: form.declareTruth,
         declareTerms: form.declareTerms,
@@ -276,6 +267,7 @@ export function payloadForStep(step: PartnerStepId, form: OnboardingForm): Recor
       }
   }
 }
+
 
 /**
  * Rehydrate the form from a saved draft - the server's `partner_applications`

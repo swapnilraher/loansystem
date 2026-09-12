@@ -388,7 +388,7 @@ export function InlineAction({
 export function StepNav({
   onBack,
   onContinue,
-  continueLabel = "Save & continue",
+  continueLabel = "Continue",
   loading,
   disabled,
   secondary,
@@ -401,35 +401,17 @@ export function StepNav({
   secondary?: React.ReactNode
 }) {
   return (
-    <div
-      className={cn(
-        "sticky bottom-0 z-20 -mx-3.5 flex items-center justify-between gap-3 border-t border-admin-border bg-admin-surface px-3.5 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]",
-        "sm:static sm:mx-0 sm:rounded-admin-lg sm:border sm:px-4 sm:pb-3 sm:shadow-admin-1"
-      )}
-    >
-      {onBack ? (
-        <button
-          type="button"
-          onClick={onBack}
-          className="admin-focus inline-flex h-11 items-center gap-1.5 rounded-admin border border-admin-border bg-admin-surface px-3.5 text-admin-xs font-bold text-admin-muted transition-colors hover:bg-admin-surface-2 hover:text-admin-text"
-        >
-          <ArrowLeft size={15} />
-          Back
-        </button>
-      ) : (
-        <span />
-      )}
-      <div className="flex items-center gap-2">
+    <div className="sticky bottom-0 z-20 -mx-3.5 sm:mx-0 pt-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-[#f8fafc]/90 backdrop-blur-md">
+      <div className="flex flex-col gap-2">
         {secondary}
         <button
           type="button"
           onClick={onContinue}
           disabled={disabled || loading}
-          className="admin-focus inline-flex h-11 min-w-40 items-center justify-center gap-2 rounded-admin bg-brand px-5 text-admin-sm font-bold text-brand-fg shadow-admin-2 transition-all hover:bg-brand-hover disabled:opacity-50 disabled:shadow-none active:scale-[0.98]"
+          className="w-full h-12 rounded-xl bg-[#18181b] hover:bg-black text-white text-sm font-semibold shadow-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
         >
           {loading ? <Loader2 size={16} className="animate-spin" /> : null}
-          {continueLabel}
-          {!loading && <ArrowRight size={16} />}
+          <span>{continueLabel}</span>
         </button>
       </div>
     </div>
@@ -490,7 +472,7 @@ export function UploadTile({
   uploading?: boolean
   disabled?: boolean
   /** A file that arrived by drag-and-drop. */
-  onPick: (file: File) => void
+  onPick?: (file: File) => void
   /** Open the crop/camera dialog for this slot. */
   onOpenPicker: () => void
   onRetry?: () => void
@@ -506,7 +488,7 @@ export function UploadTile({
       onReject?.(problem)
       return
     }
-    onPick(file)
+    if (onPick) onPick(file)
   }
 
   const uploaded = Boolean(fileName) && !uploading && !failed
