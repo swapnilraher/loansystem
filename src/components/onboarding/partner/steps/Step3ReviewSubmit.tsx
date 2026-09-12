@@ -156,7 +156,6 @@ function ReviewView({
           {form.isGstRegistered === "Yes" ? (
             <Fact label="GSTIN" value={form.gstValid ? `${form.gstin} · verified` : form.gstin} mono />
           ) : null}
-          <Fact label="Contact person" value={form.contactPersonName || form.fullName} />
           {form.alternateMobile ? <Fact label="Alternate mobile" value={`+91 ${form.alternateMobile}`} mono /> : null}
           <Fact
             label="Address"
@@ -170,10 +169,6 @@ function ReviewView({
           <Fact label="PAN" value={form.panVerified ? `${form.panNumber} · verified` : form.panNumber} mono />
           <Fact label="Date of birth" value={form.dob} mono />
           <Fact label="Gender" value={form.gender} />
-          <Fact
-            label="Aadhaar"
-            value={form.aadhaarVerified ? `Verified · ends ${form.aadhaarLast4}` : "Not verified"}
-          />
           <Fact label="Account holder" value={form.accountHolderName} />
           <Fact
             label="Account number"
@@ -186,8 +181,6 @@ function ReviewView({
           <Fact label="PAN card" value={docName("panDoc")} />
           <Fact label="Aadhaar front" value={docName("aadhaarFrontDoc")} />
           <Fact label="Aadhaar back" value={form.aadhaarCombined ? "Same file as front" : docName("aadhaarBackDoc")} />
-          <Fact label="Cancelled cheque" value={docName("chequeDoc")} />
-          {form.isGstRegistered === "Yes" ? <Fact label="GST certificate" value={docName("gstDoc")} /> : null}
         </ReviewCard>
       </div>
 

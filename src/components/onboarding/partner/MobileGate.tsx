@@ -130,7 +130,7 @@ export function MobileGate() {
               type="tel"
               inputMode="numeric"
               maxLength={10}
-              placeholder="9579005645"
+              placeholder=""
               disabled={sendingOtp}
               value={mobileNumber}
               onChange={e => setMobileNumber(e.target.value)}
@@ -195,24 +195,24 @@ export function MobileGate() {
         </div>
       </div>
 
-      {/* ── Festive Offer Promotional Banner Card (Matching User Reference) ── */}
+      {/* ── DSA Partner Benefit Card ── */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-950 via-[#064e3b] to-slate-900 p-5 text-white shadow-md border border-emerald-800/40">
         <div className="relative z-10 flex items-center justify-between gap-4">
           <div className="space-y-1.5">
             <span className="inline-block px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 text-[10px] font-extrabold uppercase tracking-wider">
-              Festive Offer
+              DSA Partner Benefit
             </span>
             <div className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-              ZERO <span className="text-emerald-400 text-lg font-bold">Platform Fees*</span>
+              HIGHEST <span className="text-emerald-400 text-lg font-bold">Commission Slabs*</span>
             </div>
             <p className="text-xs text-emerald-100/80 max-w-[220px]">
-              Up to 1.5% commission on disbursed loans with 50+ banking partners.
+              Earn up to 2.5% DSA payout on loan disbursements across 50+ Banks &amp; NBFCs.
             </p>
           </div>
 
           <div className="shrink-0 flex flex-col items-center justify-center w-20 h-20 rounded-full border border-emerald-400/30 bg-emerald-900/50 shadow-inner">
-            <span className="text-2xl font-black text-amber-300">0%</span>
-            <span className="text-[9px] uppercase font-bold text-emerald-200">Setup Cost</span>
+            <span className="text-xl font-black text-amber-300">2.5%</span>
+            <span className="text-[9px] uppercase font-bold text-emerald-200 text-center">Max Payout</span>
           </div>
         </div>
       </div>

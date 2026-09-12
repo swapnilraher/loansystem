@@ -154,9 +154,9 @@ export function OnboardingShell() {
           </button>
         </div>
 
-        {/* ── Anniversary/Offer Gradient Ribbon ── */}
+        {/* ── DSA Partner Exclusive Ribbon ── */}
         <div className="bg-gradient-to-r from-[#6d28d9] via-[#4338ca] to-[#059669] text-white text-[11px] sm:text-xs font-semibold py-1.5 px-3 text-center tracking-wide flex items-center justify-center gap-2">
-          <span>Anniversary offer! Partner Onboarding @ 0% Platform Fee* · Instant Disbursals</span>
+          <span>DSA Partner Special Offer! Onboarding @ ₹0 Registration Fee* · Up to 2.5% Payout on Loan Disbursals · 50+ Banks &amp; NBFCs</span>
         </div>
       </header>
 

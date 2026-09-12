@@ -833,8 +833,6 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
             return { field: "ob-designation", message: "Tell us your role in the business." }
           if (f.isGstRegistered === "Yes" && !GSTIN_RE.test(f.gstin.trim().toUpperCase()))
             return { field: "ob-gstin", message: "Enter a valid 15-character GSTIN, or answer No to the GST question." }
-          if ((f.contactPersonName || f.fullName).trim().length < 2)
-            return { field: "ob-contactPersonName", message: "Enter the name of the person we should contact." }
           if (f.alternateMobile.trim() && !MOBILE_RE.test(f.alternateMobile.trim()))
             return { field: "ob-alternateMobile", message: "That alternate number is not a valid 10-digit mobile number." }
           if (f.addressLine1.trim().length < 2)
@@ -853,14 +851,14 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
           if (age === null) return { field: "ob-dob", message: "That date of birth could not be read." }
           if (age < 18 || age > 80)
             return { field: "ob-dob", message: "A DSA partner must be between 18 and 80 years old." }
-          if (f.accountHolderName.trim().length < 2)
-            return { field: "ob-accountHolderName", message: "Enter the account holder's name exactly as your bank has it." }
           if (!/^\d{6,20}$/.test(f.accountNumber.trim()))
             return { field: "ob-accountNumber", message: "Enter a valid bank account number — commission payouts go here." }
           if (f.accountNumber.trim() !== f.confirmAccountNumber.trim())
             return { field: "ob-confirmAccountNumber", message: "The two account numbers do not match." }
           if (!IFSC_RE.test(f.ifsc.trim().toUpperCase()))
             return { field: "ob-ifsc", message: "Enter a valid 11-character IFSC code." }
+          if (!f.accountHolderName.trim())
+            return { field: "ob-verify-bank-btn", message: "Please verify your bank account to auto-populate the account holder name." }
           if (!f.documents.panDoc) return { field: "ob-doc-panDoc", message: "Upload a scan or photo of your PAN card." }
           if (!f.documents.aadhaarFrontDoc)
             return { field: "ob-doc-aadhaarFrontDoc", message: "Upload the front of your Aadhaar card." }
@@ -869,8 +867,6 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
               field: "ob-doc-aadhaarBackDoc",
               message: "Upload the back of your Aadhaar card, or tick “both sides are on one file”.",
             }
-          if (f.isGstRegistered === "Yes" && !f.documents.gstDoc)
-            return { field: "ob-doc-gstDoc", message: "Upload your GST registration certificate." }
           return null
         }
         case 3:
@@ -969,16 +965,8 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     const ok = await persistStep(step)
     if (!ok) return
 
-    // Carry the payout name forward once, so the bank step opens pre-filled
-    // with the name the account is most likely in.
-    if (step === 1 && !form.accountHolderName.trim()) {
-      patch({
-        accountHolderName:
-          form.partnerType === "Individual" ? form.fullName.trim() : form.businessName.trim() || form.fullName.trim(),
-      })
-    }
     goToStep((step + 1) as PartnerStepId)
-  }, [step, validateStep, rejectField, checkPanAvailable, persistStep, form, patch, goToStep])
+  }, [step, validateStep, rejectField, checkPanAvailable, persistStep, goToStep])
 
   // ── step 3: pincode ─────────────────────────────────────────────────────
 
@@ -1313,8 +1301,10 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     try {
       const res = await fetchWithTimeout(`/api/onboarding/ifsc?code=${clean}`)
       const data = await res.json()
-      if (res.ok && data.valid && data.details) {
-        setForm(prev => ({ ...prev, bankName: data.details.BANK || "", branchName: data.details.BRANCH || "" }))
+      if (res.ok && data.valid) {
+        const bank = data.bank || data.details?.BANK || ""
+        const branch = data.branch || data.details?.BRANCH || ""
+        setForm(prev => ({ ...prev, bankName: bank, branchName: branch }))
         setIfscValid(true)
         setIfscNote(null)
       } else {
@@ -1370,7 +1360,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       }
 
       const target =
-        form.partnerType === "Individual" ? form.fullName.trim() : form.businessName.trim() || form.contactPersonName.trim()
+        form.partnerType === "Individual" ? form.fullName.trim() : form.businessName.trim() || form.fullName.trim()
       setForm(prev => ({
         ...prev,
         accountHolderName: returnedName,

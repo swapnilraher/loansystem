@@ -5,6 +5,7 @@ import {
   Building2,
   Check,
   CheckCircle2,
+  ChevronDown,
   ExternalLink,
   HelpCircle,
   Landmark,
@@ -45,15 +46,13 @@ const DOC_LABELS: Record<DocKey, string> = {
 /**
  * Step 2 — KYC & Bank Account Setup.
  *
- * Implements the Cashfree KYC and Bank Account screens from user reference images:
- * - "Bank Account Setup" & "KYC Verification" headings
+ * Tailored for DSA Loan Partner onboarding:
+ * - Bank Account Setup & KYC Verification
  * - PAN verification with live verified tag & realistic visual PAN card graphic
  * - GST number with green verified badge
- * - "Authenticate for CKYC" modal with registry loader
- * - Bank account number of applicant / company
- * - IFSC code with "Search for IFSC" search affordance & resolved bank branch text
- * - Document uploads for PAN, Aadhaar front/back, Cheque/Passbook
- * - Full-width solid black "Verify" / "Continue" button
+ * - Bank account number and IFSC code with live bank & branch lookup
+ * - Clean document uploads for PAN and Aadhaar
+ * - Full-width solid black "Verify & Continue" button
  */
 export function Step2KycDocuments() {
   const {
@@ -67,12 +66,6 @@ export function Step2KycDocuments() {
     verifyPan,
     panVerifying,
     panNote,
-    aadhaarOtpSent,
-    aadhaarSending,
-    aadhaarVerifying,
-    sendAadhaarOtp,
-    verifyAadhaarOtp,
-    cancelAadhaarOtp,
     lookupIfsc,
     ifscLoading,
     ifscValid,
@@ -88,10 +81,6 @@ export function Step2KycDocuments() {
     setStepError,
   } = useOnboarding()
 
-  const [aadhaarNumber, setAadhaarNumber] = useState("")
-  const [aadhaarOtp, setAadhaarOtp] = useState("")
-  const [ckycModalOpen, setCkycModalOpen] = useState(false)
-  const [ckycLoading, setCkycLoading] = useState(false)
   const [picking, setPicking] = useState<DocKey | null>(null)
 
   const { min, max } = dobBounds()
@@ -114,25 +103,13 @@ export function Step2KycDocuments() {
     }
   }
 
-  const handleCkycInitiate = () => {
-    setCkycModalOpen(true)
-    setCkycLoading(true)
-    // Simulate CKYC registry fetch
-    setTimeout(() => {
-      setCkycLoading(false)
-      if (!form.panVerified && panFormatOk) {
-        void verifyPan()
-      }
-    }, 2000)
-  }
-
   const applicantName = form.partnerType === "Firm"
     ? form.businessName || form.fullName || "TECHSTAR PARTNER"
     : form.fullName || "TECHSTAR PARTNER"
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      {/* ── Heading matching Cashfree Screenshot 4 ── */}
+      {/* ── Heading ── */}
       <div className="space-y-1.5">
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
           KYC &amp; Bank Account Setup
@@ -142,23 +119,13 @@ export function Step2KycDocuments() {
         </p>
       </div>
 
-      {/* ── CARD 1: PAN & KYC Verification (Matching Screenshot 2) ── */}
+      {/* ── CARD 1: PAN & KYC Verification ── */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_4px_24px_rgba(0,0,0,0.03)] p-5 sm:p-7 space-y-5">
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <h2 className="text-sm sm:text-base font-bold text-slate-900">PAN &amp; Identity Verification</h2>
-            <p className="text-xs text-slate-400">Verified directly against NSDL / Income Tax records.</p>
-          </div>
-          <button
-            type="button"
-            onClick={handleCkycInitiate}
-            className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:underline"
-          >
-            Fetch CKYC
-          </button>
+        <div className="space-y-0.5">
+          <h2 className="text-sm sm:text-base font-bold text-slate-900">PAN &amp; Identity Details</h2>
         </div>
 
-        {/* PAN Input & Verify */}
+        {/* PAN Input (full width, no verify button) */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label htmlFor="ob-panNumber" className="text-xs sm:text-sm font-semibold text-slate-800">
@@ -171,40 +138,29 @@ export function Step2KycDocuments() {
             )}
           </div>
 
-          <div className="flex gap-2">
-            <input
-              id="ob-panNumber"
-              type="text"
-              maxLength={10}
-              value={form.panNumber}
-              onChange={e => patch({ panNumber: e.target.value.toUpperCase() })}
-              placeholder="AABAV8504E"
-              autoComplete="off"
-              className="flex-1 h-11 sm:h-12 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white text-sm font-mono uppercase text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 focus:outline-none transition-all"
-            />
-            <button
-              type="button"
-              disabled={panVerifying || !panFormatOk}
-              onClick={() => void verifyPan()}
-              className="h-11 sm:h-12 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-800 transition-colors disabled:opacity-40 cursor-pointer"
-            >
-              {panVerifying ? <Loader2 size={14} className="animate-spin" /> : "Verify PAN"}
-            </button>
-          </div>
+          <input
+            id="ob-panNumber"
+            type="text"
+            maxLength={10}
+            value={form.panNumber}
+            onChange={e => patch({ panNumber: e.target.value.toUpperCase() })}
+            placeholder="AABAV8504E"
+            autoComplete="off"
+            className="w-full h-11 sm:h-12 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white text-sm font-mono uppercase text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 focus:outline-none transition-all"
+          />
           {fieldError("ob-panNumber") && (
             <p className="text-xs text-rose-500">{fieldError("ob-panNumber")}</p>
           )}
 
-          {/* Green Verified Status Message matching screenshot 2 */}
           {form.panVerified && (
             <p className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 pt-0.5">
               <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
-              Successfully verified PAN for {form.panDetails?.fullName || form.fullName || "Partner"}
+              Verified PAN for {form.panDetails?.fullName || form.fullName || "Partner"}
             </p>
           )}
         </div>
 
-        {/* ── Realistic PAN Card Graphic (Matching User Screenshot 2) ── */}
+        {/* ── Realistic PAN Card Graphic ── */}
         {(form.panVerified || form.panNumber.length >= 5) && (
           <div className="relative overflow-hidden rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/95 via-sky-50/80 to-indigo-100/70 p-4 sm:p-5 shadow-xs space-y-3">
             {/* Header */}
@@ -221,7 +177,7 @@ export function Step2KycDocuments() {
                 <div>
                   <div className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold">Name</div>
                   <div className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-wide uppercase">
-                    {form.panDetails?.fullName || form.fullName || "VENKATESHWARA ENTERPRISES"}
+                    {form.panDetails?.fullName || form.fullName || "TECHSTAR PARTNER"}
                   </div>
                 </div>
 
@@ -253,7 +209,7 @@ export function Step2KycDocuments() {
           </div>
         )}
 
-        {/* GST Number Field (matching screenshot 2) */}
+        {/* GST Number Field */}
         {form.isGstRegistered === "Yes" && (
           <div className="space-y-1.5 pt-1">
             <label htmlFor="ob-gst-input" className="block text-xs sm:text-sm font-semibold text-slate-800">
@@ -270,20 +226,7 @@ export function Step2KycDocuments() {
           </div>
         )}
 
-        {/* Pre-approved promotional banner (matching screenshot 2) */}
-        <div className="rounded-2xl border border-amber-200/80 bg-gradient-to-r from-amber-50/90 via-orange-50/60 to-yellow-50/80 p-4 sm:p-5 flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 text-lg">
-            🌐
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-xs sm:text-sm font-bold text-amber-950">You&apos;re All Set to Go Global!</h3>
-            <p className="text-[11px] sm:text-xs text-amber-800/90 leading-relaxed">
-              You have been pre-approved for instant partner payouts, higher DSA commission slabs and express loan approval channels.
-            </p>
-          </div>
-        </div>
-
-        {/* Date of Birth & Gender */}
+        {/* Date of Birth & Gender (Dropdown) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
           <div className="space-y-1.5">
             <label htmlFor="ob-dob" className="block text-xs sm:text-sm font-semibold text-slate-800">
@@ -304,72 +247,27 @@ export function Step2KycDocuments() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-xs sm:text-sm font-semibold text-slate-800">
-              Gender
+            <label htmlFor="ob-gender" className="block text-xs sm:text-sm font-semibold text-slate-800">
+              Gender <span className="text-rose-500">*</span>
             </label>
-            <ChoiceGroup
-              label="Gender"
-              value={form.gender}
-              options={["Male", "Female", "Other"] as const}
-              onChange={next => patch({ gender: next })}
-            />
-          </div>
-        </div>
-
-        {/* Aadhaar Verification Row */}
-        <div className="space-y-2 pt-2 border-t border-slate-100">
-          <div className="flex items-center justify-between">
-            <label className="text-xs sm:text-sm font-semibold text-slate-800">
-              Aadhaar Verification (OTP)
-            </label>
-            {form.aadhaarVerified && (
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600">
-                <CheckCircle2 size={13} /> Verified
-              </span>
+            <div className="relative">
+              <select
+                id="ob-gender"
+                value={form.gender || ""}
+                onChange={e => patch({ gender: e.target.value as any })}
+                className="w-full h-11 sm:h-12 px-3.5 pr-10 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:border-indigo-600 focus:outline-none appearance-none transition-all cursor-pointer"
+              >
+                <option value="" disabled>Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+              <ChevronDown size={18} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            </div>
+            {fieldError("ob-gender") && (
+              <p className="text-xs text-rose-500">{fieldError("ob-gender")}</p>
             )}
           </div>
-
-          {!form.aadhaarVerified && (
-            <div className="flex gap-2">
-              <input
-                type="text"
-                maxLength={12}
-                value={aadhaarNumber}
-                onChange={e => setAadhaarNumber(e.target.value.replace(/\D/g, ""))}
-                placeholder="12-digit Aadhaar Number"
-                className="flex-1 h-11 sm:h-12 px-3.5 rounded-xl border border-slate-200 bg-white text-sm font-mono text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:outline-none"
-              />
-              <button
-                type="button"
-                disabled={aadhaarSending || !AADHAAR_RE.test(aadhaarNumber)}
-                onClick={() => void sendAadhaarOtp(aadhaarNumber)}
-                className="h-11 sm:h-12 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-800 transition-colors disabled:opacity-40 cursor-pointer"
-              >
-                {aadhaarSending ? <Loader2 size={14} className="animate-spin" /> : "Send OTP"}
-              </button>
-            </div>
-          )}
-
-          {aadhaarOtpSent && !form.aadhaarVerified && (
-            <div className="flex gap-2 pt-2 animate-fadeIn">
-              <input
-                type="text"
-                maxLength={6}
-                value={aadhaarOtp}
-                onChange={e => setAadhaarOtp(e.target.value.replace(/\D/g, ""))}
-                placeholder="6-digit UIDAI OTP"
-                className="flex-1 h-11 px-3.5 rounded-xl border border-slate-200 bg-white text-sm font-mono text-slate-900 focus:border-indigo-600 focus:outline-none"
-              />
-              <button
-                type="button"
-                disabled={aadhaarVerifying || aadhaarOtp.length < 6}
-                onClick={() => void verifyAadhaarOtp(aadhaarOtp)}
-                className="h-11 px-4 rounded-xl bg-[#18181b] text-white text-xs font-semibold hover:bg-black transition-colors disabled:opacity-40"
-              >
-                {aadhaarVerifying ? <Loader2 size={14} className="animate-spin" /> : "Verify OTP"}
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
@@ -426,25 +324,25 @@ export function Step2KycDocuments() {
           <input
             id="ob-accountHolderName"
             type="text"
-            value={form.accountHolderName}
-            onChange={e => patch({ accountHolderName: e.target.value })}
-            placeholder="TECHSTAR MONEY SOLUTION PRIVATE LIMITED"
-            className="w-full h-11 sm:h-12 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 focus:outline-none transition-all"
+            readOnly
+            value={form.accountHolderName || ""}
+            placeholder="Auto-populated once bank account is verified"
+            className="w-full h-11 sm:h-12 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder:text-slate-400 cursor-not-allowed focus:outline-none transition-all"
           />
           {fieldError("ob-accountHolderName") && (
             <p className="text-xs text-rose-500">{fieldError("ob-accountHolderName")}</p>
           )}
         </div>
 
-        {/* IFSC Code with Search Icon (Matching User Screenshot 4) */}
+        {/* IFSC Code with Search Icon */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <label htmlFor="ob-ifsc" className="text-xs sm:text-sm font-semibold text-slate-800">
               IFSC code <span className="text-rose-500">*</span>
             </label>
             {form.bankVerified && (
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600">
-                <CheckCircle2 size={13} /> Account Verified (Penny Drop)
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600">
+                <CheckCircle2 size={14} /> Account Verified
               </span>
             )}
           </div>
@@ -463,7 +361,7 @@ export function Step2KycDocuments() {
               placeholder="MAHB0001327"
               className="w-full h-11 sm:h-12 pl-3.5 pr-28 rounded-xl border border-slate-200 bg-white text-sm font-mono text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 focus:outline-none transition-all"
             />
-            {/* Search for IFSC indicator matching Screenshot 4 */}
+            {/* Search for IFSC indicator */}
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-indigo-600 text-xs font-semibold pointer-events-none">
               <Search size={14} />
               <span>Search for IFSC</span>
@@ -473,25 +371,31 @@ export function Step2KycDocuments() {
             <p className="text-xs text-rose-500">{fieldError("ob-ifsc")}</p>
           )}
 
-          {/* Resolved Branch Display matching Screenshot 4 */}
-          {(form.bankName || form.branchName || form.ifsc.length === 11) && (
+          {/* Resolved Branch Display */}
+          {Boolean(form.bankName || form.branchName) && (
             <div className="flex items-center gap-2 text-xs font-bold text-slate-800 pt-1">
               <span className="text-sm">🏛️</span>
               <span>
-                {form.bankName || "BANK OF MAHARASHTRA"}, {form.branchName || "TOWN CENTRE, CIDCO Branch"}
+                {form.bankName}{form.branchName ? `, ${form.branchName}` : ""}
               </span>
             </div>
+          )}
+          {ifscLoading && (
+            <p className="flex items-center gap-1.5 text-xs text-slate-500 pt-1">
+              <Loader2 size={13} className="animate-spin text-indigo-600" /> Fetching bank &amp; branch details…
+            </p>
           )}
 
           {canVerifyBank && !form.bankVerified && (
             <div className="pt-2">
               <button
+                id="ob-verify-bank-btn"
                 type="button"
                 disabled={bankVerifying}
                 onClick={() => void verifyBank()}
                 className="h-10 px-4 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-xs font-semibold text-indigo-700 transition-colors flex items-center gap-2 cursor-pointer"
               >
-                {bankVerifying ? <Loader2 size={14} className="animate-spin" /> : "Verify Bank Account (Penny Drop)"}
+                {bankVerifying ? <Loader2 size={14} className="animate-spin" /> : "Verify Bank Account"}
               </button>
             </div>
           )}
@@ -502,7 +406,7 @@ export function Step2KycDocuments() {
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_4px_24px_rgba(0,0,0,0.03)] p-5 sm:p-7 space-y-5">
         <div className="space-y-0.5">
           <h2 className="text-sm sm:text-base font-bold text-slate-900">Upload Documents</h2>
-          <p className="text-xs text-slate-400">Clear photos or PDFs (max 5 MB each).</p>
+          <p className="text-xs text-slate-400">Clear photos or PDFs of PAN and Aadhaar (max 5 MB each).</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -515,16 +419,6 @@ export function Step2KycDocuments() {
             onOpenPicker={() => setPicking("panDoc")}
             onRetry={() => retryUpload("panDoc")}
             onRemove={() => removeDoc("panDoc")}
-          />
-
-          <UploadTile
-            id="ob-doc-chequeDoc"
-            label="Cancelled Cheque / Passbook"
-            hint="Showing account number and IFSC"
-            {...slot("chequeDoc")}
-            onOpenPicker={() => setPicking("chequeDoc")}
-            onRetry={() => retryUpload("chequeDoc")}
-            onRemove={() => removeDoc("chequeDoc")}
           />
 
           <UploadTile
@@ -550,19 +444,6 @@ export function Step2KycDocuments() {
               onRemove={() => removeDoc("aadhaarBackDoc")}
             />
           )}
-
-          {form.isGstRegistered === "Yes" && (
-            <UploadTile
-              id="ob-doc-gstDoc"
-              label="GST Registration Certificate"
-              required
-              hint="Certificate containing 15-digit GSTIN"
-              {...slot("gstDoc")}
-              onOpenPicker={() => setPicking("gstDoc")}
-              onRetry={() => retryUpload("gstDoc")}
-              onRemove={() => removeDoc("gstDoc")}
-            />
-          )}
         </div>
 
         <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer pt-1 select-none">
@@ -575,57 +456,6 @@ export function Step2KycDocuments() {
           <span>Both sides of Aadhaar are on a single page / photo</span>
         </label>
       </div>
-
-      {/* ── CKYC Authentication Modal (Matching User Screenshot 2) ── */}
-      {ckycModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-xs p-0 sm:p-4 animate-fadeIn"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="w-full max-w-sm bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl p-6 space-y-5 border border-slate-100">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h2 className="text-base font-bold text-slate-900">Authenticate for CKYC</h2>
-              <button
-                type="button"
-                onClick={() => setCkycModalOpen(false)}
-                className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Spinner & Message matching Screenshot 2 */}
-            <div className="py-6 flex flex-col items-center justify-center text-center space-y-3">
-              <div className="w-10 h-10 rounded-full border-2 border-emerald-500/20 border-t-emerald-500 animate-spin flex items-center justify-center" />
-              <div className="space-y-0.5">
-                <div className="text-xs sm:text-sm font-semibold text-slate-800">
-                  Getting details from CKYC registry
-                </div>
-                <div className="text-xs text-slate-400">Please wait…</div>
-              </div>
-            </div>
-
-            {/* Cancel & Confirm Buttons matching Screenshot 2 */}
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setCkycModalOpen(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-700 hover:text-slate-900"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => setCkycModalOpen(false)}
-                className="px-5 py-2.5 rounded-xl bg-[#18181b] hover:bg-black text-white text-xs font-semibold transition-colors"
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Image Crop Modal */}
       {picking && (

@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useState } from "react"
-import { Building2, CheckCircle2, ChevronDown, Loader2, Search, User } from "lucide-react"
+import React from "react"
+import { Building2, CheckCircle2, ChevronDown, Loader2, User } from "lucide-react"
 
 import { GSTIN_RE, PINCODE_RE } from "@/lib/onboarding-steps"
 
@@ -23,15 +23,6 @@ import {
   VerifyPill,
 } from "../ui"
 
-const CATEGORIES = [
-  "Personal Loans & Salaried Credit",
-  "Business & MSME Loans",
-  "Home Loans & LAP (Mortgages)",
-  "Vehicle & Auto Loans",
-  "Credit Cards & DSA Distribution",
-  "Financial Advisory & Insurance",
-]
-
 const TURNOVER_RANGES = [
   "Up to ₹25 Lakhs / month",
   "₹25 Lakhs – ₹1 Crore / month",
@@ -42,12 +33,11 @@ const TURNOVER_RANGES = [
 /**
  * Step 1 — Business & Personal Details.
  *
- * Implements the Cashfree Business Details layout from user reference images:
+ * Implements the Cashfree Business Details layout tailored for DSA Loan Partner:
  * - Clean "Business Details" header & subtitle
- * - "Your brand name" / "Full name"
- * - "Select your product/service category" with search affordance
- * - "Select your annual turnover"
- * - Individual vs Firm selection & office address
+ * - "Your Name"
+ * - "Select your expected loan disbursement volume"
+ * - Individual vs Firm selection with dropdown & office address
  */
 export function Step1PersonalBusiness() {
   const {
@@ -66,21 +56,14 @@ export function Step1PersonalBusiness() {
     pincodeNote,
   } = useOnboarding()
 
-  const [categorySearch, setCategorySearch] = useState("")
-  const [showCatDropdown, setShowCatDropdown] = useState(false)
-
   const isFirm = form.partnerType === "Firm"
   const gstin = form.gstin.trim().toUpperCase()
   const gstFormatOk = GSTIN_RE.test(gstin)
   const details = form.gstDetails as Record<string, string> | null
 
-  const filteredCategories = CATEGORIES.filter(c =>
-    c.toLowerCase().includes(categorySearch.toLowerCase())
-  )
-
   return (
     <div className="space-y-6 animate-fadeIn">
-      {/* ── Page Title matching Cashfree Screenshot 1 ── */}
+      {/* ── Page Title ── */}
       <div className="space-y-1.5">
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
           Business Details
@@ -90,19 +73,19 @@ export function Step1PersonalBusiness() {
         </p>
       </div>
 
-      {/* ── Main Cashfree Card 1: Brand & Category ── */}
+      {/* ── Main Card 1: Name & Turnover ── */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_4px_24px_rgba(0,0,0,0.03)] p-5 sm:p-7 space-y-5">
-        {/* Your Brand Name / Full Name */}
+        {/* Your Name */}
         <div className="space-y-1.5">
           <label htmlFor="ob-fullName" className="block text-xs sm:text-sm font-semibold text-slate-800">
-            {isFirm ? "Your brand name / Business name" : "Your full name (as per PAN)"} <span className="text-rose-500">*</span>
+            Your Name <span className="text-rose-500">*</span>
           </label>
           <input
             id="ob-fullName"
             type="text"
             value={form.fullName}
             onChange={e => patch({ fullName: e.target.value })}
-            placeholder={isFirm ? "e.g. Nykaa / Apex Financial" : "e.g. Rahul Sudhir Patil"}
+            placeholder="e.g. Rahul Patil"
             autoComplete="name"
             className="w-full h-11 sm:h-12 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 focus:outline-none transition-all"
           />
@@ -111,49 +94,7 @@ export function Step1PersonalBusiness() {
           )}
         </div>
 
-        {/* Category selector with search icon (matching screenshot 1) */}
-        <div className="space-y-1.5 relative">
-          <label htmlFor="category-select" className="block text-xs sm:text-sm font-semibold text-slate-800">
-            Select your product/service category
-          </label>
-          <div className="relative">
-            <input
-              id="category-select"
-              type="text"
-              value={categorySearch || (form.firmType ? `Financial Services (${form.firmType})` : "")}
-              onChange={e => {
-                setCategorySearch(e.target.value)
-                setShowCatDropdown(true)
-              }}
-              onFocus={() => setShowCatDropdown(true)}
-              placeholder="Select or search category"
-              className="w-full h-11 sm:h-12 pl-3.5 pr-10 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 focus:outline-none transition-all"
-            />
-            <Search size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-          </div>
-          <p className="text-[11px] text-slate-400">Choose the category that fits best to your business</p>
-
-          {/* Category Dropdown */}
-          {showCatDropdown && (
-            <div className="absolute z-20 top-full left-0 right-0 mt-1 rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden py-1 max-h-48 overflow-y-auto">
-              {filteredCategories.map(cat => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => {
-                    setCategorySearch(cat)
-                    setShowCatDropdown(false)
-                  }}
-                  className="w-full px-4 py-2 text-left text-xs sm:text-sm text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Annual Turnover / Volume Dropdown (matching screenshot 1) */}
+        {/* Annual Turnover / Volume Dropdown */}
         <div className="space-y-1.5">
           <label htmlFor="turnover-range" className="block text-xs sm:text-sm font-semibold text-slate-800">
             Select your expected loan disbursement volume
@@ -215,14 +156,23 @@ export function Step1PersonalBusiness() {
         {isFirm && (
           <div className="space-y-4 pt-2 border-t border-slate-100 animate-fadeIn">
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-700">Firm Type</label>
-              <ChoiceGroup
-                label="Constitution"
-                value={form.firmType}
-                options={FIRM_TYPES}
-                onChange={next => patch({ firmType: next })}
-                columns={3}
-              />
+              <label htmlFor="ob-firmType" className="block text-xs font-semibold text-slate-700">
+                Firm Type <span className="text-rose-500">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  id="ob-firmType"
+                  value={form.firmType || ""}
+                  onChange={e => patch({ firmType: e.target.value as any })}
+                  className="w-full h-11 sm:h-12 px-3.5 pr-10 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 focus:outline-none appearance-none transition-all cursor-pointer"
+                >
+                  <option value="" disabled>Select Firm Type</option>
+                  {FIRM_TYPES.map(ft => (
+                    <option key={ft} value={ft}>{ft}</option>
+                  ))}
+                </select>
+                <ChevronDown size={18} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -323,17 +273,6 @@ export function Step1PersonalBusiness() {
         </div>
 
         <FieldGrid>
-          <Field id="ob-contactPersonName" label="Contact Person Name" required error={fieldError("ob-contactPersonName")}>
-            <input
-              id="ob-contactPersonName"
-              type="text"
-              value={form.contactPersonName || (isFirm ? "" : form.fullName)}
-              onChange={e => patch({ contactPersonName: e.target.value })}
-              placeholder={isFirm ? "Authorised Signatory" : form.fullName || "Contact person"}
-              className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 focus:border-indigo-600 focus:outline-none"
-            />
-          </Field>
-
           <Field id="ob-alternateMobile" label="Alternate Mobile" optional error={fieldError("ob-alternateMobile")}>
             <PrefixedInput
               prefix="+91"

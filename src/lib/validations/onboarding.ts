@@ -158,7 +158,7 @@ export const Step1ConsolidatedSchema = z.looseObject({
     .nullish(),
   gstValid: z.boolean().optional(),
   gstDetails: z.any().nullish(),
-  contactPersonName: z.string().trim().min(2, "Contact person name must be at least 2 characters").max(100).optional(),
+  contactPersonName: optionalText(100),
   alternateMobile: z
     .union([z.literal(""), z.string().trim().regex(/^[6-9]\d{9}$/, "Invalid 10-digit alternate mobile number")])
     .nullish(),

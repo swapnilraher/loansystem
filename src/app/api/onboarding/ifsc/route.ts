@@ -72,16 +72,24 @@ export async function GET(request: Request) {
       const response = await fetch(`https://ifsc.razorpay.com/${ifsc}`, { cache: "no-store" });
       if (response.ok) {
         const data = await response.json();
+        const resolvedBank = data.BANK || fallbackBankName;
+        const resolvedBranch = data.BRANCH || `Branch (${ifsc.slice(5)})`;
         return NextResponse.json({
           valid: true,
           ifsc: data.IFSC || ifsc,
-          bank: data.BANK || fallbackBankName,
-          branch: data.BRANCH || `Branch (${ifsc.slice(5)})`,
+          bank: resolvedBank,
+          branch: resolvedBranch,
           city: data.CITY || "",
           state: data.STATE || "",
           address: data.ADDRESS || "",
           micr: data.MICR || "",
           bankCode: data.BANKCODE || bankPrefix,
+          details: {
+            BANK: resolvedBank,
+            BRANCH: resolvedBranch,
+            CITY: data.CITY || "",
+            STATE: data.STATE || "",
+          },
         });
       }
     } catch (rErr) {
@@ -99,6 +107,12 @@ export async function GET(request: Request) {
       address: "",
       micr: "",
       bankCode: bankPrefix,
+      details: {
+        BANK: fallbackBankName,
+        BRANCH: `Branch (${ifsc.slice(5)})`,
+        CITY: "",
+        STATE: "",
+      },
     });
   } catch (error: any) {
     console.error("IFSC API Error:", error);
