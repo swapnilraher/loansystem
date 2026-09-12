@@ -177,7 +177,12 @@ export function MobileGate() {
         {/* Terms */}
         <p className="text-center text-[11px] text-slate-500 leading-relaxed">
           By signing up, you accept the Techstar{" "}
-          <Link href="/terms" className="text-slate-800 font-semibold underline underline-offset-2 hover:text-indigo-600">
+          <Link
+            href="/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-slate-800 font-semibold underline underline-offset-2 hover:text-indigo-600"
+          >
             Terms &amp; Conditions
           </Link>
         </p>
@@ -300,11 +305,19 @@ export function MobileGate() {
             </div>
 
             {otpLockedOut && (
-              <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+              <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 space-y-1.5">
                 <div className="font-bold">Maximum attempts exceeded.</div>
-                <p className="mt-0.5 text-[11px] text-amber-800">
-                  Please wait or request a new OTP code below.
+                <p className="text-[11px] text-amber-800">
+                  Please request a new OTP code below.
                 </p>
+                <button
+                  type="button"
+                  onClick={() => void resendOtp()}
+                  disabled={resendingOtp}
+                  className="inline-flex items-center gap-1 font-bold text-indigo-600 hover:underline cursor-pointer"
+                >
+                  {resendingOtp ? "Sending fresh OTP..." : "Get a new OTP code now →"}
+                </button>
               </div>
             )}
 
@@ -448,7 +461,7 @@ function OutcomeScreen({ block, onUseAnotherNumber }: { block: EligibilityBlock;
               href={href}
               className="inline-flex h-11 items-center justify-center rounded-xl bg-[#18181b] px-5 text-xs font-bold text-white hover:bg-black transition-all"
             >
-              {block.actionText || "Continue"}
+              {block.actionText || "Log In Directly (लॉगिन करा) →"}
             </Link>
           ))}
         <button

@@ -122,7 +122,12 @@ Sitemap: https://partner.techstarsolution.in/sitemap.xml
     }
 
     // Direct public routes allowed under partner portal
-    if (pathname.startsWith('/onboarding') || pathname.startsWith('/application-status')) {
+    if (
+      pathname.startsWith('/onboarding') ||
+      pathname.startsWith('/application-status') ||
+      pathname.startsWith('/terms') ||
+      pathname.startsWith('/privacy')
+    ) {
       return NextResponse.next()
     }
 

@@ -58,23 +58,38 @@ export async function checkPartnerEligibility(
       };
 
       const settled = <T>(p: Promise<T>) => p.catch(() => null);
-      const [partnerById, partnerByMobile, userById, userByPhone, userByMobile, appById, appByMobile] =
-        await Promise.all([
-          settled(db.collection("partners").doc(cleanPhone).get()),
-          settled(db.collection("partners").where("mobileNumber", "==", cleanPhone).limit(1).get()),
-          settled(db.collection("users").doc(cleanPhone).get()),
-          settled(db.collection("users").where("phoneNumber", "==", cleanPhone).limit(1).get()),
-          settled(db.collection("users").where("mobileNumber", "==", cleanPhone).limit(1).get()),
-          settled(db.collection("partner_applications").doc(cleanPhone).get()),
-          settled(db.collection("partner_applications").where("mobileNumber", "==", cleanPhone).limit(1).get()),
-        ]);
+      const [
+        partnerById,
+        partnerByMobile,
+        partnerByPhoneWithPrefix,
+        userById,
+        userByPhone,
+        userByPhoneWithPrefix,
+        userByMobile,
+        userByMobileWithPrefix,
+        appById,
+        appByMobile,
+        appByMobileWithPrefix,
+      ] = await Promise.all([
+        settled(db.collection("partners").doc(cleanPhone).get()),
+        settled(db.collection("partners").where("mobileNumber", "==", cleanPhone).limit(1).get()),
+        settled(db.collection("partners").where("phoneNumber", "==", "+91" + cleanPhone).limit(1).get()),
+        settled(db.collection("users").doc(cleanPhone).get()),
+        settled(db.collection("users").where("phoneNumber", "==", cleanPhone).limit(1).get()),
+        settled(db.collection("users").where("phoneNumber", "==", "+91" + cleanPhone).limit(1).get()),
+        settled(db.collection("users").where("mobileNumber", "==", cleanPhone).limit(1).get()),
+        settled(db.collection("users").where("mobileNumber", "==", "+91" + cleanPhone).limit(1).get()),
+        settled(db.collection("partner_applications").doc(cleanPhone).get()),
+        settled(db.collection("partner_applications").where("mobileNumber", "==", cleanPhone).limit(1).get()),
+        settled(db.collection("partner_applications").where("mobileNumber", "==", "+91" + cleanPhone).limit(1).get()),
+      ]);
 
       // 1. 'partners' collection (approved DSA partners)
-      partnerData = firstMatch(partnerById, partnerByMobile);
+      partnerData = firstMatch(partnerById, partnerByMobile, partnerByPhoneWithPrefix);
       // 2. 'users' collection — phoneNumber is checked before mobileNumber, as before
-      userData = firstMatch(userById, userByPhone, userByMobile);
+      userData = firstMatch(userById, userByPhone, userByPhoneWithPrefix, userByMobile, userByMobileWithPrefix);
       // 3. 'partner_applications' collection
-      appData = firstMatch(appById, appByMobile);
+      appData = firstMatch(appById, appByMobile, appByMobileWithPrefix);
     }
   } catch (err) {
     console.warn("checkPartnerEligibility fallback (database not accessible):", err);
@@ -107,18 +122,12 @@ export async function checkPartnerEligibility(
     (appStatus === "under_review" ||
       appStatus === "submitted" ||
       appStatus === "submitted_for_review" ||
+      partnerStatus === "pending" ||
+      userStatus === "pending" ||
       Boolean(appData?.submittedAt) ||
       Boolean(appData?.isApplicationLocked));
 
   const isDraft = !isApproved && !isBlocked && !isUnderReview && Boolean(appData || userData);
-
-  // "Registered but explicitly held back" — distinct from blocked and from draft.
-  const isNotApproved =
-    !isApproved &&
-    !isBlocked &&
-    !isUnderReview &&
-    Boolean(partnerData) &&
-    NOT_APPROVED_STATUSES.includes(partnerStatus || userStatus);
 
   const dsaCode = partnerData?.dsaCode || userData?.dsaCode || appData?.dsaCode || "";
   const applicationId = appData?.applicationId || partnerData?.applicationId || `TSM-DSA-${cleanPhone}`;
@@ -155,45 +164,30 @@ export async function checkPartnerEligibility(
       };
     }
 
-    // Registered partner record exists but has been put on hold / deactivated
-    if (isNotApproved) {
-      return {
-        eligible: false,
-        mode: "login",
-        status: "not_approved",
-        reason: "NOT_APPROVED",
-        message: "Your account is not approved for login yet. Our onboarding team will activate it shortly.",
-        marathiMessage: "तुमचे पार्टनर खाते अद्याप लॉगिनसाठी मंजूर झालेले नाही. आमची टीम लवकरच ते सक्रिय करेल.",
-        applicationId,
-        partnerName,
-      };
-    }
-
-    // Incomplete onboarding draft — login is allowed so the partner can resume
-    // exactly where they stopped instead of restarting from mobile verification.
-    if (isDraft) {
+    // If approved partner -> Login and redirect to partner dashboard
+    if (isApproved) {
       return {
         eligible: true,
         mode: "login",
-        status: "draft",
+        status: "approved",
         reason: "VALID",
-        message: "Your partner onboarding is incomplete. Log in to resume from where you left off.",
-        marathiMessage: "तुमची पार्टनर नोंदणी अपूर्ण आहे. लॉगिन केल्यावर तुम्ही थांबलात तिथूनच पुढे सुरू करू शकता.",
-        redirectUrl: "/onboarding",
-        applicationId,
+        message: "Mobile number verified and eligible for partner login.",
+        marathiMessage: "मोबाईल नंबर पात्र असून पार्टनर लॉगिनसाठी OTP पाठवला जात आहे.",
+        dsaCode,
         partnerName,
+        redirectUrl: "/partner",
         onboardingState,
       };
     }
 
-    // If application is under review
+    // If application is under review or pending -> Login is allowed so they can track status
     if (isUnderReview) {
       return {
         eligible: true,
         mode: "login",
         status: "under_review",
         reason: "VALID",
-        message: "Your application is under compliance review. You can log in to track your live status.",
+        message: "Your application is under compliance review. Log in to track your live status.",
         marathiMessage: "तुमचा अर्ज पडताळणी अंतर्गत आहे. तुम्ही स्टेटस ट्रॅक करण्यासाठी लॉगिन करू शकता.",
         applicationId,
         redirectUrl: `/application-status?id=${applicationId}`,
@@ -201,15 +195,16 @@ export async function checkPartnerEligibility(
       };
     }
 
-    // If approved partner
+    // If draft onboarding -> Login allowed so they can resume
     return {
       eligible: true,
       mode: "login",
-      status: "approved",
+      status: "draft",
       reason: "VALID",
-      message: "Mobile number verified and eligible for partner login.",
-      marathiMessage: "मोबाईल नंबर पात्र असून पार्टनर लॉगिनसाठी OTP पाठवला जात आहे.",
-      dsaCode,
+      message: "Your partner onboarding is incomplete. Log in to resume from where you left off.",
+      marathiMessage: "तुमची पार्टनर नोंदणी अपूर्ण आहे. लॉगिन केल्यावर तुम्ही थांबलात तिथूनच पुढे सुरू करू शकता.",
+      redirectUrl: "/onboarding",
+      applicationId,
       partnerName,
       onboardingState,
     };
@@ -228,6 +223,7 @@ export async function checkPartnerEligibility(
         marathiMessage: `हा मोबाईल नंबर आधीच अधिकृत DSA Partner म्हणून मंजूर आहे! (DSA Code: ${dsaCode || "Active"}). कृपया थेट लॉगिन करा.`,
         dsaCode,
         redirectUrl: `/partner/login?mobile=${cleanPhone}`,
+        actionText: "Log In Directly (लॉगिन करा) →",
       };
     }
 
@@ -242,6 +238,7 @@ export async function checkPartnerEligibility(
         marathiMessage: `तुमचा DSA Partner अर्ज आधीच सबमिट झालेला असून तो पडताळणी अंतर्गत (Under Review) आहे. (Application ID: ${applicationId}). कृपया स्टेटस तपासा.`,
         applicationId,
         redirectUrl: `/application-status?id=${applicationId}`,
+        actionText: "Track Application Status (स्टेटस तपासा) →",
       };
     }
 

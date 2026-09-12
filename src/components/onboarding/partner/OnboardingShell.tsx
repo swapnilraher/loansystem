@@ -134,9 +134,13 @@ export function OnboardingShell() {
             </div>
           ) : (
             <Link href="/" className="flex items-center gap-2 no-underline">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0f4bb4] text-white font-black text-xs shadow-xs">
-                TSM
-              </span>
+              <Image
+                src="/img/logo.webp"
+                alt="Techstar Money Solution logo"
+                width={32}
+                height={32}
+                className="h-8 w-auto object-contain"
+              />
               <span className="font-bold text-slate-800 text-sm tracking-tight hidden xs:inline">
                 Techstar Partner
               </span>
@@ -232,15 +236,6 @@ export function OnboardingShell() {
             <MobileGate />
           ) : (
             <div className="space-y-4">
-              {/* Verified number badge */}
-              <VerifiedStrip
-                mobileNumber={mobileNumber}
-                resuming={resuming}
-                locked={isSubmitted}
-                onDiscard={discardLocalDraft}
-                onChange={resetMobile}
-              />
-
               <FormErrorRegion message={stepError} kind={stepErrorKind} id="onboarding-step-error" />
 
               {restoredNote && !draftConflict && (
@@ -322,61 +317,6 @@ function firstOpen(stepDone: Record<PartnerStepId, boolean>): PartnerStepId {
     if (!stepDone[id as PartnerStepId]) return id as PartnerStepId
   }
   return LAST_INPUT_STEP
-}
-
-function VerifiedStrip({
-  mobileNumber,
-  resuming,
-  locked,
-  onDiscard,
-  onChange,
-}: {
-  mobileNumber: string
-  resuming: boolean
-  locked: boolean
-  onDiscard: () => void
-  onChange: () => void
-}) {
-  return (
-    <div className="flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50/70 px-3.5 py-2 text-xs text-emerald-900">
-      <div className="flex min-w-0 items-center gap-2">
-        <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
-          <Check size={12} className="stroke-[3]" />
-        </div>
-        <span className="min-w-0 font-medium">
-          <span>Verified </span>
-          <strong className="font-bold tracking-wide">+91 {mobileNumber}</strong>
-          {resuming && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-normal text-emerald-700 ml-2">
-              <Loader2 size={11} className="animate-spin" /> Restoring saved draft…
-            </span>
-          )}
-        </span>
-      </div>
-      {!locked && (
-        <div className="flex shrink-0 items-center gap-2 text-[11px]">
-          <button
-            type="button"
-            onClick={onDiscard}
-            title="Remove local browser copy"
-            className="text-slate-500 hover:text-slate-800"
-          >
-            Clear local
-          </button>
-          <span aria-hidden="true" className="text-slate-300">
-            ·
-          </span>
-          <button
-            type="button"
-            onClick={onChange}
-            className="font-bold text-emerald-800 hover:underline"
-          >
-            Change
-          </button>
-        </div>
-      )}
-    </div>
-  )
 }
 
 function LockedStep({ reason, onGo }: { reason: string; onGo: () => void }) {

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { signInWithCustomToken } from "firebase/auth"
 import { auth } from "@/lib/firebase"
@@ -189,6 +190,7 @@ export default function PartnerLogin() {
 
   const handleOtpBoxChange = (index: number, val: string) => {
     if (!/^\d*$/.test(val)) return
+    autoVerifiedRef.current = ""
     const nextOtp = [...otpValues]
     nextOtp[index] = val.slice(-1)
     setOtpValues(nextOtp)
@@ -209,6 +211,7 @@ export default function PartnerLogin() {
     const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6)
     if (!pasted) return
     e.preventDefault()
+    autoVerifiedRef.current = ""
     const next = ["", "", "", "", "", ""]
     pasted.split("").forEach((d, i) => { next[i] = d })
     setOtpValues(next)
@@ -286,7 +289,7 @@ export default function PartnerLogin() {
       setOtpSent(false)
       await completeLogin(data)
     } catch (err: any) {
-      autoVerifiedRef.current = ""
+      // Keep autoVerifiedRef.current so it does NOT auto-retry the exact same failed code!
       setError(err.message || "Failed to verify OTP.")
     } finally {
       setVerifyLoading(false)
@@ -379,9 +382,13 @@ export default function PartnerLogin() {
         <div className="mx-auto flex h-14 w-full max-w-3xl items-center justify-between px-3 sm:px-6">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 no-underline">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0f4bb4] text-white font-black text-xs shadow-xs">
-              TSM
-            </span>
+            <Image
+              src="/img/logo.webp"
+              alt="Techstar Money Solution logo"
+              width={32}
+              height={32}
+              className="h-8 w-auto object-contain"
+            />
             <span className="font-bold text-slate-800 text-sm tracking-tight hidden xs:inline">
               Techstar Partner
             </span>

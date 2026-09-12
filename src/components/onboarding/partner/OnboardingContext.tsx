@@ -679,8 +679,8 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
         const left = MAX_OTP_ATTEMPTS - (otpAttempts + 1)
         throw new Error(
           left > 0
-            ? `That code is not correct. ${left} attempt${left === 1 ? "" : "s"} left before you need a new code.`
-            : "That was the last attempt on this code. Request a new one to continue."
+            ? "Invalid OTP code. Please check the 6-digit code sent on WhatsApp and try again."
+            : "Maximum attempts exceeded. Please request a new OTP code to continue."
         )
       }
 
@@ -691,7 +691,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       await loadDraft(mobileNumber)
     } catch (err: any) {
       console.error("[onboarding] verify OTP failed", { mobile: mobileNumber, error: describeError(err) })
-      autoVerifiedRef.current = ""
+      // Keep autoVerifiedRef.current = code so the effect does NOT auto-retry the exact same failed code!
       const kind = classifyError(err)
       setMobileError(messageForKind(kind, err?.message || "Failed to verify OTP."), kind)
     } finally {
@@ -701,6 +701,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
   const setOtpDigit = useCallback((index: number, value: string) => {
     if (!/^\d*$/.test(value)) return
+    autoVerifiedRef.current = ""
     setOtpValues(prev => {
       const next = [...prev]
       next[index] = value.slice(-1)
@@ -711,6 +712,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   const pasteOtp = useCallback((text: string) => {
     const digits = text.replace(/\D/g, "").slice(0, 6)
     if (!digits) return
+    autoVerifiedRef.current = ""
     const next = [...EMPTY_OTP]
     digits.split("").forEach((d, i) => {
       next[i] = d
