@@ -155,7 +155,7 @@ export function Step2KycDocuments() {
           {form.panVerified && (
             <p className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 pt-0.5">
               <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
-              Verified PAN for {form.panDetails?.fullName || form.fullName || "Partner"}
+              Verified PAN for {String(form.panDetails?.fullName || form.fullName || "Partner")}
             </p>
           )}
         </div>
@@ -177,7 +177,7 @@ export function Step2KycDocuments() {
                 <div>
                   <div className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold">Name</div>
                   <div className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-wide uppercase">
-                    {form.panDetails?.fullName || form.fullName || "TECHSTAR PARTNER"}
+                    {String(form.panDetails?.fullName || form.fullName || "TECHSTAR PARTNER")}
                   </div>
                 </div>
 
