@@ -17,6 +17,7 @@ import React, { useState, useEffect } from "react"
 import Link from "next/link"
 import {
   AlertTriangle,
+  ArrowRight,
   CheckCircle2,
   Clock,
   HelpCircle,
@@ -170,7 +171,10 @@ export function MobileGate() {
               <span>Sending OTP…</span>
             </>
           ) : (
-            <span>Create Account</span>
+            <>
+              <span>Create Account</span>
+              <ArrowRight size={16} />
+            </>
           )}
         </button>
 

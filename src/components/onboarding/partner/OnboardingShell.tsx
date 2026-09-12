@@ -1,12 +1,13 @@
 "use client"
 
 /**
- * Cashfree-inspired DSA Partner Onboarding Shell.
+ * Techstar DSA Partner Portal - Onboarding Shell.
  *
- * Implements the streamlined 3-step partner onboarding wizard with:
- * 1. Top bar featuring Back navigation, 3-step horizontal stepper, and Help action.
- * 2. Festive/anniversary promotional banner.
- * 3. Focused, centered clean card container matching Cashfree's merchant onboarding UI.
+ * Implements the unified partner onboarding layout:
+ * 1. Compact header with Back navigation, 3-step progress stepper, and Help action.
+ * 2. Branded purple -> teal gradient promotional ribbon.
+ * 3. Focused, centered card container matching fintech partner platforms.
+ * 4. Responsive mobile & desktop layout with safe-area spacing.
  */
 
 import React, { useState } from "react"
@@ -24,6 +25,7 @@ import {
   Lock,
   MessageSquare,
   Phone,
+  RefreshCw,
   X,
 } from "lucide-react"
 
@@ -42,6 +44,12 @@ const STEP_COMPONENTS: Record<PartnerStepId, () => React.JSX.Element> = {
   1: Step1PersonalBusiness,
   2: Step2KycDocuments,
   3: Step3ReviewSubmit,
+}
+
+const STEP_TITLES: Record<PartnerStepId, string> = {
+  1: "Business Details",
+  2: "KYC & Bank Setup",
+  3: "Review & Submit",
 }
 
 export function OnboardingShell() {
@@ -74,7 +82,7 @@ export function OnboardingShell() {
 
   return (
     <div className="min-h-dvh flex flex-col bg-[#f8fafc] text-slate-900 font-sans antialiased">
-      {/* ── Cashfree-style Top Header ── */}
+      {/* ── Top Header ── */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
         <div className="mx-auto flex h-14 w-full max-w-3xl items-center justify-between px-3 sm:px-6">
           {/* Back button */}
@@ -93,7 +101,7 @@ export function OnboardingShell() {
             <ChevronLeft size={22} className="stroke-[2.5]" />
           </button>
 
-          {/* Stepper with 3 circles & connecting lines (matching Cashfree) */}
+          {/* Stepper with 3 connected circles */}
           {isMobileVerified && !isSubmitted ? (
             <div className="flex items-center gap-1.5 sm:gap-3">
               {[1, 2, 3].map((sId, idx) => {
@@ -108,7 +116,7 @@ export function OnboardingShell() {
                       <div
                         className={cn(
                           "h-1 w-6 sm:w-12 rounded-full transition-all duration-300",
-                          isPast ? "bg-[#16a34a]" : "bg-slate-200"
+                          isPast ? "bg-emerald-600" : "bg-slate-200"
                         )}
                       />
                     )}
@@ -119,12 +127,13 @@ export function OnboardingShell() {
                       className={cn(
                         "w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold transition-all duration-200",
                         isDone
-                          ? "bg-[#16a34a] text-white shadow-xs hover:brightness-105 cursor-pointer"
+                          ? "bg-emerald-600 text-white shadow-xs hover:brightness-105 cursor-pointer"
                           : isActive
-                            ? "bg-[#0f4bb4] text-white shadow-md ring-4 ring-blue-100"
-                            : "bg-[#e2e8f0] text-slate-500 cursor-not-allowed"
+                            ? "bg-indigo-600 text-white shadow-md ring-4 ring-indigo-100"
+                            : "bg-slate-200 text-slate-500 cursor-not-allowed"
                       )}
-                      aria-label={`Step ${id}`}
+                      aria-label={`Step ${id}: ${STEP_TITLES[id]}`}
+                      title={STEP_TITLES[id]}
                     >
                       {isDone ? <Check size={14} className="stroke-[3]" /> : id}
                     </button>
@@ -151,14 +160,14 @@ export function OnboardingShell() {
           <button
             type="button"
             onClick={() => setHelpOpen(true)}
-            className="w-9 h-9 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100 hover:text-[#0f4bb4] transition-colors"
+            className="w-9 h-9 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100 hover:text-indigo-600 transition-colors cursor-pointer"
             aria-label="Help and support"
           >
             <HelpCircle size={20} className="stroke-[2]" />
           </button>
         </div>
 
-        {/* ── DSA Partner Exclusive Ribbon ── */}
+        {/* ── DSA Partner Exclusive Promotional Ribbon ── */}
         <div className="bg-gradient-to-r from-[#6d28d9] via-[#4338ca] to-[#059669] text-white text-[11px] sm:text-xs font-semibold py-1.5 px-3 text-center tracking-wide flex items-center justify-center gap-2">
           <span>DSA Partner Special Offer! Onboarding @ ₹0 Registration Fee* · Up to 2.5% Payout on Loan Disbursals · 50+ Banks &amp; NBFCs</span>
         </div>
@@ -174,15 +183,16 @@ export function OnboardingShell() {
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl space-y-4 border border-slate-100">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#0f4bb4] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
                   <Headphones size={18} />
                 </div>
-                <h3 className="text-base font-bold text-slate-800">Partner Helpdesk</h3>
+                <h3 className="text-base font-bold text-slate-900">Partner Helpdesk</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setHelpOpen(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+                aria-label="Close help"
               >
                 <X size={18} />
               </button>
@@ -195,14 +205,14 @@ export function OnboardingShell() {
             <div className="space-y-2 pt-1">
               <a
                 href="tel:09579005645"
-                className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 transition-all group"
+                className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50 transition-all group"
               >
-                <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center group-hover:bg-[#0f4bb4] group-hover:text-white transition-colors">
+                <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                   <Phone size={16} />
                 </div>
                 <div>
                   <div className="text-xs text-slate-500 font-medium">Direct Phone Call</div>
-                  <div className="text-sm font-bold text-slate-800">095790 05645</div>
+                  <div className="text-sm font-bold text-slate-900">095790 05645</div>
                 </div>
               </a>
 
@@ -212,7 +222,7 @@ export function OnboardingShell() {
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 transition-all group"
               >
-                <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center group-hover:bg-[#16a34a] group-hover:text-white transition-colors">
+                <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                   <MessageSquare size={16} />
                 </div>
                 <div>
@@ -230,18 +240,24 @@ export function OnboardingShell() {
       )}
 
       {/* ── Main Focused Content ── */}
-      <main className="flex-1 px-3 sm:px-6 py-6 sm:py-10">
+      <main className="flex-1 px-3 sm:px-6 py-6 sm:py-10 pb-28 sm:pb-16">
         <div className="mx-auto w-full max-w-xl">
           {!isMobileVerified ? (
             <MobileGate />
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <FormErrorRegion message={stepError} kind={stepErrorKind} id="onboarding-step-error" />
 
+              {/* Resume Onboarding Banner (Item 31) */}
               {restoredNote && !draftConflict && (
-                <div className="flex items-start gap-2 rounded-xl border border-blue-200 bg-blue-50/80 px-3.5 py-2.5 text-xs font-semibold text-blue-900">
-                  <Clock size={14} className="mt-0.5 shrink-0 text-blue-600" />
-                  <span>{restoredNote}</span>
+                <div className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50/90 p-4 text-xs text-blue-900 shadow-sm animate-fadeIn">
+                  <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                    <RefreshCw size={16} className="text-blue-600" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="font-bold text-sm text-blue-950">Resume your application</div>
+                    <p className="text-xs text-blue-800 leading-relaxed">{restoredNote}</p>
+                  </div>
                 </div>
               )}
 
@@ -263,14 +279,14 @@ export function OnboardingShell() {
                       <button
                         type="button"
                         onClick={preferLocalDraft}
-                        className="h-8 rounded-lg border border-amber-300 bg-white px-3 font-bold text-amber-950 hover:bg-amber-100 transition-colors"
+                        className="h-8 rounded-lg border border-amber-300 bg-white px-3 font-bold text-amber-950 hover:bg-amber-100 transition-colors cursor-pointer"
                       >
                         Use this device&rsquo;s version
                       </button>
                       <button
                         type="button"
                         onClick={dismissDraftConflict}
-                        className="h-8 rounded-lg px-3 font-semibold text-amber-800 hover:bg-amber-100/60 transition-colors"
+                        className="h-8 rounded-lg px-3 font-semibold text-amber-800 hover:bg-amber-100/60 transition-colors cursor-pointer"
                       >
                         Keep account&rsquo;s version
                       </button>
@@ -297,7 +313,7 @@ export function OnboardingShell() {
           <span>© {new Date().getFullYear()} Techstar Money Solution Pvt. Ltd.</span>
           <span className="flex items-center gap-4">
             <Link href="/terms" className="hover:text-slate-800 transition-colors">
-              Terms & Conditions
+              Terms &amp; Conditions
             </Link>
             <Link href="/privacy" className="hover:text-slate-800 transition-colors">
               Privacy Policy
@@ -332,7 +348,7 @@ function LockedStep({ reason, onGo }: { reason: string; onGo: () => void }) {
       <button
         type="button"
         onClick={onGo}
-        className="inline-flex h-11 items-center gap-1.5 rounded-lg bg-[#18181b] px-5 text-sm font-semibold text-white hover:bg-black transition-all"
+        className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-[#18181b] px-5 text-sm font-semibold text-white hover:bg-black transition-all cursor-pointer"
       >
         <ArrowLeft size={15} /> Go to the step that needs finishing
       </button>

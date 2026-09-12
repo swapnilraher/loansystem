@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   Smartphone,
   X,
+  Zap,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -124,7 +125,9 @@ export default function PartnerLogin() {
         if (data.reason === "NOT_REGISTERED") {
           setEligibilityError({
             message: data.message || "This mobile number is not registered as a partner.",
-            marathiMessage: data.marathiMessage || "हा मोबाईल नंबर पार्टनर पोर्टलवर नोंदणीकृत नाही. कृपया प्रथम नवीन पार्टनर म्हणून नोंदणी करा.",
+            marathiMessage:
+              data.marathiMessage ||
+              "हा मोबाईल नंबर पार्टनर पोर्टलवर नोंदणीकृत नाही. कृपया प्रथम नवीन पार्टनर म्हणून नोंदणी करा.",
             redirectUrl: data.redirectUrl || `/onboarding?mobile=${mobileNumber}`,
             actionText: "Register as Partner (नवीन नोंदणी करा) →",
           })
@@ -133,7 +136,8 @@ export default function PartnerLogin() {
         if (data.reason === "NOT_APPROVED") {
           setEligibilityError({
             message: data.message || "Your account is not approved for login yet.",
-            marathiMessage: data.marathiMessage || "तुमचे पार्टनर खाते अद्याप लॉगिनसाठी मंजूर झालेले नाही.",
+            marathiMessage:
+              data.marathiMessage || "तुमचे पार्टनर खाते अद्याप लॉगिनसाठी मंजूर झालेले नाही.",
             redirectUrl: "/application-status",
             actionText: "Track Application Status →",
           })
@@ -142,7 +146,9 @@ export default function PartnerLogin() {
         if (data.reason === "BLOCKED") {
           setEligibilityError({
             message: data.message || "This account has been suspended.",
-            marathiMessage: data.marathiMessage || "हा पार्टनर नंबर ब्लॉक किंवा नामंजूर करण्यात आला आहे. कृपया मदतीसाठी संपर्क साधा.",
+            marathiMessage:
+              data.marathiMessage ||
+              "हा पार्टनर नंबर ब्लॉक किंवा नामंजूर करण्यात आला आहे. कृपया मदतीसाठी संपर्क साधा.",
             redirectUrl: "tel:09579005645",
             actionText: "Call Partner Support (095790 05645)",
           })
@@ -213,7 +219,9 @@ export default function PartnerLogin() {
     e.preventDefault()
     autoVerifiedRef.current = ""
     const next = ["", "", "", "", "", ""]
-    pasted.split("").forEach((d, i) => { next[i] = d })
+    pasted.split("").forEach((d, i) => {
+      next[i] = d
+    })
     setOtpValues(next)
     document.getElementById(`login-modal-otp-${Math.min(pasted.length, 5)}`)?.focus()
   }
@@ -266,36 +274,38 @@ export default function PartnerLogin() {
     }
   }
 
-  const handleVerifyOtpSubmit = useCallback(async (e?: React.FormEvent) => {
-    if (e) e.preventDefault()
-    const fullOtp = otpValues.join("")
-    if (fullOtp.length < 6) {
-      setError("Please enter the complete 6-digit OTP code.")
-      return
-    }
+  const handleVerifyOtpSubmit = useCallback(
+    async (e?: React.FormEvent) => {
+      if (e) e.preventDefault()
+      const fullOtp = otpValues.join("")
+      if (fullOtp.length < 6) {
+        setError("Please enter the complete 6-digit OTP code.")
+        return
+      }
 
-    setVerifyLoading(true)
-    setError("")
-    try {
-      const res = await fetch("/api/onboarding/verify-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber: mobileNumber, otp: fullOtp, isLogin: true }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Invalid OTP code")
+      setVerifyLoading(true)
+      setError("")
+      try {
+        const res = await fetch("/api/onboarding/verify-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phoneNumber: mobileNumber, otp: fullOtp, isLogin: true }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || "Invalid OTP code")
 
-      setIsMobileVerified(true)
-      setOtpSent(false)
-      await completeLogin(data)
-    } catch (err: any) {
-      // Keep autoVerifiedRef.current so it does NOT auto-retry the exact same failed code!
-      setError(err.message || "Failed to verify OTP.")
-    } finally {
-      setVerifyLoading(false)
-    }
+        setIsMobileVerified(true)
+        setOtpSent(false)
+        await completeLogin(data)
+      } catch (err: any) {
+        setError(err.message || "Failed to verify OTP.")
+      } finally {
+        setVerifyLoading(false)
+      }
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [otpValues, mobileNumber])
+    [otpValues, mobileNumber]
+  )
 
   // Auto-submit as soon as all six digits are present
   useEffect(() => {
@@ -325,7 +335,9 @@ export default function PartnerLogin() {
           window.location.href = "/"
           return
         } else if (appSt === "under_review" || appSt === "submitted") {
-          window.location.href = `/application-status?id=${data.application.applicationId || encodeURIComponent(cleanEmail)}`
+          window.location.href = `/application-status?id=${
+            data.application.applicationId || encodeURIComponent(cleanEmail)
+          }`
           return
         }
       }
@@ -354,7 +366,9 @@ export default function PartnerLogin() {
             window.location.href = "/"
             return
           } else if (appSt === "under_review" || appSt === "submitted") {
-            window.location.href = `/application-status?id=${data.application.applicationId || encodeURIComponent(userEmail)}`
+            window.location.href = `/application-status?id=${
+              data.application.applicationId || encodeURIComponent(userEmail)
+            }`
             return
           }
         }
@@ -369,7 +383,6 @@ export default function PartnerLogin() {
 
   const busy = loading || otpLoading || verifyLoading
 
-  // Masked phone for authenticate modal
   const maskedPhone =
     mobileNumber.length === 10
       ? `+91xxxxxx${mobileNumber.slice(-4)}`
@@ -377,9 +390,9 @@ export default function PartnerLogin() {
 
   return (
     <div className="min-h-dvh flex flex-col bg-[#f8fafc] text-slate-900 font-sans antialiased">
-      {/* ── Cashfree-style Top Header ── */}
+      {/* ── Top Header ── */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
-        <div className="mx-auto flex h-14 w-full max-w-3xl items-center justify-between px-3 sm:px-6">
+        <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-3 sm:px-6">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 no-underline">
             <Image
@@ -403,11 +416,10 @@ export default function PartnerLogin() {
               Track Status
             </Link>
 
-            {/* Help Button (?) */}
             <button
               type="button"
               onClick={() => setHelpOpen(true)}
-              className="w-9 h-9 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100 hover:text-[#0f4bb4] transition-colors cursor-pointer"
+              className="w-9 h-9 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100 hover:text-indigo-600 transition-colors cursor-pointer"
               aria-label="Help and support"
             >
               <HelpCircle size={20} className="stroke-[2]" />
@@ -415,340 +427,400 @@ export default function PartnerLogin() {
           </div>
         </div>
 
-        {/* ── DSA Partner Exclusive Ribbon ── */}
+        {/* ── Promotional Ribbon ── */}
         <div className="bg-gradient-to-r from-[#6d28d9] via-[#4338ca] to-[#059669] text-white text-[11px] sm:text-xs font-semibold py-1.5 px-3 text-center tracking-wide flex items-center justify-center gap-2">
           <span>DSA Partner Special Offer! Onboarding @ ₹0 Registration Fee* · Up to 2.5% Payout on Loan Disbursals · 50+ Banks &amp; NBFCs</span>
         </div>
       </header>
 
-      {/* ── Main Content Area ── */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-6 sm:py-10">
-        <div className="mx-auto w-full max-w-md py-2 sm:py-4 space-y-6 animate-fadeIn">
-          {/* Brand Heading */}
-          <div className="space-y-1.5">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-              Partner Login.
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500">
-              Sign in to your Techstar DSA Partner portal to manage loan files and payouts.
-            </p>
+      {/* ── Main Content: Responsive Split Desktop & Clean Single-Column Mobile ── */}
+      <main className="flex-1 flex flex-col items-center justify-center px-4 py-8 sm:py-12">
+        <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+          {/* LEFT COLUMN: Desktop Brand & Value Proposition (Hidden on small mobile screens to keep login lightweight) */}
+          <div className="hidden lg:flex lg:col-span-6 flex-col space-y-6">
+            <div className="space-y-3">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200/80 text-indigo-700 text-xs font-bold uppercase tracking-wider">
+                <ShieldCheck size={14} className="text-indigo-600" />
+                DSA Partner Portal
+              </span>
+              <h1 className="text-3xl xl:text-4xl font-extrabold tracking-tight text-slate-900 leading-tight">
+                India&rsquo;s Leading DSA Loan Partner Ecosystem.
+              </h1>
+              <p className="text-sm text-slate-600 leading-relaxed max-w-lg">
+                Log in to submit loan files, monitor live sanction statuses, and track instant commission payouts across 50+ partner Banks and NBFCs.
+              </p>
+            </div>
+
+            {/* Feature Highlights */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center gap-3 text-sm text-slate-700 font-medium">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                  <CheckCircle2 size={16} />
+                </div>
+                <span>Highest DSA commission slabs (up to 2.5% max payout)</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-slate-700 font-medium">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                  <Zap size={16} />
+                </div>
+                <span>Fast loan disbursals across Personal, Business &amp; LAP loans</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-slate-700 font-medium">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                  <ShieldCheck size={16} />
+                </div>
+                <span>Dedicated partner relationship manager &amp; WhatsApp support</span>
+              </div>
+            </div>
+
+            {/* Security Guarantee */}
+            <div className="pt-4 border-t border-slate-200/80 flex items-center gap-2 text-xs text-slate-400">
+              <ShieldCheck size={15} className="text-emerald-600 shrink-0" />
+              <span>Bank-grade 256-bit encryption • ISO 9001:2015 certified</span>
+            </div>
           </div>
 
-          {/* Error Banner */}
-          {error && !otpSent && (
-            <div
-              role="alert"
-              className="flex items-start gap-2.5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium animate-fadeIn"
-            >
-              <AlertCircle size={16} className="shrink-0 mt-0.5 text-rose-600" />
-              <span>{error}</span>
+          {/* RIGHT COLUMN: Unified Login Card (Single Column on Mobile) */}
+          <div className="lg:col-span-6 w-full max-w-md mx-auto space-y-5 animate-fadeIn">
+            {/* Mobile Header Title */}
+            <div className="space-y-1 text-left">
+              <span className="lg:hidden inline-block text-xs font-bold uppercase tracking-wider text-indigo-600">
+                DSA PARTNER PORTAL
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+                Welcome back
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500">
+                Login to manage your partner applications, leads and payouts.
+              </p>
             </div>
-          )}
 
-          {/* Eligibility Notice (Not Registered / Not Approved / Blocked) */}
-          {eligibilityError && (
-            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-2.5 animate-fadeIn">
-              <div className="flex items-start gap-2">
-                <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-bold text-amber-950 text-xs">
-                    {eligibilityError.marathiMessage}
-                  </div>
-                  <div className="text-[11px] text-amber-800 mt-0.5">
-                    {eligibilityError.message}
-                  </div>
-                </div>
+            {/* Error Banner */}
+            {error && !otpSent && (
+              <div
+                role="alert"
+                className="flex items-start gap-2.5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium animate-fadeIn"
+              >
+                <AlertCircle size={16} className="shrink-0 mt-0.5 text-rose-600" />
+                <span>{error}</span>
               </div>
-              {eligibilityError.redirectUrl && (
-                <div className="pt-1">
-                  <Link
-                    href={eligibilityError.redirectUrl}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#18181b] hover:bg-black text-white font-semibold text-xs transition-colors shadow-sm"
-                  >
-                    <span>{eligibilityError.actionText || "Continue →"}</span>
-                  </Link>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── Main Form Card ── */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_4px_24px_rgba(0,0,0,0.03)] p-6 space-y-5">
-            {/* Auth Method Selector (Mobile OTP vs Email) */}
-            <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-xl">
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMethod("otp")
-                  setError("")
-                }}
-                className={cn(
-                  "flex items-center justify-center gap-1.5 h-9 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                  authMethod === "otp"
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-500 hover:text-slate-900"
-                )}
-              >
-                <Smartphone size={14} />
-                <span>Mobile OTP</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMethod("email")
-                  setError("")
-                }}
-                className={cn(
-                  "flex items-center justify-center gap-1.5 h-9 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                  authMethod === "email"
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-500 hover:text-slate-900"
-                )}
-              >
-                <Mail size={14} />
-                <span>Email Login</span>
-              </button>
-            </div>
-
-            {/* Form Content: Mobile OTP */}
-            {authMethod === "otp" ? (
-              <form onSubmit={handleSendMobileOtp} noValidate className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="mobile-input" className="block text-xs font-semibold text-slate-700">
-                    Registered Mobile Number
-                  </label>
-                  <div
-                    className={cn(
-                      "flex h-12 rounded-xl border bg-white overflow-hidden transition-all",
-                      "focus-within:border-indigo-600 focus-within:ring-2 focus-within:ring-indigo-600/10",
-                      mobileInvalid ? "border-rose-400" : "border-slate-200"
-                    )}
-                  >
-                    {/* Country Selector: IND (+91) ⌵ */}
-                    <div className="flex items-center gap-1 px-3 bg-slate-50/80 border-r border-slate-200 text-xs font-semibold text-slate-800 select-none shrink-0">
-                      <span className="text-base" role="img" aria-label="India flag">🇮🇳</span>
-                      <span>IND (+91)</span>
-                      <svg className="w-3 h-3 text-slate-500 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-
-                    <input
-                      id="mobile-input"
-                      autoFocus
-                      type="tel"
-                      inputMode="numeric"
-                      maxLength={10}
-                      autoComplete="tel"
-                      placeholder=""
-                      value={mobileNumber}
-                      disabled={otpSent || isMobileVerified || otpLoading}
-                      onChange={(e) => {
-                        setMobileNumber(e.target.value.replace(/\D/g, ""))
-                        setError("")
-                        setEligibilityError(null)
-                      }}
-                      className="w-full px-3.5 bg-transparent text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none"
-                    />
-                  </div>
-                  {mobileInvalid && (
-                    <p className="text-xs text-rose-500">Please enter a valid 10-digit mobile number.</p>
-                  )}
-                </div>
-
-                {/* WhatsApp Checkbox */}
-                <label className="flex items-center gap-2.5 cursor-pointer text-xs text-slate-700 select-none">
-                  <input
-                    type="checkbox"
-                    checked={whatsappUpdates}
-                    onChange={(e) => setWhatsappUpdates(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                  />
-                  <span className="flex items-center gap-1.5 font-medium">
-                    Receive account updates via WhatsApp
-                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px]">
-                      💬
-                    </span>
-                  </span>
-                </label>
-
-                {/* Black Action Button */}
-                <button
-                  type="submit"
-                  disabled={busy || !isMobileValid}
-                  className="w-full h-12 rounded-xl bg-[#18181b] hover:bg-black text-white text-sm font-semibold shadow-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  {otpLoading ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      <span>Sending OTP…</span>
-                    </>
-                  ) : (
-                    <span>Get Verification OTP</span>
-                  )}
-                </button>
-              </form>
-            ) : (
-              /* Form Content: Email Login */
-              <form onSubmit={handleEmailLogin} noValidate className="space-y-4">
-                <div className="space-y-1.5">
-                  <label htmlFor="email-input" className="block text-xs font-semibold text-slate-700">
-                    Email Address
-                  </label>
-                  <div className="relative flex items-center h-12 rounded-xl border border-slate-200 bg-white focus-within:border-indigo-600 focus-within:ring-2 focus-within:ring-indigo-600/10 transition-all">
-                    <Mail size={16} className="absolute left-3.5 text-slate-400 pointer-events-none shrink-0" />
-                    <input
-                      id="email-input"
-                      autoFocus
-                      type="email"
-                      autoComplete="username"
-                      required
-                      placeholder="partner@domain.com"
-                      value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value)
-                        setError("")
-                      }}
-                      className="w-full pl-10 pr-3.5 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label htmlFor="password-input" className="text-xs font-semibold text-slate-700">
-                      Password
-                    </label>
-                    <a
-                      href="https://wa.me/919579005645?text=Hello%20Techstar,%20I%20forgot%20my%20partner%20password."
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[11px] font-semibold text-[#0f4bb4] hover:underline"
-                    >
-                      Forgot password?
-                    </a>
-                  </div>
-                  <div className="relative flex items-center h-12 rounded-xl border border-slate-200 bg-white focus-within:border-indigo-600 focus-within:ring-2 focus-within:ring-indigo-600/10 transition-all">
-                    <Lock size={16} className="absolute left-3.5 text-slate-400 pointer-events-none shrink-0" />
-                    <input
-                      id="password-input"
-                      type={showPassword ? "text" : "password"}
-                      autoComplete="current-password"
-                      required
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value)
-                        setError("")
-                      }}
-                      className="w-full pl-10 pr-10 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((v) => !v)}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                      className="absolute right-3.5 text-slate-400 hover:text-slate-600 cursor-pointer"
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading || !email.trim() || !password}
-                  className="w-full h-12 rounded-xl bg-[#18181b] hover:bg-black text-white text-sm font-semibold shadow-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      <span>Signing in…</span>
-                    </>
-                  ) : (
-                    <span>Sign In to Portal</span>
-                  )}
-                </button>
-              </form>
             )}
 
-            {/* Divider */}
-            <div className="flex items-center gap-3">
-              <span className="flex-1 h-px bg-slate-200" />
-              <span className="text-[11px] text-slate-400 font-medium shrink-0">or continue with</span>
-              <span className="flex-1 h-px bg-slate-200" />
-            </div>
+            {/* Eligibility Notice */}
+            {eligibilityError && (
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-2.5 animate-fadeIn">
+                <div className="flex items-start gap-2">
+                  <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-bold text-amber-950 text-xs">
+                      {eligibilityError.marathiMessage}
+                    </div>
+                    <div className="text-[11px] text-amber-800 mt-0.5">
+                      {eligibilityError.message}
+                    </div>
+                  </div>
+                </div>
+                {eligibilityError.redirectUrl && (
+                  <div className="pt-1">
+                    <Link
+                      href={eligibilityError.redirectUrl}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#18181b] hover:bg-black text-white font-semibold text-xs transition-colors shadow-sm"
+                    >
+                      <span>{eligibilityError.actionText || "Continue →"}</span>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
 
-            {/* Google Sign-in */}
-            <button
-              type="button"
-              disabled={busy}
-              onClick={handleGoogleLogin}
-              className="w-full h-11 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition-all flex items-center justify-center gap-2.5 cursor-pointer active:scale-[0.99]"
-            >
-              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-              </svg>
-              <span>Continue with Google</span>
-            </button>
+            {/* ── Main Login Card ── */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_4px_24px_rgba(0,0,0,0.03)] p-6 space-y-5">
+              {/* Auth Method Selector */}
+              <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMethod("otp")
+                    setError("")
+                  }}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 h-9 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                    authMethod === "otp"
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-500 hover:text-slate-900"
+                  )}
+                >
+                  <Smartphone size={14} />
+                  <span>Mobile OTP</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMethod("email")
+                    setError("")
+                  }}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 h-9 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                    authMethod === "email"
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-500 hover:text-slate-900"
+                  )}
+                >
+                  <Mail size={14} />
+                  <span>Email Login</span>
+                </button>
+              </div>
 
-            {/* Footer Registration Link */}
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-              <span className="text-slate-500">New to Techstar?</span>
-              <Link
-                href="/onboarding"
-                className="font-bold text-[#0f4bb4] hover:underline inline-flex items-center gap-1"
-              >
-                Register as Partner <ArrowRight size={13} />
-              </Link>
-            </div>
+              {/* Method 1: Mobile OTP Login */}
+              {authMethod === "otp" ? (
+                <form onSubmit={handleSendMobileOtp} noValidate className="space-y-4">
+                  <div className="space-y-2">
+                    <label htmlFor="mobile-input" className="block text-xs font-semibold text-slate-700">
+                      Registered Mobile Number
+                    </label>
+                    <div
+                      className={cn(
+                        "flex h-12 rounded-xl border bg-white overflow-hidden transition-all",
+                        "focus-within:border-indigo-600 focus-within:ring-2 focus-within:ring-indigo-600/10",
+                        mobileInvalid ? "border-rose-400" : "border-slate-200"
+                      )}
+                    >
+                      {/* Country Selector: IND (+91) ⌵ */}
+                      <div className="flex items-center gap-1 px-3 bg-slate-50/80 border-r border-slate-200 text-xs font-semibold text-slate-800 select-none shrink-0">
+                        <span className="text-base" role="img" aria-label="India flag">
+                          🇮🇳
+                        </span>
+                        <span>IND (+91)</span>
+                        <svg
+                          className="w-3 h-3 text-slate-500 ml-0.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
 
-            {/* Facing Issues */}
-            <div className="pt-2 border-t border-slate-100 flex flex-col items-center gap-1.5">
-              <span className="text-xs text-slate-500">Facing issues?</span>
+                      <input
+                        id="mobile-input"
+                        autoFocus
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
+                        autoComplete="tel"
+                        placeholder=""
+                        value={mobileNumber}
+                        disabled={otpSent || isMobileVerified || otpLoading}
+                        onChange={(e) => {
+                          setMobileNumber(e.target.value.replace(/\D/g, ""))
+                          setError("")
+                          setEligibilityError(null)
+                        }}
+                        className="w-full px-3.5 bg-transparent text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                      />
+                    </div>
+                    {mobileInvalid && (
+                      <p className="text-xs text-rose-500">Please enter a valid 10-digit mobile number.</p>
+                    )}
+                  </div>
+
+                  {/* WhatsApp Checkbox */}
+                  <label className="flex items-center gap-2.5 cursor-pointer text-xs text-slate-700 select-none">
+                    <input
+                      type="checkbox"
+                      checked={whatsappUpdates}
+                      onChange={(e) => setWhatsappUpdates(e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    />
+                    <span className="flex items-center gap-1.5 font-medium">
+                      Receive account updates via WhatsApp
+                      <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px]">
+                        💬
+                      </span>
+                    </span>
+                  </label>
+
+                  {/* Primary Black CTA Button (Requirement 15) */}
+                  <button
+                    type="submit"
+                    disabled={busy || !isMobileValid}
+                    className="w-full h-12 rounded-xl bg-[#18181b] hover:bg-black text-white text-sm font-semibold shadow-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {otpLoading ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        <span>Sending OTP…</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Continue</span>
+                        <ArrowRight size={16} />
+                      </>
+                    )}
+                  </button>
+                </form>
+              ) : (
+                /* Method 2: Email Login */
+                <form onSubmit={handleEmailLogin} noValidate className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label htmlFor="email-input" className="block text-xs font-semibold text-slate-700">
+                      Email Address
+                    </label>
+                    <div className="relative flex items-center h-12 rounded-xl border border-slate-200 bg-white focus-within:border-indigo-600 focus-within:ring-2 focus-within:ring-indigo-600/10 transition-all">
+                      <Mail size={16} className="absolute left-3.5 text-slate-400 pointer-events-none shrink-0" />
+                      <input
+                        id="email-input"
+                        autoFocus
+                        type="email"
+                        autoComplete="username"
+                        required
+                        placeholder="partner@domain.com"
+                        value={email}
+                        onChange={(e) => {
+                          setEmail(e.target.value)
+                          setError("")
+                        }}
+                        className="w-full pl-10 pr-3.5 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="password-input" className="text-xs font-semibold text-slate-700">
+                        Password
+                      </label>
+                      <a
+                        href="https://wa.me/919579005645?text=Hello%20Techstar,%20I%20forgot%20my%20partner%20password."
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] font-semibold text-indigo-600 hover:underline"
+                      >
+                        Forgot password?
+                      </a>
+                    </div>
+                    <div className="relative flex items-center h-12 rounded-xl border border-slate-200 bg-white focus-within:border-indigo-600 focus-within:ring-2 focus-within:ring-indigo-600/10 transition-all">
+                      <Lock size={16} className="absolute left-3.5 text-slate-400 pointer-events-none shrink-0" />
+                      <input
+                        id="password-input"
+                        type={showPassword ? "text" : "password"}
+                        autoComplete="current-password"
+                        required
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => {
+                          setPassword(e.target.value)
+                          setError("")
+                        }}
+                        className="w-full pl-10 pr-10 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((v) => !v)}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        className="absolute right-3.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading || !email.trim() || !password}
+                    className="w-full h-12 rounded-xl bg-[#18181b] hover:bg-black text-white text-sm font-semibold shadow-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        <span>Signing in…</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Sign In to Portal</span>
+                        <ArrowRight size={16} />
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
+
+              {/* Divider */}
+              <div className="flex items-center gap-3">
+                <span className="flex-1 h-px bg-slate-200" />
+                <span className="text-[11px] text-slate-400 font-medium shrink-0">or continue with</span>
+                <span className="flex-1 h-px bg-slate-200" />
+              </div>
+
+              {/* Google Sign-in */}
               <button
                 type="button"
-                onClick={() => setHelpOpen(true)}
-                className="text-xs font-semibold text-slate-800 border border-slate-300 rounded-lg px-3.5 py-1.5 hover:bg-slate-50 transition-colors cursor-pointer"
+                disabled={busy}
+                onClick={handleGoogleLogin}
+                className="w-full h-11 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition-all flex items-center justify-center gap-2.5 cursor-pointer active:scale-[0.99]"
               >
-                Need help?
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                  />
+                </svg>
+                <span>Continue with Google</span>
               </button>
-            </div>
-          </div>
 
-          {/* ── DSA Partner Benefit Card (Cashfree aesthetic) ── */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-950 via-[#064e3b] to-slate-900 p-5 text-white shadow-md border border-emerald-800/40">
-            <div className="relative z-10 flex items-center justify-between gap-4">
-              <div className="space-y-1.5">
-                <span className="inline-block px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 text-[10px] font-extrabold uppercase tracking-wider">
-                  DSA Partner Benefit
-                </span>
-                <div className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-                  HIGHEST <span className="text-emerald-400 text-lg font-bold">Commission Slabs*</span>
-                </div>
-                <p className="text-xs text-emerald-100/80 max-w-[220px]">
-                  Earn up to 2.5% DSA payout on loan disbursements across 50+ Banks &amp; NBFCs.
-                </p>
+              {/* Registration Link */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                <span className="text-slate-500">New partner?</span>
+                <Link
+                  href="/onboarding"
+                  className="font-bold text-indigo-600 hover:underline inline-flex items-center gap-1"
+                >
+                  Register as Partner <ArrowRight size={13} />
+                </Link>
               </div>
 
-              <div className="shrink-0 flex flex-col items-center justify-center w-20 h-20 rounded-full border border-emerald-400/30 bg-emerald-900/50 shadow-inner">
-                <span className="text-xl font-black text-amber-300">2.5%</span>
-                <span className="text-[9px] uppercase font-bold text-emerald-200 text-center">Max Payout</span>
+              {/* Facing Issues */}
+              <div className="pt-2 border-t border-slate-100 flex flex-col items-center gap-1.5">
+                <span className="text-xs text-slate-500">Facing issues?</span>
+                <button
+                  type="button"
+                  onClick={() => setHelpOpen(true)}
+                  className="text-xs font-semibold text-slate-800 border border-slate-300 rounded-lg px-3.5 py-1.5 hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  Need help?
+                </button>
               </div>
             </div>
-          </div>
 
-          {/* Security badge */}
-          <div className="flex items-center justify-center gap-1.5 text-xs text-slate-400">
-            <ShieldCheck size={14} className="text-emerald-600" />
-            <span>Bank-grade 256-bit encryption • ISO 9001:2015 certified</span>
+            {/* Mobile Minimal Security / Value Information (Requirement 33) */}
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-slate-500 pt-1">
+              <span className="flex items-center gap-1">
+                <CheckCircle2 size={13} className="text-emerald-600" /> Secure partner access
+              </span>
+              <span className="flex items-center gap-1">
+                <CheckCircle2 size={13} className="text-emerald-600" /> Track applications
+              </span>
+              <span className="flex items-center gap-1">
+                <CheckCircle2 size={13} className="text-emerald-600" /> Manage payouts
+              </span>
+            </div>
           </div>
         </div>
       </main>
 
-      {/* ── Cashfree Authenticate Modal / Bottom Sheet ── */}
+      {/* ── Authenticate Modal / Bottom Sheet (Requirements 32 & 33) ── */}
       {otpSent && (
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-xs p-0 sm:p-4 animate-fadeIn"
@@ -757,7 +829,7 @@ export default function PartnerLogin() {
         >
           {/* Toast Notification: OTP Sent Successfully! */}
           {showToast && (
-            <div className="fixed top-4 left-1/2 -translate-x-1/2 z-60 flex items-center justify-between gap-3 bg-[#16a34a] text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-semibold animate-slideDown">
+            <div className="fixed top-4 left-1/2 -translate-x-1/2 z-60 flex items-center justify-between gap-3 bg-emerald-600 text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-semibold animate-slideDown">
               <span className="flex items-center gap-1.5">
                 <CheckCircle2 size={16} /> OTP Sent Successfully!
               </span>
@@ -793,7 +865,7 @@ export default function PartnerLogin() {
             <div className="space-y-1">
               <p className="text-xs text-slate-600 leading-relaxed">
                 Enter the 6-digit OTP sent to your phone number{" "}
-                <strong className="text-slate-900">{maskedPhone}</strong>
+                <strong className="text-slate-900 font-bold">{maskedPhone}</strong>
               </p>
               <button
                 type="button"
@@ -802,7 +874,7 @@ export default function PartnerLogin() {
                   setOtpValues(["", "", "", "", "", ""])
                   setError("")
                 }}
-                className="text-xs font-semibold text-[#0f4bb4] hover:underline cursor-pointer inline-flex items-center gap-0.5"
+                className="text-xs font-semibold text-indigo-600 hover:underline cursor-pointer inline-flex items-center gap-0.5"
               >
                 Edit phone number
               </button>
@@ -843,19 +915,23 @@ export default function PartnerLogin() {
             {/* Resend & Timer */}
             <div className="flex items-center justify-between text-xs pt-1">
               <span className="text-slate-500">
-                {canResend ? "Didn't receive OTP?" : `Resend in ${otpTimer}s`}
+                {canResend
+                  ? "Didn't receive OTP?"
+                  : `Resend OTP (${String(Math.floor(otpTimer / 60)).padStart(2, "0")}:${String(
+                      otpTimer % 60
+                    ).padStart(2, "0")})`}
               </span>
               <button
                 type="button"
                 disabled={!canResend || resending}
                 onClick={handleResendMobileOtp}
-                className="font-semibold text-[#0f4bb4] hover:underline disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                className="font-semibold text-indigo-600 hover:underline disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 {resending ? "Sending OTP..." : "Resend OTP on WhatsApp"}
               </button>
             </div>
 
-            {/* Verify Button */}
+            {/* Verify CTA Button */}
             <button
               type="button"
               disabled={verifyLoading || otpValues.join("").length < 6}
@@ -868,7 +944,10 @@ export default function PartnerLogin() {
                   <span>Verifying OTP…</span>
                 </>
               ) : (
-                <span>Verify &amp; Log In</span>
+                <>
+                  <span>Verify &amp; Log In</span>
+                  <CheckCircle2 size={16} />
+                </>
               )}
             </button>
 
@@ -896,7 +975,7 @@ export default function PartnerLogin() {
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl space-y-4 border border-slate-100">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#0f4bb4] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
                   <Headphones size={18} />
                 </div>
                 <h3 className="text-base font-bold text-slate-800">Partner Helpdesk</h3>

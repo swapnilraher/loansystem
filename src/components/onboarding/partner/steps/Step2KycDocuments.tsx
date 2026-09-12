@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   ChevronDown,
   ExternalLink,
-  HelpCircle,
   Landmark,
   Loader2,
   Search,
@@ -25,41 +24,41 @@ import { docHref, type DocKey } from "../types"
 import { dobBounds } from "../net"
 import {
   Callout,
-  ChoiceGroup,
+  DocumentUploadCard,
   Field,
   FieldGrid,
   Full,
-  Section,
+  SectionCard,
   StepHeading,
   StepNav,
-  UploadTile,
+  TextInput,
+  VerifyPill,
 } from "../ui"
 
 const DOC_LABELS: Record<DocKey, string> = {
-  panDoc: "PAN card",
-  aadhaarFrontDoc: "Aadhaar — front",
-  aadhaarBackDoc: "Aadhaar — back",
-  chequeDoc: "Cancelled cheque or passbook",
-  gstDoc: "GST certificate",
+  panDoc: "PAN Card",
+  aadhaarFrontDoc: "Aadhaar — Front Side",
+  aadhaarBackDoc: "Aadhaar — Back Side",
+  chequeDoc: "Cancelled Cheque or Bank Passbook",
+  gstDoc: "GST Certificate",
 }
 
 /**
  * Step 2 — KYC & Bank Account Setup.
  *
- * Tailored for DSA Loan Partner onboarding:
- * - Bank Account Setup & KYC Verification
- * - PAN verification with live verified tag & realistic visual PAN card graphic
- * - GST number with green verified badge
- * - Bank account number and IFSC code with live bank & branch lookup
- * - Clean document uploads for PAN and Aadhaar
- * - Full-width solid black "Verify & Continue" button
+ * Implements the redesigned Step 2 matching Techstar fintech design system:
+ * - Clear 3-section layout: PAN & Identity Details, Bank Account Setup, Upload Documents
+ * - Compact, highly credible PAN verification card
+ * - Proper Date of Birth date-input with format cues and bounds
+ * - Bank account fields with confirm matching & IFSC branch lookup
+ * - Reusable DocumentUploadCard with upload progress, file view/replace/delete
+ * - Sticky bottom CTA bar with safe-area padding
  */
 export function Step2KycDocuments() {
   const {
     form,
     patch,
     fieldError,
-    invalidField,
     saving,
     saveAndContinue,
     back,
@@ -99,228 +98,203 @@ export function Step2KycDocuments() {
       href: docHref(doc),
       progress: uploadProgress[key],
       failed: uploadFailed === key,
+      uploading: uploadingDoc === key,
       uploaded: Boolean(doc?.url || (doc as any)?.driveFileId),
     }
   }
 
-  const applicantName = form.partnerType === "Firm"
-    ? form.businessName || form.fullName || "TECHSTAR PARTNER"
-    : form.fullName || "TECHSTAR PARTNER"
+  const applicantName =
+    form.partnerType === "Firm"
+      ? form.businessName || form.fullName || "Techstar Partner"
+      : form.fullName || "Techstar Partner"
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      {/* ── Heading ── */}
-      <div className="space-y-1.5">
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-          KYC &amp; Bank Account Setup
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-          Add your bank details so we know exactly where to send your partner commissions and file payouts!
-        </p>
-      </div>
+      {/* ── Page Heading ── */}
+      <StepHeading
+        eyebrow="Step 2 of 3"
+        title="KYC & Bank Account Setup"
+        description="Add your identity and bank details so commission payouts can be deposited securely."
+      />
 
-      {/* ── CARD 1: PAN & KYC Verification ── */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_4px_24px_rgba(0,0,0,0.03)] p-5 sm:p-7 space-y-5">
-        <div className="space-y-0.5">
-          <h2 className="text-sm sm:text-base font-bold text-slate-900">PAN &amp; Identity Details</h2>
-        </div>
-
-        {/* PAN Input (full width, no verify button) */}
-        <div className="space-y-2">
+      {/* ── SECTION 1: PAN & Identity Details ── */}
+      <SectionCard
+        title="PAN & Identity Details"
+        hint="Verified directly against Income Tax Department records."
+      >
+        {/* PAN Card Number */}
+        <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <label htmlFor="ob-panNumber" className="text-xs sm:text-sm font-semibold text-slate-800">
               PAN Card Number <span className="text-rose-500">*</span>
             </label>
-            {form.panVerified && (
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600">
-                <CheckCircle2 size={13} /> Verified
-              </span>
+            {form.panVerified && <VerifyPill state="verified" label="PAN Verified" />}
+          </div>
+
+          <div className="flex gap-2">
+            <input
+              id="ob-panNumber"
+              type="text"
+              maxLength={10}
+              value={form.panNumber}
+              onChange={(e) => patch({ panNumber: e.target.value.toUpperCase() })}
+              placeholder="AABAV8504E"
+              autoComplete="off"
+              className="flex-1 h-11 sm:h-12 px-3.5 rounded-xl border border-slate-200 bg-white text-sm font-mono uppercase text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 focus:outline-none transition-all"
+            />
+            {panFormatOk && !form.panVerified && (
+              <button
+                type="button"
+                disabled={panVerifying}
+                onClick={() => void verifyPan()}
+                className="h-11 sm:h-12 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-800 transition-colors disabled:opacity-40 cursor-pointer shrink-0"
+              >
+                {panVerifying ? (
+                  <span className="flex items-center gap-1.5">
+                    <Loader2 size={13} className="animate-spin text-indigo-600" /> Verifying…
+                  </span>
+                ) : (
+                  "Verify PAN"
+                )}
+              </button>
             )}
           </div>
 
-          <input
-            id="ob-panNumber"
-            type="text"
-            maxLength={10}
-            value={form.panNumber}
-            onChange={e => patch({ panNumber: e.target.value.toUpperCase() })}
-            placeholder="AABAV8504E"
-            autoComplete="off"
-            className="w-full h-11 sm:h-12 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white text-sm font-mono uppercase text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 focus:outline-none transition-all"
-          />
           {fieldError("ob-panNumber") && (
             <p className="text-xs text-rose-500">{fieldError("ob-panNumber")}</p>
           )}
-
-          {form.panVerified && (
-            <p className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 pt-0.5">
-              <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
-              Verified PAN for {String(form.panDetails?.fullName || form.fullName || "Partner")}
-            </p>
-          )}
+          {panNote && <Callout tone="info">{panNote}</Callout>}
         </div>
 
-        {/* ── Realistic PAN Card Graphic ── */}
+        {/* Compact PAN Result Card (Requirement 21) */}
         {(form.panVerified || form.panNumber.length >= 5) && (
-          <div className="relative overflow-hidden rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/95 via-sky-50/80 to-indigo-100/70 p-4 sm:p-5 shadow-xs space-y-3">
-            {/* Header */}
-            <div className="flex items-center justify-between text-[10px] sm:text-xs font-bold text-slate-700 tracking-wider">
-              <span>INCOME TAX DEPT.</span>
-              <div className="flex items-center gap-1">
-                <span className="text-xs">🇮🇳</span>
-                <span className="text-[9px] uppercase tracking-widest text-slate-600 font-bold">GOVT. OF INDIA</span>
-              </div>
+          <div className="rounded-xl border border-blue-200/90 bg-gradient-to-br from-blue-50/90 via-sky-50/70 to-indigo-50/60 p-3.5 sm:p-4 space-y-2 shadow-2xs">
+            <div className="flex items-center justify-between text-[10px] font-bold text-slate-600 tracking-wider">
+              <span className="uppercase">INCOME TAX DEPARTMENT</span>
+              <span className="flex items-center gap-1">
+                <span>🇮🇳</span>
+                <span className="uppercase font-semibold">GOVT. OF INDIA</span>
+              </span>
             </div>
 
-            <div className="flex items-center justify-between gap-3 pt-1">
-              <div className="space-y-2">
-                <div>
-                  <div className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold">Name</div>
-                  <div className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-wide uppercase">
-                    {String(form.panDetails?.fullName || form.fullName || "TECHSTAR PARTNER")}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold">Permanent Account Number</div>
-                  <div className="text-xs sm:text-base font-black font-mono text-slate-900 tracking-widest">
-                    {form.panNumber || "AABAV8504E"}
-                  </div>
+            <div className="flex items-center justify-between gap-2 pt-0.5">
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase text-slate-400 font-semibold">Name</div>
+                <div className="text-xs sm:text-sm font-bold text-slate-900 uppercase truncate">
+                  {String(form.panDetails?.fullName || form.fullName || "TECHSTAR PARTNER")}
                 </div>
               </div>
 
-              {/* Avatar placeholder & sign graphic box */}
-              <div className="flex flex-col items-center gap-1.5 shrink-0">
-                <div className="w-12 h-14 sm:w-14 sm:h-16 rounded-lg border border-slate-300 bg-white/90 flex items-center justify-center text-slate-300 shadow-2xs">
-                  <User size={26} />
-                </div>
-                <div className="w-12 sm:w-14 h-4 rounded border border-slate-200 bg-white/80 flex items-center justify-center">
-                  <span className="text-[8px] italic text-slate-400 font-serif">Verified</span>
+              <div className="text-right shrink-0">
+                <div className="text-[10px] uppercase text-slate-400 font-semibold">PAN Number</div>
+                <div className="text-xs sm:text-sm font-mono font-black text-slate-900 tracking-wider">
+                  {form.panNumber || "AABAV8504E"}
                 </div>
               </div>
             </div>
 
             {form.panVerified && (
               <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 pt-1 border-t border-blue-200/50">
-                <Check size={13} strokeWidth={3} className="text-emerald-600 shrink-0" />
-                <span>Government NSDL / ITD database matched</span>
+                <Check size={12} strokeWidth={3} className="text-emerald-600 shrink-0" />
+                <span>Verified with NSDL &amp; Income Tax records</span>
               </div>
             )}
           </div>
         )}
 
-        {/* GST Number Field */}
-        {form.isGstRegistered === "Yes" && (
-          <div className="space-y-1.5 pt-1">
-            <label htmlFor="ob-gst-input" className="block text-xs sm:text-sm font-semibold text-slate-800">
-              Your GST Number
-            </label>
-            <div className="flex h-11 sm:h-12 rounded-xl border border-slate-200 bg-white px-3.5 items-center justify-between">
-              <span className="font-mono text-sm uppercase text-slate-900 font-bold">
-                {form.gstin || "27AABAV8504E1ZJ"}
-              </span>
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600">
-                <CheckCircle2 size={13} /> Verified
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Date of Birth & Gender (Dropdown) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-          <div className="space-y-1.5">
-            <label htmlFor="ob-dob" className="block text-xs sm:text-sm font-semibold text-slate-800">
-              Date of Birth <span className="text-rose-500">*</span>
-            </label>
+        {/* Date of Birth & Gender (Requirement 22) */}
+        <FieldGrid>
+          <Field
+            id="ob-dob"
+            label="Date of Birth"
+            required
+            hint="Must match your official PAN card record."
+            error={fieldError("ob-dob")}
+          >
             <input
               id="ob-dob"
               type="date"
               min={min}
               max={max}
               value={form.dob}
-              onChange={e => patch({ dob: e.target.value })}
-              className="w-full h-11 sm:h-12 px-3.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 focus:border-indigo-600 focus:outline-none transition-all"
+              onChange={(e) => patch({ dob: e.target.value })}
+              className="w-full h-11 sm:h-12 px-3.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 focus:outline-none transition-all"
             />
-            {fieldError("ob-dob") && (
-              <p className="text-xs text-rose-500">{fieldError("ob-dob")}</p>
-            )}
-          </div>
+          </Field>
 
-          <div className="space-y-1.5">
-            <label htmlFor="ob-gender" className="block text-xs sm:text-sm font-semibold text-slate-800">
-              Gender <span className="text-rose-500">*</span>
-            </label>
+          <Field id="ob-gender" label="Gender" required error={fieldError("ob-gender")}>
             <div className="relative">
               <select
                 id="ob-gender"
                 value={form.gender || ""}
-                onChange={e => patch({ gender: e.target.value as any })}
-                className="w-full h-11 sm:h-12 px-3.5 pr-10 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:border-indigo-600 focus:outline-none appearance-none transition-all cursor-pointer"
+                onChange={(e) => patch({ gender: e.target.value as any })}
+                className="w-full h-11 sm:h-12 px-3.5 pr-10 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 focus:outline-none appearance-none transition-all cursor-pointer"
               >
-                <option value="" disabled>Select Gender</option>
+                <option value="" disabled>
+                  Select Gender
+                </option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
                 <option value="Other">Other</option>
               </select>
-              <ChevronDown size={18} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <ChevronDown
+                size={18}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+              />
             </div>
-            {fieldError("ob-gender") && (
-              <p className="text-xs text-rose-500">{fieldError("ob-gender")}</p>
-            )}
-          </div>
-        </div>
-      </div>
+          </Field>
+        </FieldGrid>
+      </SectionCard>
 
-      {/* ── CARD 2: Bank Account Setup (Matching User Screenshot 4) ── */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_4px_24px_rgba(0,0,0,0.03)] p-5 sm:p-7 space-y-5">
-        <div className="space-y-0.5">
-          <h2 className="text-sm sm:text-base font-bold text-slate-900">Bank Account Setup</h2>
-          <p className="text-xs text-slate-400">Commission disbursements are sent to this account.</p>
-        </div>
-
-        {/* Account Number Label matching Screenshot 4: Bank Account Number of TECHSTAR MONEY... */}
-        <div className="space-y-1.5">
-          <label htmlFor="ob-accountNumber" className="block text-xs sm:text-sm font-semibold text-slate-800">
-            Bank Account Number of <span className="uppercase text-slate-900 font-bold">{applicantName}</span> <span className="text-rose-500">*</span>
-          </label>
-          <input
+      {/* ── SECTION 2: Bank Account Setup (Requirement 23) ── */}
+      <SectionCard
+        title="Bank Account Setup"
+        hint="Commission disbursements are sent to this account."
+      >
+        {/* Account Number */}
+        <Field
+          id="ob-accountNumber"
+          label={`Bank Account Number of ${applicantName}`}
+          required
+          error={fieldError("ob-accountNumber")}
+        >
+          <TextInput
             id="ob-accountNumber"
             type="text"
             inputMode="numeric"
             value={form.accountNumber}
-            onChange={e => patch({ accountNumber: e.target.value.replace(/\D/g, "") })}
+            onChange={(e) => patch({ accountNumber: e.target.value.replace(/\D/g, "") })}
             placeholder="60591201503"
-            className="w-full h-11 sm:h-12 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white text-sm font-mono text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 focus:outline-none transition-all"
+            invalid={Boolean(fieldError("ob-accountNumber"))}
           />
-          {fieldError("ob-accountNumber") && (
-            <p className="text-xs text-rose-500">{fieldError("ob-accountNumber")}</p>
-          )}
-        </div>
+        </Field>
 
         {/* Confirm Account Number */}
-        <div className="space-y-1.5">
-          <label htmlFor="ob-confirmAccountNumber" className="block text-xs sm:text-sm font-semibold text-slate-800">
-            Confirm Bank Account Number <span className="text-rose-500">*</span>
-          </label>
-          <input
+        <Field
+          id="ob-confirmAccountNumber"
+          label="Confirm Bank Account Number"
+          required
+          error={fieldError("ob-confirmAccountNumber")}
+        >
+          <TextInput
             id="ob-confirmAccountNumber"
             type="text"
             inputMode="numeric"
             value={form.confirmAccountNumber}
-            onChange={e => patch({ confirmAccountNumber: e.target.value.replace(/\D/g, "") })}
+            onChange={(e) => patch({ confirmAccountNumber: e.target.value.replace(/\D/g, "") })}
             placeholder="Re-enter bank account number"
-            className="w-full h-11 sm:h-12 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white text-sm font-mono text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 focus:outline-none transition-all"
+            invalid={Boolean(fieldError("ob-confirmAccountNumber"))}
           />
-          {fieldError("ob-confirmAccountNumber") && (
-            <p className="text-xs text-rose-500">{fieldError("ob-confirmAccountNumber")}</p>
-          )}
-        </div>
+        </Field>
 
         {/* Account Holder Name */}
-        <div className="space-y-1.5">
-          <label htmlFor="ob-accountHolderName" className="block text-xs sm:text-sm font-semibold text-slate-800">
-            Account Holder Name (as per Bank) <span className="text-rose-500">*</span>
-          </label>
+        <Field
+          id="ob-accountHolderName"
+          label="Account Holder Name (as per Bank)"
+          required
+          hint="Auto-populated once bank account is verified."
+          error={fieldError("ob-accountHolderName")}
+        >
           <input
             id="ob-accountHolderName"
             type="text"
@@ -329,22 +303,15 @@ export function Step2KycDocuments() {
             placeholder="Auto-populated once bank account is verified"
             className="w-full h-11 sm:h-12 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder:text-slate-400 cursor-not-allowed focus:outline-none transition-all"
           />
-          {fieldError("ob-accountHolderName") && (
-            <p className="text-xs text-rose-500">{fieldError("ob-accountHolderName")}</p>
-          )}
-        </div>
+        </Field>
 
-        {/* IFSC Code with Search Icon */}
+        {/* IFSC Code with Search & Verification */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <label htmlFor="ob-ifsc" className="text-xs sm:text-sm font-semibold text-slate-800">
-              IFSC code <span className="text-rose-500">*</span>
+              IFSC Code <span className="text-rose-500">*</span>
             </label>
-            {form.bankVerified && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600">
-                <CheckCircle2 size={14} /> Account Verified
-              </span>
-            )}
+            {form.bankVerified && <VerifyPill state="verified" label="Account Verified" />}
           </div>
 
           <div className="relative">
@@ -353,36 +320,38 @@ export function Step2KycDocuments() {
               type="text"
               maxLength={11}
               value={form.ifsc}
-              onChange={e => {
+              onChange={(e) => {
                 const clean = e.target.value.toUpperCase()
                 patch({ ifsc: clean })
                 if (clean.length === 11) void lookupIfsc(clean)
               }}
-              placeholder="MAHB0001327"
-              className="w-full h-11 sm:h-12 pl-3.5 pr-28 rounded-xl border border-slate-200 bg-white text-sm font-mono text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 focus:outline-none transition-all"
+              placeholder="SBIN0017526"
+              className="w-full h-11 sm:h-12 pl-3.5 pr-24 rounded-xl border border-slate-200 bg-white text-sm font-mono text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 focus:outline-none transition-all"
             />
-            {/* Search for IFSC indicator */}
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-indigo-600 text-xs font-semibold pointer-events-none">
               <Search size={14} />
-              <span>Search for IFSC</span>
+              <span>Lookup</span>
             </div>
           </div>
+
           {fieldError("ob-ifsc") && (
             <p className="text-xs text-rose-500">{fieldError("ob-ifsc")}</p>
           )}
 
-          {/* Resolved Branch Display */}
+          {/* Resolved Bank & Branch Display */}
           {Boolean(form.bankName || form.branchName) && (
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-800 pt-1">
-              <span className="text-sm">🏛️</span>
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-800 pt-1">
+              <Landmark size={14} className="text-indigo-600 shrink-0" />
               <span>
-                {form.bankName}{form.branchName ? `, ${form.branchName}` : ""}
+                {form.bankName}
+                {form.branchName ? ` · ${form.branchName}` : ""}
               </span>
             </div>
           )}
+
           {ifscLoading && (
             <p className="flex items-center gap-1.5 text-xs text-slate-500 pt-1">
-              <Loader2 size={13} className="animate-spin text-indigo-600" /> Fetching bank &amp; branch details…
+              <Loader2 size={13} className="animate-spin text-indigo-600" /> Looking up branch details…
             </p>
           )}
 
@@ -395,22 +364,26 @@ export function Step2KycDocuments() {
                 onClick={() => void verifyBank()}
                 className="h-10 px-4 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-xs font-semibold text-indigo-700 transition-colors flex items-center gap-2 cursor-pointer"
               >
-                {bankVerifying ? <Loader2 size={14} className="animate-spin" /> : "Verify Bank Account"}
+                {bankVerifying ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" /> Verifying Bank Account…
+                  </>
+                ) : (
+                  "Verify Bank Account"
+                )}
               </button>
             </div>
           )}
         </div>
-      </div>
+      </SectionCard>
 
-      {/* ── CARD 3: Document Uploads ── */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_4px_24px_rgba(0,0,0,0.03)] p-5 sm:p-7 space-y-5">
-        <div className="space-y-0.5">
-          <h2 className="text-sm sm:text-base font-bold text-slate-900">Upload Documents</h2>
-          <p className="text-xs text-slate-400">Clear photos or PDFs of PAN and Aadhaar (max 5 MB each).</p>
-        </div>
-
+      {/* ── SECTION 3: Upload Documents (Requirements 24 & 25) ── */}
+      <SectionCard
+        title="Upload Documents"
+        hint="Clear photos or PDFs of PAN and Aadhaar (JPG, PNG, WEBP or PDF · max 5 MB each)."
+      >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <UploadTile
+          <DocumentUploadCard
             id="ob-doc-panDoc"
             label="PAN Card Photo / Scan"
             required
@@ -421,7 +394,7 @@ export function Step2KycDocuments() {
             onRemove={() => removeDoc("panDoc")}
           />
 
-          <UploadTile
+          <DocumentUploadCard
             id="ob-doc-aadhaarFrontDoc"
             label="Aadhaar — Front Side"
             required
@@ -433,11 +406,11 @@ export function Step2KycDocuments() {
           />
 
           {!form.aadhaarCombined && (
-            <UploadTile
+            <DocumentUploadCard
               id="ob-doc-aadhaarBackDoc"
               label="Aadhaar — Back Side"
               required
-              hint="Back side showing address"
+              hint="Back side showing complete address"
               {...slot("aadhaarBackDoc")}
               onOpenPicker={() => setPicking("aadhaarBackDoc")}
               onRetry={() => retryUpload("aadhaarBackDoc")}
@@ -446,18 +419,19 @@ export function Step2KycDocuments() {
           )}
         </div>
 
-        <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer pt-1 select-none">
+        {/* Aadhaar Combined Checkbox */}
+        <label className="flex items-center gap-2.5 text-xs font-medium text-slate-700 cursor-pointer pt-1 select-none">
           <input
             type="checkbox"
             checked={form.aadhaarCombined}
-            onChange={e => patch({ aadhaarCombined: e.target.checked })}
-            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            onChange={(e) => patch({ aadhaarCombined: e.target.checked })}
+            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
           />
           <span>Both sides of Aadhaar are on a single page / photo</span>
         </label>
-      </div>
+      </SectionCard>
 
-      {/* Image Crop Modal */}
+      {/* Image Crop & Upload Modal */}
       {picking && (
         <ImageCropModal
           isOpen={Boolean(picking)}
@@ -471,7 +445,7 @@ export function Step2KycDocuments() {
         />
       )}
 
-      {/* ── Full Width Black Action Button: Verify / Continue (matching Screenshot 4) ── */}
+      {/* ── Sticky Mobile Action CTA Bar (Verify & Continue) ── */}
       <StepNav
         onBack={back}
         onContinue={() => void saveAndContinue()}
